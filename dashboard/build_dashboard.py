@@ -136,6 +136,31 @@ outcome_dup_ids = len(outcomes) - len({o["request_id"] for o in outcomes})
 opp_status_mismatch = [o["request_id"] for o in outcomes
                        if o["opportunity_created"] == "Y" and requests[o["request_id"]]["status"] in ("Open", "Stalled", "Routed")]
 
+# --------------------------------------------------------------------------- routing flow
+with open(os.path.join(ROOT, "scoping", "routing_flow.svg"), encoding="utf-8") as f:
+    routing_svg = f.read()
+roster_names = {r["name"].strip() for r in rows("connector_roster.csv")}
+ask_rows_on_roster = sum(o["connector_asked"].strip() in roster_names for o in outcomes)
+off_roster_askers = sorted({o["connector_asked"].strip() for o in outcomes} - roster_names)
+asks_from_offer = sum(bool(asked_by[rid] & {m["user"].strip() for r, m in offers if r == rid}) for rid in asked_by)
+routing_links = [
+    ("slack_threads.request_id -> intro_requests.request_id", "key", "1:1",
+     f"{len(threads)}/{len(requests)} both directions, no duplicates"),
+    ("intro_outcomes.request_id -> intro_requests.request_id", "key (FK)", "1:1",
+     f"{len(outcomes)}/{len(outcomes)} valid; covers {len(outcomes)/len(requests):.1%} of requests; one row per request"),
+    ("connector_roster.connections_file -> connections_*.csv", "key (filename)", "1:1",
+     "6/6 resolve — the only clean link into the network data"),
+    ("intro_outcomes.connector_asked -> connector_roster.name", "text", "many:1",
+     f"{ask_rows_on_roster}/{len(outcomes)} rows match; {len(outcomes)-ask_rows_on_roster} asks name off-roster people ({', '.join(off_roster_askers)})"),
+    ("intro_requests.target_company_raw -> crm_accounts.account_name", "text", "many:1",
+     "65% exact, 71% after lowercasing / punctuation / legal-suffix stripping; domain variant 35%"),
+    ("intro_requests.target_person_raw -> connections_*.name", "text", "many:many",
+     "0% at every normalization tier"),
+    ("intro_requests.requested_by -> crm_accounts.owner", "text", "many:1", "100% (8 requesters, all account owners)"),
+    ("investor_network.person -> connector_roster.name", "text", "many:1", "2.4%"),
+    ("crm_accounts.account_id", "PK", "—", "referenced by no other table"),
+]
+
 # --------------------------------------------------------------------------- integrity audit
 integrity_div = integrity_fragment()  # also refreshes audit/results.json and audit/integrity.html
 
@@ -195,12 +220,13 @@ td:nth-child(n+2):not(:last-child).num,th.num{{text-align:right}}
 .finding b{{display:block}}
 .foot{{color:var(--mute);font-size:13px}}
 code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
+.diagram svg{{width:100%;height:auto;max-width:100%}}
 </style></head>
 <body>
 <header>
   <h1>Halyard — scoping &amp; verification dashboard</h1>
   <p>200 warm-intro requests · Aug 2025 – Jul 2026 · sources: <code>dataset/</code> · built {datetime.now():%Y-%m-%d}</p>
-  <nav style="margin-top:12px"><a href="#funnel">Funnel</a><a href="#scoping">Scoping: Slack threads</a><a href="#verify">Verification: CSV profile</a><a href="#integrity">Integrity audit</a></nav>
+  <nav style="margin-top:12px"><a href="#funnel">Funnel</a><a href="#scoping">Scoping: Slack threads</a><a href="#verify">Verification: CSV profile</a><a href="#routing">Routing flow</a><a href="#integrity">Integrity audit</a></nav>
 </header>
 <main>
 
@@ -288,6 +314,28 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
   </div>
   <h3>All flags, by file</h3>
   {table(["File", "Column", "Issue"], flags)}
+</section>
+
+<section id="routing">
+  <h2>Routing flow — how a request becomes an ask</h2>
+  <p class="lede">Top-down view from <code>#intro-requests</code> to <code>intro_outcomes.csv</code>, with the four reference tables that <em>could</em> drive routing. Figures from <code>scoping/routing_kpis.md</code>, <code>scoping/slack_thread_findings.md</code> and <code>scoping/join_rates.md</code>; write-up in <code>scoping/routing_flow.md</code>.</p>
+  <div class="kpis">
+    {kpi(f"{len({r for r, _ in offers})} / {len(threads)}", "threads with a concrete offer", f"{len(offers)} offer replies of {len(replies)}")}
+    {kpi(f"{len(asked_by)} / {len(requests)}", "requests with an ask logged", f"{len(requests)-len(asked_by)} never reach an outcome row")}
+    {kpi(f"{len(asked_by)-asks_from_offer} / {len(asked_by)}", "asks not from a Slack offer", "connector never spoke on the thread")}
+    {kpi("3 d", "median request → ask", "range 0–6 d; unchanged by an offer")}
+    {kpi("0%", "target people found in any network", f"{sum(r for fn, r, _, _ in inventory if fn.startswith('connections_')):,} contacts searched")}
+  </div>
+  <div class="grid2">
+    <div class="diagram">{routing_svg}</div>
+    <div>
+      <h3>Relational status</h3>
+      <div class="finding warn"><b>request_id is the only real key.</b>Slack → requests → outcomes join cleanly on it. Everything that answers <em>who to ask</em> is a raw-string match.</div>
+      <div class="finding warn"><b>The routing step is not in the data.</b>No column records which connector was considered or why one was chosen; <code>intro_outcomes</code> only stores the end state.</div>
+      <div class="finding"><b>Only the company axis is workable.</b><code>target_company_raw</code> resolves to a CRM account 71% of the time; the requested person is never in a connector's contact list, and <code>investor_network</code> joins to nothing downstream.</div>
+      {table(["Link", "Type", "Cardinality", "Integrity"], routing_links)}
+    </div>
+  </div>
 </section>
 
 <section id="integrity" style="padding:0 0 10px">
