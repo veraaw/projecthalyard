@@ -4,56 +4,73 @@ config:
   flowchart:
     curve: linear
     htmlLabels: true
-    nodeSpacing: 30
-    rankSpacing: 60
-    wrappingWidth: 320
+    nodeSpacing: 35
+    rankSpacing: 70
+    wrappingWidth: 340
 ---
 flowchart TB
     A["<b>Slack #intro-requests</b>
-    200 threads · 523 messages · 323 replies
-    43 threads get no reply at all
+    <code>slack_threads.jsonl</code> · 200 threads · 523 messages
+    key: <code>request_id</code> (unique, 1 per thread)
+    323 replies · 43 threads get no reply
     median 27.2 h to the first reply"]
+
     B["<b>intro_requests.csv</b>
-    200 rows — one per thread, parsed from
-    the opening message into free-text
-    company / person / title"]
-    C["<b>Routing to a connector</b>
-    <i>mostly off-channel</i>
+    200 rows · PK <code>request_id</code> (no duplicates)
+    parsed 1:1 from the opening message
+    <code>target_company_raw</code> / <code>target_person_raw</code> / <code>target_title_raw</code>
+    are free text, not keys"]
+
+    C(["<b>Routing to a connector</b>
+    <i>mostly off-channel — no table represents this step</i>
     only 15 / 200 threads carry a concrete offer
     median 3 d request → ask, range 0–6 d
-    an offer on the thread does not speed it up"]
-    D["<b>intro_outcomes.csv</b>
-    <b>85 of 200</b> requests have an ask logged
-    115 requests never reach an outcome row
-    74 / 85 asks name someone who
-    never offered on the thread"]
+    no column anywhere records why a connector was picked"])
 
-    A -->|"1:1 parse"| B
+    D["<b>intro_outcomes.csv</b>
+    85 rows · PK <code>request_id</code> (no duplicates)
+    <b>85 of 200</b> requests have an ask logged
+    74 / 85 asks name someone who never offered
+    one ask per request — a second offerer cannot be stored"]
+
+    A -->|"<code>request_id</code> · 1:1 · 200/200 both ways"| B
     B --> C
-    C -->|"42.5% of requests"| D
+    C -->|"<code>request_id</code> FK · 85/85 valid · 42.5% of requests covered"| D
 
     subgraph ref["Reference data — who could be asked"]
         direction LR
         R1["<b>connector_roster.csv</b>
-        6 connectors
-        5 non-roster people also get asked"]
+        6 rows · PK <code>name</code> (text)
+        <code>connections_file</code> → 6/6 files on disk (clean FK)"]
         R2["<b>connections_*.csv</b>
-        6 files · 5,075 contacts
-        0% of target people appear in any of them"]
+        6 files · 5,075 rows · no ID column
+        identity is <code>name</code> + <code>company</code> text only"]
         R3["<b>crm_accounts.csv</b>
-        50 accounts
-        71% of target companies resolve to one"]
+        50 rows · PK <code>account_id</code>
+        <code>account_id</code> is referenced by nothing"]
         R4["<b>investor_network.csv</b>
-        73 people
-        no ask is ever traced to this table"]
+        73 rows · no PK
+        <code>person</code> → roster <code>name</code>: 2.4%"]
     end
 
-    ref -.-> C
+    R1 -.->|"<code>connector_asked</code> ≈ <code>name</code><br/>80/85 rows · 5 asks are off-roster people"| C
+    R2 -.->|"<code>target_person_raw</code> ≈ <code>name</code><br/><b>0%</b> at every normalization tier"| C
+    R3 -.->|"<code>target_company_raw</code> ≈ <code>account_name</code><br/>65% exact → 71% normalized (<code>domain</code>: 35%)"| C
+    R4 -.->|"no join to requests or outcomes exists"| C
+
+    L["<b>Relational status</b>
+    ── solid = real key, enforced by construction
+    ┄┄ dashed = fuzzy text match, rate shown
+    <code>request_id</code> is the only ID that actually joins tables.
+    Everything about <i>who</i> to ask is matched on raw strings,
+    and the routing decision itself is never persisted."]
 
     classDef stage fill:#eef4fb,stroke:#3b6ea5,stroke-width:1px,color:#12263a;
     classDef gap fill:#fdf0ec,stroke:#c2603f,stroke-width:1px,color:#3a1a12;
     classDef refbox fill:#f4f1e8,stroke:#8a7a4f,stroke-width:1px,color:#2e2716;
+    classDef legend fill:#ffffff,stroke:#9aa0a6,stroke-width:1px,color:#3c4043;
     class A,B stage;
     class C,D gap;
     class R1,R2,R3,R4 refbox;
+    class L legend;
     style ref fill:#fbfaf6,stroke:#c9c0a4,color:#2e2716;
