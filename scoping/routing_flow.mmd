@@ -4,73 +4,56 @@ config:
   flowchart:
     curve: linear
     htmlLabels: true
-    nodeSpacing: 35
-    rankSpacing: 70
-    wrappingWidth: 340
+    nodeSpacing: 30
+    rankSpacing: 60
+    wrappingWidth: 320
 ---
 flowchart TB
     A["<b>Slack #intro-requests</b>
-    <code>slack_threads.jsonl</code> · 200 threads · 523 messages
-    key: <code>request_id</code> (unique, 1 per thread)
-    323 replies · 43 threads get no reply
+    200 threads · 523 messages · 323 replies
+    43 threads get no reply at all
     median 27.2 h to the first reply"]
-
     B["<b>intro_requests.csv</b>
-    200 rows · PK <code>request_id</code> (no duplicates)
-    parsed 1:1 from the opening message
-    <code>target_company_raw</code> / <code>target_person_raw</code> / <code>target_title_raw</code>
-    are free text, not keys"]
-
-    C(["<b>Routing to a connector</b>
-    <i>mostly off-channel — no table represents this step</i>
+    200 rows — one per thread, parsed from
+    the opening message into free-text
+    company / person / title"]
+    C["<b>Routing to a connector</b>
+    <i>mostly off-channel</i>
     only 15 / 200 threads carry a concrete offer
     median 3 d request → ask, range 0–6 d
-    no column anywhere records why a connector was picked"])
-
+    no table records how a connector was picked"]
     D["<b>intro_outcomes.csv</b>
-    85 rows · PK <code>request_id</code> (no duplicates)
     <b>85 of 200</b> requests have an ask logged
-    74 / 85 asks name someone who never offered
-    one ask per request — a second offerer cannot be stored"]
+    115 requests never reach an outcome row
+    74 / 85 asks name someone who
+    never offered on the thread"]
 
-    A -->|"<code>request_id</code> · 1:1 · 200/200 both ways"| B
+    A -->|"1:1 · 200/200 on request_id"| B
     B --> C
-    C -->|"<code>request_id</code> FK · 85/85 valid · 42.5% of requests covered"| D
+    C -->|"42.5% of requests"| D
 
     subgraph ref["Reference data — who could be asked"]
         direction LR
         R1["<b>connector_roster.csv</b>
-        6 rows · PK <code>name</code> (text)
-        <code>connections_file</code> → 6/6 files on disk (clean FK)"]
+        6 connectors
+        matches 80 / 85 asks"]
         R2["<b>connections_*.csv</b>
-        6 files · 5,075 rows · no ID column
-        identity is <code>name</code> + <code>company</code> text only"]
+        6 files · 5,075 contacts
+        matches 0% of target people"]
         R3["<b>crm_accounts.csv</b>
-        50 rows · PK <code>account_id</code>
-        <code>account_id</code> is referenced by nothing"]
+        50 accounts
+        matches 71% of target companies"]
         R4["<b>investor_network.csv</b>
-        73 rows · no PK
-        <code>person</code> → roster <code>name</code>: 2.4%"]
+        73 people
+        no join to requests or outcomes"]
     end
 
-    R1 -.->|"<code>connector_asked</code> ≈ <code>name</code><br/>80/85 rows · 5 asks are off-roster people"| C
-    R2 -.->|"<code>target_person_raw</code> ≈ <code>name</code><br/><b>0%</b> at every normalization tier"| C
-    R3 -.->|"<code>target_company_raw</code> ≈ <code>account_name</code><br/>65% exact → 71% normalized (<code>domain</code>: 35%)"| C
-    R4 -.->|"no join to requests or outcomes exists"| C
-
-    L["<b>Relational status</b>
-    ── solid = real key, enforced by construction
-    ┄┄ dashed = fuzzy text match, rate shown
-    <code>request_id</code> is the only ID that actually joins tables.
-    Everything about <i>who</i> to ask is matched on raw strings,
-    and the routing decision itself is never persisted."]
+    ref -.->|"name / company text only — no keys"| C
 
     classDef stage fill:#eef4fb,stroke:#3b6ea5,stroke-width:1px,color:#12263a;
     classDef gap fill:#fdf0ec,stroke:#c2603f,stroke-width:1px,color:#3a1a12;
     classDef refbox fill:#f4f1e8,stroke:#8a7a4f,stroke-width:1px,color:#2e2716;
-    classDef legend fill:#ffffff,stroke:#9aa0a6,stroke-width:1px,color:#3c4043;
     class A,B stage;
     class C,D gap;
     class R1,R2,R3,R4 refbox;
-    class L legend;
     style ref fill:#fbfaf6,stroke:#c9c0a4,color:#2e2716;
