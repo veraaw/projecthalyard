@@ -1,0 +1,2402 @@
+{
+  "as_of": "2026-09-03",
+  "source": "dataset/",
+  "files": {
+    "connections_aldridge.csv": {
+      "rows": 1455,
+      "primary_key": "name",
+      "columns": [
+        "name",
+        "company",
+        "title",
+        "profile_url",
+        "connected_on"
+      ]
+    },
+    "connections_beckett.csv": {
+      "rows": 1130,
+      "primary_key": "name",
+      "columns": [
+        "name",
+        "company",
+        "title",
+        "profile_url",
+        "connected_on"
+      ]
+    },
+    "connections_duvall.csv": {
+      "rows": 420,
+      "primary_key": "name",
+      "columns": [
+        "name",
+        "company",
+        "title",
+        "profile_url",
+        "connected_on"
+      ]
+    },
+    "connections_raghunathan.csv": {
+      "rows": 728,
+      "primary_key": "name",
+      "columns": [
+        "name",
+        "company",
+        "title",
+        "profile_url",
+        "connected_on"
+      ]
+    },
+    "connections_trask.csv": {
+      "rows": 356,
+      "primary_key": "name",
+      "columns": [
+        "name",
+        "company",
+        "title",
+        "profile_url",
+        "connected_on"
+      ]
+    },
+    "connections_whitfield.csv": {
+      "rows": 986,
+      "primary_key": "name",
+      "columns": [
+        "name",
+        "company",
+        "title",
+        "profile_url",
+        "connected_on"
+      ]
+    },
+    "connector_roster.csv": {
+      "rows": 6,
+      "primary_key": "name",
+      "columns": [
+        "name",
+        "role",
+        "type",
+        "focus_areas",
+        "stated_monthly_capacity",
+        "notes",
+        "connections_file"
+      ]
+    },
+    "crm_accounts.csv": {
+      "rows": 50,
+      "primary_key": "account_id",
+      "columns": [
+        "account_id",
+        "account_name",
+        "domain",
+        "owner",
+        "stage",
+        "arr_potential_usd",
+        "industry",
+        "employee_count",
+        "hq",
+        "last_touch_date"
+      ]
+    },
+    "intro_outcomes.csv": {
+      "rows": 85,
+      "primary_key": "request_id",
+      "columns": [
+        "request_id",
+        "connector_asked",
+        "asked_date",
+        "responded",
+        "response_date",
+        "intro_sent",
+        "intro_date",
+        "meeting_booked",
+        "opportunity_created",
+        "opportunity_value_usd"
+      ]
+    },
+    "intro_requests.csv": {
+      "rows": 200,
+      "primary_key": "request_id",
+      "columns": [
+        "request_id",
+        "requested_by",
+        "requester_role",
+        "request_date",
+        "raw_ask",
+        "target_company_raw",
+        "target_person_raw",
+        "target_title_raw",
+        "deal_value_usd",
+        "urgency",
+        "path_found_flag",
+        "status"
+      ]
+    },
+    "investor_network.csv": {
+      "rows": 73,
+      "primary_key": "person",
+      "columns": [
+        "person",
+        "role",
+        "fund",
+        "portfolio_company",
+        "board_seat",
+        "prior_employer",
+        "prior_employer_start",
+        "prior_employer_end"
+      ]
+    }
+  },
+  "checks": [
+    {
+      "check_id": "orphan_outcome_request_id",
+      "title": "intro_outcomes.csv.request_id not found in intro_requests.csv.request_id",
+      "severity": "high",
+      "denominator": 85,
+      "denominator_label": "intro_outcomes.csv rows",
+      "section": "referential",
+      "columns": [
+        "request_id"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "request_without_outcome",
+      "title": "intro_requests.csv.request_id not found in intro_outcomes.csv.request_id",
+      "severity": "info",
+      "denominator": 200,
+      "denominator_label": "intro_requests.csv rows",
+      "section": "referential",
+      "columns": [
+        "request_id"
+      ],
+      "count": 115
+    },
+    {
+      "check_id": "connector_asked_not_in_roster",
+      "title": "intro_outcomes.csv.connector_asked not found in connector_roster.csv.name",
+      "severity": "high",
+      "denominator": 85,
+      "denominator_label": "intro_outcomes.csv rows",
+      "section": "referential",
+      "columns": [
+        "connector_asked"
+      ],
+      "count": 5
+    },
+    {
+      "check_id": "roster_connector_never_asked",
+      "title": "connector_roster.csv.name not found in intro_outcomes.csv.connector_asked",
+      "severity": "info",
+      "denominator": 6,
+      "denominator_label": "connector_roster.csv rows",
+      "section": "referential",
+      "columns": [
+        "name"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "crm_owner_not_a_requester",
+      "title": "crm_accounts.csv.owner not found in intro_requests.csv.requested_by",
+      "severity": "medium",
+      "denominator": 50,
+      "denominator_label": "crm_accounts.csv rows",
+      "section": "referential",
+      "columns": [
+        "owner"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "requester_not_a_crm_owner",
+      "title": "intro_requests.csv.requested_by not found in crm_accounts.csv.owner",
+      "severity": "medium",
+      "denominator": 200,
+      "denominator_label": "intro_requests.csv rows",
+      "section": "referential",
+      "columns": [
+        "requested_by"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "duplicate_intro_requests_request_id",
+      "title": "duplicate request_id in intro_requests.csv",
+      "severity": "high",
+      "denominator": 200,
+      "denominator_label": "intro_requests.csv rows",
+      "section": "keys",
+      "columns": [
+        "request_id"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "duplicate_intro_outcomes_request_id",
+      "title": "duplicate request_id in intro_outcomes.csv",
+      "severity": "high",
+      "denominator": 85,
+      "denominator_label": "intro_outcomes.csv rows",
+      "section": "keys",
+      "columns": [
+        "request_id"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "duplicate_crm_accounts_account_id",
+      "title": "duplicate account_id in crm_accounts.csv",
+      "severity": "high",
+      "denominator": 50,
+      "denominator_label": "crm_accounts.csv rows",
+      "section": "keys",
+      "columns": [
+        "account_id"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "duplicate_connector_roster_name",
+      "title": "duplicate name in connector_roster.csv",
+      "severity": "high",
+      "denominator": 6,
+      "denominator_label": "connector_roster.csv rows",
+      "section": "keys",
+      "columns": [
+        "name"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "negative_response_lag",
+      "title": "response_date earlier than asked_date",
+      "severity": "high",
+      "denominator": 55,
+      "denominator_label": "intro_outcomes rows with both asked_date and response_date",
+      "section": "temporal",
+      "columns": [
+        "asked_date",
+        "response_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "negative_intro_lag",
+      "title": "intro_date earlier than response_date",
+      "severity": "high",
+      "denominator": 32,
+      "denominator_label": "intro_outcomes rows with both response_date and intro_date",
+      "section": "temporal",
+      "columns": [
+        "response_date",
+        "intro_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "asked_before_requested",
+      "title": "intro_outcomes.asked_date earlier than intro_requests.request_date",
+      "severity": "high",
+      "denominator": 85,
+      "denominator_label": "intro_outcomes rows with a matching request and an asked_date",
+      "section": "temporal",
+      "columns": [
+        "asked_date",
+        "request_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "future_date_connections_aldridge_connected_on",
+      "title": "connections_aldridge.csv.connected_on after 2026-09-03",
+      "severity": "medium",
+      "denominator": 1455,
+      "denominator_label": "non-empty connected_on values in connections_aldridge.csv",
+      "section": "dates",
+      "columns": [
+        "connected_on"
+      ],
+      "count": 3
+    },
+    {
+      "check_id": "unparseable_date_connections_aldridge_connected_on",
+      "title": "connections_aldridge.csv.connected_on not an ISO date",
+      "severity": "medium",
+      "denominator": 1455,
+      "denominator_label": "non-empty connected_on values in connections_aldridge.csv",
+      "section": "dates",
+      "columns": [
+        "connected_on"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "future_date_connections_beckett_connected_on",
+      "title": "connections_beckett.csv.connected_on after 2026-09-03",
+      "severity": "medium",
+      "denominator": 1130,
+      "denominator_label": "non-empty connected_on values in connections_beckett.csv",
+      "section": "dates",
+      "columns": [
+        "connected_on"
+      ],
+      "count": 2
+    },
+    {
+      "check_id": "unparseable_date_connections_beckett_connected_on",
+      "title": "connections_beckett.csv.connected_on not an ISO date",
+      "severity": "medium",
+      "denominator": 1130,
+      "denominator_label": "non-empty connected_on values in connections_beckett.csv",
+      "section": "dates",
+      "columns": [
+        "connected_on"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "future_date_connections_duvall_connected_on",
+      "title": "connections_duvall.csv.connected_on after 2026-09-03",
+      "severity": "medium",
+      "denominator": 420,
+      "denominator_label": "non-empty connected_on values in connections_duvall.csv",
+      "section": "dates",
+      "columns": [
+        "connected_on"
+      ],
+      "count": 2
+    },
+    {
+      "check_id": "unparseable_date_connections_duvall_connected_on",
+      "title": "connections_duvall.csv.connected_on not an ISO date",
+      "severity": "medium",
+      "denominator": 420,
+      "denominator_label": "non-empty connected_on values in connections_duvall.csv",
+      "section": "dates",
+      "columns": [
+        "connected_on"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "future_date_connections_raghunathan_connected_on",
+      "title": "connections_raghunathan.csv.connected_on after 2026-09-03",
+      "severity": "medium",
+      "denominator": 728,
+      "denominator_label": "non-empty connected_on values in connections_raghunathan.csv",
+      "section": "dates",
+      "columns": [
+        "connected_on"
+      ],
+      "count": 1
+    },
+    {
+      "check_id": "unparseable_date_connections_raghunathan_connected_on",
+      "title": "connections_raghunathan.csv.connected_on not an ISO date",
+      "severity": "medium",
+      "denominator": 728,
+      "denominator_label": "non-empty connected_on values in connections_raghunathan.csv",
+      "section": "dates",
+      "columns": [
+        "connected_on"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "future_date_connections_trask_connected_on",
+      "title": "connections_trask.csv.connected_on after 2026-09-03",
+      "severity": "medium",
+      "denominator": 356,
+      "denominator_label": "non-empty connected_on values in connections_trask.csv",
+      "section": "dates",
+      "columns": [
+        "connected_on"
+      ],
+      "count": 1
+    },
+    {
+      "check_id": "unparseable_date_connections_trask_connected_on",
+      "title": "connections_trask.csv.connected_on not an ISO date",
+      "severity": "medium",
+      "denominator": 356,
+      "denominator_label": "non-empty connected_on values in connections_trask.csv",
+      "section": "dates",
+      "columns": [
+        "connected_on"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "future_date_connections_whitfield_connected_on",
+      "title": "connections_whitfield.csv.connected_on after 2026-09-03",
+      "severity": "medium",
+      "denominator": 986,
+      "denominator_label": "non-empty connected_on values in connections_whitfield.csv",
+      "section": "dates",
+      "columns": [
+        "connected_on"
+      ],
+      "count": 1
+    },
+    {
+      "check_id": "unparseable_date_connections_whitfield_connected_on",
+      "title": "connections_whitfield.csv.connected_on not an ISO date",
+      "severity": "medium",
+      "denominator": 986,
+      "denominator_label": "non-empty connected_on values in connections_whitfield.csv",
+      "section": "dates",
+      "columns": [
+        "connected_on"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "future_date_crm_accounts_last_touch_date",
+      "title": "crm_accounts.csv.last_touch_date after 2026-09-03",
+      "severity": "medium",
+      "denominator": 50,
+      "denominator_label": "non-empty last_touch_date values in crm_accounts.csv",
+      "section": "dates",
+      "columns": [
+        "last_touch_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "unparseable_date_crm_accounts_last_touch_date",
+      "title": "crm_accounts.csv.last_touch_date not an ISO date",
+      "severity": "medium",
+      "denominator": 50,
+      "denominator_label": "non-empty last_touch_date values in crm_accounts.csv",
+      "section": "dates",
+      "columns": [
+        "last_touch_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "future_date_intro_outcomes_asked_date",
+      "title": "intro_outcomes.csv.asked_date after 2026-09-03",
+      "severity": "medium",
+      "denominator": 85,
+      "denominator_label": "non-empty asked_date values in intro_outcomes.csv",
+      "section": "dates",
+      "columns": [
+        "asked_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "unparseable_date_intro_outcomes_asked_date",
+      "title": "intro_outcomes.csv.asked_date not an ISO date",
+      "severity": "medium",
+      "denominator": 85,
+      "denominator_label": "non-empty asked_date values in intro_outcomes.csv",
+      "section": "dates",
+      "columns": [
+        "asked_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "future_date_intro_outcomes_response_date",
+      "title": "intro_outcomes.csv.response_date after 2026-09-03",
+      "severity": "medium",
+      "denominator": 55,
+      "denominator_label": "non-empty response_date values in intro_outcomes.csv",
+      "section": "dates",
+      "columns": [
+        "response_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "unparseable_date_intro_outcomes_response_date",
+      "title": "intro_outcomes.csv.response_date not an ISO date",
+      "severity": "medium",
+      "denominator": 55,
+      "denominator_label": "non-empty response_date values in intro_outcomes.csv",
+      "section": "dates",
+      "columns": [
+        "response_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "future_date_intro_outcomes_intro_date",
+      "title": "intro_outcomes.csv.intro_date after 2026-09-03",
+      "severity": "medium",
+      "denominator": 32,
+      "denominator_label": "non-empty intro_date values in intro_outcomes.csv",
+      "section": "dates",
+      "columns": [
+        "intro_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "unparseable_date_intro_outcomes_intro_date",
+      "title": "intro_outcomes.csv.intro_date not an ISO date",
+      "severity": "medium",
+      "denominator": 32,
+      "denominator_label": "non-empty intro_date values in intro_outcomes.csv",
+      "section": "dates",
+      "columns": [
+        "intro_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "future_date_intro_requests_request_date",
+      "title": "intro_requests.csv.request_date after 2026-09-03",
+      "severity": "medium",
+      "denominator": 200,
+      "denominator_label": "non-empty request_date values in intro_requests.csv",
+      "section": "dates",
+      "columns": [
+        "request_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "unparseable_date_intro_requests_request_date",
+      "title": "intro_requests.csv.request_date not an ISO date",
+      "severity": "medium",
+      "denominator": 200,
+      "denominator_label": "non-empty request_date values in intro_requests.csv",
+      "section": "dates",
+      "columns": [
+        "request_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "future_date_investor_network_prior_employer_start",
+      "title": "investor_network.csv.prior_employer_start after 2026-09-03",
+      "severity": "medium",
+      "denominator": 20,
+      "denominator_label": "non-empty prior_employer_start values in investor_network.csv",
+      "section": "dates",
+      "columns": [
+        "prior_employer_start"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "title": "investor_network.csv.prior_employer_start not an ISO date",
+      "severity": "medium",
+      "denominator": 20,
+      "denominator_label": "non-empty prior_employer_start values in investor_network.csv",
+      "section": "dates",
+      "columns": [
+        "prior_employer_start"
+      ],
+      "count": 20
+    },
+    {
+      "check_id": "future_date_investor_network_prior_employer_end",
+      "title": "investor_network.csv.prior_employer_end after 2026-09-03",
+      "severity": "medium",
+      "denominator": 20,
+      "denominator_label": "non-empty prior_employer_end values in investor_network.csv",
+      "section": "dates",
+      "columns": [
+        "prior_employer_end"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "title": "investor_network.csv.prior_employer_end not an ISO date",
+      "severity": "medium",
+      "denominator": 20,
+      "denominator_label": "non-empty prior_employer_end values in investor_network.csv",
+      "section": "dates",
+      "columns": [
+        "prior_employer_end"
+      ],
+      "count": 20
+    },
+    {
+      "check_id": "responded_vs_response_date",
+      "title": "responded disagrees with presence of response_date",
+      "severity": "high",
+      "denominator": 85,
+      "denominator_label": "intro_outcomes rows",
+      "section": "contradictions",
+      "columns": [
+        "responded",
+        "response_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "intro_sent_vs_intro_date",
+      "title": "intro_sent disagrees with presence of intro_date",
+      "severity": "high",
+      "denominator": 85,
+      "denominator_label": "intro_outcomes rows",
+      "section": "contradictions",
+      "columns": [
+        "intro_sent",
+        "intro_date"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "intro_sent_without_response",
+      "title": "intro_sent=Y while responded=N",
+      "severity": "high",
+      "denominator": 85,
+      "denominator_label": "intro_outcomes rows",
+      "section": "contradictions",
+      "columns": [
+        "responded",
+        "intro_sent"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "meeting_without_intro",
+      "title": "meeting_booked=Y while intro_sent=N",
+      "severity": "high",
+      "denominator": 85,
+      "denominator_label": "intro_outcomes rows",
+      "section": "contradictions",
+      "columns": [
+        "intro_sent",
+        "meeting_booked"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "opportunity_without_meeting",
+      "title": "opportunity_created=Y while meeting_booked=N",
+      "severity": "high",
+      "denominator": 85,
+      "denominator_label": "intro_outcomes rows",
+      "section": "contradictions",
+      "columns": [
+        "meeting_booked",
+        "opportunity_created"
+      ],
+      "count": 0
+    },
+    {
+      "check_id": "opportunity_value_mismatch",
+      "title": "opportunity_created disagrees with opportunity_value_usd",
+      "severity": "medium",
+      "denominator": 85,
+      "denominator_label": "intro_outcomes rows",
+      "section": "contradictions",
+      "columns": [
+        "opportunity_created",
+        "opportunity_value_usd"
+      ],
+      "count": 0
+    }
+  ],
+  "findings": [
+    {
+      "check_id": "connector_asked_not_in_roster",
+      "severity": "high",
+      "file": "intro_outcomes.csv",
+      "row_key": "R1066",
+      "fields": {
+        "connector_asked": "Yusuf Petrossian"
+      },
+      "detail": "connector_asked='Yusuf Petrossian' has no match in connector_roster.csv.name"
+    },
+    {
+      "check_id": "connector_asked_not_in_roster",
+      "severity": "high",
+      "file": "intro_outcomes.csv",
+      "row_key": "R1108",
+      "fields": {
+        "connector_asked": "Hana Nakashima"
+      },
+      "detail": "connector_asked='Hana Nakashima' has no match in connector_roster.csv.name"
+    },
+    {
+      "check_id": "connector_asked_not_in_roster",
+      "severity": "high",
+      "file": "intro_outcomes.csv",
+      "row_key": "R1122",
+      "fields": {
+        "connector_asked": "Curtis Hartigan"
+      },
+      "detail": "connector_asked='Curtis Hartigan' has no match in connector_roster.csv.name"
+    },
+    {
+      "check_id": "connector_asked_not_in_roster",
+      "severity": "high",
+      "file": "intro_outcomes.csv",
+      "row_key": "R1169",
+      "fields": {
+        "connector_asked": "Bertrand Vandermolen"
+      },
+      "detail": "connector_asked='Bertrand Vandermolen' has no match in connector_roster.csv.name"
+    },
+    {
+      "check_id": "connector_asked_not_in_roster",
+      "severity": "high",
+      "file": "intro_outcomes.csv",
+      "row_key": "R1176",
+      "fields": {
+        "connector_asked": "Imani Mkhize"
+      },
+      "detail": "connector_asked='Imani Mkhize' has no match in connector_roster.csv.name"
+    },
+    {
+      "check_id": "future_date_connections_aldridge_connected_on",
+      "severity": "medium",
+      "file": "connections_aldridge.csv",
+      "row_key": "Bram Quillane",
+      "fields": {
+        "connected_on": "2026-11-10"
+      },
+      "detail": "connected_on=2026-11-10 is 68 day(s) after 2026-09-03"
+    },
+    {
+      "check_id": "future_date_connections_aldridge_connected_on",
+      "severity": "medium",
+      "file": "connections_aldridge.csv",
+      "row_key": "Sunniva Oldfield",
+      "fields": {
+        "connected_on": "2026-09-15"
+      },
+      "detail": "connected_on=2026-09-15 is 12 day(s) after 2026-09-03"
+    },
+    {
+      "check_id": "future_date_connections_aldridge_connected_on",
+      "severity": "medium",
+      "file": "connections_aldridge.csv",
+      "row_key": "Yusuf Oldfield",
+      "fields": {
+        "connected_on": "2027-05-09"
+      },
+      "detail": "connected_on=2027-05-09 is 248 day(s) after 2026-09-03"
+    },
+    {
+      "check_id": "future_date_connections_beckett_connected_on",
+      "severity": "medium",
+      "file": "connections_beckett.csv",
+      "row_key": "Renata Petrossian",
+      "fields": {
+        "connected_on": "2026-10-13"
+      },
+      "detail": "connected_on=2026-10-13 is 40 day(s) after 2026-09-03"
+    },
+    {
+      "check_id": "future_date_connections_beckett_connected_on",
+      "severity": "medium",
+      "file": "connections_beckett.csv",
+      "row_key": "Yusuf Wolstenholme",
+      "fields": {
+        "connected_on": "2026-11-16"
+      },
+      "detail": "connected_on=2026-11-16 is 74 day(s) after 2026-09-03"
+    },
+    {
+      "check_id": "future_date_connections_duvall_connected_on",
+      "severity": "medium",
+      "file": "connections_duvall.csv",
+      "row_key": "Bram Quillane",
+      "fields": {
+        "connected_on": "2028-06-16"
+      },
+      "detail": "connected_on=2028-06-16 is 652 day(s) after 2026-09-03"
+    },
+    {
+      "check_id": "future_date_connections_duvall_connected_on",
+      "severity": "medium",
+      "file": "connections_duvall.csv",
+      "row_key": "Sunniva Oldfield",
+      "fields": {
+        "connected_on": "2027-08-22"
+      },
+      "detail": "connected_on=2027-08-22 is 353 day(s) after 2026-09-03"
+    },
+    {
+      "check_id": "future_date_connections_raghunathan_connected_on",
+      "severity": "medium",
+      "file": "connections_raghunathan.csv",
+      "row_key": "Tanvi Eastcott",
+      "fields": {
+        "connected_on": "2027-07-04"
+      },
+      "detail": "connected_on=2027-07-04 is 304 day(s) after 2026-09-03"
+    },
+    {
+      "check_id": "future_date_connections_trask_connected_on",
+      "severity": "medium",
+      "file": "connections_trask.csv",
+      "row_key": "Anouk Kirkbride",
+      "fields": {
+        "connected_on": "2026-09-17"
+      },
+      "detail": "connected_on=2026-09-17 is 14 day(s) after 2026-09-03"
+    },
+    {
+      "check_id": "future_date_connections_whitfield_connected_on",
+      "severity": "medium",
+      "file": "connections_whitfield.csv",
+      "row_key": "Zaid Fontaine",
+      "fields": {
+        "connected_on": "2026-10-19"
+      },
+      "detail": "connected_on=2026-10-19 is 46 day(s) after 2026-09-03"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1001",
+      "fields": {
+        "request_id": "R1001"
+      },
+      "detail": "request_id='R1001' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1002",
+      "fields": {
+        "request_id": "R1002"
+      },
+      "detail": "request_id='R1002' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1004",
+      "fields": {
+        "request_id": "R1004"
+      },
+      "detail": "request_id='R1004' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1005",
+      "fields": {
+        "request_id": "R1005"
+      },
+      "detail": "request_id='R1005' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1006",
+      "fields": {
+        "request_id": "R1006"
+      },
+      "detail": "request_id='R1006' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1007",
+      "fields": {
+        "request_id": "R1007"
+      },
+      "detail": "request_id='R1007' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1009",
+      "fields": {
+        "request_id": "R1009"
+      },
+      "detail": "request_id='R1009' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1010",
+      "fields": {
+        "request_id": "R1010"
+      },
+      "detail": "request_id='R1010' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1011",
+      "fields": {
+        "request_id": "R1011"
+      },
+      "detail": "request_id='R1011' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1013",
+      "fields": {
+        "request_id": "R1013"
+      },
+      "detail": "request_id='R1013' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1014",
+      "fields": {
+        "request_id": "R1014"
+      },
+      "detail": "request_id='R1014' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1016",
+      "fields": {
+        "request_id": "R1016"
+      },
+      "detail": "request_id='R1016' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1017",
+      "fields": {
+        "request_id": "R1017"
+      },
+      "detail": "request_id='R1017' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1018",
+      "fields": {
+        "request_id": "R1018"
+      },
+      "detail": "request_id='R1018' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1019",
+      "fields": {
+        "request_id": "R1019"
+      },
+      "detail": "request_id='R1019' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1021",
+      "fields": {
+        "request_id": "R1021"
+      },
+      "detail": "request_id='R1021' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1023",
+      "fields": {
+        "request_id": "R1023"
+      },
+      "detail": "request_id='R1023' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1024",
+      "fields": {
+        "request_id": "R1024"
+      },
+      "detail": "request_id='R1024' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1027",
+      "fields": {
+        "request_id": "R1027"
+      },
+      "detail": "request_id='R1027' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1028",
+      "fields": {
+        "request_id": "R1028"
+      },
+      "detail": "request_id='R1028' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1030",
+      "fields": {
+        "request_id": "R1030"
+      },
+      "detail": "request_id='R1030' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1034",
+      "fields": {
+        "request_id": "R1034"
+      },
+      "detail": "request_id='R1034' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1035",
+      "fields": {
+        "request_id": "R1035"
+      },
+      "detail": "request_id='R1035' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1036",
+      "fields": {
+        "request_id": "R1036"
+      },
+      "detail": "request_id='R1036' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1037",
+      "fields": {
+        "request_id": "R1037"
+      },
+      "detail": "request_id='R1037' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1039",
+      "fields": {
+        "request_id": "R1039"
+      },
+      "detail": "request_id='R1039' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1040",
+      "fields": {
+        "request_id": "R1040"
+      },
+      "detail": "request_id='R1040' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1041",
+      "fields": {
+        "request_id": "R1041"
+      },
+      "detail": "request_id='R1041' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1043",
+      "fields": {
+        "request_id": "R1043"
+      },
+      "detail": "request_id='R1043' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1047",
+      "fields": {
+        "request_id": "R1047"
+      },
+      "detail": "request_id='R1047' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1048",
+      "fields": {
+        "request_id": "R1048"
+      },
+      "detail": "request_id='R1048' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1049",
+      "fields": {
+        "request_id": "R1049"
+      },
+      "detail": "request_id='R1049' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1050",
+      "fields": {
+        "request_id": "R1050"
+      },
+      "detail": "request_id='R1050' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1054",
+      "fields": {
+        "request_id": "R1054"
+      },
+      "detail": "request_id='R1054' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1055",
+      "fields": {
+        "request_id": "R1055"
+      },
+      "detail": "request_id='R1055' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1056",
+      "fields": {
+        "request_id": "R1056"
+      },
+      "detail": "request_id='R1056' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1059",
+      "fields": {
+        "request_id": "R1059"
+      },
+      "detail": "request_id='R1059' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1061",
+      "fields": {
+        "request_id": "R1061"
+      },
+      "detail": "request_id='R1061' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1062",
+      "fields": {
+        "request_id": "R1062"
+      },
+      "detail": "request_id='R1062' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1063",
+      "fields": {
+        "request_id": "R1063"
+      },
+      "detail": "request_id='R1063' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1064",
+      "fields": {
+        "request_id": "R1064"
+      },
+      "detail": "request_id='R1064' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1065",
+      "fields": {
+        "request_id": "R1065"
+      },
+      "detail": "request_id='R1065' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1067",
+      "fields": {
+        "request_id": "R1067"
+      },
+      "detail": "request_id='R1067' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1070",
+      "fields": {
+        "request_id": "R1070"
+      },
+      "detail": "request_id='R1070' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1071",
+      "fields": {
+        "request_id": "R1071"
+      },
+      "detail": "request_id='R1071' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1073",
+      "fields": {
+        "request_id": "R1073"
+      },
+      "detail": "request_id='R1073' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1074",
+      "fields": {
+        "request_id": "R1074"
+      },
+      "detail": "request_id='R1074' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1075",
+      "fields": {
+        "request_id": "R1075"
+      },
+      "detail": "request_id='R1075' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1079",
+      "fields": {
+        "request_id": "R1079"
+      },
+      "detail": "request_id='R1079' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1080",
+      "fields": {
+        "request_id": "R1080"
+      },
+      "detail": "request_id='R1080' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1081",
+      "fields": {
+        "request_id": "R1081"
+      },
+      "detail": "request_id='R1081' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1083",
+      "fields": {
+        "request_id": "R1083"
+      },
+      "detail": "request_id='R1083' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1084",
+      "fields": {
+        "request_id": "R1084"
+      },
+      "detail": "request_id='R1084' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1087",
+      "fields": {
+        "request_id": "R1087"
+      },
+      "detail": "request_id='R1087' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1088",
+      "fields": {
+        "request_id": "R1088"
+      },
+      "detail": "request_id='R1088' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1089",
+      "fields": {
+        "request_id": "R1089"
+      },
+      "detail": "request_id='R1089' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1092",
+      "fields": {
+        "request_id": "R1092"
+      },
+      "detail": "request_id='R1092' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1096",
+      "fields": {
+        "request_id": "R1096"
+      },
+      "detail": "request_id='R1096' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1097",
+      "fields": {
+        "request_id": "R1097"
+      },
+      "detail": "request_id='R1097' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1099",
+      "fields": {
+        "request_id": "R1099"
+      },
+      "detail": "request_id='R1099' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1100",
+      "fields": {
+        "request_id": "R1100"
+      },
+      "detail": "request_id='R1100' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1103",
+      "fields": {
+        "request_id": "R1103"
+      },
+      "detail": "request_id='R1103' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1105",
+      "fields": {
+        "request_id": "R1105"
+      },
+      "detail": "request_id='R1105' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1106",
+      "fields": {
+        "request_id": "R1106"
+      },
+      "detail": "request_id='R1106' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1109",
+      "fields": {
+        "request_id": "R1109"
+      },
+      "detail": "request_id='R1109' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1111",
+      "fields": {
+        "request_id": "R1111"
+      },
+      "detail": "request_id='R1111' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1112",
+      "fields": {
+        "request_id": "R1112"
+      },
+      "detail": "request_id='R1112' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1115",
+      "fields": {
+        "request_id": "R1115"
+      },
+      "detail": "request_id='R1115' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1116",
+      "fields": {
+        "request_id": "R1116"
+      },
+      "detail": "request_id='R1116' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1117",
+      "fields": {
+        "request_id": "R1117"
+      },
+      "detail": "request_id='R1117' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1119",
+      "fields": {
+        "request_id": "R1119"
+      },
+      "detail": "request_id='R1119' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1125",
+      "fields": {
+        "request_id": "R1125"
+      },
+      "detail": "request_id='R1125' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1126",
+      "fields": {
+        "request_id": "R1126"
+      },
+      "detail": "request_id='R1126' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1127",
+      "fields": {
+        "request_id": "R1127"
+      },
+      "detail": "request_id='R1127' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1128",
+      "fields": {
+        "request_id": "R1128"
+      },
+      "detail": "request_id='R1128' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1132",
+      "fields": {
+        "request_id": "R1132"
+      },
+      "detail": "request_id='R1132' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1133",
+      "fields": {
+        "request_id": "R1133"
+      },
+      "detail": "request_id='R1133' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1134",
+      "fields": {
+        "request_id": "R1134"
+      },
+      "detail": "request_id='R1134' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1136",
+      "fields": {
+        "request_id": "R1136"
+      },
+      "detail": "request_id='R1136' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1138",
+      "fields": {
+        "request_id": "R1138"
+      },
+      "detail": "request_id='R1138' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1139",
+      "fields": {
+        "request_id": "R1139"
+      },
+      "detail": "request_id='R1139' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1142",
+      "fields": {
+        "request_id": "R1142"
+      },
+      "detail": "request_id='R1142' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1143",
+      "fields": {
+        "request_id": "R1143"
+      },
+      "detail": "request_id='R1143' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1144",
+      "fields": {
+        "request_id": "R1144"
+      },
+      "detail": "request_id='R1144' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1145",
+      "fields": {
+        "request_id": "R1145"
+      },
+      "detail": "request_id='R1145' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1146",
+      "fields": {
+        "request_id": "R1146"
+      },
+      "detail": "request_id='R1146' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1148",
+      "fields": {
+        "request_id": "R1148"
+      },
+      "detail": "request_id='R1148' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1151",
+      "fields": {
+        "request_id": "R1151"
+      },
+      "detail": "request_id='R1151' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1152",
+      "fields": {
+        "request_id": "R1152"
+      },
+      "detail": "request_id='R1152' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1153",
+      "fields": {
+        "request_id": "R1153"
+      },
+      "detail": "request_id='R1153' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1158",
+      "fields": {
+        "request_id": "R1158"
+      },
+      "detail": "request_id='R1158' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1159",
+      "fields": {
+        "request_id": "R1159"
+      },
+      "detail": "request_id='R1159' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1161",
+      "fields": {
+        "request_id": "R1161"
+      },
+      "detail": "request_id='R1161' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1164",
+      "fields": {
+        "request_id": "R1164"
+      },
+      "detail": "request_id='R1164' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1165",
+      "fields": {
+        "request_id": "R1165"
+      },
+      "detail": "request_id='R1165' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1170",
+      "fields": {
+        "request_id": "R1170"
+      },
+      "detail": "request_id='R1170' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1173",
+      "fields": {
+        "request_id": "R1173"
+      },
+      "detail": "request_id='R1173' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1174",
+      "fields": {
+        "request_id": "R1174"
+      },
+      "detail": "request_id='R1174' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1175",
+      "fields": {
+        "request_id": "R1175"
+      },
+      "detail": "request_id='R1175' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1177",
+      "fields": {
+        "request_id": "R1177"
+      },
+      "detail": "request_id='R1177' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1178",
+      "fields": {
+        "request_id": "R1178"
+      },
+      "detail": "request_id='R1178' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1179",
+      "fields": {
+        "request_id": "R1179"
+      },
+      "detail": "request_id='R1179' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1180",
+      "fields": {
+        "request_id": "R1180"
+      },
+      "detail": "request_id='R1180' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1181",
+      "fields": {
+        "request_id": "R1181"
+      },
+      "detail": "request_id='R1181' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1182",
+      "fields": {
+        "request_id": "R1182"
+      },
+      "detail": "request_id='R1182' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1183",
+      "fields": {
+        "request_id": "R1183"
+      },
+      "detail": "request_id='R1183' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1184",
+      "fields": {
+        "request_id": "R1184"
+      },
+      "detail": "request_id='R1184' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1188",
+      "fields": {
+        "request_id": "R1188"
+      },
+      "detail": "request_id='R1188' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1189",
+      "fields": {
+        "request_id": "R1189"
+      },
+      "detail": "request_id='R1189' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1191",
+      "fields": {
+        "request_id": "R1191"
+      },
+      "detail": "request_id='R1191' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1193",
+      "fields": {
+        "request_id": "R1193"
+      },
+      "detail": "request_id='R1193' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1194",
+      "fields": {
+        "request_id": "R1194"
+      },
+      "detail": "request_id='R1194' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1195",
+      "fields": {
+        "request_id": "R1195"
+      },
+      "detail": "request_id='R1195' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1198",
+      "fields": {
+        "request_id": "R1198"
+      },
+      "detail": "request_id='R1198' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "request_without_outcome",
+      "severity": "info",
+      "file": "intro_requests.csv",
+      "row_key": "R1200",
+      "fields": {
+        "request_id": "R1200"
+      },
+      "detail": "request_id='R1200' has no match in intro_outcomes.csv.request_id"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Amara Thackeray",
+      "fields": {
+        "prior_employer_end": "2019"
+      },
+      "detail": "prior_employer_end='2019' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Bertrand Glückstein",
+      "fields": {
+        "prior_employer_end": "2016"
+      },
+      "detail": "prior_employer_end='2016' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Bertrand Lomsadze",
+      "fields": {
+        "prior_employer_end": "2017"
+      },
+      "detail": "prior_employer_end='2017' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Casper Bellinger",
+      "fields": {
+        "prior_employer_end": "2017"
+      },
+      "detail": "prior_employer_end='2017' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Coretta Bellinger",
+      "fields": {
+        "prior_employer_end": "2016"
+      },
+      "detail": "prior_employer_end='2016' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Curtis Marchetti",
+      "fields": {
+        "prior_employer_end": "2017"
+      },
+      "detail": "prior_employer_end='2017' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Idris Drummond",
+      "fields": {
+        "prior_employer_end": "2018"
+      },
+      "detail": "prior_employer_end='2018' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Ilse Mkhize",
+      "fields": {
+        "prior_employer_end": "2017"
+      },
+      "detail": "prior_employer_end='2017' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Ingrid Marchetti",
+      "fields": {
+        "prior_employer_end": "2018"
+      },
+      "detail": "prior_employer_end='2018' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Kian Merriweather",
+      "fields": {
+        "prior_employer_end": "2018"
+      },
+      "detail": "prior_employer_end='2018' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Kofi Mkhize",
+      "fields": {
+        "prior_employer_end": "2019"
+      },
+      "detail": "prior_employer_end='2019' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Marcus Højgaard",
+      "fields": {
+        "prior_employer_end": "2017"
+      },
+      "detail": "prior_employer_end='2017' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Margot Havercamp",
+      "fields": {
+        "prior_employer_end": "2017"
+      },
+      "detail": "prior_employer_end='2017' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Niall Grimsby",
+      "fields": {
+        "prior_employer_end": "2019"
+      },
+      "detail": "prior_employer_end='2019' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Priya Fairweather",
+      "fields": {
+        "prior_employer_end": "2019"
+      },
+      "detail": "prior_employer_end='2019' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Saoirse Prendergast",
+      "fields": {
+        "prior_employer_end": "2015"
+      },
+      "detail": "prior_employer_end='2015' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Sunniva Højgaard",
+      "fields": {
+        "prior_employer_end": "2015"
+      },
+      "detail": "prior_employer_end='2015' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Tomás Dobrescu",
+      "fields": {
+        "prior_employer_end": "2018"
+      },
+      "detail": "prior_employer_end='2018' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Tomás Ferreira",
+      "fields": {
+        "prior_employer_end": "2020"
+      },
+      "detail": "prior_employer_end='2020' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_end",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Yusuf Vasquez",
+      "fields": {
+        "prior_employer_end": "2017"
+      },
+      "detail": "prior_employer_end='2017' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Amara Thackeray",
+      "fields": {
+        "prior_employer_start": "2012"
+      },
+      "detail": "prior_employer_start='2012' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Bertrand Glückstein",
+      "fields": {
+        "prior_employer_start": "2011"
+      },
+      "detail": "prior_employer_start='2011' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Bertrand Lomsadze",
+      "fields": {
+        "prior_employer_start": "2013"
+      },
+      "detail": "prior_employer_start='2013' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Casper Bellinger",
+      "fields": {
+        "prior_employer_start": "2012"
+      },
+      "detail": "prior_employer_start='2012' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Coretta Bellinger",
+      "fields": {
+        "prior_employer_start": "2012"
+      },
+      "detail": "prior_employer_start='2012' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Curtis Marchetti",
+      "fields": {
+        "prior_employer_start": "2010"
+      },
+      "detail": "prior_employer_start='2010' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Idris Drummond",
+      "fields": {
+        "prior_employer_start": "2015"
+      },
+      "detail": "prior_employer_start='2015' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Ilse Mkhize",
+      "fields": {
+        "prior_employer_start": "2012"
+      },
+      "detail": "prior_employer_start='2012' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Ingrid Marchetti",
+      "fields": {
+        "prior_employer_start": "2015"
+      },
+      "detail": "prior_employer_start='2015' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Kian Merriweather",
+      "fields": {
+        "prior_employer_start": "2012"
+      },
+      "detail": "prior_employer_start='2012' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Kofi Mkhize",
+      "fields": {
+        "prior_employer_start": "2012"
+      },
+      "detail": "prior_employer_start='2012' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Marcus Højgaard",
+      "fields": {
+        "prior_employer_start": "2014"
+      },
+      "detail": "prior_employer_start='2014' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Margot Havercamp",
+      "fields": {
+        "prior_employer_start": "2011"
+      },
+      "detail": "prior_employer_start='2011' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Niall Grimsby",
+      "fields": {
+        "prior_employer_start": "2013"
+      },
+      "detail": "prior_employer_start='2013' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Priya Fairweather",
+      "fields": {
+        "prior_employer_start": "2014"
+      },
+      "detail": "prior_employer_start='2014' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Saoirse Prendergast",
+      "fields": {
+        "prior_employer_start": "2012"
+      },
+      "detail": "prior_employer_start='2012' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Sunniva Højgaard",
+      "fields": {
+        "prior_employer_start": "2013"
+      },
+      "detail": "prior_employer_start='2013' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Tomás Dobrescu",
+      "fields": {
+        "prior_employer_start": "2013"
+      },
+      "detail": "prior_employer_start='2013' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Tomás Ferreira",
+      "fields": {
+        "prior_employer_start": "2015"
+      },
+      "detail": "prior_employer_start='2015' is not YYYY-MM-DD"
+    },
+    {
+      "check_id": "unparseable_date_investor_network_prior_employer_start",
+      "severity": "medium",
+      "file": "investor_network.csv",
+      "row_key": "Yusuf Vasquez",
+      "fields": {
+        "prior_employer_start": "2014"
+      },
+      "detail": "prior_employer_start='2014' is not YYYY-MM-DD"
+    }
+  ]
+}

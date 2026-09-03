@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Integrity audit — dataset/</title>
+<style>body{margin:0}</style>
+</head>
+<body>
+<!--IA-FRAGMENT-START-->
+<div id="ia">
+<style>
+#ia{--high:#b3261e;--medium:#c47f00;--info:#4a6fa5;--zero:#b8b8b8;--ink:#1d1d1d;--muted:#666;--line:#e3e3e3;--bg:#fafafa}
+#ia *{box-sizing:border-box}
+#ia{margin:0;font:14px/1.45 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:var(--ink);background:#fff}
+#ia .ia-main{max-width:1180px;margin:0 auto;padding:24px 28px 80px}
+#ia h1{font-size:22px;margin:0 0 4px}
+#ia h2{font-size:17px;margin:40px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+#ia h3{font-size:14px;margin:18px 0 8px}
+#ia .sub{color:var(--muted);margin:0 0 18px}
+#ia .legend span{display:inline-block;margin-right:14px}
+#ia .sw{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+#ia .sev-high{background:var(--high)}
+#ia .sev-medium{background:var(--medium)}
+#ia .sev-info{background:var(--info)}
+#ia .sev-zero{background:var(--zero)}
+#ia .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+#ia .tile{border:1px solid var(--line);border-left:5px solid var(--zero);border-radius:4px;padding:10px 12px;background:var(--bg)}
+#ia .tile.high{border-left-color:var(--high)}
+#ia .tile.medium{border-left-color:var(--medium)}
+#ia .tile.info{border-left-color:var(--info)}
+#ia .tile .n{font-size:26px;font-weight:600;line-height:1.1}
+#ia .tile.zero .n{color:var(--muted)}
+#ia .tile .t{font-size:12px;margin-top:4px}
+#ia .tile .d{font-size:11px;color:var(--muted);margin-top:4px}
+#ia .num{cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px}
+#ia .num:hover{text-decoration:underline}
+#ia .join{margin:14px 0 22px;border:1px solid var(--line);border-radius:4px;padding:12px}
+#ia .bar{display:flex;height:26px;border-radius:3px;overflow:hidden;background:#eee;margin:8px 0 6px}
+#ia .bar div{display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden;min-width:0}
+#ia .bar .matched{background:#8a8a8a}
+#ia .sides{display:flex;justify-content:space-between;gap:16px;font-size:12px}
+#ia .sides>div{flex:1}
+#ia .names{margin:4px 0 0;padding-left:16px;font-size:12px;columns:2}
+#ia .names li{break-inside:avoid}
+#ia .chart{position:relative;margin:8px 0 4px}
+#ia svg text{font-size:10px;fill:#444}
+#ia .axis line,#ia .axis path{stroke:#999}
+#ia .rule{stroke:var(--ink);stroke-dasharray:3 2}
+#ia .facets{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
+#ia .facet{border:1px solid var(--line);border-radius:4px;padding:8px}
+#ia .facet h4{margin:0 0 4px;font-size:12px;font-weight:600}
+#ia .mx{display:inline-grid;grid-template-columns:auto 1fr 1fr;gap:4px;margin:6px 32px 12px 0;vertical-align:top}
+#ia .mx div{padding:8px 14px;text-align:center;min-width:110px}
+#ia .mx .hd{font-size:11px;color:var(--muted);font-weight:600}
+#ia .mx .cell{border:1px solid var(--line);border-radius:3px;background:var(--bg);font-size:18px}
+#ia .mx .cell.bad{color:#fff}
+#ia .mx .cell.bad.high{background:var(--high)}
+#ia .mx .cell.bad.zero{background:var(--zero);color:var(--ink)}
+#ia table{border-collapse:collapse;width:100%;font-size:12px;margin:6px 0 14px}
+#ia th,#ia td{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
+#ia th{background:var(--bg);font-weight:600}
+#ia td.hl{background:#fff6e5}
+#ia .none{color:var(--muted);font-style:italic;font-size:12px}
+#ia-panel{position:fixed;top:0;right:0;width:min(720px,100%);height:100%;background:#fff;border-left:1px solid var(--line);box-shadow:-4px 0 18px rgba(0,0,0,.12);transform:translateX(105%);transition:transform .15s;overflow:auto;padding:18px 20px;z-index:5}
+#ia-panel.open{transform:none}
+#ia-panel .close{float:right;border:1px solid var(--line);background:#fff;padding:3px 9px;border-radius:3px;cursor:pointer}
+#ia-panel h3{margin-top:0}
+#ia .small{font-size:11px;color:var(--muted)}
+</style>
+<div class="ia-main">
+<h1>Integrity audit — <code>dataset/</code></h1>
+<p class="sub" id="ia-subtitle"></p>
+<p class="legend">
+<span><i class="sw sev-high"></i>high — impossible / broken reference</span>
+<span><i class="sw sev-medium"></i>medium — suspicious, needs eyeballing</span>
+<span><i class="sw sev-info"></i>info — asymmetry that may be expected</span>
+<span><i class="sw sev-zero"></i>zero findings</span>
+<span class="small">Colour encodes severity only. Every number is clickable.</span>
+</p>
+
+<h2>1. Scorecard</h2>
+<div class="tiles" id="ia-tiles"></div>
+
+<h2>2. Referential integrity</h2>
+<div id="ia-joins"></div>
+
+<h2>3. Temporal</h2>
+<div id="ia-lags"></div>
+<h3 id="ia-dates-title"></h3>
+<div class="facets" id="ia-dates"></div>
+
+<h2>4. Contradictions</h2>
+<div id="ia-matrices"></div>
+
+<h2>5. Examples</h2>
+<div id="ia-examples"></div>
+</div>
+
+<aside id="ia-panel"><button class="close" onclick="closePanel()">close</button><div id="ia-panel-body"></div></aside>
+
+<script id="ia-data" type="application/json">/*__DATA__*/</script>
+<script>
+"use strict";
+const D = JSON.parse(document.getElementById("ia-data").textContent);
+const R = D.results;
+const CHECK = Object.fromEntries(R.checks.map(c => [c.check_id, c]));
+const FINDINGS_BY = {};
+for (const f of R.findings) (FINDINGS_BY[f.check_id] = FINDINGS_BY[f.check_id] || []).push(f);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct = (n, d) => d ? (100 * n / d).toFixed(n && 100 * n / d < 1 ? 2 : 1) + "%" : "—";
+const sevOf = c => c.count === 0 ? "zero" : c.severity;
+const el = (id) => document.getElementById(id);
+
+document.getElementById("ia-subtitle").textContent =
+  `As-of date ${R.as_of}. ${R.findings.length} findings across ${R.checks.length} checks over ` +
+  `${Object.keys(R.files).length} files (${Object.values(R.files).reduce((a, f) => a + f.rows, 0)} rows). Nothing repaired, imputed or normalized.`;
+
+/* ---- click-through panel ---- */
+function rowsFor(file, keys) {
+  const rows = D.rows[file] || [];
+  const pk = R.files[file].primary_key;
+  const want = new Set(keys);
+  return rows.filter(r => want.has(String(r[pk]).trim()));
+}
+function renderTable(file, rows, cols, limit) {
+  if (!rows.length) return '<p class="none">no rows</p>';
+  const pk = R.files[file].primary_key;
+  const show = [pk, ...cols.filter(c => c !== pk)];
+  const hl = new Set(cols);
+  let h = `<table><thead><tr>${show.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>`;
+  for (const r of rows.slice(0, limit || rows.length)) {
+    h += "<tr>" + show.map(c => `<td class="${hl.has(c) && c !== pk ? "hl" : ""}">${esc(r[c] ?? "")}</td>`).join("") + "</tr>";
+  }
+  h += "</tbody></table>";
+  if (limit && rows.length > limit) h += `<p class="small">showing ${limit} of ${rows.length}</p>`;
+  return h;
+}
+function openPanel(title, html) {
+  el("ia-panel-body").innerHTML = `<h3>${esc(title)}</h3>${html}`;
+  el("ia-panel").classList.add("open");
+}
+function closePanel() { el("ia-panel").classList.remove("open"); }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closePanel(); });
+
+function showCheck(id) {
+  const c = CHECK[id], fs = FINDINGS_BY[id] || [];
+  let h = `<p class="small">${esc(c.title)} — ${fs.length} of ${c.denominator} (${esc(c.denominator_label)})</p>`;
+  if (!fs.length) { openPanel(id, h + '<p class="none">0 findings. The check ran; nothing matched.</p>'); return; }
+  const byFile = {};
+  for (const f of fs) (byFile[f.file] = byFile[f.file] || []).push(f);
+  for (const file of Object.keys(byFile).sort()) {
+    const list = byFile[file];
+    const keys = list.map(f => f.row_key);
+    const cols = [...new Set(list.flatMap(f => Object.keys(f.fields)))].sort();
+    h += `<h4>${esc(file)} — ${list.length} row(s)</h4>`;
+    h += `<table><thead><tr><th>row_key</th><th>detail</th></tr></thead><tbody>` +
+      list.map(f => `<tr><td>${esc(f.row_key)}</td><td>${esc(f.detail)}</td></tr>`).join("") + "</tbody></table>";
+    h += "<details><summary class=\"small\">full rows (implicated columns highlighted)</summary>" + renderTable(file, rowsFor(file, keys), cols) + "</details>";
+  }
+  openPanel(id, h);
+}
+function showRows(title, file, keys, cols) {
+  openPanel(title, `<p class="small">${esc(file)} — ${keys.length} row(s)</p>` + renderTable(file, rowsFor(file, keys), cols || []));
+}
+window.showCheck = showCheck; window.showRows = showRows;
+function keysOf(file, col, values) {
+  const pk = R.files[file].primary_key, want = new Set(values);
+  return (D.rows[file] || []).filter(r => want.has(String(r[col]).trim())).map(r => String(r[pk]));
+}
+const numCheck = (id, text) => `<span class="num" onclick="showCheck('${id}')">${text}</span>`;
+function numRows(title, file, keys, cols, text) {
+  const i = STASH.push({title, file, keys, cols}) - 1;
+  return `<span class="num" onclick="stashed(${i})">${text}</span>`;
+}
+const STASH = [];
+window.stashed = i => { const s = STASH[i]; showRows(s.title, s.file, s.keys, s.cols); };
+
+/* ---- 1. scorecard ---- */
+el("ia-tiles").innerHTML = R.checks.map(c => {
+  const s = sevOf(c);
+  return `<div class="tile ${s}"><div class="n">${numCheck(c.check_id, c.count)}</div>` +
+    `<div class="t">${esc(c.title)}</div>` +
+    `<div class="d">${c.count} of ${c.denominator} checked · ${pct(c.count, c.denominator)}<br>${esc(c.denominator_label)}</div></div>`;
+}).join("");
+
+/* ---- 2. referential ---- */
+el("ia-joins").innerHTML = D.joins.map(j => {
+  const L = j.left, Rt = j.right;
+  const total = L.orphan_rows + Math.max(j.matched_left_rows, j.matched_right_rows) + Rt.orphan_rows || 1;
+  const sevL = sevOf(CHECK[L.check_id]), sevR = sevOf(CHECK[Rt.check_id]);
+  const seg = (n, cls, label) => n ? `<div class="${cls}" style="flex:${n}" title="${esc(label)}">${label}</div>` : "";
+  const matchedKeysL = keysOf(L.file, L.column, [...new Set(D.rows[L.file].map(r => r[L.column].trim()))].filter(v => !L.orphans.includes(v)));
+  const matchedKeysR = keysOf(Rt.file, Rt.column, [...new Set(D.rows[Rt.file].map(r => r[Rt.column].trim()))].filter(v => !Rt.orphans.includes(v)));
+  const nameList = (side, sev) => {
+    if (!side.orphans.length) return `<p class="none">no ${side.file}.${side.column} values missing from the other side</p>`;
+    if (side.orphans.length >= 20) return `<p class="small">${side.orphans.length} distinct values — too many to list inline; ${numCheck(side.check_id, "open the list")}.</p>`;
+    return `<ul class="names">` + side.orphans.map(v => {
+      const keys = keysOf(side.file, side.column, [v]);
+      return `<li>${numRows(`${side.column} = ${v}`, side.file, keys, [side.column], esc(v))} <span class="small">×${keys.length}</span></li>`;
+    }).join("") + "</ul>";
+  };
+  return `<div class="join"><strong>${esc(j.title)}</strong>` +
+    (j.people ? `<div class="small">People column: every name appearing in only one file is listed — spelling variants and absent people look identical here, eyeball them.</div>` : "") +
+    `<div class="bar">` +
+    seg(L.orphan_rows, `sev-${sevL}`, `${L.orphan_rows} only in ${L.file}`) +
+    seg(Math.max(j.matched_left_rows, j.matched_right_rows), "matched", `${j.matched_distinct} matched value(s) · ${j.matched_left_rows} / ${j.matched_right_rows} rows`) +
+    seg(Rt.orphan_rows, `sev-${sevR}`, `${Rt.orphan_rows} only in ${Rt.file}`) + `</div>` +
+    `<div class="sides"><div><strong>${esc(L.file)}.${esc(L.column)}</strong> — ${L.rows} rows, ${L.distinct} distinct; ` +
+    `${numCheck(L.check_id, `${L.orphan_rows} row(s) / ${L.orphans.length} value(s) orphaned`)}; ` +
+    `${numRows("matched — " + L.file, L.file, matchedKeysL, [L.column], `${j.matched_left_rows} matched`)}${nameList(L, sevL)}</div>` +
+    `<div><strong>${esc(Rt.file)}.${esc(Rt.column)}</strong> — ${Rt.rows} rows, ${Rt.distinct} distinct; ` +
+    `${numCheck(Rt.check_id, `${Rt.orphan_rows} row(s) / ${Rt.orphans.length} value(s) orphaned`)}; ` +
+    `${numRows("matched — " + Rt.file, Rt.file, matchedKeysR, [Rt.column], `${j.matched_right_rows} matched`)}${nameList(Rt, sevR)}</div></div></div>`;
+}).join("");
+
+/* ---- 3. temporal ---- */
+function histogram(bins, opts) {
+  // bins: [{label, count, cls, onclick}] ; draws bars with count labels
+  const W = opts.width || 520, H = opts.height || 150, padL = 30, padB = 34, padT = 14;
+  const max = Math.max(1, ...bins.map(b => b.count));
+  const bw = (W - padL - 4) / bins.length;
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
+  bins.forEach((b, i) => {
+    const h = (H - padB - padT) * b.count / max, x = padL + i * bw, y = H - padB - h;
+    s += `<g class="${b.onclick ? "num" : ""}" ${b.onclick ? `onclick="${b.onclick}"` : ""}>`;
+    s += `<rect x="${x + 1}" y="${y}" width="${Math.max(1, bw - 2)}" height="${h}" class="${b.cls}" fill="${b.fill}"></rect>`;
+    if ((b.count && bins.length <= 40) || (b.forceLabel && (b.count || bins.length <= 40))) s += `<text x="${x + bw / 2}" y="${y - 2}" text-anchor="middle">${b.count}</text>`;
+    s += `</g>`;
+    if (b.label !== undefined && (bins.length <= 30 || i % Math.ceil(bins.length / 12) === 0))
+      s += `<text x="${x + bw / 2}" y="${H - padB + 12}" text-anchor="middle">${esc(b.label)}</text>`;
+  });
+  s += `<line x1="${padL}" y1="${H - padB}" x2="${W - 2}" y2="${H - padB}" stroke="#999"></line>`;
+  if (opts.ruleAt !== undefined) {
+    const x = padL + opts.ruleAt * bw;
+    s += `<line class="rule" x1="${x}" y1="${padT - 6}" x2="${x}" y2="${H - padB}"></line>` +
+      `<text x="${x + 3}" y="${padT}" >${esc(opts.ruleLabel)}</text>`;
+  }
+  if (opts.xlabel) s += `<text x="${W / 2}" y="${H - 4}" text-anchor="middle">${esc(opts.xlabel)}</text>`;
+  return s + "</svg>";
+}
+const COLOR = {high: "#b3261e", medium: "#c47f00", info: "#4a6fa5", zero: "#b8b8b8", neutral: "#8a8a8a"};
+
+el("ia-lags").innerHTML = D.lags.map(l => {
+  const c = CHECK[l.check_id];
+  const vals = l.values;
+  if (!vals.length) return `<h3>${esc(l.title)}</h3><p class="none">no rows carry both dates</p>`;
+  const lo = Math.min(0, ...vals.map(v => v.days)), hi = Math.max(0, ...vals.map(v => v.days));
+  const bins = [];
+  for (let d = lo; d <= hi; d++) {
+    const keys = vals.filter(v => v.days === d).map(v => v.key);
+    const neg = d < 0;
+    bins.push({label: d, count: keys.length, fill: neg ? COLOR[c.severity] : COLOR.neutral, forceLabel: neg,
+      onclick: keys.length ? `stashed(${STASH.push({title: `${l.title} = ${d} day(s)`, file: "intro_outcomes.csv", keys, cols: c.columns}) - 1})` : null});
+  }
+  const negN = vals.filter(v => v.days < 0).length;
+  return `<h3>${esc(l.title)} (days)</h3><div class="small">${vals.length} rows with both dates · ` +
+    `${numCheck(l.check_id, `${negN} negative`)} (shown in severity colour; bins with 0 are unlabelled unless negative) · min ${lo}, max ${hi}</div>` +
+    `<div class="chart">${histogram(bins, {xlabel: "days", width: 720})}</div>`;
+}).join("");
+
+// date histogram: monthly bins, common x-axis across all series, faceted by file+column
+(function () {
+  const all = D.date_series.flatMap(s => s.dates);
+  if (!all.length) { el("ia-dates").innerHTML = '<p class="none">no dates</p>'; return; }
+  const ym = d => d.slice(0, 7);
+  const months = [];
+  let [y, m] = ym(all.reduce((a, b) => a < b ? a : b)).split("-").map(Number);
+  const end = ym(all.reduce((a, b) => a > b ? a : b));
+  while (true) {
+    const k = `${y}-${String(m).padStart(2, "0")}`;
+    months.push(k);
+    if (k >= end) break;
+    m++; if (m > 12) { m = 1; y++; }
+  }
+  const asOf = ym(R.as_of);
+  // rule position: fraction through the as-of month
+  const idx = months.indexOf(asOf);
+  const dayFrac = (Number(R.as_of.slice(8, 10)) - 1) / 30;
+  const ruleAt = idx >= 0 ? idx + dayFrac : (asOf > end ? months.length : 0);
+  const totalFuture = D.date_series.reduce((a, s) => a + s.dates.filter(d => d > R.as_of).length, 0);
+  el("ia-dates-title").textContent = `Every date column, monthly bins, rule at ${R.as_of} — ${totalFuture} value(s) fall to the right of the rule`;
+  el("ia-dates").innerHTML = D.date_series.map(s => {
+    const c = CHECK[s.check_id];
+    const byMonth = {};
+    for (const d of s.dates) (byMonth[ym(d)] = byMonth[ym(d)] || []).push(d);
+    const pk = R.files[s.file].primary_key;
+    const bins = months.map((k, i) => {
+      const ds = byMonth[k] || [];
+      const future = k > asOf || (k === asOf && ds.some(d => d > R.as_of));
+      const keys = ds.length ? (D.rows[s.file] || []).filter(r => ym(r[s.column].trim()) === k).map(r => String(r[pk])) : [];
+      return {label: i % 12 === 0 ? k.slice(0, 4) : "", count: ds.length, fill: future ? COLOR[c.severity] : COLOR.neutral, forceLabel: future,
+        onclick: ds.length ? `stashed(${STASH.push({title: `${s.file}.${s.column} in ${k}`, file: s.file, keys, cols: [s.column]}) - 1})` : null};
+    });
+    const fut = s.dates.filter(d => d > R.as_of).length;
+    return `<div class="facet"><h4>${esc(s.file)}.${esc(s.column)}</h4><div class="small">${s.dates.length} parsed dates · ${numCheck(s.check_id, `${fut} after ${R.as_of}`)}</div>` +
+      histogram(bins, {width: 360, height: 130, ruleAt, ruleLabel: R.as_of}) + `</div>`;
+  }).join("");
+})();
+
+/* ---- 4. contradictions ---- */
+el("ia-matrices").innerHTML = D.matrices.map(mx => {
+  const c = CHECK[mx.check_id];
+  const cell = (k, bad) => {
+    const n = mx.cells[k].count;
+    const cls = bad ? `cell bad ${n ? c.severity : "zero"}` : "cell";
+    return `<div class="${cls}">${numRows(`${mx.flag}=${k[0]} × ${mx.date} ${k[1] === "Y" ? "present" : "empty"}`, "intro_outcomes.csv", mx.cells[k].keys, c.columns, n)}</div>`;
+  };
+  return `<div class="mx"><div></div><div class="hd">${esc(mx.date)} present</div><div class="hd">${esc(mx.date)} empty</div>` +
+    `<div class="hd">${esc(mx.flag)} = Y</div>${cell("YY", false)}${cell("YN", true)}` +
+    `<div class="hd">${esc(mx.flag)} = N</div>${cell("NY", true)}${cell("NN", false)}` +
+    `<div></div><div class="small" style="grid-column:span 2">impossible cells: ${numCheck(mx.check_id, `${c.count} of ${c.denominator}`)}</div></div>`;
+}).join("");
+
+/* ---- 5. examples ---- */
+el("ia-examples").innerHTML = R.checks.map(c => {
+  const fs = FINDINGS_BY[c.check_id] || [];
+  let h = `<h3><i class="sw sev-${sevOf(c)}"></i>${esc(c.check_id)} — ${numCheck(c.check_id, `${c.count} of ${c.denominator}`)}</h3>`;
+  if (!fs.length) return h + `<p class="none">0 findings against ${c.denominator} ${esc(c.denominator_label)}.</p>`;
+  const byFile = {};
+  for (const f of fs) (byFile[f.file] = byFile[f.file] || []).push(f);
+  for (const file of Object.keys(byFile).sort()) {
+    const list = byFile[file].slice(0, 5);
+    const cols = [...new Set(byFile[file].flatMap(f => Object.keys(f.fields)))].sort();
+    h += `<div class="small">${esc(file)}</div>` + renderTable(file, rowsFor(file, list.map(f => f.row_key)), cols, 5);
+  }
+  return h;
+}).join("");
+</script>
+</div>
+<!--IA-FRAGMENT-END-->
+</body>
+</html>
