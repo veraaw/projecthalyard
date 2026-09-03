@@ -273,6 +273,52 @@ def run():
     for c in a.checks:
         c["count"] = counts.get(c["check_id"], 0)
 
+    # --- Report context (why a finding count looks the way it does) ---------
+    out_ids = {r["request_id"].strip() for r in out}
+    status_gap = {}
+    for r in req:
+        if r["request_id"].strip() not in out_ids:
+            status_gap[r["status"].strip() or "(blank)"] = status_gap.get(r["status"].strip() or "(blank)", 0) + 1
+
+    roster_names = {r["name"].strip() for r in roster}
+    requesters = {r["requested_by"].strip() for r in req}
+    owners = {c["owner"].strip() for c in crm}
+    unrostered = {}
+    for r in out:
+        n = r["connector_asked"].strip()
+        if n not in roster_names:
+            unrostered[n] = unrostered.get(n, 0) + 1
+
+    flag_cols = ["responded", "intro_sent", "meeting_booked", "opportunity_created"]
+    combos = {}
+    for r in out:
+        key = tuple(r[c].strip().upper() or "-" for c in flag_cols)
+        combos[key] = combos.get(key, 0) + 1
+
+    context = {
+        "request_without_outcome": {
+            "caption": "An outcome row exists only once a connector was actually asked, so this gap is "
+                       "expected; the request `status` says whether it is benign.",
+            "table": (["status", "requests with no outcome row"],
+                      [[s, status_gap[s]] for s in sorted(status_gap, key=lambda s: (-status_gap[s], s))]),
+        },
+        "connector_asked_not_in_roster": {
+            "caption": "Where each unrostered name appears elsewhere in `dataset/` — a name that also "
+                       "owns accounts or files requests is a roster omission, not a typo.",
+            "table": (["connector_asked", "outcome rows", "also appears as"],
+                      [[f"`{n}`", unrostered[n],
+                        ", ".join(p for p, s in (("`intro_requests.requested_by`", requesters),
+                                                 ("`crm_accounts.owner`", owners)) if n in s) or "nowhere else"]
+                       for n in sorted(unrostered, key=lambda n: (-unrostered[n], n))]),
+        },
+        "contradictions": {
+            "caption": "Every observed combination of the four funnel flags, so a clean contradiction "
+                       "check can be read against the shape of the funnel it is checking.",
+            "table": ([" / ".join(f"`{c}`" for c in flag_cols), "intro_outcomes rows"],
+                      [[" / ".join(k), combos[k]] for k in sorted(combos, key=lambda k: (-combos[k], k))]),
+        },
+    }
+
     results = {
         "as_of": AS_OF.isoformat(),
         "source": "dataset/",
@@ -282,7 +328,7 @@ def run():
         "findings": a.findings,
     }
     OUT.mkdir(exist_ok=True)
-    (OUT / "findings.md").write_text(markdown(results), encoding="utf-8")
+    (OUT / "findings.md").write_text(markdown(results, context), encoding="utf-8")
 
     embedded = {
         "results": results,
@@ -310,7 +356,21 @@ SECTION_TITLES = [
 ]
 
 
-def markdown(results):
+def md_table(header, rows):
+    numeric = [all(isinstance(row[i], int) for row in rows) for i in range(len(header))]
+    return (["| " + " | ".join(header) + " |",
+             "| " + " | ".join("---:" if n else "---" for n in numeric) + " |"]
+            + ["| " + " | ".join(str(c) for c in row) + " |" for row in rows])
+
+
+def md_context(context, key):
+    block = context.get(key)
+    if not block:
+        return []
+    return ["", block["caption"], ""] + md_table(*block["table"])
+
+
+def markdown(results, context):
     checks = results["checks"]
     findings = results["findings"]
     by_check = {}
@@ -352,9 +412,12 @@ def markdown(results):
     L += ["", "## Findings in detail"]
     for section, title in SECTION_TITLES:
         section_checks = [c for c in hits if c["section"] == section]
-        if not section_checks:
+        section_context = md_context(context, section)
+        if not section_checks and not section_context:
             continue
         L += ["", f"### {title}"]
+        if not section_checks:
+            L += ["", "Every check in this section is clean."]
         for c in section_checks:
             L += ["", f"#### `{c['check_id']}` — {c['title']}", "",
                   f"Severity {c['severity']}; {c['count']} of {c['denominator']} {c['denominator_label']}.",
@@ -362,6 +425,8 @@ def markdown(results):
             for f in by_check[c["check_id"]]:
                 vals = "; ".join(f"`{k}`={v!r}" for k, v in sorted(f["fields"].items()))
                 L.append(f"| `{f['file']}` | `{f['row_key']}` | {vals} | {f['detail']} |")
+            L += md_context(context, c["check_id"])
+        L += section_context
 
     return "\n".join(L) + "\n"
 

@@ -89,6 +89,16 @@ Severity high; 5 of 85 intro_outcomes.csv rows.
 | `intro_outcomes.csv` | `R1169` | `connector_asked`='Bertrand Vandermolen' | connector_asked='Bertrand Vandermolen' has no match in connector_roster.csv.name |
 | `intro_outcomes.csv` | `R1176` | `connector_asked`='Imani Mkhize' | connector_asked='Imani Mkhize' has no match in connector_roster.csv.name |
 
+Where each unrostered name appears elsewhere in `dataset/` — a name that also owns accounts or files requests is a roster omission, not a typo.
+
+| connector_asked | outcome rows | also appears as |
+| --- | ---: | --- |
+| `Bertrand Vandermolen` | 1 | `intro_requests.requested_by`, `crm_accounts.owner` |
+| `Curtis Hartigan` | 1 | `intro_requests.requested_by`, `crm_accounts.owner` |
+| `Hana Nakashima` | 1 | `intro_requests.requested_by`, `crm_accounts.owner` |
+| `Imani Mkhize` | 1 | `intro_requests.requested_by`, `crm_accounts.owner` |
+| `Yusuf Petrossian` | 1 | `intro_requests.requested_by`, `crm_accounts.owner` |
+
 #### `request_without_outcome` — intro_requests.csv.request_id not found in intro_outcomes.csv.request_id
 
 Severity info; 115 of 200 intro_requests.csv rows.
@@ -211,6 +221,16 @@ Severity info; 115 of 200 intro_requests.csv rows.
 | `intro_requests.csv` | `R1198` | `request_id`='R1198' | request_id='R1198' has no match in intro_outcomes.csv.request_id |
 | `intro_requests.csv` | `R1200` | `request_id`='R1200' | request_id='R1200' has no match in intro_outcomes.csv.request_id |
 
+An outcome row exists only once a connector was actually asked, so this gap is expected; the request `status` says whether it is benign.
+
+| status | requests with no outcome row |
+| --- | ---: |
+| Open | 55 |
+| Closed - no path | 18 |
+| Stalled | 15 |
+| Intro sent | 14 |
+| Routed | 13 |
+
 ### Date validity
 
 #### `unparseable_date_investor_network_prior_employer_end` — investor_network.csv.prior_employer_end not an ISO date
@@ -318,3 +338,17 @@ Severity medium; 1 of 986 non-empty connected_on values in connections_whitfield
 | File | Row | Values | Detail |
 | --- | --- | --- | --- |
 | `connections_whitfield.csv` | `Zaid Fontaine` | `connected_on`='2026-10-19' | connected_on=2026-10-19 is 46 day(s) after 2026-09-03 |
+
+### Funnel contradictions
+
+Every check in this section is clean.
+
+Every observed combination of the four funnel flags, so a clean contradiction check can be read against the shape of the funnel it is checking.
+
+| `responded` / `intro_sent` / `meeting_booked` / `opportunity_created` | intro_outcomes rows |
+| --- | ---: |
+| N / N / N / N | 30 |
+| Y / N / N / N | 23 |
+| Y / Y / N / N | 18 |
+| Y / Y / Y / N | 7 |
+| Y / Y / Y / Y | 7 |
