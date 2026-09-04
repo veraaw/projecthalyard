@@ -26,6 +26,11 @@ table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
 th{color:var(--mute);font-weight:600;font-size:13px}
 td:nth-child(n+2):not(:last-child).num,th.num{text-align:right}
+.fo th,.fo td{padding:5px 10px}
+.fo td.num,.fo th.num{text-align:right;font-variant-numeric:tabular-nums}
+.fo tr.total td{font-weight:700;border-top:2px solid var(--ink)}
+.fo tr.ratio td{color:var(--mute);border-bottom:none;padding-top:10px}
+.fo tr.ratio td.num{color:var(--ink);font-weight:600}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:28px}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
 .finding{border-left:3px solid var(--blue);padding:4px 14px;margin:12px 0;background:var(--bg);border-radius:0 6px 6px 0}
@@ -37,10 +42,17 @@ code{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}
 <body>
 <header>
   <h1>Halyard — scoping &amp; verification dashboard</h1>
-  <p>200 warm-intro requests · Aug 2025 – Jul 2026 · sources: <code>dataset/</code> · built 2026-09-03</p>
-  <nav style="margin-top:12px"><a href="#funnel">Funnel</a><a href="#scoping">Scoping: Slack threads</a><a href="#verify">Verification: CSV profile</a><a href="#integrity">Integrity audit</a></nav>
+  <p>200 warm-intro requests · Aug 2025 – Jul 2026 · sources: <code>dataset/</code> · built 2026-09-04</p>
+  <nav style="margin-top:12px"><a href="#overview">Funnel overview</a><a href="#funnel">Funnel</a><a href="#scoping">Scoping: Slack threads</a><a href="#verify">Verification: CSV profile</a><a href="#integrity">Integrity audit</a></nav>
 </header>
 <main>
+
+<section id="overview">
+  <h2>Funnel overview</h2>
+  <p class="lede">Every request drops out at the first stage it fails, so the eight buckets partition all 200 requests and their <code>deal_value_usd</code>. Unrouted requests split on whether the target company appears in <code>dataset/connections_*.csv</code>; a target counts as identifiable when a company can be recovered from <code>target_company_raw</code>, the company names in <code>raw_ask</code>, or an email domain in <code>raw_ask</code>.</p>
+  <table class="fo"><thead><tr><th>Category</th><th>Funnel Dropoff</th><th class="num"># Requests</th><th class="num">% Total</th><th class="num">Value</th><th class="num">% Total</th></tr></thead><tbody><tr><td>Data Entry</td><td>Target not Identifiable</td><td class="num">6</td><td class="num">3.0%</td><td class="num">$2.0</td><td class="num">1.4%</td></tr><tr><td>Never Routed</td><td>No Path in Network</td><td class="num">57</td><td class="num">28.5%</td><td class="num">$34.6</td><td class="num">25.1%</td></tr><tr><td>Never Routed</td><td>Warm Path Existed, Never Routed</td><td class="num">52</td><td class="num">26.0%</td><td class="num">$42.6</td><td class="num">30.9%</td></tr><tr><td>Routed</td><td>Routed, No Response</td><td class="num">30</td><td class="num">15.0%</td><td class="num">$18.1</td><td class="num">13.2%</td></tr><tr><td>Routed</td><td>Responded, No Intro</td><td class="num">23</td><td class="num">11.5%</td><td class="num">$16.0</td><td class="num">11.6%</td></tr><tr><td>Intro&#x27;ed</td><td>Intro Sent, No Meeting</td><td class="num">18</td><td class="num">9.0%</td><td class="num">$13.8</td><td class="num">10.0%</td></tr><tr><td>Intro&#x27;ed</td><td>Meeting, No Opportunity</td><td class="num">7</td><td class="num">3.5%</td><td class="num">$5.1</td><td class="num">3.7%</td></tr><tr><td>Intro&#x27;ed</td><td>Opportunity Created</td><td class="num">7</td><td class="num">3.5%</td><td class="num">$5.6</td><td class="num">4.0%</td></tr><tr class="total"><td>Total</td><td></td><td class="num">200</td><td class="num">100.0%</td><td class="num">$137.8</td><td class="num">100.0%</td></tr><tr class="ratio"><td colspan="5">% Identifiable Unrouted Requests / Requests</td><td class="num">54.5%</td></tr><tr class="ratio"><td colspan="5">% Intro to Meeting / Intros</td><td class="num">43.8%</td></tr></tbody></table>
+  <p class="foot">Buckets and ratios: <code>dashboard/funnel_overview.py</code> (also prints the table standalone).</p>
+</section>
 
 <section id="funnel">
   <h2>Where the requests go</h2>

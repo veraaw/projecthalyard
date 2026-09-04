@@ -24,6 +24,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "dataset")
 sys.path.insert(0, os.path.join(ROOT, "scoping"))
 sys.path.insert(0, os.path.join(ROOT, "integrity"))
+from funnel_overview import dropoff_rows, ratios  # noqa: E402
 from sankey_funnel import build_figure, funnel_stages  # noqa: E402
 from integrity_audit import fragment as integrity_fragment  # noqa: E402
 
@@ -155,6 +156,24 @@ dollars = [d for _, _, d in stages]
 funnel_rows = [(name, c, usd(d), f"{c/counts[0]:.0%}", f"{c/counts[i-1]:.0%}" if i else "—")
                for i, (name, c, d) in enumerate(stages)]
 
+overview = dropoff_rows()
+ov_n = sum(n for _, _, n, _ in overview)
+ov_v = sum(v for _, _, _, v in overview)
+ov_body = "".join(
+    f'<tr><td>{esc(category)}</td><td>{esc(dropoff)}</td><td class="num">{n}</td>'
+    f'<td class="num">{n / ov_n:.1%}</td><td class="num">${v / 1e6:,.1f}</td>'
+    f'<td class="num">{v / ov_v:.1%}</td></tr>'
+    for category, dropoff, n, v in overview)
+ov_body += (f'<tr class="total"><td>Total</td><td></td><td class="num">{ov_n}</td><td class="num">100.0%</td>'
+            f'<td class="num">${ov_v / 1e6:,.1f}</td><td class="num">100.0%</td></tr>')
+ov_body += "".join(
+    f'<tr class="ratio"><td colspan="5">{esc(label)}</td><td class="num">{value:.1%}</td></tr>'
+    for label, value in ratios(overview))
+overview_table = ('<table class="fo"><thead><tr><th>Category</th><th>Funnel Dropoff</th>'
+                  '<th class="num"># Requests</th><th class="num">% Total</th>'
+                  '<th class="num">Value</th><th class="num">% Total</th></tr></thead>'
+                  f'<tbody>{ov_body}</tbody></table>')
+
 sankey_div = pio.to_html(sankey_fig, include_plotlyjs=False, full_html=False, div_id="sankey",
                          config={"displayModeBar": False, "responsive": True})
 reply_div = pio.to_html(reply_fig, include_plotlyjs=False, full_html=False, div_id="replies",
@@ -188,6 +207,11 @@ table{{border-collapse:collapse;width:100%;font-size:14px}}
 th,td{{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}}
 th{{color:var(--mute);font-weight:600;font-size:13px}}
 td:nth-child(n+2):not(:last-child).num,th.num{{text-align:right}}
+.fo th,.fo td{{padding:5px 10px}}
+.fo td.num,.fo th.num{{text-align:right;font-variant-numeric:tabular-nums}}
+.fo tr.total td{{font-weight:700;border-top:2px solid var(--ink)}}
+.fo tr.ratio td{{color:var(--mute);border-bottom:none;padding-top:10px}}
+.fo tr.ratio td.num{{color:var(--ink);font-weight:600}}
 .grid2{{display:grid;grid-template-columns:1fr 1fr;gap:28px}}
 @media(max-width:900px){{.grid2{{grid-template-columns:1fr}}}}
 .finding{{border-left:3px solid var(--blue);padding:4px 14px;margin:12px 0;background:var(--bg);border-radius:0 6px 6px 0}}
@@ -200,9 +224,16 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
 <header>
   <h1>Halyard — scoping &amp; verification dashboard</h1>
   <p>200 warm-intro requests · Aug 2025 – Jul 2026 · sources: <code>dataset/</code> · built {datetime.now():%Y-%m-%d}</p>
-  <nav style="margin-top:12px"><a href="#funnel">Funnel</a><a href="#scoping">Scoping: Slack threads</a><a href="#verify">Verification: CSV profile</a><a href="#integrity">Integrity audit</a></nav>
+  <nav style="margin-top:12px"><a href="#overview">Funnel overview</a><a href="#funnel">Funnel</a><a href="#scoping">Scoping: Slack threads</a><a href="#verify">Verification: CSV profile</a><a href="#integrity">Integrity audit</a></nav>
 </header>
 <main>
+
+<section id="overview">
+  <h2>Funnel overview</h2>
+  <p class="lede">Every request drops out at the first stage it fails, so the eight buckets partition all {ov_n} requests and their <code>deal_value_usd</code>. Unrouted requests split on whether the target company appears in <code>dataset/connections_*.csv</code>; a target counts as identifiable when a company can be recovered from <code>target_company_raw</code>, the company names in <code>raw_ask</code>, or an email domain in <code>raw_ask</code>.</p>
+  {overview_table}
+  <p class="foot">Buckets and ratios: <code>dashboard/funnel_overview.py</code> (also prints the table standalone).</p>
+</section>
 
 <section id="funnel">
   <h2>Where the requests go</h2>
