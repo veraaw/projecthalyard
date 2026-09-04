@@ -24,6 +24,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "dataset")
 sys.path.insert(0, os.path.join(ROOT, "scoping"))
 sys.path.insert(0, os.path.join(ROOT, "integrity"))
+import data_cuts  # noqa: E402
 from funnel_overview import dropoff_rows, ratios  # noqa: E402
 from sankey_funnel import build_figure, funnel_stages  # noqa: E402
 from integrity_audit import fragment as integrity_fragment  # noqa: E402
@@ -174,6 +175,103 @@ overview_table = ('<table class="fo"><thead><tr><th>Category</th><th>Funnel Drop
                   '<th class="num">Value</th><th class="num">% Total</th></tr></thead>'
                   f'<tbody>{ov_body}</tbody></table>')
 
+# --------------------------------------------------------------------------- additional data cuts
+cuts = data_cuts.load()
+joins = data_cuts.join_summary_cut(cuts)
+demand = data_cuts.account_demand_cut(cuts)
+top_accounts = data_cuts.top_accounts_cut(cuts)
+connectors = data_cuts.connector_cut(cuts)
+targets = data_cuts.target_person_cut(cuts)
+timing = data_cuts.routing_time_cut(cuts)
+slack = data_cuts.slack_cut(cuts)
+noise = data_cuts.flag_noise_cut(cuts)
+coverage = data_cuts.outcome_delta_cut(cuts)
+
+joins_rows = [(link, f"{left:.1f}%", f"{right:.1f}%", note or "—")
+              for link, left, right, note in sorted(joins["joins"], key=lambda j: min(j[1], j[2]))]
+joins_table = table(["Link (left -> right)", "Left matched", "Right matched", "What it means"], joins_rows)
+
+demand_top = demand["companies"][:20]
+demand_fig = go.Figure()
+demand_fig.add_bar(y=[b["name"] for b in demand_top][::-1], x=[b["routed"] for b in demand_top][::-1],
+                   name="routed to a connector", orientation="h", marker_color="#1f5f8b")
+demand_fig.add_bar(y=[b["name"] for b in demand_top][::-1],
+                   x=[b["requests"] - b["routed"] for b in demand_top][::-1],
+                   name="never routed", orientation="h", marker_color="#d3d8de")
+demand_fig.update_layout(barmode="stack", height=560, autosize=True, margin=dict(l=10, r=20, t=10, b=30),
+                         legend=dict(orientation="h", y=1.04, x=0), font=dict(size=12),
+                         xaxis=dict(title="asks"), yaxis=dict(automargin=True))
+demand_div = pio.to_html(demand_fig, include_plotlyjs=False, full_html=False, div_id="demand",
+                         config={"displayModeBar": False, "responsive": True})
+demand_rows = [(b["name"], b["industry"] or "—", b["requests"], b["routed"], b["requests"] - b["routed"],
+                len(b["requesters"]), b["paths"], usd(b["value"])) for b in demand_top]
+demand_table = table(["Company", "Industry", "Asks", "Routed", "Never routed", "Requesters", "Paths in network", "Value"],
+                     demand_rows)
+
+top_rows = [(b["name"], usd(b["value"]), "CRM ARR" if b["value_source"] == "CRM" else "deal value",
+             b["requests"], b["routed"], f'{b["responded"]}/{b["intros"]}/{b["meetings"]}/{b["opps"]}',
+             b["owner"] or "no CRM account",
+             ", ".join(b["internal_connectors"]) or "—",
+             ", ".join(b["outside_connectors"]) or "—")
+            for b in top_accounts["companies"]]
+top_table = table(["Company", "Value", "Value from", "Asks", "Routed", "Resp/Intro/Mtg/Opp",
+                   "CRM owner", "Internal connectors asked", "Advisor / investor asked"], top_rows)
+
+connector_rows = [(c["name"], c["type"], c["capacity"], c["asked"], c["responded"], c["intros"],
+                   c["meetings"], c["opps"], usd(c["value"]), usd(c["opp_value"]),
+                   f'{c["in_focus"]}/{c["asked"]}', c["focus_areas"], c["notes"])
+                  for c in connectors["connectors"]]
+connector_table = table(["Connector", "Type", "Capacity/mo", "Asked", "Responded", "Intros", "Meetings",
+                         "Opps", "Requested $", "Opp $", "In focus area", "Stated focus", "Roster note"],
+                        connector_rows)
+
+target_table = table(["Looked up in", "Distinct target people found"],
+                     [(label, n) for label, n in targets["hits"]])
+
+weeks = timing["weekly"]
+roll = []
+for i in range(len(weeks)):
+    window = weeks[max(0, i - 3):i + 1]
+    req_n = sum(w[1] for w in window)
+    roll.append(sum(w[3] for w in window) / req_n if req_n else None)
+trend_fig = go.Figure()
+trend_fig.add_bar(x=[w[0] for w in weeks], y=[w[1] for w in weeks], name="requests filed",
+                  marker_color="#d3d8de")
+trend_fig.add_bar(x=[w[0] for w in weeks], y=[w[3] for w in weeks], name="intros sent", marker_color="#1f5f8b")
+trend_fig.add_scatter(x=[w[0] for w in weeks], y=roll, name="completion rate (4-week rolling)",
+                      yaxis="y2", mode="lines", line=dict(color="#b4541c", width=2))
+trend_fig.update_layout(barmode="overlay", height=380, autosize=True, margin=dict(l=10, r=10, t=10, b=30),
+                        legend=dict(orientation="h", y=1.08, x=0), font=dict(size=12),
+                        xaxis=dict(title="week of request"), yaxis=dict(title="requests"),
+                        yaxis2=dict(overlaying="y", side="right", tickformat=".0%", range=[0, 1],
+                                    title="completion rate"))
+trend_div = pio.to_html(trend_fig, include_plotlyjs=False, full_html=False, div_id="trend",
+                        config={"displayModeBar": False, "responsive": True})
+monthly_rows = [(month, n, a, i, f"{i/n:.0%}", f"{lat:.1f} d" if lat is not None else "—")
+                for month, n, a, i, lat in timing["monthly"]]
+monthly_table = table(["Month", "Requests", "Routed", "Intros sent", "Completion rate", "Mean days to ask"],
+                      monthly_rows)
+
+dup_table = table(["Reply text", "Occurrences"], [(text, n) for text, n in slack["dup_phrases"]])
+
+flag_order = ["Path found", "No path found", "Unknown", "(blank)"]
+status_order = ["Open", "Routed", "Intro sent", "Stalled", "Closed - no path"]
+matrix_rows = [(flag, *[noise["cross"].get((flag, s), 0) for s in status_order], noise["flags"][flag])
+               for flag in flag_order]
+matrix_table = table(["path_found_flag", *status_order, "All"], matrix_rows)
+reality_rows = [(flag, v["requests"], f'{v["paths"]/v["requests"]:.0%}', v["asked"],
+                 f'{v["intros"]/v["requests"]:.0%}')
+                for flag, v in ((f, noise["flag_reality"][f]) for f in flag_order)]
+reality_table = table(["path_found_flag", "Requests", "Company has a path in the network", "Routed", "Intro rate"],
+                      reality_rows)
+contradiction_rows = "".join(f'<tr><td>{label}</td><td class="num">{n}</td></tr>'
+                             for label, n in noise["contradictions"])
+contradiction_table = ('<table><thead><tr><th>Contradiction</th><th class="num">Requests</th></tr></thead>'
+                       f"<tbody>{contradiction_rows}</tbody></table>")
+
+coverage_table = table(["Status in intro_requests.csv", "Requests with no outcome row"],
+                       [(status, n) for status, n in coverage["by_status"]])
+
 sankey_div = pio.to_html(sankey_fig, include_plotlyjs=False, full_html=False, div_id="sankey",
                          config={"displayModeBar": False, "responsive": True})
 reply_div = pio.to_html(reply_fig, include_plotlyjs=False, full_html=False, div_id="replies",
@@ -224,7 +322,7 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
 <header>
   <h1>Halyard — scoping &amp; verification dashboard</h1>
   <p>200 warm-intro requests · Aug 2025 – Jul 2026 · sources: <code>dataset/</code> · built {datetime.now():%Y-%m-%d}</p>
-  <nav style="margin-top:12px"><a href="#overview">Funnel overview</a><a href="#funnel">Funnel</a><a href="#scoping">Scoping: Slack threads</a><a href="#verify">Verification: CSV profile</a><a href="#integrity">Integrity audit</a></nav>
+  <nav style="margin-top:12px"><a href="#overview">Funnel overview</a><a href="#funnel">Funnel</a><a href="#joins">Joins</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a></nav>
 </header>
 <main>
 
@@ -261,6 +359,136 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
   </div>
 </section>
 
+<section id="joins">
+  <h2>Scoped joins</h2>
+  <p class="lede">Every entity link measured in both directions at the loosest normalization tier (lowercase, punctuation and legal suffixes stripped), from <code>scoping/join_rates.md</code>. "Left matched" is the share of distinct left-hand values that find a counterpart.</p>
+  <div class="kpis">
+    {kpi(len(joins["perfect"]), "joins clean in both directions", f"of {len(joins['joins'])} links measured")}
+    {kpi(f"{joins['concerning'][0][1]:.0f}%", "worst link: target_person_raw -> connections", "no requested person exists in the network")}
+    {kpi("54.5%", "connector_asked on the roster", f"{len(connectors['off_roster'])} people asked who are not connectors")}
+    {kpi("42.5%", "requests with an outcome row", f"{coverage['missing']} requests have none")}
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Joins you can build on</h3>
+      <div class="finding"><b><code>intro_outcomes.request_id</code> -> <code>intro_requests.request_id</code> — 100%.</b>Every outcome row resolves to a real request and no request_id is duplicated, so the funnel is safe to read forward from a request.</div>
+      <div class="finding"><b><code>requested_by</code> -> <code>crm_accounts.owner</code> — 100% / 100%.</b>The same eight names, spelled identically, on both sides — requester-level and owner-level analysis can be mixed freely.</div>
+      <div class="finding"><b><code>connector_roster.connections_file</code> -> files on disk — 100%.</b>Supply is fully enumerable: six rosters, six exports, {len(cuts["connections"]):,} contacts.</div>
+    </div>
+    <div>
+      <h3>Joins that break the analysis</h3>
+      <div class="finding warn"><b><code>target_person_raw</code> -> <code>connections_*.name</code> — 0% / 0%.</b>Not one of the {targets["distinct"]} named individuals appears anywhere in the network (see below). Person-level routing is impossible; only the company can be matched.</div>
+      <div class="finding warn"><b><code>connector_asked</code> -> <code>connector_roster.name</code> — 54.5%.</b>{sum(n for _, n in connectors["off_roster"])} asks went to {len(connectors["off_roster"])} people who are not connectors ({", ".join(n for n, _ in connectors["off_roster"])}), so capacity and focus-area rules never applied to them.</div>
+      <div class="finding warn"><b><code>target_company_raw</code> -> <code>crm_accounts.account_name</code> — 71.2% only after normalization.</b>Exact match is 65.4%; the CRM side needs legal-suffix stripping to reach 84%. Every company cut below is therefore built on the resolved <code>golden/</code> company id, not the raw string.</div>
+      <div class="finding warn"><b><code>connections_*.company</code> -> <code>target_company_raw</code> — 58% / 55.8%.</b>Supply and demand barely overlap: 21 companies in the network are never requested and 23 requested companies have no contact at all.</div>
+    </div>
+  </div>
+  <h3>All measured links</h3>
+  {joins_table}
+</section>
+
+<section id="accounts">
+  <h2>Account-level demand</h2>
+  <p class="lede">Asks per company after entity resolution ({len(demand["companies"])} distinct companies behind {len(requests)} requests, from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked.</p>
+  <div class="kpis">
+    {kpi(len(demand["companies"]), "distinct companies requested", f"{demand['repeat_share']:.0%} of asks are for a repeat company")}
+    {kpi(demand["singletons"], "companies asked exactly once", f"{len(demand['companies']) - demand['singletons']} asked more than once")}
+    {kpi(demand["companies"][0]["requests"], f"asks for {demand['companies'][0]['name']}", "the most-requested company")}
+    {kpi(sum(1 for b in demand["companies"] if b["routed"] == 0), "companies never routed once", "nobody was asked for any of their requests")}
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Top 20 companies by asks</h3>
+      {demand_div}
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      <div class="finding warn"><b>Demand is concentrated and repetitive.</b>{demand['repeat_share']:.0%} of all asks are for a company that was already requested at least once — the same {len(demand['companies']) - demand['singletons']} companies come back again and again, which is what the duplicate-checking in Slack is reacting to.</div>
+      <div class="finding warn"><b>Some companies are asked repeatedly and never routed.</b>{", ".join(b["name"] for b in demand["companies"][:20] if b["routed"] == 0)} each have multiple asks and zero connector rows.</div>
+      <div class="finding"><b>Unresolvable asks cluster too.</b>{sum(b["requests"] for b in demand["companies"] if b["company_id"] == "")} requests never name a company that can be resolved at all; they are grouped as <em>(unidentifiable)</em>.</div>
+    </div>
+  </div>
+  <h3>Per-company detail</h3>
+  <p class="foot">Paths in network = distinct ways to reach the company in <code>golden/supply_reach.csv</code>.</p>
+  {demand_table}
+  <h3>Top 20 accounts by value</h3>
+  <p class="lede">Value is the CRM <code>arr_potential_usd</code> where the company has a CRM account, otherwise the largest <code>deal_value_usd</code> filed on a request. Internal touchpoints are split into roster connectors employed internally versus advisors and investors.</p>
+  {top_table}
+</section>
+
+<section id="connectors">
+  <h2>Connectors — the six on the roster</h2>
+  <p class="lede">Funnel per connector from <code>intro_outcomes.csv</code>, with the stated capacity and free-text note from <code>dataset/connector_roster.csv</code>. An ask is "in focus area" when the resolved company's CRM industry is one of the connector's stated focus areas.</p>
+  <div class="kpis">
+    {kpi(f"{connectors['in_focus']} / {connectors['asked']}", "asks inside the stated focus area", f"over {connectors['months']} months")}
+    {kpi(f"{connectors['in_focus_intro_rate']:.0%}", "intro rate for in-focus asks", f"vs {connectors['off_focus_intro_rate']:.0%} outside the focus area")}
+    {kpi(f"{connectors['connectors'][0]['asked']}", f"asks to {connectors['connectors'][0]['name']}", "the most-asked connector")}
+    {kpi(sum(n for _, n in connectors["off_roster"]), "asks to people not on the roster", ", ".join(n for n, _ in connectors["off_roster"]))}
+  </div>
+  {connector_table}
+  <div class="grid2">
+    <div>
+      <h3>Routing ignores the roster notes</h3>
+      <div class="finding warn"><b>Only {connectors['in_focus']} of {connectors['asked']} asks land in a stated focus area — and those convert at {connectors['in_focus_intro_rate']:.0%} vs {connectors['off_focus_intro_rate']:.0%}.</b>Focus area is the single strongest predictor of an intro in this data, and it is almost never used when choosing who to ask.</div>
+      <div class="finding warn"><b>The notes predicted the failures.</b>Owen Trask ("tapped no more than twice a month") was asked {[c["asked"] for c in connectors["connectors"] if c["name"] == "Owen Trask"][0]} times in {connectors["months"]} months and sent zero intros; Dana Whitfield ("travels constantly; slow to respond") got {[c["asked"] for c in connectors["connectors"] if c["name"] == "Dana Whitfield"][0]} asks and booked no meetings.</div>
+    </div>
+    <div>
+      <h3>Where the notes were right</h3>
+      <div class="finding"><b>Elena Duvall — "deep but narrow".</b>{[c["in_focus"] for c in connectors["connectors"] if c["name"] == "Elena Duvall"][0]} of her {[c["asked"] for c in connectors["connectors"] if c["name"] == "Elena Duvall"][0]} asks were heavy industry, and that is where her intros came from.</div>
+      <div class="finding"><b>Marcus Aldridge — "asked far more than anyone else", capacity 4/month.</b>{[c["asked"] for c in connectors["connectors"] if c["name"] == "Marcus Aldridge"][0]} asks with the weakest response rate of the four heavily-used connectors ({[f"{c['responded']/c['asked']:.0%}" for c in connectors["connectors"] if c["name"] == "Marcus Aldridge"][0]}).</div>
+      <div class="finding"><b>Tomás Beckett — "fast responder, broad but shallow".</b>{[f"{c['responded']/c['asked']:.0%}" for c in connectors["connectors"] if c["name"] == "Tomás Beckett"][0]} response rate but only {[f"{c['intros']/c['responded']:.0%}" for c in connectors["connectors"] if c["name"] == "Tomás Beckett"][0]} of those responses became an intro.</div>
+    </div>
+  </div>
+</section>
+
+<section id="targets">
+  <h2>Target people — does the named individual exist anywhere?</h2>
+  <p class="lede">{targets["named"]} of {targets["requests"]} requests name a person in <code>target_person_raw</code> ({targets["blank"]} leave it blank). Each name was looked up in every other file in <code>dataset/</code>.</p>
+  <div class="kpis">
+    {kpi(f"0 / {targets['distinct']}", "named targets found anywhere", "across connections, investors, roster, CRM owners, Slack")}
+    {kpi(f"{targets['in_own_thread']} / {targets['named']}", "named only in their own thread", "the name exists solely as free text")}
+    {kpi(f"{targets['recombined']} / {targets['distinct']}", "names built from network surnames", "double-barrelled recombinations of contact surnames")}
+    {kpi(f"{targets['title_reachable']} / {targets['named']}", "reachable by title instead", "a contact at the same company holds the requested title")}
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Lookup result</h3>
+      {target_table}
+      <p class="foot">Exact match after trimming; the same lookup at looser tiers in <code>scoping/join_rates.md</code> is also 0%.</p>
+    </div>
+    <div>
+      <h3>Findings</h3>
+      <div class="finding warn"><b><code>target_person_raw</code> is unjoinable by construction.</b>All {targets["distinct"]} names are distinct, none appears in {len(cuts["connections"]):,} contacts, {len(cuts["investors"])} investor rows, the roster, the CRM owners or as a Slack author. Every surname token, however, is a surname that does occur in the network — the names are recombinations, so any fuzzy matcher will produce plausible false positives.</div>
+      <div class="finding"><b>The usable signal is the title, not the person.</b>For {targets["title_reachable"]} of the {targets["named"]} person-named requests, a contact at the same company already holds exactly the requested title — routing should match company plus title and ignore the name.</div>
+      <div class="finding"><b>Data point to track:</b><code>target_person_resolvable</code> = 0 / {targets["distinct"]}, <code>target_title_reachable</code> = {targets["title_reachable"]} / {targets["named"]}. Recomputed on every build in <code>dashboard/data_cuts.py</code>.</div>
+    </div>
+  </div>
+</section>
+
+<section id="timing">
+  <h2>Routing time and completion</h2>
+  <p class="lede">Completion is defined as <code>intro_sent = Y</code>. Latency is measured from <code>request_date</code> to <code>asked_date</code> (routing) and to <code>intro_date</code> (delivery).</p>
+  <div class="kpis">
+    {kpi(f"{timing['mean_to_ask']:.1f} d", "mean request -> connector asked", f"median {timing['median_to_ask']:.0f} d over {len(timing['to_ask'])} routed requests")}
+    {kpi(f"{timing['mean_to_intro']:.1f} d", "mean request -> intro sent", f"median {timing['median_to_intro']:.0f} d over {len(timing['to_intro'])} intros")}
+    {kpi(f"{timing['completion_rate']:.0%}", "completion rate", f"{len(timing['to_intro'])} intros / {len(requests)} requests")}
+    {kpi(f"{timing['completion_rate_routed']:.0%}", "completion rate once routed", f"{len(timing['to_intro'])} intros / {len(outcomes)} asks")}
+  </div>
+  {trend_div}
+  <div class="grid2">
+    <div>
+      <h3>By month</h3>
+      {monthly_table}
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      <div class="finding"><b>Routing is fast; everything after it is not.</b>When a request is routed at all it is routed in {timing['mean_to_ask']:.1f} days on average (max {max(timing['to_ask'])}), but the intro lands {timing['mean_to_intro']:.1f} days after the request — the delay is the connector, not the triage.</div>
+      <div class="finding warn"><b>Completion is flat, not improving.</b>Weekly volume swings between {min(w[1] for w in timing["weekly"])} and {max(w[1] for w in timing["weekly"])} requests, and the 4-week rolling completion rate stays inside {min(r for r in roll if r is not None):.0%}–{max(r for r in roll if r is not None):.0%} across all {len(timing["weekly"])} weeks. Month over month it never exceeds {max(i/n for _, n, _, i, _ in timing["monthly"]):.0%}.</div>
+      <div class="finding warn"><b>Week-over-week trending is noisy by construction.</b>The median week holds {statistics.median([w[1] for w in timing["weekly"]]):.0f} requests, so a single intro moves the weekly rate by tens of points; the rolling line above is the honest read.</div>
+    </div>
+  </div>
+</section>
+
 <section id="scoping">
   <h2>Scoping — what happens in <code>#intro-requests</code></h2>
   <p class="lede">From <code>dataset/slack_threads.jsonl</code>: {len(threads)} threads, {sum(len(t["messages"]) for t in threads)} messages, {len(replies)} replies. Full write-up in <code>scoping/slack_thread_findings.md</code>.</p>
@@ -286,9 +514,58 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
       <div class="finding"><b>Slow first response.</b>Median {statistics.median(first_reply_h):.1f} h to the first reply on the {len(first_reply_h)} threads that got one.</div>
     </div>
   </div>
+  <h3>Duplicate-checking replies</h3>
+  <div class="grid2">
+    <div>
+      {dup_table}
+      <p class="foot">Matched on <code>same as</code>, <code>already lost/asked</code>, <code>last month</code>, <code>duplicate</code> in <code>dashboard/data_cuts.py</code>.</p>
+    </div>
+    <div>
+      <div class="finding warn"><b>{slack["dups"]} of {slack["replies"]} replies ({slack["dups"]/slack["replies"]:.0%}) are someone asking whether this ask is a duplicate.</b>They appear in {slack["dup_threads"]} of the {slack["threads"]} threads, and only {slack["dup_threads_with_intro"]} of those threads ever produced an intro. Nobody ever answers the question in-thread.</div>
+      <div class="finding"><b>The question is well-founded.</b>{demand["repeat_share"]:.0%} of asks are for a company that was already requested, so "is this the same as the one from last month?" is usually yes — and the answer already exists in <code>golden/golden_companies.csv</code> (<code>total_requests</code>, <code>latest_request_id</code>).</div>
+    </div>
+  </div>
   <h3>Offers to help with no logged ask</h3>
   {table(["request_id", "Offered by", "deal_value_usd", "Request status", "Reply"],
          [(rid, m["user"], f"{float(requests[rid]['deal_value_usd']):,.0f}", requests[rid]["status"], m["text"]) for rid, m in offers_unlogged])}
+</section>
+
+<section id="quality">
+  <h2>Flags, statuses and outcome coverage</h2>
+  <p class="lede">Whether <code>path_found_flag</code> and <code>status</code> carry information, and whether <code>intro_outcomes.csv</code> is a deliberate subset of <code>intro_requests.csv</code> or a coverage hole.</p>
+  <div class="kpis">
+    {kpi(f"{(noise['flags']['(blank)'] + noise['flags']['Unknown'])/len(requests):.0%}", "of path_found_flag is blank or Unknown", f"{noise['flags']['(blank)']} blank · {noise['flags']['Unknown']} Unknown")}
+    {kpi(sum(n for _, n in noise["contradictions"]), "flag/status contradictions", "across the six checks below")}
+    {kpi(f"{coverage['matched']} / {coverage['requests']}", "requests with an outcome row", f"{coverage['orphan_outcomes']} orphan outcome rows")}
+    {kpi(coverage["should_exist"], "missing rows that must exist", f"status is Routed or Intro sent · {usd(coverage['should_exist_value'])}")}
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>path_found_flag x status</h3>
+      {matrix_table}
+      <h3>What the flag actually predicts</h3>
+      {reality_table}
+      <p class="foot">"Company has a path" is measured against <code>golden/supply_reach.csv</code>, i.e. the network, not the flag.</p>
+    </div>
+    <div>
+      <h3>Findings</h3>
+      <div class="finding warn"><b><code>path_found_flag</code> is noise for {(noise["flags"]["(blank)"] + noise["flags"]["Unknown"])/len(requests):.0%} of requests.</b>{noise["flags"]["(blank)"]} are blank and {noise["flags"]["Unknown"]} say <code>Unknown</code>; of the blank ones {noise["flag_reality"]["(blank)"]["paths"]/noise["flag_reality"]["(blank)"]["requests"]:.0%} actually do have a path in the network, so blank does not mean "no path".</div>
+      <div class="finding warn"><b>Where it is filled in, it contradicts the outcome.</b>{dict(noise["contradictions"])["flag <code>Path found</code> yet nobody was ever asked"]} requests flagged <code>Path found</code> were never routed, and {dict(noise["contradictions"])["flag <code>No path found</code> yet an intro was sent"]} flagged <code>No path found</code> ended in an intro. The two fields are maintained independently of the funnel.</div>
+      <div class="finding warn"><b><code>status</code> and the outcome rows disagree both ways.</b>{dict(noise["contradictions"])["status <code>Intro sent</code> with no <code>intro_sent=Y</code> outcome row"]} requests claim status <code>Intro sent</code> with no such outcome row, while {dict(noise["contradictions"])["<code>intro_sent=Y</code> while status is still Open/Stalled/Routed"]} requests with a sent intro still show Open/Stalled/Routed. Neither field can be used as the funnel stage — <code>intro_outcomes.csv</code> has to be the source of truth.</div>
+      {contradiction_table}
+    </div>
+  </div>
+  <h3>intro_outcomes vs intro_requests — subset or coverage hole?</h3>
+  <div class="grid2">
+    <div>
+      {coverage_table}
+    </div>
+    <div>
+      <div class="finding warn"><b>It is a coverage hole, not a subset.</b>All {coverage["outcomes"]} outcome rows resolve to a request and none is duplicated, so the file is clean in that direction. But {coverage["should_exist"]} of the {coverage["missing"]} requests with no outcome row are filed as <code>Routed</code> or <code>Intro sent</code> ({usd(coverage["should_exist_value"])}) — a routed request must have an ask, so those rows are missing rather than not-yet-existing.</div>
+      <div class="finding warn"><b>Slack shows the same gap.</b>{coverage["offered_in_slack"]} of the requests with no outcome row have someone in-thread saying they would take it — the ask happened, the row was never written.</div>
+      <div class="finding"><b>The rest is plausibly genuine.</b>The remaining {coverage["missing"] - coverage["should_exist"]} are Open, Stalled or Closed - no path, i.e. requests that legitimately never reached a connector. Treat {coverage["matched"]}/{coverage["requests"]} as the ceiling on funnel coverage and {coverage["should_exist"]} as the known write-back defect.</div>
+    </div>
+  </div>
 </section>
 
 <section id="verify">
