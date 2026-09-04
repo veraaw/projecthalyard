@@ -1,0 +1,59 @@
+---
+config:
+  theme: neutral
+  flowchart:
+    curve: linear
+    htmlLabels: true
+    nodeSpacing: 30
+    rankSpacing: 60
+    wrappingWidth: 320
+---
+flowchart TB
+    A["<b>Slack #intro-requests</b>
+    200 threads · 523 messages · 323 replies
+    43 threads get no reply at all
+    median 27.2 h to the first reply"]
+    B["<b>intro_requests.csv</b>
+    200 rows — one per thread, parsed from
+    the opening message into free-text
+    company / person / title"]
+    C["<b>Routing to a connector</b>
+    <i>mostly off-channel</i>
+    only 15 / 200 threads carry a concrete offer
+    median 3 d request → ask, range 0–6 d
+    no table records how a connector was picked"]
+    D["<b>intro_outcomes.csv</b>
+    <b>85 of 200</b> requests have an ask logged
+    115 requests never reach an outcome row
+    74 / 85 asks name someone who
+    never offered on the thread"]
+
+    A -->|"1:1 · 200/200 on request_id"| B
+    B --> C
+    C -->|"42.5% of requests"| D
+
+    subgraph ref["Reference data — who could be asked"]
+        direction LR
+        R1["<b>connector_roster.csv</b>
+        6 connectors
+        matches 80 / 85 asks"]
+        R2["<b>connections_*.csv</b>
+        6 files · 5,075 contacts
+        matches 0% of target people"]
+        R3["<b>crm_accounts.csv</b>
+        50 accounts
+        matches 71% of target companies"]
+        R4["<b>investor_network.csv</b>
+        73 people
+        no join to requests or outcomes"]
+    end
+
+    ref -.->|"name / company text only — no keys"| C
+
+    classDef stage fill:#eef4fb,stroke:#3b6ea5,stroke-width:1px,color:#12263a;
+    classDef gap fill:#fdf0ec,stroke:#c2603f,stroke-width:1px,color:#3a1a12;
+    classDef refbox fill:#f4f1e8,stroke:#8a7a4f,stroke-width:1px,color:#2e2716;
+    class A,B stage;
+    class C,D gap;
+    class R1,R2,R3,R4 refbox;
+    style ref fill:#fbfaf6,stroke:#c9c0a4,color:#2e2716;
