@@ -8,7 +8,10 @@ Writes four CSVs (UTF-8, no BOM, CRLF):
                                already in the file are never changed; only
                                request_ids not yet present are appended. New
                                columns may be added to the schema; existing
-                               values are never rewritten.
+                               values are never rewritten. contradicts_log
+                               flags a filed status the outcome log disagrees
+                               with; blocked_reason says what would unblock a
+                               request nobody is routed to.
   golden/golden_companies.csv  one row per in-scope company (grouped by
                                domain). Always rebuilt from golden_requests.csv
                                plus crm_accounts.csv and supply_reach.csv.
@@ -76,7 +79,7 @@ REQUEST_COLUMNS = [
     "raw_ask", "value_usd", "urgency_declared", "status_as_filed", "routed_to", "routed_on",
     "route_score", "route_reason", "asked_date", "responded", "intro_sent", "meeting_booked",
     "opportunity_usd", "offer_in_thread", "thread_replies", "thread_all_noise", "resolved_by",
-    "needs_review",
+    "needs_review", "contradicts_log", "blocked_reason",
 ]
 COMPANY_COLUMNS = [
     "company_id", "company_name", "also_known_as", "domain", "industry", "crm_account_ids",
@@ -102,6 +105,18 @@ OPEN_STATUSES = {"Open", "Routed", "Stalled"}
 URGENCY_RANK = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
 OFF_ROSTER_CAPACITY = 2  # monthly asks assumed for anyone askable who is not on the roster
 CAPACITY_EXHAUSTED = "capacity exhausted this cycle"
+# contradicts_log: status_as_filed vs intro_outcomes.csv
+INTRO_CLAIMED_NOT_LOGGED = "intro claimed, none logged"
+INTRO_LOGGED_FILED_STALLED = "intro logged, filed as stalled"
+CLOSED_NO_PATH_BUT_PATH = "closed as no-path, path exists"
+# blocked_reason: what would unblock a request nobody is routed to
+BLOCK_NO_COMPANY = "no company named in the ask"
+BLOCK_NO_CRM = "company has no CRM record"
+BLOCK_FUND_OR_OPCO = "fund or operating company \u2014 ask the requester"
+BLOCK_NO_ROSTER_PATH = "no path on the roster"
+BLOCK_CLOSED_LOST = "account is Closed Lost"
+BLOCK_NEVER_ROUTED = "path exists, never routed"  # filed with no routed_to before the path was known
+FUND_WORDS = {"capital", "partners", "ventures", "equity", "growth", "fund"}
 # reach types that outlast the request they were observed on; offers are request-scoped
 DURABLE_REACH = {"direct", "investor", "alumni"}
 
@@ -742,10 +757,60 @@ def resolve_requests(reg: Registry, filed: list[dict]) -> dict[str, dict]:
     return out
 
 
+def fund_stems() -> dict[str, str]:
+    """normalised fund name minus generic fund words -> fund name, for every
+    fund in investor_network.csv (Thornbury Equity -> thornbury)."""
+    stems = {}
+    for inv in read_csv(DATASET / "investor_network.csv"):
+        fund = inv["fund"].strip()
+        words = [w for w in re.split(r"[^a-z0-9]+", fund.lower()) if w and w not in FUND_WORDS]
+        if fund and words:
+            stems["".join(words)] = fund
+    return stems
+
+
+def contradicts_log(status: str, outcome: dict | None) -> str:
+    """Where status_as_filed and intro_outcomes.csv disagree about the intro."""
+    intro_logged = outcome is not None and outcome["intro_sent"] == "Y"
+    if status == "Intro sent" and not intro_logged:
+        return INTRO_CLAIMED_NOT_LOGGED
+    if status == "Stalled" and intro_logged:
+        return INTRO_LOGGED_FILED_STALLED
+    if status == "Closed - no path" and intro_logged:
+        return CLOSED_NO_PATH_BUT_PATH
+    return ""
+
+
+def blocked_reason(company: Company | None, paths: list[dict], roster: dict,
+                   alloc: dict | None, stems: dict[str, str]) -> str:
+    """For a request nobody is routed to: the first thing an operator would
+    have to fix, in the order they would fix it. Identity first (no company,
+    could be the fund rather than the operating company, no CRM record), then
+    whether the account is worth a connector (Closed Lost), then supply."""
+    if company is None:
+        return BLOCK_NO_COMPANY
+    for spelling in [company.name, *company.names]:
+        key = normalize_strict(spelling)
+        for stem, fund in stems.items():
+            if key.startswith(stem) and key != normalize_strict(fund):
+                return BLOCK_FUND_OR_OPCO
+    if not company.accounts:
+        return BLOCK_NO_CRM
+    if company.survivor["stage"] == "Closed Lost":
+        return BLOCK_CLOSED_LOST
+    if alloc and alloc["exception_reason"] == CAPACITY_EXHAUSTED:
+        return CAPACITY_EXHAUSTED
+    if not any(p["connector"] in roster for p in paths):
+        return BLOCK_NO_ROSTER_PATH
+    return BLOCK_NEVER_ROUTED
+
+
 def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: dict[str, list[dict]],
                    resolved: dict[str, dict], threads: dict[str, dict],
-                   allocation: dict[str, dict]) -> list[dict]:
+                   allocation: dict[str, dict], filed: list[dict]) -> list[dict]:
     outcomes = {o["request_id"]: o for o in read_csv(DATASET / "intro_outcomes.csv")}
+    filed_by = {r["request_id"]: r for r in filed}
+    stems = fund_stems()
     rows = []
     for rq in read_csv(DATASET / "intro_requests.csv"):
         rid = rq["request_id"]
@@ -804,6 +869,11 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
             else:
                 route_reason = "not asked; company unresolved"
 
+        # a filed row keeps its filed routing, so judge its block against that
+        effective_routed_to = filed_by[rid]["routed_to"] if rid in filed_by else routed_to
+        blocked = "" if effective_routed_to else blocked_reason(
+            company, paths, roster, allocation.get(rid), stems)
+
         th = threads.get(rid, {"replies": 0, "offer": "N", "all_noise": "no replies"})
         if not money(rq["deal_value_usd"]):
             review.append("no deal value")
@@ -835,6 +905,8 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
             "thread_all_noise": th["all_noise"],
             "resolved_by": method,
             "needs_review": "; ".join(review) if review else "no",
+            "contradicts_log": contradicts_log(resolved[rid]["status"], o),
+            "blocked_reason": blocked,
         })
     rows.sort(key=lambda r: r["request_id"])
     return rows
@@ -993,7 +1065,7 @@ def main() -> None:
     for s in supply:
         supply_by[s["company_id"]].append(s)
     allocation = allocate(roster, rates, outcomes, supply_by, resolved, today)
-    requests = build_requests(reg, roster, rates, supply_by, resolved, threads, allocation)
+    requests = build_requests(reg, roster, rates, supply_by, resolved, threads, allocation, filed)
     existing, appended, added, warnings = append_only_write(requests)
 
     # Derived files: all three computed from the request file as just written,
