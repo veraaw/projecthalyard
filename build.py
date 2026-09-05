@@ -3,6 +3,7 @@
 
     python3 build.py            # everything
     python3 build.py dashboard  # one step (any prefix of the names below)
+    python3 build.py resolve    # company-string -> company ID tables under golden/
 
 The dashboard reads analysis/joins/join_rates.md and analysis/profile/profile.md,
 so those steps run before it.
@@ -11,6 +12,7 @@ import runpy
 import sys
 
 STEPS = [
+    ("resolve", "golden.resolver"),
     ("profile", "analysis.profile.profile_csvs"),
     ("joins", "analysis.joins.join_rates"),
     ("routing", "analysis.routing.routing_kpis"),
