@@ -4,6 +4,9 @@
     python3 build.py            # everything
     python3 build.py dashboard  # one step (any prefix of the names below)
 
+The trace step writes one company history per company with a request to
+analysis/traces/ (`python3 analysis/trace.py "Harrowgate Health"` prints one).
+
 The dashboard reads analysis/joins/join_rates.md and analysis/profile/profile.md,
 so those steps run before it. The tests run first (`python3 -m unittest
 discover tests`): a failure exits non-zero and stops the build.
@@ -12,6 +15,8 @@ import runpy
 import sys
 import unittest
 from pathlib import Path
+
+from analysis.trace import write_all as write_traces
 
 ROOT = Path(__file__).resolve().parent
 
@@ -30,6 +35,7 @@ STEPS = [
     ("routing", "analysis.routing.routing_kpis"),
     ("slack", "analysis.slack.slack_threads_analysis"),
     ("integrity", "analysis.integrity.integrity_audit"),
+    ("trace", write_traces),
     ("sankey", "dashboard.sankey_funnel"),
     ("dashboard", "dashboard.build_dashboard"),
 ]
