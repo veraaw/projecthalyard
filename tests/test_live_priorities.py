@@ -31,6 +31,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from dashboard import live_priorities as lp  # noqa: E402
+from dashboard.sankey_funnel import funnel_stages  # noqa: E402
 from golden import parse as gp  # noqa: E402
 from golden.resolve_cli import load_resolver  # noqa: E402
 
@@ -210,6 +211,34 @@ class PayloadTest(unittest.TestCase):
                         "merges and owner changes are recommended, never executed")
         self.assertEqual([g["group"] for g in C["groups"]], ["create", "merge", "owners", "reopen"])
 
+    def test_connector_pages_top_five_then_the_rest(self):
+        live = lp.Live(AS_OF)
+        pages = live.connector_pages()
+        names = [c["connector"] for c in pages]
+        self.assertEqual(names[:6], [c["connector"] for c in self.P["connectors"]], "roster first, roster order")
+        self.assertEqual(names, [c["connector"] for c in self.P["connector_pages"]])
+        self.assertEqual(len(set(names)), len(names))
+        seen = 0
+        for c in pages:
+            mine = c["top"] + c["rest"]
+            self.assertLessEqual(len(c["top"]), lp.TOP_N)
+            self.assertEqual(len(c["rest"]), max(0, len(mine) - lp.TOP_N))
+            self.assertEqual(c["ranked_count"], len(mine))
+            self.assertTrue(all(r["connector"] == c["connector"] for r in mine))
+            self.assertEqual([r["rank_here"] for r in mine], list(range(1, len(mine) + 1)))
+            self.assertEqual([r["expected_value"] for r in mine],
+                             sorted((r["expected_value"] for r in mine), reverse=True))
+            self.assertEqual([r["rank"] for r in mine], sorted(r["rank"] for r in mine),
+                             "a connector's list keeps the global Live Priorities order")
+            self.assertEqual(c["page"], f"connector-{lp.slug(c['connector'])}.html")
+            self.assertIn("formula", c)
+            for r in mine:
+                if r["company_id"]:
+                    self.assertEqual(r["href"], f"{lp.TRACE_PAGE}#{r['company_id']}")
+            seen += len(mine)
+        self.assertEqual(seen, len(live.ranked()), "every ranked request lands on exactly one connector page")
+        self.assertEqual(lp.slug("Tomás Beckett"), "tomas-beckett")
+
     def test_page_embeds_the_payload_and_no_arithmetic_on_facts(self):
         html = lp.fragment(AS_OF)
         self.assertIn('<script id="lp-data" type="application/json">', html)
@@ -217,6 +246,63 @@ class PayloadTest(unittest.TestCase):
         js = (ROOT / "dashboard" / "live_priorities.js").read_text(encoding="utf-8")
         for token in ("deal_value_usd", "value_usd *", "* 0.9", "/ 365", "STAGE_WEIGHT"):
             self.assertNotIn(token, js, f"the browser renders; {token!r} would be it calculating")
+
+
+class FunnelWindowTest(unittest.TestCase):
+    """Live Data's cumulative / last-12-months toggle: both views are computed here."""
+
+    def test_since_filters_by_request_date(self):
+        allt = funnel_stages()
+        reqs = read_csv(ROOT / "golden" / "golden_requests.csv")
+        since = sorted(r["request_date"][:10] for r in reqs)[len(reqs) // 2]
+        rolling = funnel_stages(since=since)
+        self.assertEqual([n for n, _ in rolling], [n for n, _ in allt])
+        self.assertEqual(rolling[0][1], sum(1 for r in reqs if r["request_date"][:10] >= since))
+        self.assertTrue(all(b <= a for (_, a), (_, b) in zip(allt, rolling)))
+        self.assertLess(rolling[0][1], allt[0][1])
+        self.assertEqual(funnel_stages(since="1900-01-01"), allt)
+
+
+@unittest.skipUnless((ROOT / "docs" / "livedata.html").exists(), "run `python3 build.py dashboard` first")
+class BuiltPagesTest(unittest.TestCase):
+    """What `python3 build.py dashboard` writes under docs/."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.docs = ROOT / "docs"
+        cls.cards = lp.Live(AS_OF).connector_pages()
+        cls.pages = {n: (cls.docs / n).read_text(encoding="utf-8") for n in
+                     ["halyardscoping.html", "livedata.html", "companytrace.html", "livepriorities.html"]
+                     + [c["page"] for c in cls.cards]}
+
+    def test_masthead_and_both_tab_rows_on_every_page(self):
+        for name, html in self.pages.items():
+            self.assertIn("<b>Halyard Baton</b> / intro routing console", html, name)
+            self.assertIn('<svg class="logo"', html, name)
+            self.assertIn('<div class="tabs people">', html, name)
+            for c in self.cards:
+                self.assertIn(f'href="{c["page"]}"', html, f"{name} must link to {c['connector']}")
+            self.assertEqual(html.count('.html" class="on">'), 1, f"{name}: exactly one tab is on")
+        self.assertIn(f'href="{self.cards[0]["page"]}" class="on"', self.pages[self.cards[0]["page"]])
+        self.assertIn("--baton", self.pages["livedata.html"], "the connector row has its own colour")
+
+    def test_connector_page_boots_its_own_card(self):
+        for c in self.cards:
+            html = self.pages[c["page"]]
+            self.assertIn("LP.bootConnector(", html)
+            blob = json.loads(html.split('<script id="lp-data" type="application/json">')[1].split("</script>")[0])
+            self.assertEqual(blob["connector"], c["connector"])
+            self.assertEqual([r["request_id"] for r in blob["top"]], [r["request_id"] for r in c["top"]])
+            self.assertEqual(len(blob["rest"]), len(c["rest"]))
+
+    def test_live_data_has_both_funnel_views(self):
+        html = self.pages["livedata.html"]
+        self.assertIn(">Cumulative<", html)
+        self.assertIn(">Last 12 months<", html)
+        self.assertIn('<div class="fview" data-view="all">', html)
+        self.assertIn('<div class="fview" data-view="12m" hidden>', html)
+        self.assertIn('id="sankey"', html)
+        self.assertIn('id="sankey-12m"', html)
 
 
 @unittest.skipUnless(NODE, "node is not installed")

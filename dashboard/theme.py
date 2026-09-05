@@ -18,6 +18,17 @@ ACCENT = "#2200ff"       # links, primary series, highlighted numbers
 WARN = "#9f2d00"         # findings that need attention
 NEUTRAL = "#d9d5d1"      # de-emphasised bars / dropped-out flows
 NEUTRAL_DARK = "#a8a49f"
+NAVY = "#17293f"         # logo tile
+BATON = "#c4763e"        # logo diagonal; the connector tab row
+
+
+def logo(size=30):
+    """The Halyard mark as inline SVG: navy tile, two white uprights, the orange baton between them."""
+    return (f'<svg class="logo" width="{size}" height="{size}" viewBox="0 0 40 40" aria-hidden="true">'
+            f'<rect width="40" height="40" rx="7" fill="{NAVY}"/>'
+            f'<rect x="9" y="9" width="3.4" height="22" fill="#fff"/>'
+            f'<rect x="27.6" y="9" width="3.4" height="22" fill="#fff"/>'
+            f'<path d="M12.4 26.4 27.6 14.6" stroke="{BATON}" stroke-width="3"/></svg>')
 
 # ---- type
 SERIF = '"Newsreader", "Iowan Old Style", Georgia, serif'

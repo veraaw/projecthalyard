@@ -21,9 +21,13 @@ GOLDEN = str(GOLDEN_DIR / "golden_requests.csv")
 OUT = str(DOCS)
 
 
-def funnel_stages():
+def funnel_stages(since=None):
+    """(stage, count) down the funnel; `since` (YYYY-MM-DD) keeps only requests
+    dated on or after it, for a rolling window."""
     with open(GOLDEN, newline="", encoding="utf-8-sig") as f:
         req = list(csv.DictReader(f))
+    if since:
+        req = [r for r in req if r["request_date"].strip()[:10] >= since]
     stages = [
         ("Requests", req),
         ("Asked", [r for r in req if r["asked_date"].strip()]),
