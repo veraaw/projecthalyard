@@ -3,16 +3,40 @@
     python3 -m unittest tests.test_parse
 """
 import csv
+import json
+import shutil
+import subprocess
 import sys
 import unittest
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+from golden import build_golden as bg  # noqa: E402
+from golden import parse as gp  # noqa: E402
+from golden import resolver as gr  # noqa: E402
 from golden.parse import extract  # noqa: E402
 from golden.resolver import Resolver  # noqa: E402
 
 DATASET = ROOT / "dataset"
+
+# The cases ParseTargetTest runs, one message each; ExportedRulesTest runs the same
+# texts through the exported cue table + resolver index under node.
+CASES = {
+    "distractor": "Calderon Aerospace introduced us to Kestrel Airlines, but the account I actually need is Ironvale Steel",
+    "bridge": "trying to reach the COO at Apex Logistics. I know we sell into Larkhall Software and Cindermill Mining",
+    "negation": ("we need Cobalt Lane Capital Markets. Not Ferrowick Insurance — that's a different entity "
+                 "and we already have that one. Also spoke to Apex Logistics last week, unrelated."),
+    "is the account": "Quillon Pharma is the account. Not Pelham Beverage.",
+    "domain": "email domain is bexleybio.com",
+    "domain over person": "looking for a path to Noor Isenberg-Havercamp — email domain is vireosystems.com, that's all I have",
+    "unknown company": "any connections into Kingsmere Retail Group? we're up against a renewal window",
+    "fund or customer": "who do we know at Thornbury?",
+    "person only": "Rafael Kirkbride-Ibarra is the person I need. Pretty sure they're a Chief Information Officer somewhere in Semiconductors.",
+    "negative only": "Our champion at Yarrowdale Media used to work with their team",
+    "no path": "any connections into Halcyon Grid?",
+}
 
 
 def read_csv(name):
@@ -114,6 +138,124 @@ class ParseTargetTest(unittest.TestCase):
         ex = extract("Our champion at Yarrowdale Media used to work with their team", self.res)
         self.assertEqual(self.scores(ex.text), {"Yarrowdale Media": -1})
         self.assertIsNone(ex.target)
+
+
+@unittest.skipUnless(shutil.which("node"), "node is needed to run the exported rules")
+class ExportedRulesTest(unittest.TestCase):
+    """The dashboard payload carries parse.py's cues, the resolver's index and every
+    company's paths as data; dashboard/live_priorities.js interprets them. Run the
+    same messages through both and demand the same target and the same top
+    connector. If the export drifts from parse.py this fails."""
+
+    @classmethod
+    def setUpClass(cls):
+        from dashboard.live_priorities import Live, ROUTE_PRESETS
+        from golden.resolve_cli import load_resolver
+        cls.live = Live(date.today())
+        cls.P = cls.live.parser()
+        cls.res = load_resolver()
+        cls.presets = ROUTE_PRESETS
+        texts = [*CASES.values(), *(p["text"] for p in ROUTE_PRESETS)]
+        cls.texts = list(dict.fromkeys(texts))
+        out = subprocess.run(["node", str(ROOT / "tests" / "lp_parity.js")], cwd=ROOT, check=True,
+                             input=json.dumps({"parser": cls.P, "texts": cls.texts, "threads": ""}),
+                             capture_output=True, text=True)
+        js = json.loads(out.stdout)
+        cls.js = {t: r for t, r in zip(cls.texts, js["routed"])}
+        cls.js_extract = {t: r for t, r in zip(cls.texts, js["extracted"])}
+
+    def python_top(self, cid):
+        p, _ = bg.best_route(self.live.paths.get(cid, []), self.live.roster, self.live.rates, self.live.industry(cid))
+        return (p["connector"], p["reach_type"], p["contact_name"]) if p else None
+
+    def test_cue_table_is_parse_py_verbatim(self):
+        exported = [(c["label"], c["source"], c["score"]) for c in self.P["cues"]]
+        expected = [(label, pat.replace("(?P<", "(?<"), score) for label, pat, score in gp.CUES]
+        self.assertEqual(exported, expected)
+        self.assertNotIn("(?P<", json.dumps(self.P["cues"]))
+        self.assertEqual(self.P["domain_cue"], gp.DOMAIN_CUE)
+        self.assertEqual(self.P["domain_score"], gp.DOMAIN_SCORE)
+        self.assertEqual(self.P["domain"]["source"], gp._DOMAIN.pattern)
+        self.assertEqual(self.P["title"]["source"], gp.TITLE_RE.pattern.replace("(?P<", "(?<"))
+
+    def test_resolver_index_covers_every_entity(self):
+        R = self.P["resolver"]
+        ids = {e.entity_id for e in self.res.entities}
+        self.assertEqual(set(R["entities"]), ids)
+        self.assertEqual(set(R["by_domain"]), {e.domain for e in self.res.entities if e.domain})
+        for table in ("strict", "loose", "stem", "by_domain"):
+            for key, v in R[table].items():
+                for i in (v if isinstance(v, list) else [v]):
+                    self.assertIn(i, ids, f"{table}[{key}]")
+        coll = R["fund_or_customer"]
+        self.assertIn("thornbury", coll)
+        for stem, cands in coll.items():
+            self.assertEqual({R["entities"][i]["kind"] for i in cands}, {"company", "fund"}, stem)
+            self.assertEqual(self.res.resolve(stem).method, "fund-or-customer", stem)
+
+    def test_company_export_carries_every_path(self):
+        for cid, c in self.live.companies.items():
+            e = self.P["companies"][cid]
+            self.assertEqual(e["company_name"], c["company_name"])
+            self.assertEqual(e["stage"], c["stage"])
+            self.assertEqual(e["owner"], c["owner"])
+            self.assertEqual(len(e["paths"]), len(self.live.paths.get(cid, [])))
+            for p in e["paths"]:
+                for k in ("connector", "contact", "title", "evidence", "strength", "fit", "rate", "score", "reason"):
+                    self.assertIn(k, p)
+            self.assertEqual([p["score"] for p in e["paths"]], sorted((p["score"] for p in e["paths"]), reverse=True))
+
+    def test_same_target_as_the_python_parser(self):
+        for name, text in CASES.items():
+            with self.subTest(name):
+                ex = extract(text, self.res)
+                js = self.js[text]
+                self.assertEqual(js["target"], ex.target.text if ex.target else None)
+                self.assertEqual(js["title"], gp.extract_title(text))
+                self.assertEqual(js["others"], [m.text for m in ex.mentions if m is not ex.target])
+                if ex.target is None:
+                    self.assertEqual(js["status"], "no-target")
+                    continue
+                r = ex.target.resolution
+                if r.method in ("fund-or-customer", "ambiguous"):
+                    self.assertEqual(js["status"], "refused")
+                    self.assertEqual(js["candidates"], sorted(c.entity_id for c in r.candidates))
+                    self.assertIsNone(js["top"])
+                elif r.entity_id:
+                    self.assertEqual(js["company_id"], r.entity_id)
+                else:   # unmatched by the resolver: a company on file with no CRM account, or new
+                    name = gr.domain_stem(ex.target.text) if ex.target.is_domain else ex.target.text
+                    known = self.P["known_no_crm"]
+                    self.assertEqual(js["company_id"], known.get(gr.normalize_strict(name)) or known.get(gr.normalize(name), ""))
+
+    def test_same_top_connector_as_the_build(self):
+        for name, text in CASES.items():
+            with self.subTest(name):
+                js = self.js[text]
+                if not js["company_id"]:
+                    self.assertIsNone(js["top"])
+                    continue
+                top = self.python_top(js["company_id"])
+                self.assertEqual((js["top"]["connector"], js["top"]["reach_type"], js["top"]["contact"]) if js["top"] else None, top)
+                self.assertEqual(js["status"], "routed" if top else "no-path")
+
+    def test_presets_hit_the_cases_they_are_named_for(self):
+        want = {"Distractor": ("routed", "Ironvale Steel"), "Bridge": ("routed", "Apex Logistics"),
+                "Domain only": ("routed", "Bexley Bioworks"), "No path": ("no-path", "Halcyon Grid"),
+                "Fund or customer": ("refused", ""), "No CRM record": ("routed", "Kingsmere Retail Group")}
+        self.assertEqual({p["label"] for p in self.presets}, set(want))
+        for p in self.presets:
+            js = self.js[p["text"]]
+            self.assertEqual((js["status"], js["company_name"]), want[p["label"]], p["label"])
+        bridge = self.js[next(p["text"] for p in self.presets if p["label"] == "Bridge")]
+        self.assertEqual(bridge["title"], "COO")
+        self.assertEqual(bridge["others"], ["Larkhall Software", "Cindermill Mining"])
+        no_crm = self.js[next(p["text"] for p in self.presets if p["label"] == "No CRM record")]
+        self.assertFalse(no_crm["crm"])
+        self.assertIsNotNone(no_crm["top"])
+        refused = self.js[next(p["text"] for p in self.presets if p["label"] == "Fund or customer")]
+        self.assertEqual(len(refused["candidates"]), 2)
+        self.assertEqual(refused["paths"], [])
 
 
 if __name__ == "__main__":

@@ -24,6 +24,7 @@ import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import asdict
 from datetime import date, datetime
+from os.path import commonprefix
 
 from analysis.crm import writeback as wb
 from analysis.trace import all_traces
@@ -51,6 +52,16 @@ PAGE = "livepriorities.html"
 TRACE_PAGE = "companytrace.html"
 CONNECTOR_PAGE = "connector-{slug}.html"
 THREADS_COMMAND = "python3 golden/build_golden.py --threads {file} && python3 build.py"
+
+# "Route a live request" presets: real message shapes, one per thing the router must get right
+ROUTE_PRESETS = [
+    {"label": "Distractor", "text": "Calderon Aerospace introduced us to Kestrel Airlines, but the account I actually need is Ironvale Steel"},
+    {"label": "Bridge", "text": "trying to reach COO at Apex Logistics. I know we sell into Larkhall Software and Cindermill Mining"},
+    {"label": "Domain only", "text": "email domain is bexleybio.com"},
+    {"label": "No path", "text": "any connections into Halcyon Grid?"},
+    {"label": "Fund or customer", "text": "who do we know at Thornbury?"},
+    {"label": "No CRM record", "text": "any connections into Kingsmere Retail Group? we're up against a renewal window"},
+]
 
 
 def parse_date(s: str) -> date | None:
@@ -152,6 +163,76 @@ class Live:
     def rate(self, connector: str) -> float:
         return self.rates.get(connector, bg.PRIOR_RATE)
 
+    def ranked_paths(self, cid: str) -> list[dict]:
+        """Every path into a company from supply_reach.csv, best first, scored as the
+        build scores them (strength x focus fit x delivery rate), each with the one
+        line of reasoning the route panel shows."""
+        ind = self.industry(cid)
+        out = []
+        for p in self.paths.get(cid, []):
+            n = p["connector"]
+            fit, rate = self.fit(n, ind), self.rate(n)
+            r = self.roster.get(n)
+            when = (p["observed_date"] or "")[:7]
+            if p["reach_type"] == "offer":
+                via = "Offered in Slack" + (f" (knows {p['contact_title']})" if p["contact_title"] else "")
+                via += f" · {p['offer_age_days']} days ago" if p["offer_age_days"] else ""
+            elif p["reach_type"] == "investor":
+                via = f"{'Board seat' if p['board_seat'] == 'yes' else 'Investor'} · {p['contact_title']}" if p["contact_title"] else "Investor path"
+            elif p["reach_type"] == "alumni":
+                via = f"Via {p['contact_name']} ({p['contact_title']})" if p["contact_title"] else f"Via {p['contact_name']}"
+                via += f" · alumni link {when}" if when else ""
+            else:
+                via = f"Via {p['contact_name']}" + (f" ({p['contact_title']})" if p["contact_title"] else "") + (f" · connected {when}" if when else "")
+            if r is None:
+                focus = "not on the roster, no stated focus"
+            elif not ind:
+                focus = "industry unknown"
+            elif fit >= 1.0:
+                focus = "in their focus area"
+            elif fit <= 0.0:
+                focus = "outside their focus — they decline anything outside"
+            else:
+                focus = "outside their focus area"
+            cap = bg.capacity(self.roster, n)
+            idle = self.connector_facts.get(n, {}).get("idle", cap)
+            capacity_left = max(0, idle) / cap if cap else 0.0
+            score = float(p["strength"]) * fit * rate
+            out.append({
+                "connector": n, "connector_type": p["connector_type"], "on_roster": r is not None, "reach_type": p["reach_type"],
+                "contact": p["contact_name"], "title": p["contact_title"], "connected": when, "board_seat": p["board_seat"] == "yes",
+                "strength": round(float(p["strength"]), 3), "fit": round(fit, 2), "rate": round(rate, 3),
+                "score": round(score, 3), "in_focus": p["in_focus_area"], "idle": idle, "capacity": cap,
+                "capacity_left": round(capacity_left, 3), "connector_score": round(score * capacity_left, 3),
+                "evidence": p["evidence"], "label": bg.path_label(p),
+                "reason": f"{via} · delivers {round(rate * 100)}% of asks · {focus}",
+            })
+        out.sort(key=lambda p: -p["score"])
+        return out
+
+    def route_priority(self, cid: str) -> dict:
+        """Request priority for a message about this company pasted today: deal value is
+        the CRM's ARR potential (a Slack message carries none), else the largest live
+        request on the company; age is 1.0 (posted today); reps waiting counts the
+        requesters already live on the company, at least one (the poster)."""
+        c = self.companies[cid]
+        acct = next((self.accounts[a] for a in bar(c["crm_account_ids"]) if a in self.accounts), None)
+        live = [usd(r["value_usd"]) for r in self.by_company.get(cid, []) if r["status_as_filed"] in bg.OPEN_STATUSES]
+        if acct and usd(acct["arr_potential_usd"]):
+            deal, source = usd(acct["arr_potential_usd"]), "CRM ARR potential"
+        elif live and max(live):
+            deal, source = max(live), "largest live request on the company"
+        else:
+            deal, source = 0, "no deal value on file"
+        comp = {
+            "deal_value_musd": deal / 1e6,
+            "stage_weight": STAGE_WEIGHT.get(c["stage"], NO_CRM_WEIGHT) if c["crm_account_ids"] else NO_CRM_WEIGHT,
+            "age": 1.0,
+            "reps_waiting": max(1, len(self.live_requesters(cid))),
+        }
+        return {"request_priority": round(comp["deal_value_musd"] * comp["stage_weight"] * comp["age"] * comp["reps_waiting"], 3),
+                "components": {k: round(v, 3) for k, v in comp.items()}, "deal_source": source}
+
     def company_ref(self, cid: str, name: str = "") -> dict:
         c = self.companies.get(cid)
         return {
@@ -178,6 +259,59 @@ class Live:
 
     def asks_this_cycle(self, connector: str) -> int:
         return sum(1 for o in self.outcomes if o["connector_asked"] == connector and o["asked_date"].startswith(self.cycle))
+
+    def cycle_list(self) -> list[str]:
+        """Every calendar month from the first ask on file through the current cycle."""
+        first = min((o["asked_date"][:7] for o in self.outcomes if o["asked_date"]), default=self.cycle)
+        y, m = int(first[:4]), int(first[5:7])
+        out = []
+        while f"{y:04d}-{m:02d}" <= self.cycle:
+            out.append(f"{y:04d}-{m:02d}")
+            y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+        return out
+
+    def cycle_rows(self, names: list[str]) -> list[dict]:
+        """Per cycle (a calendar month, the allocator's unit): asks made, slots used
+        against stated capacity, intros made (by intro_date) and the running total
+        of intros. One connector, or several summed. Capacity is the stated monthly
+        capacity of whoever in `names` is on the roster, and only their asks count
+        against it; the current cycle counts this build's allocation as slots used,
+        since those asks are about to go out."""
+        names = set(names)
+        on_roster = {n for n in names if n in self.roster}
+        cap = sum(int(self.roster[n]["stated_monthly_capacity"] or 0) for n in on_roster)
+        mine = [o for o in self.outcomes if o["connector_asked"] in names]
+        allocated = sum(1 for a in self.allocation if a["allocated_to"] in names)
+        allocated_roster = sum(1 for a in self.allocation if a["allocated_to"] in on_roster)
+        rows, cum = [], 0
+        for cyc in self.cycle_list():
+            asks = sum(1 for o in mine if o["asked_date"].startswith(cyc))
+            asks_roster = sum(1 for o in mine if o["asked_date"].startswith(cyc) and o["connector_asked"] in on_roster)
+            intros = sum(1 for o in mine if o["intro_sent"] == "Y" and o["intro_date"].startswith(cyc))
+            current = cyc == self.cycle
+            used = asks_roster + (allocated_roster if current else 0)
+            cum += intros
+            rows.append({
+                "cycle": cyc, "current": current, "asks": asks, "allocated": allocated if current else 0,
+                "allocated_off_roster": allocated - allocated_roster if current else 0, "used": used, "capacity": cap,
+                "capacity_pct": round(used / cap, 3) if cap else None,
+                "intros": intros, "intros_cumulative": cum,
+            })
+        return rows
+
+    def cycles(self) -> dict:
+        """The roster's cycle-by-cycle record, summed, for the Live Data tab."""
+        names = sorted({o["connector_asked"] for o in self.outcomes} | set(self.roster)
+                       | {a["allocated_to"] for a in self.allocation if a["allocated_to"]})
+        rows = self.cycle_rows(names)
+        cur = rows[-1]
+        return {
+            "cycle": self.cycle, "rows": rows, "current": cur,
+            "roster_capacity": cur["capacity"], "off_roster": sorted(n for n in names if n not in self.roster),
+            "intros_total": cur["intros_cumulative"], "asks_total": sum(r["asks"] for r in rows),
+            "best": max(rows, key=lambda r: (r["intros"], r["cycle"])),
+            "per_connector": [{"connector": n, "rows": self.cycle_rows([n])} for n in self.roster],
+        }
 
     def path_for(self, a: dict) -> dict | None:
         return next((p for p in self.paths.get(a["company_id"], [])
@@ -430,6 +564,7 @@ class Live:
                    and self.by_rid.get(o["request_id"], {}).get("status_as_filed") in bg.OPEN_STATUSES]
         asks = [o for o in self.outcomes if o["connector_asked"] == name]
         intros = [o for o in asks if o["intro_sent"] == "Y"]
+        cycles = self.cycle_rows([name])
         facts = self.connector_facts.get(name, {})
         return {
             "connector": name, "slug": slug(name), "page": CONNECTOR_PAGE.format(slug=slug(name)),
@@ -440,6 +575,7 @@ class Live:
             "capacity": cap, "asked_this_cycle": asked_cycle, "allocated_this_cycle": len(queue),
             "used": asked_cycle + len(queue), "idle": max(0, cap - asked_cycle - len(queue)),
             "delivery_rate": round(self.rate(name), 3), "asks_all_time": len(asks), "intros_all_time": len(intros),
+            "intros_this_cycle": cycles[-1]["intros"], "cycles": cycles,
             "sitting_on": [{
                 "request_id": o["request_id"], **self.company_ref(self.by_rid.get(o["request_id"], {}).get("company_id", "")),
                 "target_title": self.by_rid.get(o["request_id"], {}).get("target_title", ""),
@@ -611,26 +747,43 @@ class Live:
                 known_no_crm.setdefault(gr.normalize_strict(n), cid)
                 known_no_crm.setdefault(gr.normalize(n), cid)
 
+        # fund-or-customer collisions: a stem (8+ chars) that is a prefix of both a fund's
+        # and a customer's name — "Thornbury" for Thornbury Financial + Thornbury Equity.
+        # The resolver refuses these; the panel shows both candidates.
+        keys = {k: set(v) for k, v in loose.items()}
+        for e in res.entities:
+            if e.domain:
+                keys.setdefault(gr.domain_stem(e.domain), set()).add(e.entity_id)
+        collisions = defaultdict(set)
+        for a, ids_a in keys.items():
+            for b, ids_b in keys.items():
+                if a >= b or {ents[i]["kind"] for i in ids_a | ids_b} != {"company", "fund"}:
+                    continue
+                stem = commonprefix([a, b])
+                if len(stem) >= gr.MIN_PREFIX_STEM:
+                    collisions[stem] |= ids_a | ids_b
+        # only stems the resolver really refuses: "blackwood" is a customer's whole name, so it resolves
+        collisions = {k: sorted(v) for k, v in collisions.items() if res.resolve(k).method == "fund-or-customer"}
+
         askable = sorted(set(self.rates))
         companies = {}
         for cid, c in self.companies.items():
             ind = c["industry"]
-            paths = self.paths.get(cid, [])
-            best, best_sc = None, 0.0
-            for p in paths:
-                sc = bg.path_score(p, self.roster, self.rates, ind)
-                if sc > best_sc:
-                    best, best_sc = p, sc
+            paths = self.ranked_paths(cid)
+            best = paths[0] if paths else None
+            acct = next((self.accounts[a] for a in bar(c["crm_account_ids"]) if a in self.accounts), None)
             companies[cid] = {
                 **self.company_ref(cid), "industry": ind, "stage": c["stage"], "crm": bool(c["crm_account_ids"]),
-                "best": {"connector": best["connector"], "reach_type": best["reach_type"], "contact": best["contact_name"],
-                         "score": round(best_sc, 3), "label": bg.path_label(best)} if best else None,
+                "owner": c["owner"], "arr_fmt": money(usd(acct["arr_potential_usd"])) if acct else "",
+                "paths": paths, "priority": self.route_priority(cid),
+                "best": {"connector": best["connector"], "reach_type": best["reach_type"], "contact": best["contact"],
+                         "score": best["score"], "label": best["label"]} if best else None,
                 "offer_score": {n: round(bg.PATH_BASE["offer"] * self.fit(n, ind) * self.rate(n), 3) for n in askable},
                 "offer_score_unknown": round(bg.PATH_BASE["offer"] * 0.7 * bg.PRIOR_RATE, 3),
             }
         return {
             "cues": [{"label": label, **js_regex(pat), "score": score} for label, pat, score in gp._CUES],
-            "split": js_regex(gp._SPLIT), "domain": js_regex(gp._DOMAIN),
+            "split": js_regex(gp._SPLIT), "domain": js_regex(gp._DOMAIN), "title": js_regex(gp.TITLE_RE),
             "domain_cue": gp.DOMAIN_CUE, "domain_score": gp.DOMAIN_SCORE,
             "offer": js_regex(bg.OFFER_RE), "noise": js_regex(bg.NOISE_RE),
             "offer_title": js_regex(bg._OFFER_TITLE_RE), "offer_person": js_regex(bg._OFFER_PERSON_RE),
@@ -640,7 +793,9 @@ class Live:
                 "by_domain": {e.domain: e.entity_id for e in res.entities if e.domain},
                 "noise": {"source": gr._NOISE, "flags": "g"},
                 "min_prefix_stem": gr.MIN_PREFIX_STEM, "confidence": gr.CONFIDENCE, "review_threshold": gr.REVIEW_THRESHOLD,
+                "fund_or_customer": collisions,
             },
+            "route_presets": ROUTE_PRESETS,
             "known_no_crm": known_no_crm,
             # an offer on a company the build has never seen: no industry, so fit is 0.7 for everyone
             "offer_score_no_industry": {n: round(bg.PATH_BASE["offer"] * 0.7 * self.rate(n), 3) for n in askable},
@@ -689,6 +844,10 @@ LP.{entry}(JSON.parse(document.getElementById('lp-data').textContent), document.
 
 def fragment(today: date | None = None) -> str:
     return _fragment(payload(today), "boot")
+
+
+def cycles(today: date | None = None) -> dict:
+    return Live(today or date.today()).cycles()
 
 
 def connector_fragments(today: date | None = None) -> list[tuple[dict, str]]:
