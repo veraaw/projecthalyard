@@ -62,6 +62,12 @@ DOMAIN_CUE = "email domain"
 DOMAIN_SCORE = 3
 _DOMAIN = re.compile(r"\b(?:https?://)?(?:www\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|co\.uk|ai|io|net|org|co))\b", re.I)
 
+# The title wanted, when the message names one: a C-suite title in full or as
+# initials, a VP/SVP/EVP line, or a Head of. Matched as a phrase, wherever it sits.
+_WORDS = r"[A-Z][A-Za-z]+(?:[ \t](?:&|and|of)[ \t][A-Z][A-Za-z]+|[ \t][A-Z][A-Za-z]+)*"
+_TITLE = rf"Chief[ \t][A-Z][a-z]+[ \t]Officer|C[A-Z]O|[SE]?VP(?:[ \t]of)?[ \t]{_WORDS}|Head[ \t]of[ \t]{_WORDS}"
+TITLE_RE = re.compile(rf"(?<![A-Za-z])(?P<t>{_TITLE})(?![A-Za-z])")
+
 
 @dataclass
 class Mention:
@@ -121,6 +127,12 @@ def extract(text: str, resolver: Resolver | None = None) -> Extraction:
         for x in mentions:
             x.resolution = resolver.resolve("", x.text) if x.is_domain else resolver.resolve(x.text)
     return Extraction(text, mentions)
+
+
+def extract_title(text: str) -> str:
+    """The first title named in the message, or '' when none is."""
+    m = TITLE_RE.search(text or "")
+    return m.group("t") if m else ""
 
 
 def extract_target_id(text: str, resolver: Resolver) -> str:
