@@ -2,16 +2,30 @@
 
     python3 golden/build_golden.py [--as-of YYYY-MM-DD]
 
+golden/ is the state; dataset/ is read-only input and is never written.
+
 Writes four CSVs (UTF-8, no BOM, CRLF):
 
-  golden/golden_requests.csv   one row per intro request. APPEND-ONLY: rows
-                               already in the file are never changed; only
-                               request_ids not yet present are appended. New
-                               columns may be added to the schema; existing
-                               values are never rewritten. contradicts_log
-                               flags a filed status the outcome log disagrees
-                               with; blocked_reason says what would unblock a
-                               request nobody is routed to.
+  golden/golden_requests.csv   one row per intro request. A rebuild MERGES,
+                               it never replaces: the file is read first and
+                               every request_id already in it is kept, whether
+                               or not the source export still has it (live
+                               routes and ingested threads exist only here).
+                               Only request_ids not yet present are appended.
+                               Per column, FACT_COLUMNS (what someone said:
+                               requested_by, raw_ask, company_as_written,
+                               status_as_filed, ...) are written once and never
+                               rewritten, even if the source now says otherwise;
+                               RECOMPUTED_COLUMNS (what we concluded: company_id,
+                               resolved_by, target_title, needs_review, ...)
+                               are recomputed from the facts on every run, so a
+                               better resolver or a new CRM account corrects
+                               every historical row. Routing, outcome and
+                               thread columns are filed once and kept. New
+                               columns may be added to the schema.
+                               contradicts_log flags a filed status the outcome
+                               log disagrees with; blocked_reason says what
+                               would unblock a request nobody is routed to.
   golden/golden_companies.csv  one row per in-scope company (grouped by
                                domain), including CRM accounts nobody has
                                requested (total_requests = 0). Always rebuilt
@@ -82,6 +96,15 @@ REQUEST_COLUMNS = [
     "route_score", "route_reason", "asked_date", "responded", "intro_sent", "meeting_booked",
     "opportunity_usd", "offer_in_thread", "thread_replies", "thread_all_noise", "resolved_by",
     "needs_review", "contradicts_log", "blocked_reason",
+]
+# what someone said or filed: written once, never rewritten
+FACT_COLUMNS = [
+    "request_id", "requested_by", "request_date", "raw_ask", "company_as_written", "value_usd",
+    "urgency_declared", "status_as_filed",
+]
+# what the build concluded from the facts: recomputed on every run
+RECOMPUTED_COLUMNS = [
+    "company_id", "resolved_by", "target_title", "needs_review", "contradicts_log", "blocked_reason",
 ]
 COMPANY_COLUMNS = [
     "company_id", "company_name", "also_known_as", "domain", "industry", "crm_account_ids",
@@ -177,6 +200,8 @@ def read_csv(path: Path) -> list[dict]:
 
 
 def write_csv(path: Path, columns: list[str], rows: list[dict], mode: str = "w") -> None:
+    if DATASET in path.resolve().parents:
+        sys.exit(f"refusing to write {path}: dataset/ is read-only input")
     path.parent.mkdir(parents=True, exist_ok=True)
     new_file = mode == "w" or not path.exists() or path.stat().st_size == 0
     with open(path, mode, newline="", encoding="utf-8") as f:
@@ -639,13 +664,14 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
             budget[o["connector_asked"]] -= 1
 
     asked = {o["request_id"] for o in outcomes}
-    live = [(rid, rq) for rid, rq in resolved.items() if rq["status"] in OPEN_STATUSES and rid not in asked]
-    live.sort(key=lambda t: (URGENCY_RANK.get(t[1]["urgency"], 9), -float(t[1]["value_usd"] or 0),
-                             t[1]["request_date"], t[0]))
+    live = [(rid, rq) for rid, rq in resolved.items()
+            if rq["facts"]["status_as_filed"] in OPEN_STATUSES and rid not in asked]
+    live.sort(key=lambda t: (URGENCY_RANK.get(t[1]["facts"]["urgency_declared"], 9),
+                             -float(t[1]["facts"]["value_usd"] or 0), t[1]["facts"]["request_date"], t[0]))
 
     out: dict[str, dict] = {}
     for rid, rq in live:
-        company = rq["company"]
+        company, facts = rq["company"], rq["facts"]
         s = company.survivor if company else None
         industry = s["industry"] if s else ""
         paths = supply_by_company.get(company.company_id, []) if company else []
@@ -655,10 +681,10 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
             "company_id": company.company_id if company else "",
             "company_name": company.name if company else "",
             "target_title": rq["target_title"],
-            "value_usd": rq["value_usd"],
-            "urgency_declared": rq["urgency"],
-            "request_date": rq["request_date"],
-            "status_as_filed": rq["status"],
+            "value_usd": facts["value_usd"],
+            "urgency_declared": facts["urgency_declared"],
+            "request_date": facts["request_date"],
+            "status_as_filed": facts["status_as_filed"],
             "allocated_to": "", "batch_id": "", "batch_size": "", "path_type": "", "contact_name": "",
             "route_score": "", "exception_reason": "", "best_path_if_unbudgeted": "",
         }
@@ -720,52 +746,62 @@ def request_target(rq: dict) -> tuple[str, str, bool]:
     return written, domain_hint, bool(written or domain_hint)
 
 
-def resolve_requests(reg: Registry, filed: list[dict]) -> dict[str, dict]:
-    """request_id -> {company, written, method, target_title, value_usd,
-    urgency, request_date, status}: the request as the file holds (or will
-    hold) it. Registers every requested company, so after this the registry is
-    the in-scope set.
+def resolve_target(reg: Registry, written: str, domain_hint: str,
+                   parsed_from_ask: bool) -> tuple[Company | None, str]:
+    """-> (company, resolved_by). Registers the company."""
+    if not (written or domain_hint):
+        return None, "unresolved"
+    company, method = reg.resolve_or_create(written, domain_hint)
+    if parsed_from_ask and method != FUND_COLLISION:
+        method = f"raw_ask:{method}"
+    return company, method
 
-    Scope comes from the request file as it will stand after this run: every
-    row already filed in golden_requests.csv (its company_as_written, which is
-    pinned to its company_id) plus the target of every raw request not yet
-    filed. A filed request keeps its filed spelling and company even if the raw
-    export changes; the raw row, when still present, only contributes the email
-    domain parsed from raw_ask so the company keeps its domain."""
+
+def source_facts(rq: dict) -> dict:
+    """FACT_COLUMNS as a raw intro_requests.csv row states them."""
+    written, domain_hint, _ = request_target(rq)
+    return {
+        "request_id": rq["request_id"], "requested_by": rq["requested_by"], "request_date": rq["request_date"],
+        "raw_ask": rq["raw_ask"], "company_as_written": written or domain_hint,
+        "value_usd": money(rq["deal_value_usd"]), "urgency_declared": rq["urgency"], "status_as_filed": rq["status"],
+    }
+
+
+def resolve_requests(reg: Registry, filed: list[dict]) -> dict[str, dict]:
+    """request_id -> {company, method, target_title, facts, source}: every
+    request the file will hold after this run. Registers every requested
+    company, so after this the registry is the in-scope set.
+
+    facts (FACT_COLUMNS) come from the filed row when there is one (a filed
+    request keeps its filed spelling even if the raw export changes or no
+    longer has it) and from the raw export otherwise; source is what the raw
+    export states now, or None when it no longer has the request. The company
+    is re-resolved from the facts on every run, filed or not; the raw row, when
+    still present, contributes the email domain parsed from raw_ask and the
+    current target_title."""
     raw = {rq["request_id"]: rq for rq in read_csv(DATASET / "intro_requests.csv")}
     out = {}
     for r in filed:
-        company, method = None, r["resolved_by"]
+        rid = r["request_id"]
+        rq = raw.get(rid)
         written = r["company_as_written"]
-        if r["company_id"] and written:
-            domain_hint = request_target(raw[r["request_id"]])[1] if r["request_id"] in raw else ""
-            if not domain_hint and _looks_like_domain(written):
-                domain_hint = written
-            company, how = reg.resolve_or_create(written, domain_hint)
-            if how == FUND_COLLISION:
-                method = how  # filed against a company the guard now refuses; corrected on write
-        out[r["request_id"]] = {
-            "company": company, "written": written, "method": method,
-            "target_title": r["target_title"], "value_usd": r["value_usd"], "urgency": r["urgency_declared"],
-            "request_date": r["request_date"], "status": r["status_as_filed"],
+        domain_hint = request_target(rq)[1] if rq else ""
+        if not domain_hint and _looks_like_domain(written):
+            domain_hint = written
+        company, method = resolve_target(reg, "" if written == domain_hint else written, domain_hint,
+                                         r["resolved_by"].startswith("raw_ask:"))
+        out[rid] = {
+            "company": company, "method": method,
+            "target_title": rq["target_title_raw"].strip() if rq else r["target_title"],
+            "facts": {c: r[c] for c in FACT_COLUMNS}, "source": source_facts(rq) if rq else None,
         }
     for rid, rq in raw.items():
         if rid in out:
             continue
-        written, domain_hint, parsed_from_ask = request_target(rq)
-        if written or domain_hint:
-            company, method = reg.resolve_or_create(written, domain_hint)
-            if not written:
-                written = domain_hint
-            if parsed_from_ask and method != FUND_COLLISION:
-                method = f"raw_ask:{method}"
-        else:
-            company, method = None, "unresolved"
-        out[rid] = {
-            "company": company, "written": written, "method": method,
-            "target_title": rq["target_title_raw"].strip(), "value_usd": money(rq["deal_value_usd"]),
-            "urgency": rq["urgency"], "request_date": rq["request_date"], "status": rq["status"],
-        }
+        company, method = resolve_target(reg, *request_target(rq))
+        facts = source_facts(rq)
+        out[rid] = {"company": company, "method": method, "target_title": rq["target_title_raw"].strip(),
+                    "facts": facts, "source": facts}
     return out
 
 
@@ -805,11 +841,8 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
     outcomes = {o["request_id"]: o for o in read_csv(DATASET / "intro_outcomes.csv")}
     filed_by = {r["request_id"]: r for r in filed}
     rows = []
-    for rq in read_csv(DATASET / "intro_requests.csv"):
-        rid = rq["request_id"]
-        if rid not in resolved:
-            continue
-        company, written, method = resolved[rid]["company"], resolved[rid]["written"], resolved[rid]["method"]
+    for rid, rq in resolved.items():
+        company, method, facts = rq["company"], rq["method"], rq["facts"]
 
         review = []
         if method == FUND_COLLISION:
@@ -874,22 +907,15 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
             blocked = blocked_reason(company, paths, roster, allocation.get(rid))
 
         th = threads.get(rid, {"replies": 0, "offer": "N", "all_noise": "no replies"})
-        if not money(rq["deal_value_usd"]):
+        if not facts["value_usd"]:
             review.append("no deal value")
-        if not rq["target_title_raw"].strip():
+        if not rq["target_title"]:
             review.append("no target title")
 
         rows.append({
-            "request_id": rid,
+            **facts,
             "company_id": company.company_id if company else "",
-            "company_as_written": written,
-            "target_title": rq["target_title_raw"].strip(),
-            "requested_by": rq["requested_by"],
-            "request_date": rq["request_date"],
-            "raw_ask": rq["raw_ask"],
-            "value_usd": money(rq["deal_value_usd"]),
-            "urgency_declared": rq["urgency"],
-            "status_as_filed": rq["status"],
+            "target_title": rq["target_title"],
             "routed_to": routed_to,
             "routed_on": routed_on,
             "route_score": route_score,
@@ -904,57 +930,61 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
             "thread_all_noise": th["all_noise"],
             "resolved_by": method,
             "needs_review": "; ".join(review) if review else "no",
-            "contradicts_log": contradicts_log(resolved[rid]["status"], o),
+            "contradicts_log": contradicts_log(facts["status_as_filed"], o),
             "blocked_reason": blocked,
         })
     rows.sort(key=lambda r: r["request_id"])
     return rows
 
 
-def append_only_write(rows: list[dict]) -> tuple[int, int, list[str], list[str]]:
-    """Append rows whose request_id is new. Existing values are never touched,
-    with one exception: a filed row whose company the fund-collision guard now
-    refuses (a bare name such as "Thornbury" filed as Thornbury Financial) is
-    replaced by its recomputed row, so it carries no company_id.
-    If the schema has gained columns, the file is rewritten with the same rows
-    in the new column order; existing cells keep their filed value and only the
-    added columns are filled in. A column that disappeared from the schema is
-    refused rather than dropped.
-    Returns (existing, appended, added columns, drift warnings)."""
+def merge_write(rows: list[dict], source: dict[str, dict | None]) -> tuple[int, int, int, list[str], list[str]]:
+    """Merge the recomputed rows into golden_requests.csv. Every filed row is
+    kept. Rows whose request_id is new are appended. On a filed row,
+    RECOMPUTED_COLUMNS take the recomputed value; every other column keeps its
+    filed value. source is FACT_COLUMNS as the raw export states them now (None
+    when it no longer has the request): a fact it states differently from the
+    filed row is reported and kept. If the schema has gained columns, the file
+    is rewritten with the same rows in the new column order and only the added
+    columns filled in. A column that disappeared from the schema is refused
+    rather than dropped.
+    Returns (kept, appended, rows whose conclusions changed, added columns,
+    warnings)."""
     existing = read_csv(REQUESTS_OUT) if REQUESTS_OUT.exists() else []
     has_bom = REQUESTS_OUT.exists() and REQUESTS_OUT.read_bytes()[:3] == b"\xef\xbb\xbf"
-    seen = {r["request_id"]: r for r in existing}
     filed_cols = list(existing[0].keys()) if existing else REQUEST_COLUMNS
     missing = [c for c in filed_cols if c not in REQUEST_COLUMNS]
     if missing:
         sys.exit(f"{REQUESTS_OUT} has columns not in the schema ({', '.join(missing)}); refusing to write.")
     added = [c for c in REQUEST_COLUMNS if c not in filed_cols]
+    computed = {r["request_id"]: r for r in rows}
+    gone = [r["request_id"] for r in existing if r["request_id"] not in computed]
+    if gone:
+        sys.exit(f"{len(gone)} filed requests were not recomputed ({', '.join(gone[:5])}); refusing to write.")
 
     warnings = []
-    new = []
-    corrected = 0
-    for r in rows:
-        old = seen.get(r["request_id"])
-        if old is None:
-            new.append(r)
-            continue
-        if r["resolved_by"] == FUND_COLLISION and old["company_id"]:
-            warnings.append(f"{r['request_id']}: '{old['company_as_written']}' was filed as {old['company_id']}; "
-                            f"{FUND_COLLISION} -> company_id cleared, row recomputed")
-            old.update({c: r.get(c, "") for c in REQUEST_COLUMNS})
-            corrected += 1
-            continue
+    changed = 0
+    for old in existing:
+        r = computed[old["request_id"]]
         for c in added:
             old[c] = r.get(c, "")
-        diff = [c for c in filed_cols if str(old.get(c, "")) != str(r.get(c, ""))]
+        src = source[old["request_id"]]
+        drift = [c for c in FACT_COLUMNS if src and c in filed_cols and str(old[c]) != str(src[c])]
+        if drift:
+            warnings.append(f"{old['request_id']}: source now differs on {', '.join(drift)} (kept filed)")
+        diff = [c for c in RECOMPUTED_COLUMNS if c in filed_cols and str(old[c]) != str(r[c])]
         if diff:
-            warnings.append(f"{r['request_id']}: recomputed {', '.join(diff)} differ from filed row (kept filed)")
+            warnings.append(f"{old['request_id']}: recomputed "
+                            + "; ".join(f"{c} {old[c]!r} -> {r[c]!r}" for c in diff))
+            old.update({c: r[c] for c in diff})
+            changed += 1
+    filed_ids = {e["request_id"] for e in existing}
+    new = [r for r in rows if r["request_id"] not in filed_ids]
 
-    if added or has_bom or corrected:
+    if added or has_bom or changed:
         write_csv(REQUESTS_OUT, REQUEST_COLUMNS, existing + new)
     else:
         write_csv(REQUESTS_OUT, REQUEST_COLUMNS, new, mode="a")
-    return len(existing), len(new), added, warnings
+    return len(existing), len(new), changed, added, warnings
 
 
 # ---------------------------------------------------------------------------
@@ -1074,7 +1104,9 @@ def main() -> None:
         supply_by[s["company_id"]].append(s)
     allocation = allocate(roster, rates, outcomes, supply_by, resolved, today)
     requests = build_requests(reg, roster, rates, supply_by, resolved, threads, allocation, filed)
-    existing, appended, added, warnings = append_only_write(requests)
+    kept, appended, changed, added, warnings = merge_write(
+        requests, {rid: rq["source"] for rid, rq in resolved.items()})
+    carried = sum(1 for rq in resolved.values() if rq["source"] is None)
 
     # Derived files: all three computed from the request file as just written,
     # then swapped in together.
@@ -1083,7 +1115,9 @@ def main() -> None:
     companies = build_companies(reg, supply, read_csv(REQUESTS_OUT), today)
     write_derived(supply, alloc_rows, companies)
 
-    print(f"golden_requests.csv   {existing + appended} rows ({existing} kept, {appended} appended"
+    print(f"golden_requests.csv   {kept + appended} rows ({kept} kept, of which {carried} not in "
+          f"dataset/intro_requests.csv and carried forward; {appended} appended; "
+          f"{changed} with recomputed {'/'.join(RECOMPUTED_COLUMNS[:3])}/... changed"
           + (f"; columns added: {', '.join(added)}" if added else "") + ")")
     print(f"golden_companies.csv  {len(companies)} rows (rebuilt)")
     print(f"supply_reach.csv      {len(supply)} rows (rebuilt): "
