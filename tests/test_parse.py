@@ -53,6 +53,26 @@ class ParseTargetTest(unittest.TestCase):
         self.assertLess(s["Larkhall Software"], 0)    # we sell into: existing customers, not targets
         self.assertLess(s["Cindermill Mining"], 0)
 
+    def test_r1076_weak_cue_beats_explicit_negation(self):
+        text = ("we need Cobalt Lane Capital Markets. Not Ferrowick Insurance — that's a different entity "
+                "and we already have that one. Also spoke to Apex Logistics last week, unrelated.")
+        ex = extract(text, self.res)
+        self.assertEqual(ex.target.text, "Cobalt Lane Capital Markets")
+        self.assertEqual(ex.target.cue, "we need")
+        self.assertEqual(ex.target.resolution.method, "name-exact")
+        self.assertEqual(ex.target_id, self.res.resolve_id("Cobalt Lane Capital Markets"))
+        s = self.scores(text)
+        self.assertEqual(set(s), {"Cobalt Lane Capital Markets", "Ferrowick Insurance", "Apex Logistics"})
+        self.assertLess(s["Ferrowick Insurance"], s["Cobalt Lane Capital Markets"])
+        self.assertLess(s["Apex Logistics"], s["Cobalt Lane Capital Markets"])
+        self.assertLess(s["Ferrowick Insurance"], 0)   # explicit negation
+        self.assertLess(s["Apex Logistics"], 0)        # already spoken to, unrelated
+
+    def test_is_the_account_cue(self):
+        ex = extract("Quillon Pharma is the account. Not Pelham Beverage.", self.res)
+        self.assertEqual(ex.target.text, "Quillon Pharma")
+        self.assertEqual(self.scores(ex.text)["Pelham Beverage"], -3)
+
     def test_email_domain_resolves_on_domain(self):
         ex = extract("email domain is bexleybio.com", self.res)
         self.assertTrue(ex.target.is_domain)

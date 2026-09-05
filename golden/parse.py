@@ -7,7 +7,8 @@
 
 Every company mention is scored by the phrase that introduces it, never by
 where it sits in the message: "the account I actually need is" scores +3,
-"introduced us to" -1, "we sell into" -2. The target is the best-scoring
+"we need" +2, "introduced us to" -1, "we sell into" -2, and an explicit
+negation ("Not X", "X — that's a different entity") -3. The target is the best-scoring
 mention with a positive score; when nothing positive is said the message has
 no target (a person with no company, "a large logistics business").
 
@@ -28,12 +29,15 @@ from golden.resolver import Resolution, Resolver
 _CO = r"[A-Z][A-Za-z0-9&'-]*(?:[ \t]+[A-Z][A-Za-z0-9&'-]*)*"
 _LIST = rf"{_CO}(?:(?:,[ \t]*|,?[ \t]+and[ \t]+){_CO})*"
 _SPLIT = re.compile(r",[ \t]*and[ \t]+|,[ \t]*|[ \t]+and[ \t]+")
+_NOT = r"(?:\b[Nn]ot[ \t]+)?"   # keeps a leading "Not" out of a span-first cue's company
 
 # (cue label, regex with a <co> group, score). A mention keeps the first cue
 # that fires on it, in this order.
 CUES: list[tuple[str, re.Pattern, int]] = [
     ("the account I actually need is", rf"the account I actually need is (?P<co>{_CO})", 3),
-    ("is the target", rf"(?P<co>{_CO}) is the target", 3),
+    ("is the target", rf"{_NOT}(?P<co>{_CO}) is the target", 3),
+    ("is the account", rf"{_NOT}(?P<co>{_CO}) is the account", 2),
+    ("we need", rf"we need (?P<co>{_CO})", 2),
     ("need help getting to", rf"need help getting to (?P<co>{_CO})", 2),
     ("need an intro at", rf"need an intro (?:at|to|into) (?P<co>{_CO})", 2),
     ("any connections into", rf"connections? into (?P<co>{_CO})", 2),
@@ -43,10 +47,13 @@ CUES: list[tuple[str, re.Pattern, int]] = [
     ("asking again:", rf"asking again:[ \t]*(?P<co>{_CO})", 2),
     ("long shot —", rf"long shot[ \t]*[—–-][ \t]*(?P<co>{_CO})", 2),
     ("path to", rf"path (?:in)?to (?P<co>{_CO})", 1),
+    ("not X", rf"\b[Nn]ot (?P<co>{_CO})", -3),
+    ("that's a different entity", rf"{_NOT}(?P<co>{_CO})[ \t]*[—–-]+[ \t]*that's a different entity", -3),
+    ("spoke to", rf"spoke (?:to|with) (?P<co>{_CO})", -1),
     ("introduced us to", rf"introduced us to (?P<co>{_CO})", -1),
-    ("introduced us", rf"(?P<co>{_CO}) introduced us", -1),
+    ("introduced us", rf"{_NOT}(?P<co>{_CO}) introduced us", -1),
     ("our champion at", rf"[Oo]ur champion at (?P<co>{_CO})", -1),
-    ("is a supplier of theirs", rf"(?P<co>{_CO}) is a supplier", -1),
+    ("is a supplier of theirs", rf"{_NOT}(?P<co>{_CO}) is a supplier", -1),
     ("we sell into", rf"we sell into (?P<co>{_LIST})", -2),
 ]
 _CUES = [(label, re.compile(pat), score) for label, pat, score in CUES]
