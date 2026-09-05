@@ -115,17 +115,39 @@ def join_summary_cut(_):
 
 
 # --------------------------------------------------------------------------- 2/3. accounts
+# a request with no company_id is grouped by why the resolver gave up, never by
+# the name that was written (a refused bare name such as Thornbury is not a company)
+UNRESOLVABLE_BUCKETS = {
+    "unresolved": ("unresolvable:no-company", "(no company named)"),
+    "empty": ("unresolvable:no-company", "(no company named)"),
+    "fund-collision": ("unresolvable:fund-or-opco", "(fund or operating company named)"),
+}
+
+
+def company_key(g):
+    """(row key, display name, unresolvable?) for a golden request row."""
+    if g["company_id"]:
+        return g["company_id"], "", False
+    method = g["resolved_by"].split(":")[-1]
+    key, name = UNRESOLVABLE_BUCKETS.get(method, ("unresolvable:other", "(unidentifiable)"))
+    return key, name, True
+
+
 def company_rows(data):
-    """One row per resolved company: demand, routing and outcome counts."""
+    """One row per resolved company plus one per unresolvable bucket:
+    demand, routing and outcome counts."""
     by_company = {}
     for r in data["requests"]:
         g = data["golden_requests"][r["request_id"]]
+        key, bucket_name, unresolvable = company_key(g)
         cid = g["company_id"]
         gc = data["golden_companies"].get(cid, {})
-        b = by_company.setdefault(cid, {
+        b = by_company.setdefault(key, {
             "company_id": cid,
-            "name": gc.get("company_name") or g["company_as_written"] or "(unidentifiable)",
+            "unresolvable": unresolvable,
+            "name": bucket_name or gc.get("company_name") or g["company_as_written"],
             "industry": gc.get("industry", ""),
+            "in_crm": bool(gc.get("crm_account_ids")),
             "owner": gc.get("owner", ""),
             "stage": gc.get("stage", ""),
             "crm_value": money(gc.get("value_usd", 0)) if gc.get("crm_account_ids") else 0.0,
@@ -150,17 +172,23 @@ def company_rows(data):
 
 
 def account_demand_cut(data):
-    """Companies ranked by number of asks, split routed vs never routed."""
+    """Companies ranked by number of asks, split routed vs never routed.
+    `companies` holds the resolved companies; `unresolvable` the buckets of
+    asks that never got a company_id."""
     rows = sorted(company_rows(data), key=lambda b: (-b["requests"], b["name"]))
-    return {"companies": rows,
-            "singletons": sum(1 for b in rows if b["requests"] == 1),
-            "repeat_share": sum(b["requests"] for b in rows if b["requests"] > 1) / sum(b["requests"] for b in rows)}
+    companies = [b for b in rows if not b["unresolvable"]]
+    return {"companies": companies,
+            "unresolvable": [b for b in rows if b["unresolvable"]],
+            "singletons": sum(1 for b in companies if b["requests"] == 1),
+            "repeat_share": (sum(b["requests"] for b in companies if b["requests"] > 1)
+                             / sum(b["requests"] for b in rows))}
 
 
 def top_accounts_cut(data, n=20):
     """Top accounts by value (CRM ARR potential first, latest deal value as fallback)."""
     internal = {r["name"].strip() for r in data["roster"] if r["type"] == "Internal"}
-    rows = sorted(company_rows(data), key=lambda b: (-b["value"], b["name"]))[:n]
+    rows = sorted((b for b in company_rows(data) if not b["unresolvable"]),
+                  key=lambda b: (-b["value"], b["name"]))[:n]
     for b in rows:
         b["internal_connectors"] = sorted(c for c in b["connectors"] if c in internal)
         b["outside_connectors"] = sorted(c for c in b["connectors"] if c not in internal)
