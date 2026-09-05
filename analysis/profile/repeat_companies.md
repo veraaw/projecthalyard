@@ -1,6 +1,6 @@
 # Repeat target companies in `dataset/intro_requests.csv`
 
-187 of 200 requests resolve (via `golden/golden_requests.csv`) to 48 companies; **39** companies appear in 2+ requests (178 requests). The other 13 requests name a person but no identifiable company (R1012, R1020, R1046, R1051, R1056, R1085, R1095, R1106, R1110, R1112, R1119, R1145, R1181) and are excluded.
+180 of 200 requests resolve (via `golden/golden_requests.csv`) to 48 companies; **39** companies appear in 2+ requests (171 requests). The other 20 requests name a person but no identifiable company (R1011, R1012, R1020, R1044, R1046, R1051, R1056, R1079, R1085, R1087, R1088, R1095, R1096, R1106, R1110, R1112, R1119, R1126, R1145, R1181) and are excluded.
 
 Only 46 of 200 requests name a `target_person_raw`; the other 154 give a title only. "Target" below therefore means the named person when there is one, otherwise the title. The strict named-person view (blank counts as its own value) is shown second.
 
@@ -11,10 +11,10 @@ Per company, comparing **person if named, else title**:
 | Pattern | Companies | Requests |
 | --- | ---: | ---: |
 | Every request wants the **same** target | 0 | 0 |
-| Every request wants a **different** target | 28 | 111 |
+| Every request wants a **different** target | 28 | 104 |
 | Mixed (some repeats, some new) | 11 | 67 |
 
-Per request pair within a company (393 pairs): **14** pairs want the same target, **379** want different targets.
+Per request pair within a company (374 pairs): **14** pairs want the same target, **360** want different targets.
 
 <details><summary>Strict view: <code>target_person_raw</code> only (blank treated as one value)</summary>
 
@@ -22,11 +22,11 @@ Per company, comparing **`target_person_raw` verbatim**:
 
 | Pattern | Companies | Requests |
 | --- | ---: | ---: |
-| Every request wants the **same** target | 15 | 57 |
-| Every request wants a **different** target | 2 | 4 |
-| Mixed (some repeats, some new) | 22 | 117 |
+| Every request wants the **same** target | 15 | 55 |
+| Every request wants a **different** target | 5 | 11 |
+| Mixed (some repeats, some new) | 19 | 105 |
 
-Per request pair within a company (393 pairs): **260** pairs want the same target, **133** want different targets.
+Per request pair within a company (374 pairs): **248** pairs want the same target, **126** want different targets.
 
 </details>
 
@@ -46,30 +46,30 @@ Per request pair within a company (393 pairs): **260** pairs want the same targe
 | Marrow Point Airways | 5 | 5 | 0 | 5 | different |
 | Northwind Freight | 5 | 5 | 2 | 5 | different |
 | Sablefield Motors | 5 | 5 | 1 | 4 | different |
-| Thornbury Financial | 5 | 5 | 2 | 4 | different |
 | Apex Logistics | 4 | 4 | 0 | 4 | different |
 | Blackwood Holdings | 4 | 4 | 1 | 3 | different |
 | Cindermill Holdings | 4 | 4 | 0 | 4 | different |
-| Cobalt Lane Capital Markets | 4 | 4 | 0 | 4 | different |
 | Hollowbrook Grocers | 4 | 3 | 0 | 3 | mixed |
 | Larchmont Aerospace | 4 | 4 | 0 | 4 | different |
 | Osric Networks | 4 | 4 | 1 | 4 | different |
 | Pemberton Retail | 4 | 4 | 1 | 3 | different |
 | Ravensmoor Defense | 4 | 4 | 0 | 4 | different |
 | Redtree Foods | 4 | 4 | 1 | 4 | different |
-| Silverbrook Paper | 4 | 4 | 1 | 4 | different |
 | Volney Industrial Systems | 4 | 4 | 1 | 4 | different |
 | Apex Holdings | 3 | 3 | 1 | 3 | different |
 | Copperline Water | 3 | 3 | 1 | 3 | different |
 | Halcyon Grid | 3 | 3 | 0 | 3 | different |
 | Marlowe Freight Systems | 3 | 3 | 1 | 3 | different |
-| Meridian Holdings | 3 | 3 | 1 | 2 | different |
 | Nortonbury Logistics | 3 | 2 | 0 | 2 | mixed |
 | Pelham Beverage | 3 | 2 | 0 | 2 | mixed |
+| Thornbury Financial | 3 | 3 | 2 | 2 | different |
 | Wrenfield Robotics | 3 | 3 | 0 | 3 | different |
 | Calderon Aerospace | 2 | 2 | 0 | 2 | different |
+| Cobalt Lane Capital Markets | 2 | 2 | 0 | 2 | different |
 | Larkhall Software | 2 | 2 | 1 | 2 | different |
+| Meridian Holdings | 2 | 2 | 1 | 1 | different |
 | Quillon Pharma | 2 | 2 | 0 | 2 | different |
+| Silverbrook Paper | 2 | 2 | 1 | 2 | different |
 | Vantage Ridge Utilities | 2 | 2 | 1 | 1 | different |
 
 ## Top five companies by request count
