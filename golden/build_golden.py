@@ -2,7 +2,7 @@
 
     python3 golden/build_golden.py [--as-of YYYY-MM-DD]
 
-Writes four Excel-friendly CSVs (UTF-8 with BOM, CRLF):
+Writes four CSVs (UTF-8, no BOM, CRLF):
 
   golden/golden_requests.csv   one row per intro request. APPEND-ONLY: rows
                                already in the file are never changed; only
@@ -13,9 +13,11 @@ Writes four Excel-friendly CSVs (UTF-8 with BOM, CRLF):
                                domain). Always rebuilt from golden_requests.csv
                                plus crm_accounts.csv and supply_reach.csv.
   golden/supply_reach.csv      one row per way into an in-scope company, from
-                               five sources: direct (connections_*.csv),
-                               alumni / board / investor (investor_network.csv)
-                               and offer (someone volunteered in a Slack thread).
+                               four sources: direct (connections_*.csv),
+                               alumni and investor (investor_network.csv;
+                               board_seat = yes/no is a strength modifier, not
+                               a separate type) and offer (someone volunteered
+                               in a Slack thread).
                                Every askable person (roster, off-roster people
                                asked in intro_outcomes.csv, Slack volunteers)
                                has at least one row: reach_type = "none" if
@@ -81,7 +83,7 @@ COMPANY_COLUMNS = [
     "paths_available", "durable_paths", "best_path_type", "someone_offered", "days_since_movement",
 ]
 SUPPLY_COLUMNS = [
-    "connector", "connector_type", "company_id", "company_name", "reach_type", "contact_name",
+    "connector", "connector_type", "company_id", "company_name", "reach_type", "board_seat", "contact_name",
     "contact_title", "observed_date", "offer_age_days", "strength", "in_focus_area", "monthly_capacity",
     "delivery_rate", "connector_paths_total", "asks_received", "intros_sent", "awaiting_forward",
     "allocated_this_cycle", "idle_capacity", "last_asked_date", "evidence",
@@ -96,10 +98,10 @@ ALLOCATION_COLUMNS = [
 MULTI = " | "  # delimiter for multi-value cells (never a comma)
 OPEN_STATUSES = {"Open", "Routed", "Stalled"}
 URGENCY_RANK = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
-OFF_ROSTER_BUDGET = 1  # a Slack volunteer with no stated capacity gets one ask per cycle
+OFF_ROSTER_CAPACITY = 2  # monthly asks assumed for anyone askable who is not on the roster
 CAPACITY_EXHAUSTED = "capacity exhausted this cycle"
 # reach types that outlast the request they were observed on; offers are request-scoped
-DURABLE_REACH = {"direct", "board", "investor", "alumni"}
+DURABLE_REACH = {"direct", "investor", "alumni"}
 
 # ---------------------------------------------------------------------------
 # routing constants (same weights as halyard/relay)
@@ -115,7 +117,8 @@ SENIORITY = {
     "staff engineer": 0.30,
 }
 DEFAULT_SENIORITY = 0.45
-PATH_BASE = {"board": 1.00, "offer": 0.80, "investor": 0.72, "direct": 0.60, "alumni": 0.34}
+PATH_BASE = {"offer": 0.80, "investor": 0.72, "direct": 0.60, "alumni": 0.34}
+BOARD_SEAT_STRENGTH = 0.90  # investor path when the connector's fund also holds a board seat
 PRIOR_RATE, PRIOR_WEIGHT = 0.38, 6.0
 OFFER_RE = re.compile(
     r"happy to intro|leave it with me|i'll take this one|i met their|happy to reach out", re.I
@@ -155,7 +158,7 @@ def read_csv(path: Path) -> list[dict]:
 def write_csv(path: Path, columns: list[str], rows: list[dict], mode: str = "w") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     new_file = mode == "w" or not path.exists() or path.stat().st_size == 0
-    with open(path, mode, newline="", encoding="utf-8-sig" if new_file else "utf-8") as f:
+    with open(path, mode, newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=columns, lineterminator="\r\n", extrasaction="ignore")
         if new_file:
             w.writeheader()
@@ -385,13 +388,21 @@ def load_roster() -> dict[str, dict]:
     return roster
 
 
-def delivery_rates(roster: dict, outcomes: list[dict]) -> dict[str, float]:
+def delivery_rates(roster: dict, outcomes: list[dict], threads: dict[str, dict]) -> dict[str, float]:
+    """intros / asks shrunk toward PRIOR_RATE, for everyone askable: roster,
+    anyone asked in intro_outcomes.csv, anyone who volunteered in Slack."""
     asks, intros = Counter(), Counter()
     for o in outcomes:
         asks[o["connector_asked"]] += 1
         if o["intro_sent"] == "Y":
             intros[o["connector_asked"]] += 1
-    return {n: (intros[n] + PRIOR_RATE * PRIOR_WEIGHT) / (asks[n] + PRIOR_WEIGHT) for n in roster}
+    names = set(roster) | set(asks) | {m["user"] for th in threads.values() for m in th["offers"]}
+    return {n: (intros[n] + PRIOR_RATE * PRIOR_WEIGHT) / (asks[n] + PRIOR_WEIGHT) for n in names}
+
+
+def capacity(roster: dict, name: str) -> int:
+    r = roster.get(name)
+    return int(r["stated_monthly_capacity"] or 0) if r else OFF_ROSTER_CAPACITY
 
 
 def fit(connector: dict, industry: str) -> float:
@@ -412,7 +423,8 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
     person_to_connectors: dict[str, list[tuple[str, dict]]] = defaultdict(list)
 
     def emit(connector: str, company: Company, kind: str, contact: str, title: str,
-             observed: str, strength: float, evidence: str, offer_age: int | None = None):
+             observed: str, strength: float, evidence: str, offer_age: int | None = None,
+             board_seat: str = ""):
         r = roster.get(connector)
         s = company.survivor
         industry = s["industry"] if s else ""
@@ -426,14 +438,15 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
             "company_id": company.company_id,
             "company_name": company.name,
             "reach_type": kind,
+            "board_seat": board_seat,
             "contact_name": contact,
             "contact_title": title,
             "observed_date": observed,
             "offer_age_days": "" if offer_age is None else offer_age,
             "strength": f"{strength:.3f}",
             "in_focus_area": focus,
-            "monthly_capacity": r["stated_monthly_capacity"] if r else "",
-            "delivery_rate": f"{rates[connector]:.3f}" if r else "",
+            "monthly_capacity": capacity(roster, connector),
+            "delivery_rate": f"{rates[connector]:.3f}",
             "evidence": evidence,
         })
 
@@ -448,16 +461,19 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
             emit(name, company, "direct", c["name"], c["title"], c["connected_on"], s,
                  f"{r['connections_file']}: {c['name']}, {c['title']} at {c['company']}, connected {c['connected_on']}")
 
-    # board / investor: a roster investor's portfolio; alumni: a connection's prior employer
+    # investor: a roster investor's fund holds a position (board seat strengthens it);
+    # alumni: a connection's prior employer
     for inv in read_csv(DATASET / "investor_network.csv"):
         person = inv["person"]
         if inv["portfolio_company"] and person in roster:
             company, _ = reg.resolve_in_scope(inv["portfolio_company"])
             if company is not None:
-                kind = "board" if inv["board_seat"].lower() == "true" else "investor"
-                emit(person, company, kind, "CEO / exec team",
-                     f"{inv['fund']} {'board seat' if kind == 'board' else 'portfolio company'}", "", PATH_BASE[kind],
-                     f"investor_network.csv: {person} ({inv['role']}), portfolio_company={inv['portfolio_company']}, board_seat={inv['board_seat']}")
+                seat = inv["board_seat"].lower() == "true"
+                emit(person, company, "investor", "CEO / exec team",
+                     f"{inv['fund']} {'board seat' if seat else 'portfolio company'}", "",
+                     BOARD_SEAT_STRENGTH if seat else PATH_BASE["investor"],
+                     f"investor_network.csv: {person} ({inv['role']}), portfolio_company={inv['portfolio_company']}, board_seat={inv['board_seat']}",
+                     board_seat="yes" if seat else "no")
         if inv["prior_employer"]:
             company, _ = reg.resolve_in_scope(inv["prior_employer"])
             if company is None:
@@ -529,27 +545,27 @@ def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[di
             "company_id": "",
             "company_name": "",
             "reach_type": "none",
+            "board_seat": "",
             "contact_name": "",
             "contact_title": "",
             "observed_date": "",
             "offer_age_days": "",
             "strength": "0.000",
             "in_focus_area": "",
-            "monthly_capacity": r["stated_monthly_capacity"] if r else "",
-            "delivery_rate": f"{rates[name]:.3f}" if r else "",
+            "monthly_capacity": capacity(roster, name),
+            "delivery_rate": f"{rates[name]:.3f}",
             "evidence": "no in-scope path",
         })
 
     for r in rows:
         n = r["connector"]
-        cap = r["monthly_capacity"]
         r.update({
             "connector_paths_total": paths[n],
             "asks_received": asks[n],
             "intros_sent": intros[n],
             "awaiting_forward": awaiting[n],
             "allocated_this_cycle": allocated[n],
-            "idle_capacity": int(cap) - allocated[n] if cap else "",
+            "idle_capacity": int(r["monthly_capacity"]) - allocated[n],
             "last_asked_date": last_asked.get(n, ""),
         })
     return rows
@@ -602,16 +618,17 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     """request_id -> allocation row for every live request not yet asked.
 
     Each connector has a budget for the cycle: stated_monthly_capacity minus
-    asks already dated in the cycle (OFF_ROSTER_BUDGET for Slack volunteers).
+    asks already dated in the cycle (OFF_ROSTER_CAPACITY off the roster).
     Requests are taken in priority order (urgency, value, age) and each goes to
     its best-scoring connector that still has budget. Once every connector
     with a path is spent the request becomes an exception. Requests allocated
     to the same connector share a batch_id: one consolidated ask."""
     cycle = today.strftime("%Y-%m")
-    budget: dict[str, int] = {n: int(r["stated_monthly_capacity"] or 0) for n, r in roster.items()}
+    budget: dict[str, int] = defaultdict(lambda: OFF_ROSTER_CAPACITY)
+    budget.update({n: capacity(roster, n) for n in roster})
     for o in outcomes:
         if o["asked_date"].startswith(cycle):
-            budget[o["connector_asked"]] = budget.get(o["connector_asked"], OFF_ROSTER_BUDGET) - 1
+            budget[o["connector_asked"]] -= 1
 
     asked = {o["request_id"] for o in outcomes}
     live = [rq for rq in read_csv(DATASET / "intro_requests.csv")
@@ -653,9 +670,9 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
         row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {best_sc:.2f})"
         for sc, p in scored:
             n = p["connector"]
-            if budget.get(n, OFF_ROSTER_BUDGET) <= 0:
+            if budget[n] <= 0:
                 continue
-            budget[n] = budget.get(n, OFF_ROSTER_BUDGET) - 1
+            budget[n] -= 1
             row.update({
                 "allocated_to": n,
                 "batch_id": f"{cycle} {n}",
@@ -811,6 +828,7 @@ def append_only_write(rows: list[dict]) -> tuple[int, int, list[str], list[str]]
     refused rather than dropped.
     Returns (existing, appended, added columns, drift warnings)."""
     existing = read_csv(REQUESTS_OUT) if REQUESTS_OUT.exists() else []
+    has_bom = REQUESTS_OUT.exists() and REQUESTS_OUT.read_bytes()[:3] == b"\xef\xbb\xbf"
     seen = {r["request_id"]: r for r in existing}
     filed_cols = list(existing[0].keys()) if existing else REQUEST_COLUMNS
     missing = [c for c in filed_cols if c not in REQUEST_COLUMNS]
@@ -831,7 +849,7 @@ def append_only_write(rows: list[dict]) -> tuple[int, int, list[str], list[str]]
         if diff:
             warnings.append(f"{r['request_id']}: recomputed {', '.join(diff)} differ from filed row (kept filed)")
 
-    if added:
+    if added or has_bom:
         write_csv(REQUESTS_OUT, REQUEST_COLUMNS, existing + new)
     else:
         write_csv(REQUESTS_OUT, REQUEST_COLUMNS, new, mode="a")
@@ -925,8 +943,8 @@ def main() -> None:
 
     roster = load_roster()
     outcomes = read_csv(DATASET / "intro_outcomes.csv")
-    rates = delivery_rates(roster, outcomes)
     threads = load_threads()
+    rates = delivery_rates(roster, outcomes, threads)
 
     supply = build_supply(reg, roster, rates, today, {rid: c for rid, (c, _, _) in resolved.items()}, threads)
 
