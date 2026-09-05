@@ -1,7 +1,10 @@
-"""Build docs/halyardscoping.html: one page summarising the Slack thread findings,
-the CSV profile findings, the intro funnel Sankey, and the integrity audit. Also
-writes the second tab, docs/companytrace.html (dashboard/trace_section.py), and
-the third, docs/livepriorities.html (dashboard/live_priorities.py).
+"""Build the four dashboard tabs in docs/:
+
+  halyardscoping.html  Raw Sept Data Dashboard — Slack thread findings, CSV profile,
+                       joins, timing and the integrity audit, straight from dataset/
+  livedata.html        Live Data Dashboard — funnel, accounts and connectors from golden/
+  companytrace.html    Company Trace (dashboard/trace_section.py)
+  livepriorities.html  Live Priorities — what to do next (dashboard/live_priorities.py)
 
 Every number is recomputed from dataset/ so the page stays in step with the data;
 the narrative findings mirror analysis/slack/slack_thread_findings.md and
@@ -26,7 +29,7 @@ import plotly.io as pio
 from analysis.integrity.integrity_audit import fragment as integrity_fragment
 from dashboard import data_cuts, theme
 from dashboard.funnel_overview import dropoff_rows, ratios
-from dashboard.live_priorities import PAGE as LIVE_PAGE, fragment as live_fragment
+from dashboard.live_priorities import PAGE as PRIORITIES_HTML, fragment as priorities_fragment
 from dashboard.sankey_funnel import build_figure, funnel_stages
 from dashboard.trace_section import fragment as trace_fragment
 from paths import DATASET, DOCS, PROFILE, ROUTING
@@ -203,10 +206,13 @@ demand_fig.update_layout(legend=dict(orientation="h", y=1.04, x=0),
                          xaxis=dict(title="asks"), yaxis=dict(automargin=True))
 demand_div = pio.to_html(demand_fig, include_plotlyjs=False, full_html=False, div_id="demand",
                          config={"displayModeBar": False, "responsive": True})
-demand_rows = [(b["name"], b["industry"] or "—", b["requests"], b["routed"], b["requests"] - b["routed"],
+demand_rows = [(b["name"], b["industry"] or ("—" if b["in_crm"] else "no CRM record"), b["requests"], b["routed"], b["requests"] - b["routed"],
                 len(b["requesters"]), b["paths"], usd(b["value"])) for b in demand_top]
+demand_rows += [(b["name"], "unresolvable", b["requests"], b["routed"], b["requests"] - b["routed"],
+                 len(b["requesters"]), "—", "—") for b in demand["unresolvable"]]
 demand_table = table(["Company", "Industry", "Asks", "Routed", "Never routed", "Requesters", "Paths in network", "Value"],
                      demand_rows)
+unresolvable_asks = sum(b["requests"] for b in demand["unresolvable"])
 
 top_rows = [(b["name"], usd(b["value"]), "CRM ARR" if b["value_source"] == "CRM" else "deal value",
              b["requests"], b["routed"], f'{b["responded"]}/{b["intros"]}/{b["meetings"]}/{b["opps"]}',
@@ -283,7 +289,7 @@ STYLE = f"""<style>
   --serif:{theme.SERIF};--sans:{theme.SANS};--mono:{theme.MONO}}}
 *{{box-sizing:border-box}}
 body{{margin:0;font:16px/1.55 var(--serif);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}}
-h1,h2,h3,h4,nav,th,.kpi,.navgrp,.foot,summary{{font-family:var(--sans)}}
+h1,h2,h3,h4,nav,th,.kpi,.foot,summary{{font-family:var(--sans)}}
 h1,h2,h3,h4{{font-weight:500;letter-spacing:-.01em}}
 a{{color:var(--blue)}}
 header{{background:var(--bg);border-bottom:1px solid var(--line);padding:40px 40px 28px}}
@@ -291,9 +297,6 @@ header h1{{margin:0 0 6px;font-size:34px;line-height:1.15;font-weight:400;letter
 header p{{margin:0;color:var(--mute)}}
 nav a{{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}}
 nav a:hover{{color:var(--blue)}}
-nav .navgrp{{display:inline-block;min-width:130px;color:var(--mute);font-size:12px;text-transform:uppercase;letter-spacing:.06em}}
-h2.part{{font-size:28px;margin:22px 0 6px;padding-top:22px;border-top:1px solid var(--ink);font-weight:400;letter-spacing:-.02em}}
-h2.part:first-of-type{{border-top:none;padding-top:0}}
 .part-lede{{margin-bottom:24px}}
 main{{max-width:1240px;margin:0 auto;padding:28px 40px 72px}}
 section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px}}
@@ -368,7 +371,13 @@ img{{max-width:100%}}
 #lp table.preview tr.flag td{{background:rgba(159,45,0,.035)}}
 </style>"""
 
-TABS = [("halyardscoping.html", "Dashboard"), ("companytrace.html", "Company Trace"), (LIVE_PAGE, "Live Priorities")]
+RAW_HTML, LIVE_HTML, TRACE_HTML = "halyardscoping.html", "livedata.html", "companytrace.html"
+TABS = [
+    (RAW_HTML, "Raw Sept Data Dashboard"),
+    (LIVE_HTML, "Live Data Dashboard"),
+    (TRACE_HTML, "Company Trace"),
+    (PRIORITIES_HTML, "Live Priorities"),
+]
 
 
 def tabs(active):
@@ -381,24 +390,25 @@ def tabs(active):
 
 built = f"built {datetime.now():%Y-%m-%d}"
 
-page = f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Halyard — scoping &amp; verification dashboard</title>
-<script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
-{theme.FONT_LINK}
-{STYLE}</head>
+
+def head(title):
+    return (f'<!doctype html>\n<html lang="en"><head><meta charset="utf-8">\n'
+            f'<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+            f'<title>Halyard — {title}</title>\n'
+            f'<script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>\n{theme.FONT_LINK}\n{STYLE}</head>')
+
+
+raw_page = f"""{head("raw Sept data dashboard")}
 <body>
 <header>
-  {tabs("halyardscoping.html")}
-  <h1>Halyard — scoping &amp; verification dashboard</h1>
-  <p>200 warm-intro requests · Aug 2025 – Jul 2026 · sources: <code>dataset/</code>, <code>golden/</code> · {built}</p>
-  <nav style="margin-top:12px"><span class="navgrp">1. Raw data</span><a href="#flow">File flow</a><a href="#overview">Funnel overview</a><a href="#joins">Joins</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a><br><span class="navgrp">2. Cleaned data</span><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a></nav>
+  {tabs(RAW_HTML)}
+  <h1>Raw Sept data — scoping &amp; verification</h1>
+  <p>200 warm-intro requests · Aug 2025 – Jul 2026 · source: the September exports in <code>dataset/</code>, as filed · {built}</p>
+  <nav style="margin-top:12px"><a href="#flow">File flow</a><a href="#overview">Funnel overview</a><a href="#joins">Joins</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a></nav>
 </header>
 <main>
 
-<h2 class="part" id="raw">1. Raw data</h2>
-<p class="lede part-lede">Computed directly from the exports in <code>dataset/</code>: intro requests and outcomes, CRM accounts, connection lists, roster and Slack threads, as filed.</p>
+<p class="lede part-lede">Computed directly from the exports in <code>dataset/</code>: intro requests and outcomes, CRM accounts, connection lists, roster and Slack threads, as filed. The <a href="{LIVE_HTML}">Live Data Dashboard</a> tab shows the same requests after entity resolution.</p>
 
 <section id="flow">
   <h2>How the files connect</h2>
@@ -606,7 +616,21 @@ page = f"""<!doctype html>
   <p class="foot" style="padding:0 30px">Readable report: <code>analysis/integrity/findings.md</code> (generated by <code>analysis/integrity/integrity_audit.py</code>).</p>
 </section>
 
-<h2 class="part" id="golden">2. Cleaned data (golden dataset)</h2>
+<p class="foot">Regenerate with <code>python3 build.py dashboard</code>. Everything on this tab is computed from <code>dataset/</code> at build time.</p>
+</main>
+</body></html>
+"""
+
+live_page = f"""{head("live data dashboard")}
+<body>
+<header>
+  {tabs(LIVE_HTML)}
+  <h1>Live data — funnel, accounts and connectors</h1>
+  <p>The same {len(requests)} requests after entity resolution · source: <code>golden/</code>, rebuilt from <code>dataset/</code> by <code>python3 build.py</code> · {built}</p>
+  <nav style="margin-top:12px"><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a></nav>
+</header>
+<main>
+
 <p class="lede part-lede">Computed from <code>golden/</code> — <code>golden_requests.csv</code>, <code>golden_companies.csv</code>, <code>supply_reach.csv</code> — after entity resolution, so companies are counted by identity rather than by how the name was typed.</p>
 
 <section id="funnel">
@@ -637,7 +661,7 @@ page = f"""<!doctype html>
 
 <section id="accounts">
   <h2>Account-level demand</h2>
-  <p class="lede">Asks per company after entity resolution ({len(demand["companies"])} distinct companies behind {len(requests)} requests, from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked.</p>
+  <p class="lede">Asks per company after entity resolution ({len(demand["companies"])} distinct companies behind {len(requests) - unresolvable_asks} of {len(requests)} requests, from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked. The {unresolvable_asks} asks that resolve to no company are grouped by why, not by the name written.</p>
   <div class="kpis">
     {kpi(len(demand["companies"]), "distinct companies requested", f"{demand['repeat_share']:.0%} of asks are for a repeat company")}
     {kpi(demand["singletons"], "companies asked exactly once", f"{len(demand['companies']) - demand['singletons']} asked more than once")}
@@ -653,7 +677,7 @@ page = f"""<!doctype html>
       <h3>Reading it</h3>
       <div class="finding warn"><b>Demand is concentrated and repetitive.</b>{demand['repeat_share']:.0%} of all asks are for a company that was already requested at least once — the same {len(demand['companies']) - demand['singletons']} companies come back again and again, which is what the duplicate-checking in Slack is reacting to.</div>
       <div class="finding warn"><b>Some companies are asked repeatedly and never routed.</b>{", ".join(b["name"] for b in demand["companies"][:20] if b["routed"] == 0)} each have multiple asks and zero connector rows.</div>
-      <div class="finding"><b>Unresolvable asks cluster too.</b>{sum(b["requests"] for b in demand["companies"] if b["company_id"] == "")} requests never name a company that can be resolved at all; they are grouped as <em>(unidentifiable)</em>.</div>
+      <div class="finding"><b>Unresolvable asks cluster too.</b>{unresolvable_asks} requests resolve to no company at all: {"; ".join(f'{b["requests"]} {b["name"].strip("()")}' for b in demand["unresolvable"])}. They sit at the bottom of the detail table and are excluded from the company counts above.</div>
     </div>
   </div>
   <h3>Per-company detail</h3>
@@ -689,7 +713,7 @@ page = f"""<!doctype html>
   </div>
 </section>
 
-<p class="foot">Regenerate with <code>python3 dashboard/build_dashboard.py</code>. Section 1 is computed from <code>dataset/</code>, section 2 from <code>golden/</code>, at build time. The <a href="companytrace.html">Company Trace</a> tab has the full history of any one company.</p>
+<p class="foot">Regenerate with <code>python3 build.py dashboard</code>. Everything on this tab is computed from <code>golden/</code> at build time. The <a href="{TRACE_HTML}">Company Trace</a> tab has the full history of any one company.</p>
 </main>
 </body></html>
 """
@@ -702,7 +726,7 @@ trace_page = f"""<!doctype html>
 {STYLE}</head>
 <body>
 <header>
-  {tabs("companytrace.html")}
+  {tabs(TRACE_HTML)}
   <h1>Company trace — the full history of one company</h1>
   <p>What <code>analysis/trace.py</code> prints, for any of the 48 companies with a request · sources: <code>dataset/</code>, <code>golden/</code> · {built}</p>
 </header>
@@ -711,43 +735,36 @@ trace_page = f"""<!doctype html>
   <p class="lede">Search by name, alias, company id or CRM account id. Five sections: the header, where the files disagree (omitted when the files agree), who can reach them by strength, every event from <code>intro_requests.csv</code>, <code>slack_threads.jsonl</code>, <code>intro_outcomes.csv</code> and <code>crm_accounts.csv</code> oldest first, and who needs to do what next, cheapest action first. The same traces are written to <code>analysis/traces/</code> by <code>python3 build.py trace</code>.</p>
   {trace_fragment()}
 </section>
-<p class="foot">Regenerate with <code>python3 dashboard/build_dashboard.py</code>.</p>
+<p class="foot">Regenerate with <code>python3 build.py dashboard</code>.</p>
 </main>
 </body></html>
 """
 
-live_page = f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Halyard — live priorities</title>
-{theme.FONT_LINK}
-{STYLE}</head>
+priorities_page = f"""{head("live priorities")}
 <body>
 <header>
-  {tabs(LIVE_PAGE)}
+  {tabs(PRIORITIES_HTML)}
   <h1>Live priorities — what to do next, and who does it</h1>
-  <p>Every number here is computed by <code>dashboard/live_priorities.py</code> from <code>golden/</code> and <code>dataset/</code> at build time and written into the page; the browser only renders it. Every company name opens its <a href="companytrace.html">Company Trace</a> · {built}</p>
+  <p>Every number here is computed by <code>dashboard/live_priorities.py</code> from <code>golden/</code> and <code>dataset/</code> at build time and written into the page; the browser only renders it. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
 </header>
 <main>
-{live_fragment()}
+{priorities_fragment()}
 <p class="foot">Regenerate with <code>python3 build.py dashboard</code>. Ranking constants live at the top of <code>dashboard/live_priorities.py</code>.</p>
 </main>
 </body></html>
 """
 
 shutil.copyfile(ROUTING / "routing_flow.png", DOCS / "routing_flow.png")
-out_path = str(DOCS / "halyardscoping.html")
-with open(out_path, "w", encoding="utf-8") as f:
-    f.write(page)
-print(f"wrote {out_path}")
-trace_path = str(DOCS / "companytrace.html")
-with open(trace_path, "w", encoding="utf-8") as f:
-    f.write(trace_page)
-print(f"wrote {trace_path}")
-live_path = str(DOCS / LIVE_PAGE)
-with open(live_path, "w", encoding="utf-8") as f:
-    f.write(live_page)
-print(f"wrote {live_path}")
+for name, markup in (
+    (RAW_HTML, raw_page),
+    (LIVE_HTML, live_page),
+    (TRACE_HTML, trace_page),
+    (PRIORITIES_HTML, priorities_page),
+):
+    out_path = str(DOCS / name)
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(markup)
+    print(f"wrote {out_path}")
 print(f"funnel {counts}  offers {len(offers)} unlogged {len(offers_unlogged)} adds {len(adds)}/{adds_followed} "
       f"no_reply {len(no_reply)}/{len(no_reply_asked)} median_h {statistics.median(first_reply_h):.1f} "
       f"flags {len(flags)} dupes {len(crm_dupes)}/{crm_dup_owner_conflicts}")
