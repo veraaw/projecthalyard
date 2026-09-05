@@ -66,7 +66,20 @@ Total deal value attached to those requests: $3,750,000
 
 ## 4. "adding X who might know"
 
-34 such replies; the named person was subsequently logged as asked in **0** case(s).
+34 such replies naming 8 distinct people; the named person was subsequently logged as asked on that request in **0** case(s).
+- Distinct people added who are on `connector_roster.csv`: **0 / 8**
+- Replies whose X is a roster connector: **0 / 34**
+
+| Person added | Times added | On roster? | Later asked (on that request) |
+| --- | ---: | --- | ---: |
+| Rafael Salcedo | 7 | no | 0 |
+| Curtis Hartigan | 5 | no | 0 |
+| Yusuf Petrossian | 5 | no | 0 |
+| Nadia Okonkwo | 5 | no | 0 |
+| Sloane Fairweather | 4 | no | 0 |
+| Bertrand Vandermolen | 4 | no | 0 |
+| Imani Mkhize | 2 | no | 0 |
+| Hana Nakashima | 2 | no | 0 |
 
 | request_id | Person added | Later asked? |
 | --- | --- | --- |
