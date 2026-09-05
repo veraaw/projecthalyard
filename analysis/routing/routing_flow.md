@@ -6,10 +6,10 @@ reference tables that feed the routing step. Figures come from `scoping/routing_
 
 ![Intro-request routing flow](routing_flow.png)
 
-Source: `scoping/routing_flow.mmd`. Regenerate with:
+Source: `analysis/routing/routing_flow.mmd`. Regenerate with:
 
 ```
-npx -y @mermaid-js/mermaid-cli@11 -i scoping/routing_flow.mmd -o scoping/routing_flow.png -b white -s 3
+npx -y @mermaid-js/mermaid-cli@11 -i analysis/routing/routing_flow.mmd -o analysis/routing/routing_flow.png -b white -s 3
 ```
 
 ## Where the flow narrows
