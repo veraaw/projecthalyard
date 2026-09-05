@@ -2,10 +2,12 @@
 
     python3 -m unittest tests.test_allocation
 
-One row per live, not-yet-asked request; each row is either an allocation
-(allocated_to + batch_id) or an exception (exception_reason), never both and
-never neither. Counts are derived from golden_requests.csv, golden_companies.csv
-and dataset/, never fixed: the request file grows on every merge.
+The file is the connector history, one row per (cycle, request_id); the
+current allocation is its latest cycle. Within a cycle: one row per live,
+not-yet-asked request; each row is either an allocation (allocated_to +
+batch_id) or an exception (exception_reason), never both and never neither.
+Counts are derived from golden_requests.csv, golden_companies.csv and
+dataset/, never fixed: the request file grows on every merge.
 """
 from __future__ import annotations
 
@@ -17,14 +19,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.build_golden import CAPACITY_EXHAUSTED, OFF_ROSTER_CAPACITY, OPEN_STATUSES  # noqa: E402
+from golden.build_golden import (  # noqa: E402
+    CAPACITY_EXHAUSTED, OPEN_STATUSES, STALE_ASK, cycle_budget, history_signals, latest_cycle, load_roster,
+    parse_date,
+)
 
 G = ROOT / "golden"
 D = ROOT / "dataset"
 
 NO_PATH = "no path to this company in the network"
 UNRESOLVED = "company unresolved"
-KNOWN_EXCEPTIONS = {NO_PATH, CAPACITY_EXHAUSTED, UNRESOLVED}
+ALWAYS_PRESENT = {NO_PATH, CAPACITY_EXHAUSTED, UNRESOLVED}
+KNOWN_EXCEPTIONS = ALWAYS_PRESENT | {STALE_ASK}  # STALE_ASK needs a prior cycle, so it may be absent
 BATCH_COLUMNS = ("batch_id", "batch_size", "path_type", "route_score")
 
 
@@ -36,10 +42,12 @@ def rows(path: Path) -> list[dict]:
 class AllocationTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.alloc = rows(G / "golden_allocation.csv")
+        cls.history = rows(G / "golden_allocation.csv")
+        cls.alloc = latest_cycle(cls.history)
         cls.requests = {r["request_id"]: r for r in rows(G / "golden_requests.csv")}
         cls.companies = {c["company_id"]: c for c in rows(G / "golden_companies.csv")}
         cls.roster = {r["name"]: r for r in rows(D / "connector_roster.csv")}
+        cls.roster_full = load_roster()
         cls.outcomes = rows(D / "intro_outcomes.csv")
         cls.asked = {o["request_id"] for o in cls.outcomes}
         cls.allocated = [a for a in cls.alloc if a["allocated_to"]]
@@ -58,12 +66,23 @@ class AllocationTest(unittest.TestCase):
         self.assertEqual(ragged, [], f"ragged rows at lines {ragged[:5]}")
         self.assertTrue(all(None not in a for a in self.alloc), "row longer than header")
 
-    def test_one_row_per_request_id(self):
-        dupes = [k for k, n in Counter(a["request_id"] for a in self.alloc).items() if n > 1]
+    def test_one_row_per_cycle_and_request_id(self):
+        dupes = [k for k, n in Counter((a["cycle"], a["request_id"]) for a in self.history).items() if n > 1]
         self.assertEqual(dupes, [])
-
-    def test_one_cycle_per_file(self):
         self.assertEqual({a["cycle"] for a in self.alloc}, {self.cycle})
+
+    def test_every_row_is_stamped_with_when_it_was_decided(self):
+        for a in self.history:
+            with self.subTest(cycle=a["cycle"], request_id=a["request_id"]):
+                d = parse_date(a["decided_at"])
+                self.assertIsNotNone(d, a["decided_at"])
+                self.assertEqual(d.strftime("%Y-%m"), a["cycle"], "decided within its own cycle")
+        self.assertEqual(len({a["decided_at"] for a in self.alloc}), 1, "one run decides the whole cycle")
+
+    def test_cycles_are_in_order_and_the_latest_is_the_current_one(self):
+        cycles = [a["cycle"] for a in self.history]
+        self.assertEqual(cycles, sorted(cycles), "a cycle is appended after every earlier one")
+        self.assertEqual(self.cycle, max(cycles))
 
     # ── 2. allocation xor exception ────────────────────────────────────
     def test_exactly_one_of_allocated_to_or_exception_reason(self):
@@ -106,15 +125,15 @@ class AllocationTest(unittest.TestCase):
 
     # ── 4. capacity ────────────────────────────────────────────────────
     def test_no_connector_exceeds_capacity_for_the_cycle(self):
-        # Same budget the allocator uses: stated_monthly_capacity minus asks
-        # already dated in the cycle; OFF_ROSTER_CAPACITY for anyone else.
-        budget: dict[str, int] = defaultdict(lambda: OFF_ROSTER_CAPACITY)
-        budget.update({n: int(r["stated_monthly_capacity"]) for n, r in self.roster.items()})
-        for o in self.outcomes:
-            if o["asked_date"].startswith(self.cycle):
-                budget[o["connector_asked"]] -= 1
+        # Same budget the allocator uses: stated_monthly_capacity
+        # (OFF_ROSTER_CAPACITY for anyone else) less the asks the prior cycles
+        # of this file proposed to them in the trailing window beyond one
+        # month's capacity. intro_outcomes.csv plays no part.
+        today = parse_date(self.alloc[0]["decided_at"])
+        fatigue = history_signals(self.history, self.outcomes, today).fatigue
         load = Counter(a["allocated_to"] for a in self.allocated)
-        over = {n: (k, budget[n]) for n, k in load.items() if k > budget[n]}
+        over = {n: (k, cycle_budget(self.roster_full, fatigue, n)) for n, k in load.items()
+                if k > cycle_budget(self.roster_full, fatigue, n)}
         self.assertEqual(over, {}, "allocated > budget")
         self.assertTrue(set(load) & set(self.roster), "no roster connector allocated to")
 
@@ -164,9 +183,18 @@ class AllocationTest(unittest.TestCase):
 
     # ── 7. exception reasons ───────────────────────────────────────────
     def test_exception_reason_is_one_of_the_known_set(self):
-        reasons = Counter(a["exception_reason"] for a in self.exceptions)
+        # STALE_ASK carries its detail after a colon: '<reason>: <connector> in <cycle>'
+        reasons = Counter(a["exception_reason"].split(":")[0] for a in self.exceptions)
         self.assertEqual(set(reasons) - KNOWN_EXCEPTIONS, set())
-        self.assertEqual(set(reasons), KNOWN_EXCEPTIONS, "every known reason occurs")
+        self.assertLessEqual(ALWAYS_PRESENT, set(reasons), "every reason a single cycle can produce occurs")
+        for a in self.exceptions:
+            if a["exception_reason"].startswith(STALE_ASK):
+                connector, cycle = a["exception_reason"][len(STALE_ASK) + 2:].rsplit(" in ", 1)
+                self.assertLess(cycle, a["cycle"], "proposed in an earlier cycle")
+                prior = [h for h in self.history if h["cycle"] == cycle and h["allocated_to"] == connector
+                         and h["company_id"] == a["company_id"]]
+                self.assertTrue(prior, f"{a['request_id']}: {connector} was never proposed {a['company_id']} in {cycle}")
+                self.assertTrue(all(h["request_id"] not in self.asked for h in prior), "no outcome logged")
 
     def test_each_exception_reason_is_explained_by_the_other_files(self):
         # unresolved: no company. no path: the company has no path in
@@ -179,7 +207,7 @@ class AllocationTest(unittest.TestCase):
                 elif a["exception_reason"] == NO_PATH:
                     self.assertEqual(self.companies[a["company_id"]]["paths_available"], "0")
                     self.assertEqual(a["best_path_if_unbudgeted"], "")
-                else:
+                else:  # capacity exhausted, or already proposed: a path exists and is named
                     self.assertNotEqual(self.companies[a["company_id"]]["paths_available"], "0")
                     self.assertTrue(a["best_path_if_unbudgeted"])
         no_company = [a["request_id"] for a in self.alloc

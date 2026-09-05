@@ -33,7 +33,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.build_golden import OFFER_RE, OPEN_STATUSES  # noqa: E402
+from golden.build_golden import OFFER_RE, OPEN_STATUSES, latest_cycle  # noqa: E402
 from golden.resolver import normalize, normalize_strict  # noqa: E402
 from paths import ANALYSIS, DATASET, GOLDEN  # noqa: E402
 
@@ -107,7 +107,7 @@ class Data:
             threads=threads,
             accounts={a["account_id"]: a for a in read_csv(DATASET / SOURCES["crm"])},
             supply=read_csv(GOLDEN / "supply_reach.csv"),
-            allocation=read_csv(GOLDEN / "golden_allocation.csv"),
+            allocation=latest_cycle(read_csv(GOLDEN / "golden_allocation.csv")),
             roster={r["name"]: r for r in read_csv(DATASET / "connector_roster.csv")},
         )
 

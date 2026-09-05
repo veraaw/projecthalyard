@@ -52,15 +52,30 @@ Writes four CSVs (UTF-8, no BOM, CRLF):
                                idle_capacity) are repeated on every row of
                                that connector on purpose; connector history
                                (asks, intros, last asked) is not carried here.
-  golden/golden_allocation.csv one row per live, not-yet-asked request: the
-                               connector it is allocated to this cycle, or an
+  golden/golden_allocation.csv the connector history: one row per (cycle,
+                               request_id), every ask ever proposed. Each
+                               cycle holds one row per request that was live
+                               and not yet asked when the cycle was decided:
+                               the connector it was allocated to, or an
                                exception (capacity exhausted this cycle / no
-                               path / company unresolved). Rebuilt wholesale.
-                               A connector is never allocated more than
-                               stated_monthly_capacity minus asks already made
-                               this cycle; everything allocated to one
-                               connector shares one batch_id (one consolidated
-                               ask per connector per cycle).
+                               path / company unresolved / already proposed
+                               with no outcome logged). APPEND-ONLY by cycle:
+                               a run appends its cycle; a rerun in the same
+                               cycle replaces only that cycle's rows; earlier
+                               cycles are never touched. decided_at is the
+                               build timestamp, so two runs in one cycle are
+                               distinguishable. The allocator reads the prior
+                               cycles back: asks decided in the trailing
+                               FATIGUE_DAYS count against a connector's
+                               capacity (asks beyond one month's stated
+                               capacity carry over as debt into this cycle),
+                               and an ask proposed in a prior cycle with no
+                               outcome logged since (the same request, or the
+                               same (connector, company)) is flagged rather
+                               than proposed again. Everything
+                               allocated to one connector in a cycle shares
+                               one batch_id (one consolidated ask per
+                               connector per cycle).
 
 Scope. A company is in scope if it is in crm_accounts.csv or is named as the
 target of any intro request. The set is recomputed on every run; nothing is
@@ -82,8 +97,9 @@ import os
 import re
 import sys
 from collections import Counter, defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
+from typing import NamedTuple
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -128,7 +144,7 @@ SUPPLY_COLUMNS = [
 ]
 
 ALLOCATION_COLUMNS = [
-    "cycle", "request_id", "company_id", "company_name", "target_title", "value_usd",
+    "cycle", "request_id", "decided_at", "company_id", "company_name", "target_title", "value_usd",
     "urgency_declared", "request_date", "status_as_filed", "allocated_to", "batch_id", "batch_size",
     "path_type", "contact_name", "route_score", "exception_reason", "best_path_if_unbudgeted",
 ]
@@ -137,7 +153,9 @@ MULTI = " | "  # delimiter for multi-value cells (never a comma)
 OPEN_STATUSES = {"Open", "Routed", "Stalled"}
 URGENCY_RANK = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
 OFF_ROSTER_CAPACITY = 2  # monthly asks assumed for anyone askable who is not on the roster
+FATIGUE_DAYS = 60  # asks proposed to a connector in this trailing window count against their capacity
 CAPACITY_EXHAUSTED = "capacity exhausted this cycle"
+STALE_ASK = "already proposed, no outcome logged"  # exception_reason prefix: '<STALE_ASK>: <connector> in <cycle>'
 # contradicts_log: status_as_filed vs intro_outcomes.csv
 INTRO_CLAIMED_NOT_LOGGED = "intro claimed, none logged"
 INTRO_LOGGED_FILED_STALLED = "intro logged, filed as stalled"
@@ -225,6 +243,25 @@ def parse_date(s: str) -> date | None:
         return datetime.strptime(s.strip()[:10], "%Y-%m-%d").date()
     except (AttributeError, ValueError):
         return None
+
+
+def read_allocation(path: Path = ALLOCATION_OUT) -> list[dict]:
+    """The whole connector history, every cycle, in file order."""
+    return read_csv(path) if path.exists() else []
+
+
+def latest_cycle(history: list[dict]) -> list[dict]:
+    """The rows of the most recent cycle in the history: the current allocation."""
+    if not history:
+        return []
+    cycle = max(a["cycle"] for a in history)
+    return [a for a in history if a["cycle"] == cycle]
+
+
+def decided_date(a: dict) -> date | None:
+    """When a history row was decided: decided_at, or the first of its cycle
+    for rows filed before the column existed."""
+    return parse_date(a.get("decided_at") or "") or parse_date(f"{a['cycle']}-01")
 
 
 def money(s: str) -> str:
@@ -472,6 +509,48 @@ def capacity(roster: dict, name: str) -> int:
     return int(r["stated_monthly_capacity"] or 0) if r else OFF_ROSTER_CAPACITY
 
 
+class HistorySignals(NamedTuple):
+    """What the prior cycles of golden_allocation.csv say about each connector.
+
+    fatigue: connector -> asks allocated to them in a cycle before this one and
+    decided in the trailing FATIGUE_DAYS (rows of the current cycle are about
+    to be replaced and are not counted).
+    stale: (connector, company_id) -> the most recent prior-cycle row that
+    allocated that company to that connector whose request has no row in
+    intro_outcomes.csv: an ask proposed and never logged as made.
+    proposed: request_id -> the most recent prior-cycle row that allocated the
+    request, again with no outcome logged since."""
+    fatigue: Counter
+    stale: dict[tuple[str, str], dict]
+    proposed: dict[str, dict]
+
+
+def history_signals(history: list[dict], outcomes: list[dict], today: date) -> HistorySignals:
+    cycle = today.strftime("%Y-%m")
+    asked = {o["request_id"] for o in outcomes}
+    fatigue: Counter = Counter()
+    stale: dict[tuple[str, str], dict] = {}
+    proposed: dict[str, dict] = {}
+    for a in sorted((a for a in history if a["cycle"] < cycle and a["allocated_to"]),
+                    key=lambda a: (a["cycle"], a.get("decided_at") or "")):
+        d = decided_date(a)
+        if d and 0 <= (today - d).days < FATIGUE_DAYS:
+            fatigue[a["allocated_to"]] += 1
+        if a["request_id"] not in asked:
+            proposed[a["request_id"]] = a
+            if a["company_id"]:
+                stale[(a["allocated_to"], a["company_id"])] = a
+    return HistorySignals(fatigue, stale, proposed)
+
+
+def cycle_budget(roster: dict, fatigue: Counter, name: str) -> int:
+    """Asks a connector can take this cycle: stated_monthly_capacity, less the
+    asks in the trailing FATIGUE_DAYS beyond one month's capacity. A connector
+    who was over-allocated last cycle starts this one with less headroom."""
+    cap = capacity(roster, name)
+    return max(0, cap - max(0, fatigue[name] - cap))
+
+
 def fit(connector: dict, industry: str) -> float:
     if not industry:
         return 0.7
@@ -574,19 +653,16 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
 
 
 def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[dict],
-                  allocation: dict[str, dict], threads: dict[str, dict], today: date) -> list[dict]:
+                  allocation: dict[str, dict], threads: dict[str, dict], fatigue: Counter) -> list[dict]:
     """Add a placeholder row for every askable person with no in-scope path,
     then stamp idle_capacity on every row.
 
-    idle_capacity = monthly_capacity minus asks dated in the as-of month minus
-    requests the allocator assigned to the connector this cycle; never negative
-    because the allocator stops at the budget."""
+    idle_capacity = the connector's budget for the cycle (cycle_budget: stated
+    capacity less fatigue debt carried over from prior cycles) minus requests
+    the allocator assigned to them this cycle; never negative because the
+    allocator stops at the budget."""
     paths = Counter(r["connector"] for r in rows)
     allocated = Counter()
-    cycle = today.strftime("%Y-%m")
-    for o in outcomes:
-        if o["asked_date"].startswith(cycle):
-            allocated[o["connector_asked"]] += 1
     for a in allocation.values():
         if a["allocated_to"]:
             allocated[a["allocated_to"]] += 1
@@ -614,7 +690,7 @@ def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[di
         })
 
     for r in rows:
-        r["idle_capacity"] = int(r["monthly_capacity"]) - allocated[r["connector"]]
+        r["idle_capacity"] = cycle_budget(roster, fatigue, r["connector"]) - allocated[r["connector"]]
     return rows
 
 
@@ -668,22 +744,27 @@ def path_score(p: dict, roster: dict, rates: dict, industry: str) -> float:
 
 
 def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company: dict[str, list[dict]],
-             resolved: dict[str, dict], today: date) -> dict[str, dict]:
+             resolved: dict[str, dict], today: date, decided_at: str, signals: HistorySignals) -> dict[str, dict]:
     """request_id -> allocation row for every live request not yet asked,
     taken from the request file (filed rows plus the ones about to be appended).
 
-    Each connector has a budget for the cycle: stated_monthly_capacity minus
-    asks already dated in the cycle (OFF_ROSTER_CAPACITY off the roster).
-    Requests are taken in priority order (urgency, value, age) and each goes to
-    its best-scoring connector that still has budget. Once every connector
-    with a path is spent the request becomes an exception. Requests allocated
-    to the same connector share a batch_id: one consolidated ask."""
+    Each connector has a budget for the cycle (cycle_budget): stated monthly
+    capacity (OFF_ROSTER_CAPACITY off the roster) less the asks the history
+    says were proposed to them in the trailing FATIGUE_DAYS beyond one month's
+    capacity. Requests are taken in priority order (urgency, value, age) and
+    each goes to its best-scoring connector that still has budget. An ask the
+    history already holds with no outcome logged since is not proposed again:
+    a request allocated in a prior cycle, or a connector already proposed this
+    company in a prior cycle, is flagged (STALE_ASK, naming that connector and
+    cycle) instead of being allocated or falling through to the next
+    connector. Once every connector with a path is spent the request becomes
+    an exception. Requests allocated to the same connector share a batch_id:
+    one consolidated ask."""
     cycle = today.strftime("%Y-%m")
-    budget: dict[str, int] = defaultdict(lambda: OFF_ROSTER_CAPACITY)
-    budget.update({n: capacity(roster, n) for n in roster})
-    for o in outcomes:
-        if o["asked_date"].startswith(cycle):
-            budget[o["connector_asked"]] -= 1
+    fatigue, stale, proposed = signals
+    budget: dict[str, int] = defaultdict(int)
+    for n in set(roster) | {p["connector"] for paths in supply_by_company.values() for p in paths}:
+        budget[n] = cycle_budget(roster, fatigue, n)
 
     asked = {o["request_id"] for o in outcomes}
     live = [(rid, rq) for rid, rq in resolved.items()
@@ -700,6 +781,7 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
         row = {
             "cycle": cycle,
             "request_id": rid,
+            "decided_at": decided_at,
             "company_id": company.company_id if company else "",
             "company_name": company.name if company else "",
             "target_title": rq["target_title"],
@@ -724,6 +806,10 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
         row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {best_sc:.2f})"
         for sc, p in scored:
             n = p["connector"]
+            prior = proposed.get(rid) or stale.get((n, company.company_id))
+            if prior is not None:
+                row["exception_reason"] = f"{STALE_ASK}: {prior['allocated_to']} in {prior['cycle']}"
+                break
             if budget[n] <= 0:
                 continue
             budget[n] -= 1
@@ -873,6 +959,8 @@ def blocked_reason(company: Company | None, paths: list[dict], roster: dict, all
         return BLOCK_CLOSED_LOST
     if alloc and alloc["exception_reason"] == CAPACITY_EXHAUSTED:
         return CAPACITY_EXHAUSTED
+    if alloc and alloc["exception_reason"].startswith(STALE_ASK):
+        return STALE_ASK
     if not any(p["connector"] in roster for p in paths):
         return BLOCK_NO_ROSTER_PATH
     return BLOCK_NEVER_ROUTED
@@ -1100,12 +1188,30 @@ def build_companies(reg: Registry, supply: list[dict], requests: list[dict], tod
     return rows
 
 
+def merge_allocation(history: list[dict], current: list[dict], cycle: str) -> tuple[list[dict], int, int, int]:
+    """The connector history as it will be written: every row of every other
+    cycle exactly as filed, in file order, with this cycle's rows in place of
+    the ones it had (at the end when it is new). A column that disappeared from
+    the schema is refused rather than dropped; a column the schema gained is
+    left empty on the filed rows.
+    Returns (rows, prior cycles kept, prior rows kept, rows of this cycle replaced)."""
+    if history:
+        missing = [c for c in history[0] if c not in ALLOCATION_COLUMNS]
+        if missing:
+            sys.exit(f"{ALLOCATION_OUT} has columns not in the schema ({', '.join(missing)}); refusing to write.")
+    before = [a for a in history if a["cycle"] < cycle]
+    after = [a for a in history if a["cycle"] > cycle]
+    kept = len(before) + len(after)
+    return before + current + after, len({a["cycle"] for a in before + after}), kept, len(history) - kept
+
+
 def write_derived(supply: list[dict], allocation: list[dict], companies: list[dict]) -> None:
     """supply_reach.csv, golden_allocation.csv and golden_companies.csv are
     one derived view of the same scope and are only ever written together:
     every file is rendered to a sibling .tmp first, and the .tmp files are
     swapped in only once all three rendered, so a failure never leaves a
-    company file that counts a path the supply file denies."""
+    company file that counts a path the supply file denies. The allocation
+    rows are the whole history (merge_allocation), not just this cycle."""
     targets = [
         (SUPPLY_OUT, SUPPLY_COLUMNS, supply),
         (ALLOCATION_OUT, ALLOCATION_COLUMNS, allocation),
@@ -1126,6 +1232,9 @@ def main() -> None:
     ap.add_argument("--threads", type=Path, help="a Slack export (.jsonl) to ingest alongside dataset/slack_threads.jsonl")
     args = ap.parse_args()
     today = parse_date(args.as_of) or date.today()
+    cycle = today.strftime("%Y-%m")
+    # the build clock: the as-of date, at the wall-clock time the run started
+    decided_at = datetime.combine(today, datetime.now(timezone.utc).time()).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # In-scope set = CRM accounts + every company in the request file (rows
     # already filed, plus raw requests about to be appended). IDs are pinned to
@@ -1140,13 +1249,15 @@ def main() -> None:
     roster = load_roster()
     outcomes = read_csv(DATASET / "intro_outcomes.csv")
     rates = delivery_rates(roster, outcomes, threads)
+    history = read_allocation()
+    signals = history_signals(history, outcomes, today)
 
     supply = build_supply(reg, roster, rates, today, {rid: rq["company"] for rid, rq in resolved.items()}, threads)
 
     supply_by = defaultdict(list)
     for s in supply:
         supply_by[s["company_id"]].append(s)
-    allocation = allocate(roster, rates, outcomes, supply_by, resolved, today)
+    allocation = allocate(roster, rates, outcomes, supply_by, resolved, today, decided_at, signals)
     requests = build_requests(reg, roster, rates, supply_by, resolved, threads, allocation, filed)
     kept, appended, changed, added, warnings = merge_write(
         requests, {rid: rq["source"] for rid, rq in resolved.items()})
@@ -1154,10 +1265,11 @@ def main() -> None:
 
     # Derived files: all three computed from the request file as just written,
     # then swapped in together.
-    supply = finish_supply(supply, roster, rates, outcomes, allocation, threads, today)
+    supply = finish_supply(supply, roster, rates, outcomes, allocation, threads, signals.fatigue)
     alloc_rows = sorted(allocation.values(), key=lambda a: (a["allocated_to"] == "", a["batch_id"], a["request_id"]))
+    all_alloc, prior_cycles, prior_rows, replaced = merge_allocation(history, alloc_rows, cycle)
     companies = build_companies(reg, supply, read_csv(REQUESTS_OUT), today)
-    write_derived(supply, alloc_rows, companies)
+    write_derived(supply, all_alloc, companies)
 
     print(f"golden_requests.csv   {kept + appended} rows ({kept} kept, of which {carried} not in "
           f"dataset/intro_requests.csv and carried forward; {appended} appended; "
@@ -1167,8 +1279,16 @@ def main() -> None:
     print(f"supply_reach.csv      {len(supply)} rows (rebuilt): "
           + ", ".join(f"{k} {n}" for k, n in sorted(Counter(s['reach_type'] for s in supply).items())))
     n_alloc = sum(1 for a in alloc_rows if a["allocated_to"])
-    print(f"golden_allocation.csv {len(alloc_rows)} rows (rebuilt): {n_alloc} allocated, "
-          + ", ".join(f"{n} {k}" for k, n in sorted(Counter(a['exception_reason'] for a in alloc_rows if a['exception_reason']).items())))
+    reasons = Counter(a["exception_reason"].split(":")[0] for a in alloc_rows if a["exception_reason"])
+    print(f"golden_allocation.csv {len(all_alloc)} rows in {prior_cycles + 1} cycles ({prior_rows} rows from "
+          f"{prior_cycles} prior cycles carried forward; cycle {cycle}: {len(alloc_rows)} rows written, "
+          f"{replaced} replaced): {n_alloc} allocated, "
+          + ", ".join(f"{n} {k}" for k, n in sorted(reasons.items())))
+    fatigue = signals.fatigue
+    fatigued = {n: k for n, k in fatigue.items() if cycle_budget(roster, fatigue, n) < capacity(roster, n)}
+    if fatigued:
+        print(f"  fatigue: {len(fatigued)} connectors start with less headroom: "
+              + ", ".join(f"{n} ({k} asks in {FATIGUE_DAYS}d)" for n, k in sorted(fatigued.items())))
     for w in warnings:
         print("WARN", w)
 

@@ -113,7 +113,8 @@ class Live:
         self.by_rid = {r["request_id"]: r for r in self.requests}
         self.companies = {c["company_id"]: c for c in bg.read_csv(GOLDEN / "golden_companies.csv")}
         self.supply = bg.read_csv(GOLDEN / "supply_reach.csv")
-        self.allocation = bg.read_csv(GOLDEN / "golden_allocation.csv")
+        self.history = bg.read_allocation(GOLDEN / "golden_allocation.csv")
+        self.allocation = bg.latest_cycle(self.history)
         self.alloc_by_rid = {a["request_id"]: a for a in self.allocation}
         self.outcomes = bg.read_csv(DATASET / "intro_outcomes.csv")
         self.outcome_by_rid = {o["request_id"]: o for o in self.outcomes}
@@ -123,6 +124,7 @@ class Live:
         self.threads = bg.load_threads()
         self.rates = bg.delivery_rates(self.roster, self.outcomes, self.threads)
         self.cycle = self.allocation[0]["cycle"] if self.allocation else today.strftime("%Y-%m")
+        self.fatigue = bg.history_signals(self.history, self.outcomes, today).fatigue
         self.traceable = {t["company_id"] for t in all_traces(today)}
         self._ranked: list[dict] | None = None
 
@@ -240,7 +242,7 @@ class Live:
             if a["allocated_to"]:
                 connector, p = a["allocated_to"], self.path_for(a)
                 cap = bg.capacity(self.roster, connector)
-                budget = cap - self.asks_this_cycle(connector)
+                budget = bg.cycle_budget(self.roster, self.fatigue, connector)
                 capacity_left = max(0, budget - order_in_batch[a["request_id"]]) / cap if cap else 0.0
                 capacity_note = f"{max(0, budget - order_in_batch[a['request_id']])} of {cap} slots left when reached"
             elif a["best_path_if_unbudgeted"]:
