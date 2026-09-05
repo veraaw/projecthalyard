@@ -8,7 +8,7 @@
   --serif:"Newsreader", "Iowan Old Style", Georgia, serif;--sans:"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;--mono:"Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
 *{box-sizing:border-box}
 body{margin:0;font:16px/1.55 var(--serif);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
-h1,h2,h3,h4,nav,th,.kpi,.navgrp,.foot,summary{font-family:var(--sans)}
+h1,h2,h3,h4,nav,th,.kpi,.foot,summary{font-family:var(--sans)}
 h1,h2,h3,h4{font-weight:500;letter-spacing:-.01em}
 a{color:var(--blue)}
 header{background:var(--bg);border-bottom:1px solid var(--line);padding:40px 40px 28px}
@@ -16,9 +16,6 @@ header h1{margin:0 0 6px;font-size:34px;line-height:1.15;font-weight:400;letter-
 header p{margin:0;color:var(--mute)}
 nav a{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}
 nav a:hover{color:var(--blue)}
-nav .navgrp{display:inline-block;min-width:130px;color:var(--mute);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
-h2.part{font-size:28px;margin:22px 0 6px;padding-top:22px;border-top:1px solid var(--ink);font-weight:400;letter-spacing:-.02em}
-h2.part:first-of-type{border-top:none;padding-top:0}
 .part-lede{margin-bottom:24px}
 main{max-width:1240px;margin:0 auto;padding:28px 40px 72px}
 section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px}
@@ -60,7 +57,7 @@ img{max-width:100%}
 </style></head>
 <body>
 <header>
-  <div class="tabs"><a href="halyardscoping.html">Dashboard</a><a href="companytrace.html" class="on">Company Trace</a></div>
+  <div class="tabs"><a href="halyardscoping.html">Raw Sept Data Dashboard</a><a href="livedata.html">Live Data Dashboard</a><a href="companytrace.html" class="on">Company Trace</a></div>
   <h1>Company trace — the full history of one company</h1>
   <p>What <code>analysis/trace.py</code> prints, for any of the 48 companies with a request · sources: <code>dataset/</code>, <code>golden/</code> · built 2026-09-05</p>
 </header>
@@ -180,6 +177,6 @@ img{max-width:100%}
 </script>
 
 </section>
-<p class="foot">Regenerate with <code>python3 dashboard/build_dashboard.py</code>.</p>
+<p class="foot">Regenerate with <code>python3 build.py dashboard</code>.</p>
 </main>
 </body></html>
