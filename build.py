@@ -6,6 +6,9 @@
 
 The trace step writes one company history per company with a request to
 analysis/traces/ (`python3 analysis/trace.py "Harrowgate Health"` prints one).
+The crm step writes what the CRM should learn from the routing data to
+analysis/crm/ (crm_import.csv for the importer, crm_review.csv with every
+recommendation) and prints the counts per group.
 
 The dashboard reads analysis/joins/join_rates.md and analysis/profile/profile.md,
 so those steps run before it. The tests run first (`python3 -m unittest
@@ -16,6 +19,7 @@ import sys
 import unittest
 from pathlib import Path
 
+from analysis.crm.writeback import write_all as write_crm_writeback
 from analysis.trace import write_all as write_traces
 
 ROOT = Path(__file__).resolve().parent
@@ -36,6 +40,7 @@ STEPS = [
     ("slack", "analysis.slack.slack_threads_analysis"),
     ("integrity", "analysis.integrity.integrity_audit"),
     ("trace", write_traces),
+    ("crm", write_crm_writeback),
     ("sankey", "dashboard.sankey_funnel"),
     ("dashboard", "dashboard.build_dashboard"),
 ]
