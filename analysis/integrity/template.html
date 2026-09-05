@@ -9,7 +9,7 @@
 <!--IA-FRAGMENT-START-->
 <div id="ia">
 <style>
-#ia{--high:#b3261e;--medium:#c47f00;--info:#4a6fa5;--zero:#b8b8b8;--ink:#1d1d1d;--muted:#666;--line:#e3e3e3;--bg:#fafafa}
+#ia{--high:#0a0a0a;--medium:#6b6b6b;--info:#b3b3b3;--zero:#d9d9d9;--ink:#0a0a0a;--muted:#666;--line:#e3e3e3;--bg:#fafafa}
 #ia *{box-sizing:border-box}
 #ia{margin:0;font:14px/1.45 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:var(--ink);background:#fff}
 #ia .ia-main{max-width:1180px;margin:0 auto;padding:24px 28px 80px}
@@ -55,11 +55,13 @@
 #ia .mx .cell{border:1px solid var(--line);border-radius:3px;background:var(--bg);font-size:18px}
 #ia .mx .cell.bad{color:#fff}
 #ia .mx .cell.bad.high{background:var(--high)}
+#ia .mx .cell.bad.medium{background:var(--medium)}
+#ia .mx .cell.bad.info{background:var(--info);color:var(--ink)}
 #ia .mx .cell.bad.zero{background:var(--zero);color:var(--ink)}
 #ia table{border-collapse:collapse;width:100%;font-size:12px;margin:6px 0 14px}
 #ia th,#ia td{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
 #ia th{background:var(--bg);font-weight:600}
-#ia td.hl{background:#fff6e5}
+#ia td.hl{background:#f0f0f0}
 #ia .none{color:var(--muted);font-style:italic;font-size:12px}
 #ia-panel{position:fixed;top:0;right:0;width:min(720px,100%);height:100%;background:#fff;border-left:1px solid var(--line);box-shadow:-4px 0 18px rgba(0,0,0,.12);transform:translateX(105%);transition:transform .15s;overflow:auto;padding:18px 20px;z-index:5}
 #ia-panel.open{transform:none}
@@ -238,7 +240,7 @@ function histogram(bins, opts) {
   if (opts.xlabel) s += `<text x="${W / 2}" y="${H - 4}" text-anchor="middle">${esc(opts.xlabel)}</text>`;
   return s + "</svg>";
 }
-const COLOR = {high: "#b3261e", medium: "#c47f00", info: "#4a6fa5", zero: "#b8b8b8", neutral: "#8a8a8a"};
+const COLOR = {high: "#0a0a0a", medium: "#6b6b6b", info: "#b3b3b3", zero: "#d9d9d9", neutral: "#8c8c8c"};
 
 el("ia-lags").innerHTML = D.lags.map(l => {
   const c = CHECK[l.check_id];
