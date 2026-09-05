@@ -3,7 +3,7 @@
 Each `*_cut()` function returns plain data (dicts/lists of tuples) for
 `dashboard/build_dashboard.py` to render; nothing here touches HTML.
 
-    python3 dashboard/data_cuts.py      # prints every cut as text
+    python3 -m dashboard.data_cuts      # prints every cut as text
 """
 import csv
 import glob
@@ -14,9 +14,10 @@ import statistics
 from collections import Counter, defaultdict
 from datetime import date, timedelta
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.path.join(ROOT, "dataset")
-GOLDEN = os.path.join(ROOT, "golden")
+from paths import DATASET, GOLDEN as GOLDEN_DIR, JOINS
+
+DATA = str(DATASET)
+GOLDEN = str(GOLDEN_DIR)
 
 DUP_CHECK = re.compile(r"same as|already (?:lose|lost|ask|asked|have)|did we not already|didn'?t we|last month|duplicate", re.I)
 
@@ -89,8 +90,8 @@ JOIN_NOTES = {
 
 
 def join_summary_cut(_):
-    """(link, direction, tier-3 rate, note) parsed out of scoping/join_rates.md."""
-    with open(os.path.join(ROOT, "scoping", "join_rates.md"), encoding="utf-8") as f:
+    """(link, direction, tier-3 rate, note) parsed out of analysis/joins/join_rates.md."""
+    with open(JOINS / "join_rates.md", encoding="utf-8") as f:
         text = f.read()
     body = text.split("## Summary", 1)[1]
     out, link = [], ""

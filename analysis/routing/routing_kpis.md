@@ -1,6 +1,6 @@
 # Routing KPIs
 
-Source: `dataset/` — 200 Slack threads, 200 intro requests, 85 outcome rows. Regenerate with `python3 scoping/routing_kpis.py`; this file is append-only as KPIs are added.
+Source: `dataset/` — 200 Slack threads, 200 intro requests, 85 outcome rows. Regenerate with `python3 build.py routing`; this file is append-only as KPIs are added.
 
 ## Median lag: Slack request -> connector ask
 
