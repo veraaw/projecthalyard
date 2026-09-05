@@ -1,10 +1,12 @@
-"""Build the four dashboard tabs in docs/:
+"""Build the dashboard tabs in docs/:
 
   halyardscoping.html  Raw Sept Data Dashboard — Slack thread findings, CSV profile,
                        joins, timing and the integrity audit, straight from dataset/
   livedata.html        Live Data Dashboard — funnel, accounts and connectors from golden/
   companytrace.html    Company Trace (dashboard/trace_section.py)
   livepriorities.html  Live Priorities — what to do next (dashboard/live_priorities.py)
+  connector-<slug>.html  one per connector, in the second tab row: their top 5, then the
+                       longer list (dashboard/live_priorities.py connector_pages)
 
 Every number is recomputed from dataset/ so the page stays in step with the data;
 the narrative findings mirror analysis/slack/slack_thread_findings.md and
@@ -21,7 +23,7 @@ import re
 import shutil
 import statistics
 from collections import Counter
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -29,8 +31,9 @@ import plotly.io as pio
 from analysis.integrity.integrity_audit import fragment as integrity_fragment
 from dashboard import data_cuts, theme
 from dashboard.funnel_overview import dropoff_rows, ratios
-from dashboard.live_priorities import PAGE as PRIORITIES_HTML, fragment as priorities_fragment
-from dashboard.sankey_funnel import build_figure, funnel_stages
+from dashboard.live_priorities import (PAGE as PRIORITIES_HTML, connector_fragments,
+                                       fragment as priorities_fragment)
+from dashboard.sankey_funnel import GOLDEN as GOLDEN_REQUESTS, build_figure, funnel_stages
 from dashboard.trace_section import fragment as trace_fragment
 from paths import DATASET, DOCS, PROFILE, ROUTING
 
@@ -51,10 +54,25 @@ def esc(s):
 
 
 # --------------------------------------------------------------------------- funnel
+TODAY = date.today()
+ROLLING_SINCE = (TODAY - timedelta(days=365)).isoformat()
 stages = funnel_stages()
-sankey_fig = build_figure(stages)
-sankey_fig.update_layout(width=None, height=560, autosize=True, title=None,
-                         margin=dict(l=10, r=10, t=20, b=20), paper_bgcolor="rgba(0,0,0,0)")
+stages_12m = funnel_stages(since=ROLLING_SINCE)
+with open(GOLDEN_REQUESTS, newline="", encoding="utf-8-sig") as _f:
+    _dates = sorted(r["request_date"].strip()[:10] for r in csv.DictReader(_f) if r["request_date"].strip())
+stages_first, stages_last = _dates[0][:7], _dates[-1][:7]
+
+
+def sankey(stg, div_id):
+    fig = build_figure(stg)
+    fig.update_layout(width=None, height=560, autosize=True, title=None,
+                      margin=dict(l=10, r=10, t=20, b=20), paper_bgcolor="rgba(0,0,0,0)")
+    return pio.to_html(fig, include_plotlyjs=False, full_html=False, div_id=div_id,
+                       config={"displayModeBar": False, "responsive": True})
+
+
+sankey_div = sankey(stages, "sankey")
+sankey_div_12m = sankey(stages_12m, "sankey-12m")
 
 # --------------------------------------------------------------------------- slack scoping
 requests = {r["request_id"]: r for r in rows("intro_requests.csv")}
@@ -160,8 +178,27 @@ def table(headers, body_rows, cls=""):
 
 
 counts = [c for _, c in stages]
-funnel_rows = [(name, c, f"{c/counts[0]:.0%}", f"{c/counts[i-1]:.0%}" if i else "—")
-               for i, (name, c) in enumerate(stages)]
+counts_12m = [c for _, c in stages_12m]
+
+
+def pct(a, b, digits=0):
+    return f"{a / b:.{digits}%}" if b else "—"
+
+
+def funnel_table(stg):
+    n = [c for _, c in stg]
+    return table(["Stage", "Count", "of requests", "step conversion"],
+                 [(name, c, pct(c, n[0]), pct(c, n[i - 1]) if i else "—") for i, (name, c) in enumerate(stg)])
+
+
+def funnel_kpis(n):
+    return f"""<div class="kpis">
+    {kpi(n[0], "requests")}
+    {kpi(n[1], "asked", f"{pct(n[1], n[0])} of requests")}
+    {kpi(n[3], "intros sent", f"{pct(n[3], n[1])} of asks")}
+    {kpi(n[4], "meetings", f"{pct(n[4], n[3])} of intros")}
+    {kpi(n[5], "opportunities", f"{pct(n[5], n[0], 1)} of requests end-to-end")}
+  </div>"""
 
 overview = dropoff_rows()
 ov_n = sum(n for _, _, n, _ in overview)
@@ -279,27 +316,25 @@ contradiction_table = ('<table><thead><tr><th>Contradiction</th><th class="num">
 coverage_table = table(["Status in intro_requests.csv", "Requests with no outcome row"],
                        [(status, n) for status, n in coverage["by_status"]])
 
-sankey_div = pio.to_html(sankey_fig, include_plotlyjs=False, full_html=False, div_id="sankey",
-                         config={"displayModeBar": False, "responsive": True})
 reply_div = pio.to_html(reply_fig, include_plotlyjs=False, full_html=False, div_id="replies",
                         config={"displayModeBar": False, "responsive": True})
 
 STYLE = f"""<style>
-:root{{--ink:{theme.INK};--mute:{theme.MUTE};--blue:{theme.ACCENT};--line:{theme.LINE};--bg:{theme.PAPER};--surface:{theme.SURFACE};--warn:{theme.WARN};
+:root{{--ink:{theme.INK};--mute:{theme.MUTE};--blue:{theme.ACCENT};--line:{theme.LINE};--bg:{theme.PAPER};--surface:{theme.SURFACE};--warn:{theme.WARN};--navy:{theme.NAVY};--baton:{theme.BATON};
   --serif:{theme.SERIF};--sans:{theme.SANS};--mono:{theme.MONO}}}
 *{{box-sizing:border-box}}
 body{{margin:0;font:16px/1.55 var(--serif);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}}
 h1,h2,h3,h4,nav,th,.kpi,.foot,summary{{font-family:var(--sans)}}
 h1,h2,h3,h4{{font-weight:500;letter-spacing:-.01em}}
 a{{color:var(--blue)}}
-header{{background:var(--bg);border-bottom:1px solid var(--line);padding:40px 40px 28px}}
+header{{background:var(--bg);border-bottom:1px solid var(--line);padding:32px 40px 28px}}
 header h1{{margin:0 0 6px;font-size:34px;line-height:1.15;font-weight:400;letter-spacing:-.02em}}
 header p{{margin:0;color:var(--mute)}}
 nav a{{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}}
 nav a:hover{{color:var(--blue)}}
 .part-lede{{margin-bottom:24px}}
 main{{max-width:1240px;margin:0 auto;padding:28px 40px 72px}}
-section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px}}
+section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:110px}}
 h2{{margin:0 0 6px;font-size:22px}}
 h3{{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}}
 details{{margin-top:26px}}
@@ -331,10 +366,27 @@ td:nth-child(n+2):not(:last-child).num,th.num{{text-align:right}}
 .foot{{color:var(--mute);font-size:13px}}
 code{{font-family:var(--mono);background:rgba(0,0,0,.04);padding:1px 5px;font-size:12.5px}}
 img{{max-width:100%}}
-.tabs{{display:flex;gap:4px;margin:0 0 22px;border-bottom:1px solid var(--line)}}
+.topbar{{position:sticky;top:0;z-index:10;background:var(--bg)}}
+.mastrow{{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 28px;padding:10px 40px 0;border-bottom:1px solid var(--line)}}
+.mast{{display:flex;align-items:center;gap:12px;padding:2px 0 10px;text-decoration:none;color:var(--ink)}}
+.mast .logo{{flex:none;display:block}}
+.mast .t{{font-family:var(--sans);font-size:17px;line-height:1.2;letter-spacing:-.01em;color:var(--mute);white-space:nowrap}}
+.mast .t b{{font-weight:600;color:var(--navy)}}
+.tabs{{display:flex;flex-wrap:wrap;gap:4px;margin-left:auto}}
 .tabs a{{font-family:var(--sans);font-size:14px;color:var(--mute);text-decoration:none;padding:8px 16px;margin-bottom:-1px;border:1px solid transparent}}
 .tabs a:hover{{color:var(--ink)}}
 .tabs a.on{{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}}
+.tabs.people{{margin-left:0;padding:6px 40px 0;background:{theme.rgba(theme.BATON, 0.08)};border-bottom:1px solid {theme.rgba(theme.BATON, 0.35)}}}
+.tabs.people .lbl{{font-family:var(--sans);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--baton);padding:11px 12px 0 0;align-self:flex-start}}
+.tabs.people a{{color:#7a4520;font-size:13.5px;padding:7px 13px}}
+.tabs.people a .n{{margin-left:6px;font-size:11.5px;color:var(--baton);font-variant-numeric:tabular-nums}}
+.tabs.people a:hover{{color:var(--navy)}}
+.tabs.people a.on{{color:var(--navy);background:var(--surface);border-color:{theme.rgba(theme.BATON, 0.35)} {theme.rgba(theme.BATON, 0.35)} var(--surface);box-shadow:inset 0 2px 0 var(--baton)}}
+.seg{{display:inline-flex;border:1px solid var(--line);font-family:var(--sans);font-size:13px;margin:6px 0 4px}}
+.seg button{{background:var(--surface);color:var(--mute);border:0;padding:6px 14px;cursor:pointer;font:inherit}}
+.seg button+button{{border-left:1px solid var(--line)}}
+.seg button.on{{background:var(--ink);color:var(--surface)}}
+.fview[hidden]{{display:none}}
 /* live priorities */
 #lp h2 .foot{{display:block;font-weight:400;margin-top:2px}}
 #lp .lede{{font-size:15.5px}}
@@ -380,12 +432,22 @@ TABS = [
 ]
 
 
+connector_pages = connector_fragments(TODAY)
+MASTHEAD = (f'<a class="mast" href="{LIVE_HTML}">{theme.logo()}'
+            '<span class="t"><b>Halyard Baton</b> / intro routing console</span></a>')
+
+
 def tabs(active):
-    links = []
-    for href, label in TABS:
+    """The sticky bar on every page: masthead, the page tabs, and a second row in the
+    baton colour with one tab per connector."""
+    def link(href, label, extra=""):
         cls = ' class="on"' if href == active else ""
-        links.append(f'<a href="{href}"{cls}>{label}</a>')
-    return '<div class="tabs">' + "".join(links) + "</div>"
+        return f'<a href="{href}"{cls}>{esc(label)}{extra}</a>'
+    pages = "".join(link(href, label) for href, label in TABS)
+    people = "".join(link(c["page"], c["connector"], f'<span class="n">{len(c["top"]) + len(c["rest"])}</span>')
+                     for c, _ in connector_pages)
+    return (f'<div class="topbar"><div class="mastrow">{MASTHEAD}<div class="tabs">{pages}</div></div>'
+            f'<div class="tabs people"><span class="lbl">by connector</span>{people}</div></div>')
 
 
 built = f"built {datetime.now():%Y-%m-%d}"
@@ -400,8 +462,8 @@ def head(title):
 
 raw_page = f"""{head("raw Sept data dashboard")}
 <body>
+{tabs(RAW_HTML)}
 <header>
-  {tabs(RAW_HTML)}
   <h1>Raw Sept data — scoping &amp; verification</h1>
   <p>200 warm-intro requests · Aug 2025 – Jul 2026 · source: the September exports in <code>dataset/</code>, as filed · {built}</p>
   <nav style="margin-top:12px"><a href="#flow">File flow</a><a href="#overview">Funnel overview</a><a href="#joins">Joins</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a></nav>
@@ -623,8 +685,8 @@ raw_page = f"""{head("raw Sept data dashboard")}
 
 live_page = f"""{head("live data dashboard")}
 <body>
+{tabs(LIVE_HTML)}
 <header>
-  {tabs(LIVE_HTML)}
   <h1>Live data — funnel, accounts and connectors</h1>
   <p>The same {len(requests)} requests after entity resolution · source: <code>golden/</code>, rebuilt from <code>dataset/</code> by <code>python3 build.py</code> · {built}</p>
   <nav style="margin-top:12px"><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a></nav>
@@ -636,18 +698,31 @@ live_page = f"""{head("live data dashboard")}
 <section id="funnel">
   <h2>Where the requests go</h2>
   <p class="lede">From <code>golden/golden_requests.csv</code>. Node labels show how many requests survive each step. Pipeline $ is deliberately omitted: the same <code>deal_value_usd</code> would be re-counted at every stage a request passes through.</p>
-  <div class="kpis">
-    {kpi(counts[0], "requests")}
-    {kpi(counts[1], "asked", f"{counts[1]/counts[0]:.0%} of requests")}
-    {kpi(counts[3], "intros sent", f"{counts[3]/counts[1]:.0%} of asks")}
-    {kpi(counts[4], "meetings", f"{counts[4]/counts[3]:.0%} of intros")}
-    {kpi(counts[5], "opportunities", f"{counts[5]/counts[0]:.1%} of requests end-to-end")}
+  <div class="seg" id="funnel-toggle" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
+  <span class="foot" id="funnel-window" data-all="every request on file, {stages_first} to {stages_last}" data-12m="requests dated {ROLLING_SINCE} or later ({counts_12m[0]} of {counts[0]}), rolling from the build date">every request on file, {stages_first} to {stages_last}</span>
+  <div class="fview" data-view="12m" hidden>
+  {funnel_kpis(counts_12m)}
+  {sankey_div_12m}
+  <div class="grid2">
+    <div>
+      <h3>Stage table — last 12 months</h3>
+      {funnel_table(stages_12m)}
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      <div class="finding warn"><b>The biggest leak is still before anyone is asked.</b>{counts_12m[0]-counts_12m[1]} of {counts_12m[0]} requests ({pct(counts_12m[0]-counts_12m[1], counts_12m[0])}) never reach a connector.</div>
+      <div class="finding"><b>Once asked.</b>{pct(counts_12m[2], counts_12m[1])} respond, {pct(counts_12m[3], counts_12m[2])} of responders send the intro, {pct(counts_12m[4], counts_12m[3])} of intros book a meeting, {pct(counts_12m[5], counts_12m[4])} of meetings create an opportunity.</div>
+      <p class="foot">Same stages and source as the cumulative view, restricted to <code>request_date &gt;= {ROLLING_SINCE}</code>; the window moves every time the page is rebuilt.</p>
+    </div>
   </div>
+  </div>
+  <div class="fview" data-view="all">
+  {funnel_kpis(counts)}
   {sankey_div}
   <div class="grid2">
     <div>
       <h3>Stage table</h3>
-      {table(["Stage", "Count", "of requests", "step conversion"], funnel_rows)}
+      {funnel_table(stages)}
     </div>
     <div>
       <h3>Reading it</h3>
@@ -657,6 +732,22 @@ live_page = f"""{head("live data dashboard")}
       <p class="foot">Standalone chart + code: <code>dashboard/sankey_funnel.py</code>, <code>docs/sankey_funnel.html</code>.</p>
     </div>
   </div>
+  </div>
+  <script>
+  (function () {{
+    var seg = document.getElementById('funnel-toggle'), note = document.getElementById('funnel-window');
+    seg.querySelectorAll('button').forEach(function (b) {{
+      b.onclick = function () {{
+        seg.querySelectorAll('button').forEach(function (x) {{ x.classList.toggle('on', x === b); }});
+        document.querySelectorAll('#funnel .fview').forEach(function (v) {{
+          v.hidden = v.dataset.view !== b.dataset.view;
+          if (!v.hidden && window.Plotly) v.querySelectorAll('.js-plotly-plot').forEach(function (p) {{ Plotly.Plots.resize(p); }});
+        }});
+        note.textContent = note.dataset[b.dataset.view];
+      }};
+    }});
+  }})();
+  </script>
 </section>
 
 <section id="accounts">
@@ -725,8 +816,8 @@ trace_page = f"""<!doctype html>
 {theme.FONT_LINK}
 {STYLE}</head>
 <body>
+{tabs(TRACE_HTML)}
 <header>
-  {tabs(TRACE_HTML)}
   <h1>Company trace — the full history of one company</h1>
   <p>What <code>analysis/trace.py</code> prints, for any of the 48 companies with a request · sources: <code>dataset/</code>, <code>golden/</code> · {built}</p>
 </header>
@@ -742,8 +833,8 @@ trace_page = f"""<!doctype html>
 
 priorities_page = f"""{head("live priorities")}
 <body>
+{tabs(PRIORITIES_HTML)}
 <header>
-  {tabs(PRIORITIES_HTML)}
   <h1>Live priorities — what to do next, and who does it</h1>
   <p>Every number here is computed by <code>dashboard/live_priorities.py</code> from <code>golden/</code> and <code>dataset/</code> at build time and written into the page; the browser only renders it. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
 </header>
@@ -754,12 +845,34 @@ priorities_page = f"""{head("live priorities")}
 </body></html>
 """
 
+
+def connector_page(c, frag):
+    who = f"{esc(c['role'])} · {esc(c['type'])}" if c["on_roster"] else "not on the roster"
+    return f"""{head(esc(c["connector"]))}
+<body>
+{tabs(c["page"])}
+<header>
+  <h1>{esc(c["connector"])} — top {len(c["top"])}, then the longer list</h1>
+  <p>{who} · {len(c["top"]) + len(c["rest"])} live requests routed to them this cycle, ranked by the same expected value as <a href="{PRIORITIES_HTML}#top">Live Priorities</a>; computed by <code>dashboard/live_priorities.py</code> at build time, rendered by the browser. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
+</header>
+<main>
+{frag}
+<p class="foot">Regenerate with <code>python3 build.py dashboard</code>. Ticks are shared with the Live Priorities tab in this browser.</p>
+</main>
+</body></html>
+"""
+
+
 shutil.copyfile(ROUTING / "routing_flow.png", DOCS / "routing_flow.png")
+for old in DOCS.glob("connector-*.html"):
+    if old.name not in {c["page"] for c, _ in connector_pages}:
+        old.unlink()
 for name, markup in (
     (RAW_HTML, raw_page),
     (LIVE_HTML, live_page),
     (TRACE_HTML, trace_page),
     (PRIORITIES_HTML, priorities_page),
+    *((c["page"], connector_page(c, frag)) for c, frag in connector_pages),
 ):
     out_path = str(DOCS / name)
     with open(out_path, "w", encoding="utf-8") as f:

@@ -5,21 +5,21 @@
 <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <style>
-:root{--ink:#191919;--mute:#6f6d6a;--blue:#2200ff;--line:rgba(0,0,0,.09);--bg:#f7f6f5;--surface:#ffffff;--warn:#9f2d00;
+:root{--ink:#191919;--mute:#6f6d6a;--blue:#2200ff;--line:rgba(0,0,0,.09);--bg:#f7f6f5;--surface:#ffffff;--warn:#9f2d00;--navy:#17293f;--baton:#c4763e;
   --serif:"Newsreader", "Iowan Old Style", Georgia, serif;--sans:"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;--mono:"Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
 *{box-sizing:border-box}
 body{margin:0;font:16px/1.55 var(--serif);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
 h1,h2,h3,h4,nav,th,.kpi,.foot,summary{font-family:var(--sans)}
 h1,h2,h3,h4{font-weight:500;letter-spacing:-.01em}
 a{color:var(--blue)}
-header{background:var(--bg);border-bottom:1px solid var(--line);padding:40px 40px 28px}
+header{background:var(--bg);border-bottom:1px solid var(--line);padding:32px 40px 28px}
 header h1{margin:0 0 6px;font-size:34px;line-height:1.15;font-weight:400;letter-spacing:-.02em}
 header p{margin:0;color:var(--mute)}
 nav a{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}
 nav a:hover{color:var(--blue)}
 .part-lede{margin-bottom:24px}
 main{max-width:1240px;margin:0 auto;padding:28px 40px 72px}
-section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px}
+section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:110px}
 h2{margin:0 0 6px;font-size:22px}
 h3{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
 details{margin-top:26px}
@@ -51,10 +51,27 @@ td:nth-child(n+2):not(:last-child).num,th.num{text-align:right}
 .foot{color:var(--mute);font-size:13px}
 code{font-family:var(--mono);background:rgba(0,0,0,.04);padding:1px 5px;font-size:12.5px}
 img{max-width:100%}
-.tabs{display:flex;gap:4px;margin:0 0 22px;border-bottom:1px solid var(--line)}
+.topbar{position:sticky;top:0;z-index:10;background:var(--bg)}
+.mastrow{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 28px;padding:10px 40px 0;border-bottom:1px solid var(--line)}
+.mast{display:flex;align-items:center;gap:12px;padding:2px 0 10px;text-decoration:none;color:var(--ink)}
+.mast .logo{flex:none;display:block}
+.mast .t{font-family:var(--sans);font-size:17px;line-height:1.2;letter-spacing:-.01em;color:var(--mute);white-space:nowrap}
+.mast .t b{font-weight:600;color:var(--navy)}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;margin-left:auto}
 .tabs a{font-family:var(--sans);font-size:14px;color:var(--mute);text-decoration:none;padding:8px 16px;margin-bottom:-1px;border:1px solid transparent}
 .tabs a:hover{color:var(--ink)}
 .tabs a.on{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}
+.tabs.people{margin-left:0;padding:6px 40px 0;background:rgba(196,118,62,0.08);border-bottom:1px solid rgba(196,118,62,0.35)}
+.tabs.people .lbl{font-family:var(--sans);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--baton);padding:11px 12px 0 0;align-self:flex-start}
+.tabs.people a{color:#7a4520;font-size:13.5px;padding:7px 13px}
+.tabs.people a .n{margin-left:6px;font-size:11.5px;color:var(--baton);font-variant-numeric:tabular-nums}
+.tabs.people a:hover{color:var(--navy)}
+.tabs.people a.on{color:var(--navy);background:var(--surface);border-color:rgba(196,118,62,0.35) rgba(196,118,62,0.35) var(--surface);box-shadow:inset 0 2px 0 var(--baton)}
+.seg{display:inline-flex;border:1px solid var(--line);font-family:var(--sans);font-size:13px;margin:6px 0 4px}
+.seg button{background:var(--surface);color:var(--mute);border:0;padding:6px 14px;cursor:pointer;font:inherit}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--ink);color:var(--surface)}
+.fview[hidden]{display:none}
 /* live priorities */
 #lp h2 .foot{display:block;font-weight:400;margin-top:2px}
 #lp .lede{font-size:15.5px}
@@ -91,8 +108,8 @@ img{max-width:100%}
 #lp table.preview tr.flag td{background:rgba(159,45,0,.035)}
 </style></head>
 <body>
+<div class="topbar"><div class="mastrow"><a class="mast" href="livedata.html"><svg class="logo" width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="7" fill="#17293f"/><rect x="9" y="9" width="3.4" height="22" fill="#fff"/><rect x="27.6" y="9" width="3.4" height="22" fill="#fff"/><path d="M12.4 26.4 27.6 14.6" stroke="#c4763e" stroke-width="3"/></svg><span class="t"><b>Halyard Baton</b> / intro routing console</span></a><div class="tabs"><a href="halyardscoping.html">Raw Sept Data Dashboard</a><a href="livedata.html" class="on">Live Data Dashboard</a><a href="companytrace.html">Company Trace</a><a href="livepriorities.html">Live Priorities</a></div></div><div class="tabs people"><span class="lbl">by connector</span><a href="connector-marcus-aldridge.html">Marcus Aldridge<span class="n">8</span></a><a href="connector-dana-whitfield.html">Dana Whitfield<span class="n">6</span></a><a href="connector-priya-raghunathan.html">Priya Raghunathan<span class="n">8</span></a><a href="connector-tomas-beckett.html">Tomás Beckett<span class="n">8</span></a><a href="connector-elena-duvall.html">Elena Duvall<span class="n">3</span></a><a href="connector-owen-trask.html">Owen Trask<span class="n">3</span></a><a href="connector-imani-mkhize.html">Imani Mkhize<span class="n">2</span></a><a href="connector-curtis-hartigan.html">Curtis Hartigan<span class="n">2</span></a><a href="connector-yusuf-petrossian.html">Yusuf Petrossian<span class="n">2</span></a><a href="connector-nadia-okonkwo.html">Nadia Okonkwo<span class="n">1</span></a></div></div>
 <header>
-  <div class="tabs"><a href="halyardscoping.html">Raw Sept Data Dashboard</a><a href="livedata.html" class="on">Live Data Dashboard</a><a href="companytrace.html">Company Trace</a><a href="livepriorities.html">Live Priorities</a></div>
   <h1>Live data — funnel, accounts and connectors</h1>
   <p>The same 200 requests after entity resolution · source: <code>golden/</code>, rebuilt from <code>dataset/</code> by <code>python3 build.py</code> · built 2026-09-05</p>
   <nav style="margin-top:12px"><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a></nav>
@@ -104,6 +121,31 @@ img{max-width:100%}
 <section id="funnel">
   <h2>Where the requests go</h2>
   <p class="lede">From <code>golden/golden_requests.csv</code>. Node labels show how many requests survive each step. Pipeline $ is deliberately omitted: the same <code>deal_value_usd</code> would be re-counted at every stage a request passes through.</p>
+  <div class="seg" id="funnel-toggle" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
+  <span class="foot" id="funnel-window" data-all="every request on file, 2025-08 to 2026-07" data-12m="requests dated 2025-09-05 or later (188 of 200), rolling from the build date">every request on file, 2025-08 to 2026-07</span>
+  <div class="fview" data-view="12m" hidden>
+  <div class="kpis">
+    <div class="kpi"><div class="v">188</div><div class="l">requests</div></div>
+    <div class="kpi"><div class="v">80</div><div class="l">asked</div><div class="s">43% of requests</div></div>
+    <div class="kpi"><div class="v">31</div><div class="l">intros sent</div><div class="s">39% of asks</div></div>
+    <div class="kpi"><div class="v">13</div><div class="l">meetings</div><div class="s">42% of intros</div></div>
+    <div class="kpi"><div class="v">6</div><div class="l">opportunities</div><div class="s">3.2% of requests end-to-end</div></div>
+  </div>
+  <div style="height:560px; width:100%;">                            <div id="sankey-12m" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("sankey-12m")) {                    Plotly.newPlot(                        "sankey-12m",                        [{"arrangement":"snap","link":{"color":["rgba(34,0,255,0.35)","rgba(168,164,159,0.35)","rgba(34,0,255,0.35)","rgba(168,164,159,0.35)","rgba(34,0,255,0.35)","rgba(168,164,159,0.35)","rgba(34,0,255,0.35)","rgba(168,164,159,0.35)","rgba(34,0,255,0.35)","rgba(168,164,159,0.35)"],"source":[0,0,1,1,2,2,3,3,4,4],"target":[1,6,2,7,3,8,4,9,5,10],"value":[80,108,52,28,31,21,13,18,6,7]},"node":{"color":["#2200ff","#2200ff","#2200ff","#2200ff","#2200ff","#2200ff","#a8a49f","#a8a49f","#a8a49f","#a8a49f","#a8a49f"],"label":["\u003cb\u003eRequests\u003c\u002fb\u003e\u003cbr\u003e188","\u003cb\u003eAsked\u003c\u002fb\u003e\u003cbr\u003e80","\u003cb\u003eResponded\u003c\u002fb\u003e\u003cbr\u003e52","\u003cb\u003eIntros\u003c\u002fb\u003e\u003cbr\u003e31","\u003cb\u003eMeetings\u003c\u002fb\u003e\u003cbr\u003e13","\u003cb\u003eOpportunities\u003c\u002fb\u003e\u003cbr\u003e6","Never asked\u003cbr\u003e108","No response\u003cbr\u003e28","No intro\u003cbr\u003e21","No meeting\u003cbr\u003e18","No opportunity\u003cbr\u003e7"],"line":{"width":0},"pad":30,"thickness":22,"x":[0.02,0.17789473684210524,0.3357894736842105,0.4936842105263158,0.651578947368421,0.92,0.11,0.26789473684210524,0.4257894736842105,0.5836842105263158,0.741578947368421],"y":[0.3,0.3,0.3,0.3,0.3,0.3,0.85,0.85,0.85,0.85,0.85]},"type":"sankey"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05}}},"title":{},"margin":{"l":10,"r":10,"t":20,"b":20},"font":{"family":"\"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif","color":"#191919","size":14},"xaxis":{"gridcolor":"rgba(0,0,0,.09)","zerolinecolor":"rgba(0,0,0,.09)","linecolor":"rgba(0,0,0,.09)"},"yaxis":{"gridcolor":"rgba(0,0,0,.09)","zerolinecolor":"rgba(0,0,0,.09)","linecolor":"rgba(0,0,0,.09)"},"legend":{"font":{"color":"#6f6d6a"}},"hoverlabel":{"font":{"family":"\"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif"}},"height":560,"paper_bgcolor":"rgba(0,0,0,0)","plot_bgcolor":"rgba(0,0,0,0)","autosize":true},                        {"displayModeBar": false, "responsive": true}                    )                };            </script>        </div>
+  <div class="grid2">
+    <div>
+      <h3>Stage table — last 12 months</h3>
+      <table class=""><thead><tr><th>Stage</th><th>Count</th><th>of requests</th><th>step conversion</th></tr></thead><tbody><tr><td>Requests</td><td>188</td><td>100%</td><td>—</td></tr><tr><td>Asked</td><td>80</td><td>43%</td><td>43%</td></tr><tr><td>Responded</td><td>52</td><td>28%</td><td>65%</td></tr><tr><td>Intros</td><td>31</td><td>16%</td><td>60%</td></tr><tr><td>Meetings</td><td>13</td><td>7%</td><td>42%</td></tr><tr><td>Opportunities</td><td>6</td><td>3%</td><td>46%</td></tr></tbody></table>
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      <div class="finding warn"><b>The biggest leak is still before anyone is asked.</b>108 of 188 requests (57%) never reach a connector.</div>
+      <div class="finding"><b>Once asked.</b>65% respond, 60% of responders send the intro, 42% of intros book a meeting, 46% of meetings create an opportunity.</div>
+      <p class="foot">Same stages and source as the cumulative view, restricted to <code>request_date &gt;= 2025-09-05</code>; the window moves every time the page is rebuilt.</p>
+    </div>
+  </div>
+  </div>
+  <div class="fview" data-view="all">
   <div class="kpis">
     <div class="kpi"><div class="v">200</div><div class="l">requests</div></div>
     <div class="kpi"><div class="v">85</div><div class="l">asked</div><div class="s">42% of requests</div></div>
@@ -125,6 +167,22 @@ img{max-width:100%}
       <p class="foot">Standalone chart + code: <code>dashboard/sankey_funnel.py</code>, <code>docs/sankey_funnel.html</code>.</p>
     </div>
   </div>
+  </div>
+  <script>
+  (function () {
+    var seg = document.getElementById('funnel-toggle'), note = document.getElementById('funnel-window');
+    seg.querySelectorAll('button').forEach(function (b) {
+      b.onclick = function () {
+        seg.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
+        document.querySelectorAll('#funnel .fview').forEach(function (v) {
+          v.hidden = v.dataset.view !== b.dataset.view;
+          if (!v.hidden && window.Plotly) v.querySelectorAll('.js-plotly-plot').forEach(function (p) { Plotly.Plots.resize(p); });
+        });
+        note.textContent = note.dataset[b.dataset.view];
+      };
+    });
+  })();
+  </script>
 </section>
 
 <section id="accounts">
