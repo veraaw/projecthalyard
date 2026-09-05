@@ -5,15 +5,26 @@
     python3 build.py dashboard  # one step (any prefix of the names below)
 
 The dashboard reads analysis/joins/join_rates.md and analysis/profile/profile.md,
-so those steps run before it. The golden/ tests run first: a failing check
-exits non-zero and stops the build (`python3 build.py test` runs just them).
+so those steps run before it. The tests run first (`python3 -m unittest
+discover tests`): a failure exits non-zero and stops the build.
 """
 import runpy
 import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+
+
+def run_tests():
+    """python3 -m unittest discover tests"""
+    suite = unittest.defaultTestLoader.discover(str(ROOT / "tests"), top_level_dir=str(ROOT))
+    if not unittest.TextTestRunner().run(suite).wasSuccessful():
+        sys.exit(1)
+
 
 STEPS = [
-    ("test-golden", "tests.test_golden"),
-    ("test-allocation", "tests.test_allocation"),
+    ("tests", run_tests),
     ("profile", "analysis.profile.profile_csvs"),
     ("joins", "analysis.joins.join_rates"),
     ("routing", "analysis.routing.routing_kpis"),
@@ -29,10 +40,10 @@ def main(argv):
     steps = [(name, mod) for name, mod in STEPS if any(name.startswith(w) for w in wanted)]
     if not steps:
         sys.exit(f"no step matches {wanted}; known steps: {', '.join(n for n, _ in STEPS)}")
-    for name, module in steps:
-        print(f"--- {name} ({module})")
+    for name, step in steps:
+        print(f"--- {name} ({step if isinstance(step, str) else step.__doc__})")
         try:
-            runpy.run_module(module, run_name="__main__")
+            step() if callable(step) else runpy.run_module(step, run_name="__main__")
         except SystemExit as exc:  # a step that ends in sys.exit() is not a failure
             if exc.code:
                 raise
