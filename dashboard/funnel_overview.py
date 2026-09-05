@@ -2,66 +2,39 @@
 
 A request drops out at the first stage that fails, so the eight buckets partition
 `intro_requests.csv` and their `deal_value_usd` sums partition the requested pipeline.
+Unrouted requests are split using the golden company resolution (`golden/`), so the
+split agrees with the company and supply cuts elsewhere in the dashboard.
 
     python3 -m dashboard.funnel_overview     # prints the table
 """
 import csv
-import glob
 import os
-import re
 
-from paths import DATASET
+from paths import DATASET, GOLDEN
 
 DATA = str(DATASET)
-DOMAIN = re.compile(r"\b([a-z0-9-]+)\.(?:com|net|io|ai|co\.uk)\b", re.I)
 
 
-def rows(name):
-    with open(os.path.join(DATA, name), newline="", encoding="utf-8-sig") as f:
+def rows(name, base=DATA):
+    with open(os.path.join(base, name), newline="", encoding="utf-8-sig") as f:
         return list(csv.DictReader(f))
 
 
-def norm(v):
-    return re.sub(r"[^a-z0-9]", "", v.lower())
-
-
-def company_index():
-    """Known company names, plus the connection companies and a domain stem -> name map."""
-    connection_companies = set()
-    for path in sorted(glob.glob(os.path.join(DATA, "connections_*.csv"))):
-        with open(path, newline="", encoding="utf-8-sig") as f:
-            connection_companies |= {r["company"].strip() for r in csv.DictReader(f)}
-    crm = rows("crm_accounts.csv")
-    names = {c["account_name"].strip() for c in crm} | connection_companies
-    names |= {r["target_company_raw"].strip() for r in rows("intro_requests.csv") if r["target_company_raw"].strip()}
-    by_stem = {norm(n): n for n in names}
-    for c in crm:
-        by_stem.setdefault(norm(c["domain"].split(".")[0]), c["account_name"].strip())
-    return names, connection_companies, by_stem
-
-
-def resolve_target(request, names_by_length, by_stem):
-    """The company a request is aimed at, or None when no company can be recovered at all."""
-    stated = request["target_company_raw"].strip()
-    if stated:
-        return stated
-    ask = request["raw_ask"]
-    lowered = ask.lower()
-    for name in names_by_length:
-        if name.lower() in lowered:
-            return name
-    for m in DOMAIN.finditer(ask):
-        if norm(m.group(1)) in by_stem:
-            return by_stem[norm(m.group(1))]
-    return None
+def paths_by_request():
+    """request_id -> number of network paths to its resolved company, or None when unresolved."""
+    paths = {c["company_id"]: int(c["paths_available"] or 0) for c in rows("golden_companies.csv", str(GOLDEN))}
+    out = {}
+    for g in rows("golden_requests.csv", str(GOLDEN)):
+        cid = g["company_id"].strip()
+        out[g["request_id"].strip()] = paths.get(cid) if cid else None
+    return out
 
 
 def dropoff_rows():
     """[(category, dropoff, requests, deal value usd)] — one bucket per request."""
     requests = rows("intro_requests.csv")
     outcomes = rows("intro_outcomes.csv")
-    names, connection_companies, by_stem = company_index()
-    names_by_length = sorted(names, key=len, reverse=True)
+    paths = paths_by_request()
 
     asked = {o["request_id"].strip(): o for o in outcomes}
     yes = lambda o, col: o[col].strip().upper() == "Y"
@@ -79,8 +52,11 @@ def dropoff_rows():
     for r in requests:
         o = asked.get(r["request_id"].strip())
         if o is None:
-            target = resolve_target(r, names_by_length, by_stem)
-            i = 0 if target is None else (2 if target in connection_companies else 1)
+            rid = r["request_id"].strip()
+            if rid not in paths:
+                raise KeyError(f"{rid} missing from golden/golden_requests.csv; run golden/build_golden.py")
+            n_paths = paths[rid]
+            i = 0 if n_paths is None else (2 if n_paths > 0 else 1)
         elif not yes(o, "responded"):
             i = 3
         elif not yes(o, "intro_sent"):

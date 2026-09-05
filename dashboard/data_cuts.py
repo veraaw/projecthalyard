@@ -217,7 +217,7 @@ def target_person_cut(data):
     people = [r["target_person_raw"].strip() for r in data["requests"] if r["target_person_raw"].strip()]
     distinct = set(people)
     sources = {
-        "connections_*.name (5,075 contacts)": {c["name"].strip() for c in data["connections"]},
+        f"connections_*.name ({len(data['connections']):,} contacts)": {c["name"].strip() for c in data["connections"]},
         "investor_network.person": {i["person"].strip() for i in data["investors"]},
         "connector_roster.name": {r["name"].strip() for r in data["roster"]},
         "crm_accounts.owner": {c["owner"].strip() for c in data["crm"]},

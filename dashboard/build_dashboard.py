@@ -184,6 +184,15 @@ coverage = data_cuts.outcome_delta_cut(cuts)
 joins_rows = [(link, f"{left:.1f}%", f"{right:.1f}%", note or "—")
               for link, left, right, note in sorted(joins["joins"], key=lambda j: min(j[1], j[2]))]
 joins_table = table(["Link (left -> right)", "Left matched", "Right matched", "What it means"], joins_rows)
+join_rate = {link: (left, right) for link, left, right, _ in joins["joins"]}
+roster_join_left = join_rate["intro_outcomes.connector_asked -> connector_roster.name"][0]
+coverage_join_right = join_rate["intro_outcomes.request_id -> intro_requests.request_id"][1]
+company_join = join_rate["intro_requests.target_company_raw -> crm_accounts.account_name"]
+supply_join = join_rate["connections_*.company -> intro_requests.target_company_raw"]
+supply_companies = {norm_entity(c["company"]) for c in cuts["connections"] if c["company"].strip()}
+demand_companies = {norm_entity(r["target_company_raw"]) for r in requests.values() if r["target_company_raw"].strip()}
+supply_unrequested = len(supply_companies - demand_companies)
+demand_no_contact = len(demand_companies - supply_companies)
 
 demand_top = demand["companies"][:20]
 demand_fig = go.Figure()
@@ -334,7 +343,7 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
 
 <section id="overview">
   <h2>Funnel overview</h2>
-  <p class="lede">Every request drops out at the first stage it fails, so the eight buckets partition all {ov_n} requests. Unrouted requests split on whether the target company appears in <code>dataset/connections_*.csv</code>; a target counts as identifiable when a company can be recovered from <code>target_company_raw</code>, the company names in <code>raw_ask</code>, or an email domain in <code>raw_ask</code>.</p>
+  <p class="lede">Every request drops out at the first stage it fails, so the eight buckets partition all {ov_n} requests. Unrouted requests split on whether the resolved <code>golden/</code> company has any path in <code>dataset/connections_*.csv</code> (<code>paths_available</code>); a target counts as identifiable when golden resolution recovers a company from <code>target_company_raw</code> or <code>raw_ask</code>.</p>
   {overview_table}
   <p class="foot">Buckets and ratios: <code>dashboard/funnel_overview.py</code> (also prints the table standalone).</p>
 </section>
@@ -345,8 +354,8 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
   <div class="kpis">
     {kpi(len(joins["perfect"]), "joins clean in both directions", f"of {len(joins['joins'])} links measured")}
     {kpi(f"{joins['concerning'][0][1]:.0f}%", "worst link: target_person_raw -> connections", "no requested person exists in the network")}
-    {kpi("54.5%", "connector_asked on the roster", f"{len(connectors['off_roster'])} people asked who are not connectors")}
-    {kpi("42.5%", "requests with an outcome row", f"{coverage['missing']} requests have none")}
+    {kpi(f"{roster_join_left:.1f}%", "distinct connector_asked names on the roster", f"{len(connectors['off_roster'])} people asked who are not connectors")}
+    {kpi(f"{coverage_join_right:.1f}%", "requests with an outcome row", f"{coverage['missing']} requests have none")}
   </div>
   <div class="grid2">
     <div>
@@ -358,9 +367,9 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
     <div>
       <h3>Joins that break the analysis</h3>
       <div class="finding warn"><b><code>target_person_raw</code> -> <code>connections_*.name</code> — 0% / 0%.</b>Not one of the {targets["distinct"]} named individuals appears anywhere in the network (see below). Person-level routing is impossible; only the company can be matched.</div>
-      <div class="finding warn"><b><code>connector_asked</code> -> <code>connector_roster.name</code> — 54.5%.</b>{sum(n for _, n in connectors["off_roster"])} asks went to {len(connectors["off_roster"])} people who are not connectors ({", ".join(n for n, _ in connectors["off_roster"])}), so capacity and focus-area rules never applied to them.</div>
-      <div class="finding warn"><b><code>target_company_raw</code> -> <code>crm_accounts.account_name</code> — 71.2% only after normalization.</b>Exact match is 65.4%; the CRM side needs legal-suffix stripping to reach 84%. Every company cut below is therefore built on the resolved <code>golden/</code> company id, not the raw string.</div>
-      <div class="finding warn"><b><code>connections_*.company</code> -> <code>target_company_raw</code> — 58% / 55.8%.</b>Supply and demand barely overlap: 21 companies in the network are never requested and 23 requested companies have no contact at all.</div>
+      <div class="finding warn"><b><code>connector_asked</code> -> <code>connector_roster.name</code> — {roster_join_left:.1f}% of distinct names.</b>{sum(n for _, n in connectors["off_roster"])} asks went to {len(connectors["off_roster"])} people who are not connectors ({", ".join(n for n, _ in connectors["off_roster"])}), so capacity and focus-area rules never applied to them.</div>
+      <div class="finding warn"><b><code>target_company_raw</code> -> <code>crm_accounts.account_name</code> — {company_join[0]:.1f}% only after normalization.</b>The CRM side needs legal-suffix stripping to reach {company_join[1]:.0f}%. Every company cut below is therefore built on the resolved <code>golden/</code> company id, not the raw string.</div>
+      <div class="finding warn"><b><code>connections_*.company</code> -> <code>target_company_raw</code> — {supply_join[0]:.0f}% / {supply_join[1]:.1f}%.</b>Supply and demand barely overlap: {supply_unrequested} companies in the network are never requested and {demand_no_contact} requested companies have no contact at all.</div>
     </div>
   </div>
   <h3>All measured links</h3>
