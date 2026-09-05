@@ -152,27 +152,22 @@ def table(headers, body_rows, cls=""):
     return f'<table class="{cls}"><thead><tr>{h}</tr></thead><tbody>{b}</tbody></table>'
 
 
-counts = [c for _, c, _ in stages]
-dollars = [d for _, _, d in stages]
-funnel_rows = [(name, c, usd(d), f"{c/counts[0]:.0%}", f"{c/counts[i-1]:.0%}" if i else "—")
-               for i, (name, c, d) in enumerate(stages)]
+counts = [c for _, c in stages]
+funnel_rows = [(name, c, f"{c/counts[0]:.0%}", f"{c/counts[i-1]:.0%}" if i else "—")
+               for i, (name, c) in enumerate(stages)]
 
 overview = dropoff_rows()
 ov_n = sum(n for _, _, n, _ in overview)
-ov_v = sum(v for _, _, _, v in overview)
 ov_body = "".join(
     f'<tr><td>{esc(category)}</td><td>{esc(dropoff)}</td><td class="num">{n}</td>'
-    f'<td class="num">{n / ov_n:.1%}</td><td class="num">${v / 1e6:,.1f}</td>'
-    f'<td class="num">{v / ov_v:.1%}</td></tr>'
-    for category, dropoff, n, v in overview)
-ov_body += (f'<tr class="total"><td>Total</td><td></td><td class="num">{ov_n}</td><td class="num">100.0%</td>'
-            f'<td class="num">${ov_v / 1e6:,.1f}</td><td class="num">100.0%</td></tr>')
+    f'<td class="num">{n / ov_n:.1%}</td></tr>'
+    for category, dropoff, n, _ in overview)
+ov_body += f'<tr class="total"><td>Total</td><td></td><td class="num">{ov_n}</td><td class="num">100.0%</td></tr>'
 ov_body += "".join(
-    f'<tr class="ratio"><td colspan="5">{esc(label)}</td><td class="num">{value:.1%}</td></tr>'
+    f'<tr class="ratio"><td colspan="3">{esc(label)}</td><td class="num">{value:.1%}</td></tr>'
     for label, value in ratios(overview))
 overview_table = ('<table class="fo"><thead><tr><th>Category</th><th>Funnel Dropoff</th>'
-                  '<th class="num"># Requests</th><th class="num">% Total</th>'
-                  '<th class="num">Value</th><th class="num">% Total</th></tr></thead>'
+                  '<th class="num"># Requests</th><th class="num">% Total</th></tr></thead>'
                   f'<tbody>{ov_body}</tbody></table>')
 
 # --------------------------------------------------------------------------- additional data cuts
@@ -290,10 +285,19 @@ header{{background:#fff;border-bottom:1px solid var(--line);padding:28px 40px}}
 header h1{{margin:0 0 4px;font-size:26px}}
 header p{{margin:0;color:var(--mute)}}
 nav a{{margin-right:18px;color:var(--blue);text-decoration:none;font-weight:600}}
+nav .navgrp{{display:inline-block;min-width:130px;color:var(--mute);font-size:13px;text-transform:uppercase;letter-spacing:.04em}}
+h2.part{{font-size:24px;margin:18px 0 4px;padding-top:18px;border-top:2px solid var(--ink)}}
+h2.part:first-of-type{{border-top:none;padding-top:0}}
+.part-lede{{margin-bottom:22px}}
 main{{max-width:1240px;margin:0 auto;padding:24px 40px 60px}}
 section{{background:#fff;border:1px solid var(--line);border-radius:10px;padding:26px 30px;margin:0 0 24px}}
 h2{{margin:0 0 6px;font-size:21px}}
 h3{{margin:26px 0 10px;font-size:16px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}}
+details{{margin-top:26px}}
+summary{{cursor:pointer;list-style:none;margin-bottom:10px}}
+summary::-webkit-details-marker{{display:none}}
+summary::before{{content:"▸ ";color:var(--mute)}}
+details[open] summary::before{{content:"▾ "}}
 .lede{{color:var(--mute);margin:0 0 18px}}
 .kpis{{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:12px 0 6px}}
 .kpi{{background:var(--bg);border-radius:8px;padding:14px 16px}}
@@ -321,42 +325,19 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
 <body>
 <header>
   <h1>Halyard — scoping &amp; verification dashboard</h1>
-  <p>200 warm-intro requests · Aug 2025 – Jul 2026 · sources: <code>dataset/</code> · built {datetime.now():%Y-%m-%d}</p>
-  <nav style="margin-top:12px"><a href="#overview">Funnel overview</a><a href="#funnel">Funnel</a><a href="#joins">Joins</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a></nav>
+  <p>200 warm-intro requests · Aug 2025 – Jul 2026 · sources: <code>dataset/</code>, <code>golden/</code> · built {datetime.now():%Y-%m-%d}</p>
+  <nav style="margin-top:12px"><span class="navgrp">1. Raw data</span><a href="#overview">Funnel overview</a><a href="#joins">Joins</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a><br><span class="navgrp">2. Cleaned data</span><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a></nav>
 </header>
 <main>
 
+<h2 class="part" id="raw">1. Raw data</h2>
+<p class="lede part-lede">Computed directly from the exports in <code>dataset/</code>: intro requests and outcomes, CRM accounts, connection lists, roster and Slack threads, as filed.</p>
+
 <section id="overview">
   <h2>Funnel overview</h2>
-  <p class="lede">Every request drops out at the first stage it fails, so the eight buckets partition all {ov_n} requests and their <code>deal_value_usd</code>. Unrouted requests split on whether the target company appears in <code>dataset/connections_*.csv</code>; a target counts as identifiable when a company can be recovered from <code>target_company_raw</code>, the company names in <code>raw_ask</code>, or an email domain in <code>raw_ask</code>.</p>
+  <p class="lede">Every request drops out at the first stage it fails, so the eight buckets partition all {ov_n} requests. Unrouted requests split on whether the target company appears in <code>dataset/connections_*.csv</code>; a target counts as identifiable when a company can be recovered from <code>target_company_raw</code>, the company names in <code>raw_ask</code>, or an email domain in <code>raw_ask</code>.</p>
   {overview_table}
   <p class="foot">Buckets and ratios: <code>dashboard/funnel_overview.py</code> (also prints the table standalone).</p>
-</section>
-
-<section id="funnel">
-  <h2>Where the requests go</h2>
-  <p class="lede">Each request carries its <code>deal_value_usd</code>; node labels show how many requests and how much pipeline survive each step.</p>
-  <div class="kpis">
-    {kpi(counts[0], "requests", usd(dollars[0]) + " of pipeline")}
-    {kpi(counts[1], "asked", f"{counts[1]/counts[0]:.0%} of requests · {usd(dollars[1])}")}
-    {kpi(counts[3], "intros sent", f"{counts[3]/counts[1]:.0%} of asks · {usd(dollars[3])}")}
-    {kpi(counts[4], "meetings", f"{counts[4]/counts[3]:.0%} of intros · {usd(dollars[4])}")}
-    {kpi(counts[5], "opportunities", f"{usd(dollars[5])} · {dollars[5]/dollars[0]:.1%} of requested $")}
-  </div>
-  {sankey_div}
-  <div class="grid2">
-    <div>
-      <h3>Stage table</h3>
-      {table(["Stage", "Count", "Pipeline $", "of requests", "step conversion"], funnel_rows)}
-    </div>
-    <div>
-      <h3>Reading it</h3>
-      <div class="finding warn"><b>The biggest leak is before anyone is asked.</b>{counts[0]-counts[1]} of {counts[0]} requests ({(counts[0]-counts[1])/counts[0]:.0%}, {usd(dollars[0]-dollars[1])}) never reach a connector — larger than every downstream drop combined.</div>
-      <div class="finding"><b>Once asked, the funnel is healthy-ish.</b>{counts[2]/counts[1]:.0%} respond, {counts[3]/counts[2]:.0%} of responders send the intro, {counts[4]/counts[3]:.0%} of intros book a meeting, {counts[5]/counts[4]:.0%} of meetings create an opportunity.</div>
-      <div class="finding"><b>Opportunity $ is carried over, not validated.</b>All {counts[5]} opportunity values equal the original requested deal value; {len(opp_status_mismatch)} of them still show status Open/Stalled/Routed in <code>intro_requests.csv</code> ({", ".join(opp_status_mismatch)}).</div>
-      <p class="foot">Standalone chart + code: <code>scoping/sankey_funnel.py</code>, <code>scoping/sankey_funnel.html</code>.</p>
-    </div>
-  </div>
 </section>
 
 <section id="joins">
@@ -385,60 +366,6 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
   </div>
   <h3>All measured links</h3>
   {joins_table}
-</section>
-
-<section id="accounts">
-  <h2>Account-level demand</h2>
-  <p class="lede">Asks per company after entity resolution ({len(demand["companies"])} distinct companies behind {len(requests)} requests, from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked.</p>
-  <div class="kpis">
-    {kpi(len(demand["companies"]), "distinct companies requested", f"{demand['repeat_share']:.0%} of asks are for a repeat company")}
-    {kpi(demand["singletons"], "companies asked exactly once", f"{len(demand['companies']) - demand['singletons']} asked more than once")}
-    {kpi(demand["companies"][0]["requests"], f"asks for {demand['companies'][0]['name']}", "the most-requested company")}
-    {kpi(sum(1 for b in demand["companies"] if b["routed"] == 0), "companies never routed once", "nobody was asked for any of their requests")}
-  </div>
-  <div class="grid2">
-    <div>
-      <h3>Top 20 companies by asks</h3>
-      {demand_div}
-    </div>
-    <div>
-      <h3>Reading it</h3>
-      <div class="finding warn"><b>Demand is concentrated and repetitive.</b>{demand['repeat_share']:.0%} of all asks are for a company that was already requested at least once — the same {len(demand['companies']) - demand['singletons']} companies come back again and again, which is what the duplicate-checking in Slack is reacting to.</div>
-      <div class="finding warn"><b>Some companies are asked repeatedly and never routed.</b>{", ".join(b["name"] for b in demand["companies"][:20] if b["routed"] == 0)} each have multiple asks and zero connector rows.</div>
-      <div class="finding"><b>Unresolvable asks cluster too.</b>{sum(b["requests"] for b in demand["companies"] if b["company_id"] == "")} requests never name a company that can be resolved at all; they are grouped as <em>(unidentifiable)</em>.</div>
-    </div>
-  </div>
-  <h3>Per-company detail</h3>
-  <p class="foot">Paths in network = distinct ways to reach the company in <code>golden/supply_reach.csv</code>.</p>
-  {demand_table}
-  <h3>Top 20 accounts by value</h3>
-  <p class="lede">Value is the CRM <code>arr_potential_usd</code> where the company has a CRM account, otherwise the largest <code>deal_value_usd</code> filed on a request. Internal touchpoints are split into roster connectors employed internally versus advisors and investors.</p>
-  {top_table}
-</section>
-
-<section id="connectors">
-  <h2>Connectors — the six on the roster</h2>
-  <p class="lede">Funnel per connector from <code>intro_outcomes.csv</code>, with the stated capacity and free-text note from <code>dataset/connector_roster.csv</code>. An ask is "in focus area" when the resolved company's CRM industry is one of the connector's stated focus areas.</p>
-  <div class="kpis">
-    {kpi(f"{connectors['in_focus']} / {connectors['asked']}", "asks inside the stated focus area", f"over {connectors['months']} months")}
-    {kpi(f"{connectors['in_focus_intro_rate']:.0%}", "intro rate for in-focus asks", f"vs {connectors['off_focus_intro_rate']:.0%} outside the focus area")}
-    {kpi(f"{connectors['connectors'][0]['asked']}", f"asks to {connectors['connectors'][0]['name']}", "the most-asked connector")}
-    {kpi(sum(n for _, n in connectors["off_roster"]), "asks to people not on the roster", ", ".join(n for n, _ in connectors["off_roster"]))}
-  </div>
-  {connector_table}
-  <div class="grid2">
-    <div>
-      <h3>Routing ignores the roster notes</h3>
-      <div class="finding warn"><b>Only {connectors['in_focus']} of {connectors['asked']} asks land in a stated focus area — and those convert at {connectors['in_focus_intro_rate']:.0%} vs {connectors['off_focus_intro_rate']:.0%}.</b>Focus area is the single strongest predictor of an intro in this data, and it is almost never used when choosing who to ask.</div>
-      <div class="finding warn"><b>The notes predicted the failures.</b>Owen Trask ("tapped no more than twice a month") was asked {[c["asked"] for c in connectors["connectors"] if c["name"] == "Owen Trask"][0]} times in {connectors["months"]} months and sent zero intros; Dana Whitfield ("travels constantly; slow to respond") got {[c["asked"] for c in connectors["connectors"] if c["name"] == "Dana Whitfield"][0]} asks and booked no meetings.</div>
-    </div>
-    <div>
-      <h3>Where the notes were right</h3>
-      <div class="finding"><b>Elena Duvall — "deep but narrow".</b>{[c["in_focus"] for c in connectors["connectors"] if c["name"] == "Elena Duvall"][0]} of her {[c["asked"] for c in connectors["connectors"] if c["name"] == "Elena Duvall"][0]} asks were heavy industry, and that is where her intros came from.</div>
-      <div class="finding"><b>Marcus Aldridge — "asked far more than anyone else", capacity 4/month.</b>{[c["asked"] for c in connectors["connectors"] if c["name"] == "Marcus Aldridge"][0]} asks with the weakest response rate of the four heavily-used connectors ({[f"{c['responded']/c['asked']:.0%}" for c in connectors["connectors"] if c["name"] == "Marcus Aldridge"][0]}).</div>
-      <div class="finding"><b>Tomás Beckett — "fast responder, broad but shallow".</b>{[f"{c['responded']/c['asked']:.0%}" for c in connectors["connectors"] if c["name"] == "Tomás Beckett"][0]} response rate but only {[f"{c['intros']/c['responded']:.0%}" for c in connectors["connectors"] if c["name"] == "Tomás Beckett"][0]} of those responses became an intro.</div>
-    </div>
-  </div>
 </section>
 
 <section id="targets">
@@ -594,8 +521,10 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
       {table(["Category", "Columns affected"], flag_categories.most_common())}
     </div>
   </div>
-  <h3>All flags, by file</h3>
-  {table(["File", "Column", "Issue"], flags)}
+  <details>
+    <summary><h3 style="display:inline;margin:0">All flags, by file ({len(flags)})</h3></summary>
+    {table(["File", "Column", "Issue"], flags)}
+  </details>
 </section>
 
 <section id="integrity" style="padding:0 0 10px">
@@ -603,7 +532,90 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
   <p class="foot" style="padding:0 30px">Readable report: <code>integrity/findings.md</code> (generated by <code>integrity/integrity_audit.py</code>).</p>
 </section>
 
-<p class="foot">Regenerate with <code>python3 dashboard/build_dashboard.py</code>. All figures are computed from <code>dataset/</code> at build time.</p>
+<h2 class="part" id="golden">2. Cleaned data (golden dataset)</h2>
+<p class="lede part-lede">Computed from <code>golden/</code> — <code>golden_requests.csv</code>, <code>golden_companies.csv</code>, <code>supply_reach.csv</code> — after entity resolution, so companies are counted by identity rather than by how the name was typed.</p>
+
+<section id="funnel">
+  <h2>Where the requests go</h2>
+  <p class="lede">From <code>golden/golden_requests.csv</code>. Node labels show how many requests survive each step. Pipeline $ is deliberately omitted: the same <code>deal_value_usd</code> would be re-counted at every stage a request passes through.</p>
+  <div class="kpis">
+    {kpi(counts[0], "requests")}
+    {kpi(counts[1], "asked", f"{counts[1]/counts[0]:.0%} of requests")}
+    {kpi(counts[3], "intros sent", f"{counts[3]/counts[1]:.0%} of asks")}
+    {kpi(counts[4], "meetings", f"{counts[4]/counts[3]:.0%} of intros")}
+    {kpi(counts[5], "opportunities", f"{counts[5]/counts[0]:.1%} of requests end-to-end")}
+  </div>
+  {sankey_div}
+  <div class="grid2">
+    <div>
+      <h3>Stage table</h3>
+      {table(["Stage", "Count", "of requests", "step conversion"], funnel_rows)}
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      <div class="finding warn"><b>The biggest leak is before anyone is asked.</b>{counts[0]-counts[1]} of {counts[0]} requests ({(counts[0]-counts[1])/counts[0]:.0%}) never reach a connector — larger than every downstream drop combined.</div>
+      <div class="finding"><b>Once asked, the funnel is healthy-ish.</b>{counts[2]/counts[1]:.0%} respond, {counts[3]/counts[2]:.0%} of responders send the intro, {counts[4]/counts[3]:.0%} of intros book a meeting, {counts[5]/counts[4]:.0%} of meetings create an opportunity.</div>
+      <div class="finding"><b>Status and outcomes disagree.</b>{len(opp_status_mismatch)} of the {counts[5]} opportunity requests still show status Open/Stalled/Routed in <code>intro_requests.csv</code> ({", ".join(opp_status_mismatch)}).</div>
+      <p class="foot">Standalone chart + code: <code>scoping/sankey_funnel.py</code>, <code>scoping/sankey_funnel.html</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="accounts">
+  <h2>Account-level demand</h2>
+  <p class="lede">Asks per company after entity resolution ({len(demand["companies"])} distinct companies behind {len(requests)} requests, from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked.</p>
+  <div class="kpis">
+    {kpi(len(demand["companies"]), "distinct companies requested", f"{demand['repeat_share']:.0%} of asks are for a repeat company")}
+    {kpi(demand["singletons"], "companies asked exactly once", f"{len(demand['companies']) - demand['singletons']} asked more than once")}
+    {kpi(demand["companies"][0]["requests"], f"asks for {demand['companies'][0]['name']}", "the most-requested company")}
+    {kpi(sum(1 for b in demand["companies"] if b["routed"] == 0), "companies never routed once", "nobody was asked for any of their requests")}
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Top 20 companies by asks</h3>
+      {demand_div}
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      <div class="finding warn"><b>Demand is concentrated and repetitive.</b>{demand['repeat_share']:.0%} of all asks are for a company that was already requested at least once — the same {len(demand['companies']) - demand['singletons']} companies come back again and again, which is what the duplicate-checking in Slack is reacting to.</div>
+      <div class="finding warn"><b>Some companies are asked repeatedly and never routed.</b>{", ".join(b["name"] for b in demand["companies"][:20] if b["routed"] == 0)} each have multiple asks and zero connector rows.</div>
+      <div class="finding"><b>Unresolvable asks cluster too.</b>{sum(b["requests"] for b in demand["companies"] if b["company_id"] == "")} requests never name a company that can be resolved at all; they are grouped as <em>(unidentifiable)</em>.</div>
+    </div>
+  </div>
+  <h3>Per-company detail</h3>
+  <p class="foot">Paths in network = distinct ways to reach the company in <code>golden/supply_reach.csv</code>.</p>
+  {demand_table}
+  <h3>Top 20 accounts by value</h3>
+  <p class="lede">Value is the CRM <code>arr_potential_usd</code> where the company has a CRM account, otherwise the largest <code>deal_value_usd</code> filed on a request. Internal touchpoints are split into roster connectors employed internally versus advisors and investors.</p>
+  {top_table}
+</section>
+
+<section id="connectors">
+  <h2>Connectors — the six on the roster</h2>
+  <p class="lede">Funnel per connector from <code>intro_outcomes.csv</code>, with the stated capacity and free-text note from <code>dataset/connector_roster.csv</code>. An ask is "in focus area" when the resolved company's CRM industry is one of the connector's stated focus areas.</p>
+  <div class="kpis">
+    {kpi(f"{connectors['in_focus']} / {connectors['asked']}", "asks inside the stated focus area", f"over {connectors['months']} months")}
+    {kpi(f"{connectors['in_focus_intro_rate']:.0%}", "intro rate for in-focus asks", f"vs {connectors['off_focus_intro_rate']:.0%} outside the focus area")}
+    {kpi(f"{connectors['connectors'][0]['asked']}", f"asks to {connectors['connectors'][0]['name']}", "the most-asked connector")}
+    {kpi(sum(n for _, n in connectors["off_roster"]), "asks to people not on the roster", ", ".join(n for n, _ in connectors["off_roster"]))}
+  </div>
+  {connector_table}
+  <div class="grid2">
+    <div>
+      <h3>Routing ignores the roster notes</h3>
+      <div class="finding warn"><b>Only {connectors['in_focus']} of {connectors['asked']} asks land in a stated focus area — and those convert at {connectors['in_focus_intro_rate']:.0%} vs {connectors['off_focus_intro_rate']:.0%}.</b>Focus area is the single strongest predictor of an intro in this data, and it is almost never used when choosing who to ask.</div>
+      <div class="finding warn"><b>The notes predicted the failures.</b>Owen Trask ("tapped no more than twice a month") was asked {[c["asked"] for c in connectors["connectors"] if c["name"] == "Owen Trask"][0]} times in {connectors["months"]} months and sent zero intros; Dana Whitfield ("travels constantly; slow to respond") got {[c["asked"] for c in connectors["connectors"] if c["name"] == "Dana Whitfield"][0]} asks and booked no meetings.</div>
+    </div>
+    <div>
+      <h3>Where the notes were right</h3>
+      <div class="finding"><b>Elena Duvall — "deep but narrow".</b>{[c["in_focus"] for c in connectors["connectors"] if c["name"] == "Elena Duvall"][0]} of her {[c["asked"] for c in connectors["connectors"] if c["name"] == "Elena Duvall"][0]} asks were heavy industry, and that is where her intros came from.</div>
+      <div class="finding"><b>Marcus Aldridge — "asked far more than anyone else", capacity 4/month.</b>{[c["asked"] for c in connectors["connectors"] if c["name"] == "Marcus Aldridge"][0]} asks with the weakest response rate of the four heavily-used connectors ({[f"{c['responded']/c['asked']:.0%}" for c in connectors["connectors"] if c["name"] == "Marcus Aldridge"][0]}).</div>
+      <div class="finding"><b>Tomás Beckett — "fast responder, broad but shallow".</b>{[f"{c['responded']/c['asked']:.0%}" for c in connectors["connectors"] if c["name"] == "Tomás Beckett"][0]} response rate but only {[f"{c['intros']/c['responded']:.0%}" for c in connectors["connectors"] if c["name"] == "Tomás Beckett"][0]} of those responses became an intro.</div>
+    </div>
+  </div>
+</section>
+
+<p class="foot">Regenerate with <code>python3 dashboard/build_dashboard.py</code>. Section 1 is computed from <code>dataset/</code>, section 2 from <code>golden/</code>, at build time.</p>
 </main>
 </body></html>
 """
