@@ -20,6 +20,7 @@ import csv
 import io
 import json
 import re
+import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import asdict
 from datetime import date, datetime
@@ -48,6 +49,7 @@ TOP_N = 5
 
 PAGE = "livepriorities.html"
 TRACE_PAGE = "companytrace.html"
+CONNECTOR_PAGE = "connector-{slug}.html"
 THREADS_COMMAND = "python3 golden/build_golden.py --threads {file} && python3 build.py"
 
 
@@ -89,6 +91,11 @@ def js_regex(p: re.Pattern) -> dict:
     return {"source": p.pattern.replace("(?P<", "(?<"), "flags": "i" if p.flags & re.I else ""}
 
 
+def slug(name: str) -> str:
+    s = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+
+
 def csv_text(columns: list[str], rows: list[dict]) -> str:
     buf = io.StringIO()
     w = csv.DictWriter(buf, fieldnames=columns, lineterminator="\r\n", extrasaction="ignore")
@@ -117,6 +124,7 @@ class Live:
         self.rates = bg.delivery_rates(self.roster, self.outcomes, self.threads)
         self.cycle = self.allocation[0]["cycle"] if self.allocation else today.strftime("%Y-%m")
         self.traceable = {t["company_id"] for t in all_traces(today)}
+        self._ranked: list[dict] | None = None
 
         self.paths: dict[str, list[dict]] = defaultdict(list)
         self.connector_facts: dict[str, dict] = {}
@@ -209,9 +217,12 @@ class Live:
         }
 
     # -- 2. top priorities ----------------------------------------------------
-    def priorities(self) -> dict:
-        """expected value = request priority x connector score, for every live
-        not-yet-asked request (golden_allocation.csv) with a connector to act on."""
+    def ranked(self) -> list[dict]:
+        """Every live not-yet-asked request (golden_allocation.csv) with a connector
+        to act on, scored expected value = request priority x connector score and
+        sorted best first. Computed once; priorities() and connector_pages() slice it."""
+        if self._ranked is not None:
+            return self._ranked
         allocated = [a for a in self.allocation if a["allocated_to"]]
         allocated.sort(key=lambda a: (bg.URGENCY_RANK.get(a["urgency_declared"], 9), -usd(a["value_usd"]),
                                       a["request_date"], a["request_id"]))
@@ -278,22 +289,26 @@ class Live:
         rows.sort(key=lambda r: (-r["expected_value"], r["request_id"]))
         for i, r in enumerate(rows, 1):
             r["rank"] = i
+        self._ranked = rows
+        return rows
+
+    def formula(self) -> dict:
         return {
-            "top": rows[:TOP_N],
-            "considered": len(rows),
-            "formula": {
-                "expected_value": "expected value = request priority × connector score",
-                "request_priority": "request priority = deal value ($M) × stage weight × age × reps waiting",
-                "connector_score": "connector score = path strength × focus fit × delivery rate × capacity left",
-                "stage_weight": {**STAGE_WEIGHT, "no CRM account": NO_CRM_WEIGHT},
-                "age": f"1 + min(days since request, {AGE_CAP_DAYS}) / {AGE_CAP_DAYS}",
-                "reps_waiting": "distinct requesters with a live request on the same company",
-                "path_strength": "supply_reach.csv strength of the path used",
-                "focus_fit": "1.0 in the connector's focus areas, 0.45 outside, 0 if they decline outside, 0.7 when the industry or the connector is unknown",
-                "delivery_rate": "intros / asks, shrunk toward the prior (supply_reach.csv delivery_rate)",
-                "capacity_left": "share of stated monthly capacity still unspent when the allocator reached this request; 0 when the cycle's slots were gone",
-            },
+            "expected_value": "expected value = request priority × connector score",
+            "request_priority": "request priority = deal value ($M) × stage weight × age × reps waiting",
+            "connector_score": "connector score = path strength × focus fit × delivery rate × capacity left",
+            "stage_weight": {**STAGE_WEIGHT, "no CRM account": NO_CRM_WEIGHT},
+            "age": f"1 + min(days since request, {AGE_CAP_DAYS}) / {AGE_CAP_DAYS}",
+            "reps_waiting": "distinct requesters with a live request on the same company",
+            "path_strength": "supply_reach.csv strength of the path used",
+            "focus_fit": "1.0 in the connector's focus areas, 0.45 outside, 0 if they decline outside, 0.7 when the industry or the connector is unknown",
+            "delivery_rate": "intros / asks, shrunk toward the prior (supply_reach.csv delivery_rate)",
+            "capacity_left": "share of stated monthly capacity still unspent when the allocator reached this request; 0 when the cycle's slots were gone",
         }
+
+    def priorities(self) -> dict:
+        rows = self.ranked()
+        return {"top": rows[:TOP_N], "considered": len(rows), "formula": self.formula()}
 
     # -- 3. current asks ------------------------------------------------------
     def asks(self) -> dict:
@@ -403,34 +418,69 @@ class Live:
                 "by_connector": [{"connector": k, "count": n} for k, n in by_connector.most_common()]}
 
     # -- 6. per-connector -----------------------------------------------------
+    def connector_card(self, name: str) -> dict:
+        """One connector's facts: capacity used against stated, delivery rate, what
+        they are sitting on, their queue this cycle. Works for people off the roster
+        too (no stated capacity, no focus list)."""
+        r = self.roster.get(name)
+        cap = int(r["stated_monthly_capacity"] or 0) if r else 0
+        asked_cycle = self.asks_this_cycle(name)
+        queue = [a for a in self.allocation if a["allocated_to"] == name]
+        sitting = [o for o in self.outcomes if o["connector_asked"] == name and o["intro_sent"] != "Y"
+                   and self.by_rid.get(o["request_id"], {}).get("status_as_filed") in bg.OPEN_STATUSES]
+        asks = [o for o in self.outcomes if o["connector_asked"] == name]
+        intros = [o for o in asks if o["intro_sent"] == "Y"]
+        facts = self.connector_facts.get(name, {})
+        return {
+            "connector": name, "slug": slug(name), "page": CONNECTOR_PAGE.format(slug=slug(name)),
+            "on_roster": r is not None,
+            "role": r["role"] if r else "", "type": r["type"] if r else facts.get("type", "not on roster"),
+            "focus": sorted(r["focus"]) if r else [],
+            "hard_decline": r["hard_decline"] if r else False, "notes": r["notes"] if r else "",
+            "capacity": cap, "asked_this_cycle": asked_cycle, "allocated_this_cycle": len(queue),
+            "used": asked_cycle + len(queue), "idle": max(0, cap - asked_cycle - len(queue)),
+            "delivery_rate": round(self.rate(name), 3), "asks_all_time": len(asks), "intros_all_time": len(intros),
+            "sitting_on": [{
+                "request_id": o["request_id"], **self.company_ref(self.by_rid.get(o["request_id"], {}).get("company_id", "")),
+                "target_title": self.by_rid.get(o["request_id"], {}).get("target_title", ""),
+                "requested_by": self.by_rid.get(o["request_id"], {}).get("requested_by", ""),
+                "asked_date": o["asked_date"], "responded": o["responded"] == "Y",
+                "days_since_asked": (self.today - (parse_date(o["asked_date"]) or self.today)).days,
+                "value_fmt": money(self.by_rid.get(o["request_id"], {}).get("value_usd", "")),
+                "action": "nudge" if o["responded"] == "Y" else "chase",
+            } for o in sorted(sitting, key=lambda o: o["asked_date"])],
+            "queue": [{
+                "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
+                "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
+                "path_type": a["path_type"], "contact": a["contact_name"], "route_score": a["route_score"],
+                "value_fmt": money(a["value_usd"]), "urgency": a["urgency_declared"],
+            } for a in queue],
+        }
+
+    def connector_names(self) -> list[str]:
+        """Roster first, in roster order; then anyone off the roster who holds an
+        allocation this cycle, largest batch first."""
+        extra = Counter()
+        for a in self.allocation:
+            if a["allocated_to"] and a["allocated_to"] not in self.roster:
+                extra[a["allocated_to"]] += usd(a["value_usd"])
+        return list(self.roster) + [n for n, _ in sorted(extra.items(), key=lambda kv: (-kv[1], kv[0]))]
+
     def connectors(self) -> list[dict]:
+        return [self.connector_card(name) for name in self.roster]
+
+    def connector_pages(self) -> list[dict]:
+        """One page per connector: their top 5 by expected value, then the rest of
+        their ranked list, then what they are already sitting on."""
         out = []
-        for name, r in self.roster.items():
-            cap = int(r["stated_monthly_capacity"] or 0)
-            asked_cycle = self.asks_this_cycle(name)
-            queue = [a for a in self.allocation if a["allocated_to"] == name]
-            sitting = [o for o in self.outcomes if o["connector_asked"] == name and o["intro_sent"] != "Y"
-                       and self.by_rid.get(o["request_id"], {}).get("status_as_filed") in bg.OPEN_STATUSES]
-            asks = [o for o in self.outcomes if o["connector_asked"] == name]
-            intros = [o for o in asks if o["intro_sent"] == "Y"]
+        for name in self.connector_names():
+            mine = [dict(r, rank_here=i) for i, r in enumerate((r for r in self.ranked() if r["connector"] == name), 1)]
             out.append({
-                "connector": name, "role": r["role"], "type": r["type"], "focus": sorted(r["focus"]),
-                "hard_decline": r["hard_decline"], "notes": r["notes"],
-                "capacity": cap, "asked_this_cycle": asked_cycle, "allocated_this_cycle": len(queue),
-                "used": asked_cycle + len(queue), "idle": max(0, cap - asked_cycle - len(queue)),
-                "delivery_rate": round(self.rate(name), 3), "asks_all_time": len(asks), "intros_all_time": len(intros),
-                "sitting_on": [{
-                    "request_id": o["request_id"], **self.company_ref(self.by_rid.get(o["request_id"], {}).get("company_id", "")),
-                    "asked_date": o["asked_date"], "responded": o["responded"] == "Y",
-                    "days_since_asked": (self.today - (parse_date(o["asked_date"]) or self.today)).days,
-                    "value_fmt": money(self.by_rid.get(o["request_id"], {}).get("value_usd", "")),
-                } for o in sorted(sitting, key=lambda o: o["asked_date"])],
-                "queue": [{
-                    "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
-                    "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
-                    "path_type": a["path_type"], "contact": a["contact_name"], "route_score": a["route_score"],
-                    "value_fmt": money(a["value_usd"]), "urgency": a["urgency_declared"],
-                } for a in queue],
+                **self.connector_card(name),
+                "top": mine[:TOP_N], "rest": mine[TOP_N:], "ranked_count": len(mine),
+                "ranked_value_fmt": money(sum(usd(self.by_rid[r["request_id"]]["value_usd"]) for r in mine)),
+                "no_slot": sum(1 for r in mine if not r["allocated"]),
+                "formula": self.formula(),
             })
         return out
 
@@ -615,6 +665,8 @@ class Live:
             "stages": self.stages(), "priorities": self.priorities(), "asks": self.asks(),
             "offer_gaps": self.offer_gaps(), "bottlenecks": self.bottlenecks(), "connectors": self.connectors(),
             "checkins": self.checkins(), "unrouted": self.unrouted(), "crm": self.crm(), "parser": self.parser(),
+            "connector_pages": [{"connector": c["connector"], "page": c["page"], "on_roster": c["on_roster"]}
+                                for c in self.connector_pages()],
         }
 
 
@@ -622,17 +674,26 @@ def payload(today: date | None = None) -> dict:
     return Live(today or date.today()).payload()
 
 
-def fragment(today: date | None = None) -> str:
-    data = json.dumps(payload(today), ensure_ascii=False).replace("</", "<\\/")
+def _fragment(data: dict, entry: str) -> str:
+    blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     js = (DASHBOARD / "live_priorities.js").read_text(encoding="utf-8")
     return f"""
 <div id="lp"></div>
-<script id="lp-data" type="application/json">{data}</script>
+<script id="lp-data" type="application/json">{blob}</script>
 <script>
 {js}
-LP.boot(JSON.parse(document.getElementById('lp-data').textContent), document.getElementById('lp'));
+LP.{entry}(JSON.parse(document.getElementById('lp-data').textContent), document.getElementById('lp'));
 </script>
 """
+
+
+def fragment(today: date | None = None) -> str:
+    return _fragment(payload(today), "boot")
+
+
+def connector_fragments(today: date | None = None) -> list[tuple[dict, str]]:
+    """(card, html) per connector page; card["page"] is the file name under docs/."""
+    return [(c, _fragment(c, "bootConnector")) for c in Live(today or date.today()).connector_pages()]
 
 
 if __name__ == "__main__":
