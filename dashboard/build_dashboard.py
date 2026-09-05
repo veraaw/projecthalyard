@@ -444,8 +444,8 @@ RAW_HTML, LIVE_HTML, TRACE_HTML = "halyardscoping.html", "livedata.html", "compa
 TABS = [
     (TRACE_HTML, "Company Trace"),
     (PRIORITIES_HTML, "Live Priorities"),
-    (RAW_HTML, "Raw Sept Data Dashboard"),
     (LIVE_HTML, "Live Data Dashboard"),
+    (RAW_HTML, "Raw Sept Data Dashboard"),
 ]
 
 
