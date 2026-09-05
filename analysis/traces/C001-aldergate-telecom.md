@@ -24,4 +24,4 @@ nobody in the network reaches this company
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Yusuf Petrossian | CRM owner (A1027) | check in on the account | last touch 2026-04-08, 150 days ago | — |
-| 2 | Nadia Okonkwo | 1 rep still waiting | tell them where it is | no intro logged on their request | R1099 |
+| 2 | Nadia Okonkwo (239 days) | 1 rep still waiting, longest first | tell them nobody has it | 1 rep raised this and has heard nothing; the oldest has been waiting 239 days | R1099 |

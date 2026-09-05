@@ -25,4 +25,4 @@ nobody in the network reaches this company
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Rafael Salcedo | CRM owner (A1012) | check in on the account | last touch 2025-10-14, 326 days ago | — |
-| 2 | Nadia Okonkwo | 1 rep still waiting | tell them where it is | no intro logged on their request | R1054 |
+| 2 | Nadia Okonkwo (238 days) | 1 rep still waiting, longest first | tell them nobody has it | 1 rep raised this and has heard nothing; the oldest has been waiting 238 days | R1054 |

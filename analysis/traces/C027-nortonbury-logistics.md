@@ -47,4 +47,4 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Bertrand Vandermolen | CRM owner (A1039) | check in on the account | last touch 2026-01-22, 226 days ago | — |
-| 2 | Curtis Hartigan, Nadia Okonkwo, Rafael Salcedo | 3 reps still waiting | tell them where it is | no intro logged on their request | R1013, R1016, R1077 |
+| 2 | Rafael Salcedo (191 days), Curtis Hartigan (159 days), Nadia Okonkwo (118 days) | 3 reps still waiting, longest first | tell them it's with Marcus Aldridge | 3 reps raised this and have heard nothing; the oldest has been waiting 191 days | R1077, R1016, R1013 |

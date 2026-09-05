@@ -67,4 +67,4 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Hana Nakashima | CRM owner (A1009) | check in on the account | last touch 2026-04-16, 142 days ago | — |
-| 2 | Hana Nakashima, Imani Mkhize, Sloane Fairweather | 3 reps still waiting | tell them where it is | no intro logged on their request | R1031, R1040, R1086, R1089 |
+| 2 | Imani Mkhize (283 days), Sloane Fairweather (200 days), Hana Nakashima (199 days) | 3 reps still waiting, longest first | tell them it's with Priya Raghunathan / Marcus Aldridge | 3 reps raised this and have heard nothing; the oldest has been waiting 283 days | R1031, R1086, R1040, R1089 |

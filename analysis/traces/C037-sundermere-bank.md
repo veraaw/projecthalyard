@@ -34,4 +34,4 @@
 |---|---|---|---|---|---|
 | 1 | Nadia Okonkwo | off-roster connector | take them up on it; send the ask (batch 2026-09 Nadia Okonkwo) | offered on 2025-10-13 ("their Head of Platform reports to someone I've known for a decade, leave it with me") and was never asked — free, they already said yes; allocated in golden_allocation.csv via offer path, score 0.213 | R1034 |
 | 2 | Imani Mkhize | CRM owner (A1014) | check in on the account | last touch 2026-06-04, 93 days ago | — |
-| 3 | Sloane Fairweather | 1 rep still waiting | tell them where it is | no intro logged on their request | R1034 |
+| 3 | Sloane Fairweather (327 days) | 1 rep still waiting, longest first | tell them it's with Nadia Okonkwo | 1 rep raised this and has heard nothing; the oldest has been waiting 327 days | R1034 |

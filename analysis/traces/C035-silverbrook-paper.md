@@ -39,4 +39,4 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Curtis Hartigan | CRM owner (A1032) | check in on the account | last touch 2026-05-10, 118 days ago | — |
-| 2 | Sloane Fairweather, Yusuf Petrossian | 2 reps still waiting | tell them where it is | no intro logged on their request | R1008, R1063 |
+| 2 | Sloane Fairweather (303 days), Yusuf Petrossian (241 days) | 2 reps still waiting, longest first | tell them it's with Owen Trask | 2 reps raised this and have heard nothing; the oldest has been waiting 303 days | R1063, R1008 |

@@ -35,4 +35,4 @@
 |---|---|---|---|---|---|
 | 1 | Tomás Beckett | VP Partnerships (internal connector) | send the ask (batch 2026-09 Tomás Beckett) | allocated in golden_allocation.csv via direct path to Yusuf Wolstenholme, score 0.096 | R1048 |
 | 2 | Sloane Fairweather | CRM owner (A1045) | check in on the account | last touch 2026-03-01, 188 days ago | — |
-| 3 | Bertrand Vandermolen | 1 rep still waiting | tell them where it is | no intro logged on their request | R1048 |
+| 3 | Bertrand Vandermolen (144 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 144 days | R1048 |

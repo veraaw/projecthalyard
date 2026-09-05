@@ -39,4 +39,4 @@
 |---|---|---|---|---|---|
 | 1 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask | said yes on 2025-12-28 and never forwarded | R1104 |
 | 2 | Sloane Fairweather | CRM owner (A1020) | check in on the account | last touch 2025-09-18, 352 days ago | — |
-| 3 | Bertrand Vandermolen | 1 rep still waiting | tell them where it is | no intro logged on their request | R1104 |
+| 3 | Bertrand Vandermolen (259 days) | 1 rep still waiting, longest first | tell them it's with Tomás Beckett | 1 rep raised this and has heard nothing; the oldest has been waiting 259 days | R1104 |

@@ -66,4 +66,4 @@
 |---|---|---|---|---|---|
 | 1 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | nudge, don't re-ask | said yes on 2026-02-24 and never forwarded | R1114 |
 | 2 | Curtis Hartigan | CRM owner (A1018) | check in on the account | last touch 2025-07-15, 417 days ago | — |
-| 3 | Curtis Hartigan, Imani Mkhize, Rafael Salcedo, Yusuf Petrossian | 4 reps still waiting | tell them where it is | no intro logged on their request | R1004, R1009, R1114, R1142, R1162 |
+| 3 | Rafael Salcedo (344 days), Yusuf Petrossian (200 days), Curtis Hartigan (95 days), Imani Mkhize (61 days) | 4 reps still waiting, longest first | tell them it's with Marcus Aldridge | 4 reps raised this and have heard nothing; the oldest has been waiting 344 days | R1142, R1114, R1009, R1162, R1004 |

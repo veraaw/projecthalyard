@@ -49,4 +49,4 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Rafael Salcedo | CRM owner (A1019) | check in on the account | last touch 2025-07-07, 425 days ago | — |
-| 2 | Bertrand Vandermolen, Sloane Fairweather | 2 reps still waiting | tell them where it is | no intro logged on their request | R1178, R1198 |
+| 2 | Sloane Fairweather (333 days), Bertrand Vandermolen (112 days) | 2 reps still waiting, longest first | tell them it's with Tomás Beckett | 2 reps raised this and have heard nothing; the oldest has been waiting 333 days | R1198, R1178 |

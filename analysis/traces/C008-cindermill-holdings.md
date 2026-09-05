@@ -51,4 +51,4 @@
 | 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | send the ask (batch 2026-09 Elena Duvall) | allocated in golden_allocation.csv via direct path to Bertrand Glückstein, score 0.119 | R1184 |
 | 2 | Tomás Beckett | VP Partnerships (internal connector) | send the ask (batch 2026-09 Tomás Beckett) | allocated in golden_allocation.csv via direct path to Bo Marchetti, score 0.061; allocated in golden_allocation.csv via direct path to Bo Marchetti, score 0.061 | R1059, R1144 |
 | 3 | Nadia Okonkwo | CRM owner (A1025) | check in on the account | last touch 2025-07-10, 422 days ago | — |
-| 4 | Bertrand Vandermolen, Curtis Hartigan, Yusuf Petrossian | 3 reps still waiting | tell them where it is | no intro logged on their request | R1015, R1059, R1144, R1184 |
+| 4 | Curtis Hartigan (384 days), Bertrand Vandermolen (364 days), Yusuf Petrossian (74 days) | 3 reps still waiting, longest first | tell them it's with Elena Duvall / Owen Trask | 3 reps raised this and have heard nothing; the oldest has been waiting 384 days | R1144, R1059, R1184, R1015 |

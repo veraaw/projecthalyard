@@ -53,4 +53,4 @@
 | 1 | Dana Whitfield | Chief Revenue Officer (internal connector) | send the ask (batch 2026-09 Dana Whitfield) | allocated in golden_allocation.csv via direct path to Freya Havercamp, score 0.128 | R1065 |
 | 2 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | send the ask (batch 2026-09 Priya Raghunathan) | allocated in golden_allocation.csv via investor path to CEO / exec team, score 0.184; allocated in golden_allocation.csv via investor path to CEO / exec team, score 0.184 | R1084, R1159 |
 | 3 | Nadia Okonkwo | CRM owner (A1024) | check in on the account | last touch 2026-05-16, 112 days ago | — |
-| 4 | Bertrand Vandermolen, Yusuf Petrossian | 2 reps still waiting | tell them where it is | no intro logged on their request | R1065, R1084, R1124, R1159 |
+| 4 | Yusuf Petrossian (299 days), Bertrand Vandermolen (268 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 299 days | R1124, R1159, R1065, R1084 |

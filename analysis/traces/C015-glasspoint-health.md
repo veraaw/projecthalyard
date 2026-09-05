@@ -32,4 +32,4 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | nudge, don't re-ask | said yes on 2026-03-07 and never forwarded | R1025 |
-| 2 | Sloane Fairweather | 1 rep still waiting | tell them where it is | no intro logged on their request | R1025 |
+| 2 | Sloane Fairweather (192 days) | 1 rep still waiting, longest first | tell them it's with Elena Duvall | 1 rep raised this and has heard nothing; the oldest has been waiting 192 days | R1025 |

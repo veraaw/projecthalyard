@@ -36,4 +36,4 @@
 |---|---|---|---|---|---|
 | 1 | Owen Trask | Angel investor / advisor (investor connector) | nudge, don't re-ask | said yes on 2025-12-18 and never forwarded | R1026 |
 | 2 | Nadia Okonkwo | CRM owner (A1037) | check in on the account | last touch 2025-08-01, 400 days ago | — |
-| 3 | Imani Mkhize | 1 rep still waiting | tell them where it is | no intro logged on their request | R1026 |
+| 3 | Imani Mkhize (267 days) | 1 rep still waiting, longest first | tell them it's with Owen Trask | 1 rep raised this and has heard nothing; the oldest has been waiting 267 days | R1026 |

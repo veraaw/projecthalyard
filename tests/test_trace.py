@@ -73,7 +73,12 @@ class HarrowgateTest(unittest.TestCase):
         self.assertEqual(set(tomas.request_ids) >= {"R1057", "R1157"}, True)
         self.assertEqual(steps[2].who, "Dana Whitfield")
         self.assertEqual(steps[3].who, "Imani Mkhize")
-        self.assertIn("7 reps", steps[4].role)
+        reps = steps[4]
+        self.assertIn("7 reps", reps.role)
+        self.assertTrue(reps.who.startswith("Imani Mkhize (355 days)"), reps.who)
+        self.assertTrue(reps.who.endswith("Curtis Hartigan (81 days)"), reps.who)
+        self.assertEqual(reps.action, "tell them it's with Tomás Beckett")
+        self.assertIn("the oldest has been waiting 355 days", reps.why)
 
 
 class NoDisagreementTest(unittest.TestCase):

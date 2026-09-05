@@ -35,4 +35,4 @@ nobody in the network reaches this company
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Yusuf Petrossian | 1 rep still waiting | tell them where it is | no intro logged on their request | R1043 |
+| 1 | Yusuf Petrossian (170 days) | 1 rep still waiting, longest first | tell them nobody has it | 1 rep raised this and has heard nothing; the oldest has been waiting 170 days | R1043 |

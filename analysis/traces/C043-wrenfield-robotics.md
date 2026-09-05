@@ -43,4 +43,4 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Rafael Salcedo | CRM owner (A1036) | check in on the account | last touch 2025-10-15, 325 days ago | — |
-| 2 | Nadia Okonkwo, Yusuf Petrossian | 2 reps still waiting | tell them where it is | no intro logged on their request | R1018, R1195 |
+| 2 | Nadia Okonkwo (131 days), Yusuf Petrossian (97 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 131 days | R1195, R1018 |

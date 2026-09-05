@@ -38,4 +38,4 @@
 |---|---|---|---|---|---|
 | 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | nudge, don't re-ask | said yes on 2025-11-03 and never forwarded | R1187 |
 | 2 | Hana Nakashima | CRM owner (A1035) | check in on the account | last touch 2026-01-31, 217 days ago | — |
-| 3 | Bertrand Vandermolen | 1 rep still waiting | tell them where it is | no intro logged on their request | R1187 |
+| 3 | Bertrand Vandermolen (311 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 311 days | R1187 |

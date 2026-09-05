@@ -38,4 +38,4 @@
 |---|---|---|---|---|---|
 | 1 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | send the ask (batch 2026-09 Marcus Aldridge) | allocated in golden_allocation.csv via direct path to Sabine Dellinger, score 0.171 | R1001 |
 | 2 | Rafael Salcedo | CRM owner (A1007) | check in on the account | last touch 2026-03-19, 170 days ago | — |
-| 3 | Imani Mkhize | 1 rep still waiting | tell them where it is | no intro logged on their request | R1001, R1111 |
+| 3 | Imani Mkhize (219 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 219 days | R1111, R1001 |

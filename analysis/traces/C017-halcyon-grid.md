@@ -32,4 +32,4 @@ nobody in the network reaches this company
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Bertrand Vandermolen | CRM owner (A1008) | check in on the account | last touch 2026-03-14, 175 days ago | — |
-| 2 | Imani Mkhize, Nadia Okonkwo, Rafael Salcedo | 3 reps still waiting | tell them where it is | no intro logged on their request | R1007, R1127, R1177 |
+| 2 | Nadia Okonkwo (238 days), Imani Mkhize (102 days), Rafael Salcedo (96 days) | 3 reps still waiting, longest first | tell them nobody has it | 3 reps raised this and have heard nothing; the oldest has been waiting 238 days | R1177, R1127, R1007 |

@@ -67,4 +67,4 @@
 |---|---|---|---|---|---|
 | 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | nudge, don't re-ask | said yes on 2026-07-06 and never forwarded | R1190 |
 | 2 | Imani Mkhize | CRM owner (A1006) | check in on the account | last touch 2025-12-22, 257 days ago | — |
-| 3 | Bertrand Vandermolen, Rafael Salcedo, Yusuf Petrossian | 3 reps still waiting | tell them where it is | no intro logged on their request | R1029, R1139, R1190 |
+| 3 | Bertrand Vandermolen (312 days), Yusuf Petrossian (65 days), Rafael Salcedo (54 days) | 3 reps still waiting, longest first | tell them it's with Elena Duvall | 3 reps raised this and have heard nothing; the oldest has been waiting 312 days | R1139, R1190, R1029 |

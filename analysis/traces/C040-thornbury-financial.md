@@ -40,4 +40,4 @@ nobody in the network reaches this company
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Sloane Fairweather | CRM owner (A1015) | check in on the account | last touch 2026-02-12, 205 days ago | — |
-| 2 | Hana Nakashima, Imani Mkhize, Rafael Salcedo | 3 reps still waiting | tell them where it is | no intro logged on their request | R1105, R1164, R1180 |
+| 2 | Hana Nakashima (395 days), Rafael Salcedo (394 days), Imani Mkhize (356 days) | 3 reps still waiting, longest first | tell them nobody has it | 3 reps raised this and have heard nothing; the oldest has been waiting 395 days | R1164, R1180, R1105 |

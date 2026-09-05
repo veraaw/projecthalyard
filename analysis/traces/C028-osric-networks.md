@@ -59,4 +59,4 @@
 |---|---|---|---|---|---|
 | 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | send the ask (batch 2026-09 Priya Raghunathan) | allocated in golden_allocation.csv via offer path, score 0.164 | R1028 |
 | 2 | Nadia Okonkwo | CRM owner (A1044) | check in on the account | last touch 2026-04-19, 139 days ago | — |
-| 3 | Hana Nakashima, Yusuf Petrossian | 2 reps still waiting | tell them where it is | no intro logged on their request | R1028, R1170 |
+| 3 | Hana Nakashima (360 days), Yusuf Petrossian (49 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 360 days | R1170, R1028 |

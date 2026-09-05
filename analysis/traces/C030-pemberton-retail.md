@@ -41,4 +41,4 @@ nobody in the network reaches this company
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Hana Nakashima | CRM owner (A1023) | check in on the account | last touch 2025-08-24, 377 days ago | — |
-| 2 | Bertrand Vandermolen, Curtis Hartigan, Nadia Okonkwo, Sloane Fairweather | 4 reps still waiting | tell them where it is | no intro logged on their request | R1050, R1061, R1097, R1165 |
+| 2 | Curtis Hartigan (365 days), Nadia Okonkwo (275 days), Bertrand Vandermolen (196 days), Sloane Fairweather (128 days) | 4 reps still waiting, longest first | tell them nobody has it | 4 reps raised this and have heard nothing; the oldest has been waiting 365 days | R1050, R1097, R1061, R1165 |

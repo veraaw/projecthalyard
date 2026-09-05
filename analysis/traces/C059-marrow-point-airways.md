@@ -38,4 +38,4 @@ nobody in the network reaches this company
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Curtis Hartigan, Imani Mkhize, Nadia Okonkwo, Sloane Fairweather | 4 reps still waiting | tell them where it is | no intro logged on their request | R1116, R1133, R1189, R1194 |
+| 1 | Nadia Okonkwo (190 days), Sloane Fairweather (150 days), Curtis Hartigan (134 days), Imani Mkhize (69 days) | 4 reps still waiting, longest first | tell them nobody has it | 4 reps raised this and have heard nothing; the oldest has been waiting 190 days | R1189, R1133, R1116, R1194 |

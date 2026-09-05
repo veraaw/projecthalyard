@@ -58,4 +58,4 @@
 | 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | nudge, don't re-ask | said yes on 2025-08-24 and never forwarded | R1197 |
 | 2 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | send the ask (batch 2026-09 Marcus Aldridge) | allocated in golden_allocation.csv via direct path to Curtis Prendergast, score 0.133 | R1024 |
 | 3 | Rafael Salcedo | CRM owner (A1001) | check in on the account | last touch 2026-04-03, 155 days ago | — |
-| 4 | Curtis Hartigan, Hana Nakashima, Imani Mkhize | 3 reps still waiting | tell them where it is | no intro logged on their request | R1024, R1041, R1197 |
+| 4 | Imani Mkhize (393 days), Hana Nakashima (277 days), Curtis Hartigan (63 days) | 3 reps still waiting, longest first | tell them it's with Elena Duvall / Marcus Aldridge | 3 reps raised this and have heard nothing; the oldest has been waiting 393 days | R1197, R1041, R1024 |

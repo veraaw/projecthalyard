@@ -47,4 +47,4 @@
 |---|---|---|---|---|---|
 | 1 | Imani Mkhize | off-roster connector | send the ask (batch 2026-09 Imani Mkhize) | allocated in golden_allocation.csv via offer path, score 0.262; allocated in golden_allocation.csv via offer path, score 0.262 | R1047, R1200 |
 | 2 | Yusuf Petrossian | CRM owner (A1043) | check in on the account | last touch 2026-01-20, 228 days ago | — |
-| 3 | Hana Nakashima, Rafael Salcedo | 2 reps still waiting | tell them where it is | no intro logged on their request | R1047, R1200 |
+| 3 | Rafael Salcedo (384 days), Hana Nakashima (202 days) | 2 reps still waiting, longest first | tell them it's with Imani Mkhize | 2 reps raised this and have heard nothing; the oldest has been waiting 384 days | R1047, R1200 |

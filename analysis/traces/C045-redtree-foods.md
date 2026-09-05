@@ -55,4 +55,4 @@
 |---|---|---|---|---|---|
 | 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | nudge, don't re-ask | said yes on 2025-12-16 and never forwarded | R1135 |
 | 2 | Dana Whitfield | Chief Revenue Officer (internal connector) | send the ask (batch 2026-09 Dana Whitfield) | allocated in golden_allocation.csv via offer path, score 0.240; allocated in golden_allocation.csv via offer path, score 0.240 | R1067, R1074 |
-| 3 | Bertrand Vandermolen, Curtis Hartigan | 2 reps still waiting | tell them where it is | no intro logged on their request | R1067, R1074, R1135 |
+| 3 | Curtis Hartigan (318 days), Bertrand Vandermolen (94 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 318 days | R1067, R1135, R1074 |

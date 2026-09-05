@@ -43,4 +43,4 @@ nobody in the network reaches this company
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Hana Nakashima | CRM owner (A1005) | check in on the account | last touch 2026-02-14, 203 days ago | — |
-| 2 | Curtis Hartigan, Yusuf Petrossian | 2 reps still waiting | tell them where it is | no intro logged on their request | R1036, R1081, R1117, R1138, R1182 |
+| 2 | Curtis Hartigan (340 days), Yusuf Petrossian (205 days) | 2 reps still waiting, longest first | tell them nobody has it | 2 reps raised this and have heard nothing; the oldest has been waiting 340 days | R1081, R1036, R1182, R1138, R1117 |

@@ -59,4 +59,4 @@
 |---|---|---|---|---|---|
 | 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | nudge, don't re-ask | said yes on 2025-08-17 and never forwarded | R1082 |
 | 2 | Bertrand Vandermolen | CRM owner (A1029) | check in on the account | last touch 2025-12-07, 272 days ago | — |
-| 3 | Curtis Hartigan, Sloane Fairweather, Yusuf Petrossian | 3 reps still waiting | tell them where it is | no intro logged on their request | R1071, R1082, R1120, R1183 |
+| 3 | Sloane Fairweather (399 days), Yusuf Petrossian (312 days), Curtis Hartigan (219 days) | 3 reps still waiting, longest first | tell them it's with Priya Raghunathan | 3 reps raised this and have heard nothing; the oldest has been waiting 399 days | R1082, R1120, R1183, R1071 |

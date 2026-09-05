@@ -86,4 +86,4 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | nudge, don't re-ask; send the ask (batch 2026-09 Elena Duvall) | said yes on 2025-11-14 and never forwarded; said yes on 2025-11-21 and never forwarded; allocated in golden_allocation.csv via direct path to Arjun Cathcart, score 0.131 | R1107, R1166, R1055 |
-| 2 | Curtis Hartigan, Hana Nakashima, Nadia Okonkwo, Rafael Salcedo | 4 reps still waiting | tell them where it is | no intro logged on their request | R1017, R1055, R1060, R1075, R1107, R1131, R1155, R1166, R1199 |
+| 2 | Nadia Okonkwo (386 days), Rafael Salcedo (301 days), Curtis Hartigan (270 days), Hana Nakashima (192 days) | 4 reps still waiting, longest first | tell them it's with Elena Duvall / Priya Raghunathan | 4 reps raised this and have heard nothing; the oldest has been waiting 386 days | R1060, R1107, R1017, R1166, R1131, R1055, R1199, R1075, R1155 |

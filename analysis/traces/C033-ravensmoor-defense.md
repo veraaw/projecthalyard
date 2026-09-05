@@ -52,4 +52,4 @@
 |---|---|---|---|---|---|
 | 1 | Owen Trask | Angel investor / advisor (investor connector) | take them up on it; send the ask (batch 2026-09 Owen Trask) | offered on 2025-10-26 ("their Head of Platform reports to someone I've known for a decade, leave it with me") and was never asked — free, they already said yes; allocated in golden_allocation.csv via offer path, score 0.091; allocated in golden_allocation.csv via offer path, score 0.091 | R1109, R1039, R1049 |
 | 2 | Hana Nakashima | CRM owner (A1031) | check in on the account | last touch 2025-10-12, 328 days ago | — |
-| 3 | Bertrand Vandermolen, Nadia Okonkwo, Rafael Salcedo | 3 reps still waiting | tell them where it is | no intro logged on their request | R1005, R1039, R1049, R1109 |
+| 3 | Nadia Okonkwo (333 days), Bertrand Vandermolen (316 days), Rafael Salcedo (184 days) | 3 reps still waiting, longest first | tell them it's with Owen Trask | 3 reps raised this and have heard nothing; the oldest has been waiting 333 days | R1049, R1039, R1109, R1005 |

@@ -33,4 +33,4 @@
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Curtis Hartigan | 1 rep still waiting | tell them where it is | no intro logged on their request | R1169 |
+| 1 | Curtis Hartigan (57 days) | 1 rep still waiting, longest first | tell them it's with Bertrand Vandermolen | 1 rep raised this and has heard nothing; the oldest has been waiting 57 days | R1169 |

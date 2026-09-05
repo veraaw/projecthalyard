@@ -65,4 +65,4 @@
 | 1 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask | said yes on 2026-02-19 and never forwarded | R1130 |
 | 2 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | send the ask (batch 2026-09 Marcus Aldridge) | allocated in golden_allocation.csv via direct path to Bram Quillane, score 0.180 | R1179 |
 | 3 | Imani Mkhize | CRM owner (A1010) | check in on the account | last touch 2025-09-26, 344 days ago | — |
-| 4 | Nadia Okonkwo, Sloane Fairweather | 2 reps still waiting | tell them where it is | no intro logged on their request | R1130, R1179 |
+| 4 | Nadia Okonkwo (269 days), Sloane Fairweather (213 days) | 2 reps still waiting, longest first | tell them it's with Elena Duvall / Tomás Beckett | 2 reps raised this and have heard nothing; the oldest has been waiting 269 days | R1179, R1130 |

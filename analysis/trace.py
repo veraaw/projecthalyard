@@ -444,18 +444,33 @@ class Trace:
             add(4, acct["owner"], "check in on the account",
                 f"last touch {touch.isoformat()}, {(self.today - touch).days} days ago", [], role=f"CRM owner ({acct['account_id']})")
 
-        waiting = defaultdict(list)
+        waiting: dict[str, list[dict]] = defaultdict(list)
         for r in self.requests:
             rid = r["request_id"]
             closed_for_real = r["status_as_filed"] == "Closed - no path" and not self.paths
             if not closed_for_real and not self.intro_logged(rid):
-                waiting[r["requested_by"]].append(rid)
+                waiting[r["requested_by"]].append(r)
         if waiting:
-            reps = sorted(waiting)
-            rids = sorted(rid for rep in reps for rid in waiting[rep])
-            steps["\u0000reps"] = Step(5, ", ".join(reps), f"{len(reps)} rep{'s' if len(reps) != 1 else ''} still waiting",
-                                       "tell them where it is",
-                                       "no intro logged on their request", rids)
+            def waited(r: dict) -> int:
+                return (self.today - (parse_date(r["request_date"]) or self.today)).days
+
+            longest = {rep: max(waited(r) for r in rs) for rep, rs in waiting.items()}
+            reps = sorted(waiting, key=lambda rep: (-longest[rep], rep))
+            rids = [r["request_id"] for rep in reps for r in sorted(waiting[rep], key=waited, reverse=True)]
+            holders = []
+            for rep in reps:
+                for r in waiting[rep]:
+                    alloc = self.allocated.get(r["request_id"])
+                    h = r["routed_to"] or (alloc["allocated_to"] if alloc else "")
+                    if h and h not in holders:
+                        holders.append(h)
+            n = len(reps)
+            steps["\u0000reps"] = Step(
+                5, ", ".join(f"{rep} ({longest[rep]} days)" for rep in reps),
+                f"{n} rep{'s' if n != 1 else ''} still waiting, longest first",
+                f"tell them it's with {' / '.join(holders)}" if holders else "tell them nobody has it",
+                f"{n} rep{'s' if n != 1 else ''} raised this and {'have' if n != 1 else 'has'} heard nothing; "
+                f"the oldest has been waiting {max(longest.values())} days", rids)
         return sorted(steps.values(), key=lambda s: (s.order, s.who))
 
     def next_steps_table(self) -> list[str]:

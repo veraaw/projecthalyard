@@ -45,4 +45,4 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Bertrand Vandermolen | CRM owner (A1034) | check in on the account | last touch 2026-04-21, 137 days ago | — |
-| 2 | Hana Nakashima | 1 rep still waiting | tell them where it is | no intro logged on their request | R1172 |
+| 2 | Hana Nakashima (319 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 319 days | R1172 |

@@ -107,4 +107,4 @@
 | 2 | Hana Nakashima | off-roster connector | nudge, don't re-ask | said yes on 2025-10-23 and never forwarded | R1108 |
 | 3 | Curtis Hartigan | AE, Financial Services | send the ask (batch 2026-09 Curtis Hartigan) | allocated in golden_allocation.csv via offer path, score 0.262; allocated in golden_allocation.csv via offer path, score 0.262 | R1143, R1158 |
 | 4 | Sloane Fairweather | CRM owner (A1041) | check in on the account | last touch 2026-01-07, 241 days ago | — |
-| 5 | Curtis Hartigan, Rafael Salcedo, Sloane Fairweather, Yusuf Petrossian | 4 reps still waiting | tell them where it is | no intro logged on their request | R1058, R1108, R1115, R1143, R1158 |
+| 5 | Yusuf Petrossian (331 days), Rafael Salcedo (310 days), Curtis Hartigan (247 days), Sloane Fairweather (185 days) | 4 reps still waiting, longest first | tell them it's with Hana Nakashima / Priya Raghunathan | 4 reps raised this and have heard nothing; the oldest has been waiting 331 days | R1108, R1158, R1058, R1115, R1143 |

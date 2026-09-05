@@ -80,4 +80,4 @@
 |---|---|---|---|---|---|
 | 1 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | nudge, don't re-ask | said yes on 2025-11-01 and never forwarded | R1102 |
 | 2 | Tomás Beckett | VP Partnerships (internal connector) | send the ask (batch 2026-09 Tomás Beckett) | allocated in golden_allocation.csv via direct path to Bertrand Lomsadze, score 0.053; allocated in golden_allocation.csv via direct path to Bertrand Lomsadze, score 0.053; allocated in golden_allocation.csv via direct path to Bertrand Lomsadze, score 0.053 | R1027, R1125, R1132 |
-| 3 | Curtis Hartigan, Hana Nakashima, Rafael Salcedo, Sloane Fairweather, Yusuf Petrossian | 5 reps still waiting | tell them where it is | no intro logged on their request | R1027, R1053, R1093, R1094, R1102, R1125, R1132 |
+| 3 | Yusuf Petrossian (313 days), Sloane Fairweather (266 days), Curtis Hartigan (263 days), Rafael Salcedo (81 days), Hana Nakashima (74 days) | 5 reps still waiting, longest first | tell them it's with Marcus Aldridge / Tomás Beckett | 5 reps raised this and have heard nothing; the oldest has been waiting 313 days | R1102, R1132, R1125, R1093, R1053, R1094, R1027 |

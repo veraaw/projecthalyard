@@ -47,4 +47,4 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Imani Mkhize | CRM owner (A1002) | check in on the account | last touch 2025-08-03, 398 days ago | — |
-| 2 | Sloane Fairweather | 1 rep still waiting | tell them where it is | no intro logged on their request | R1069 |
+| 2 | Sloane Fairweather (310 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 310 days | R1069 |

@@ -34,4 +34,4 @@ nobody in the network reaches this company
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Imani Mkhize | CRM owner (A1022) | check in on the account | last touch 2026-03-16, 173 days ago | — |
-| 2 | Bertrand Vandermolen | 1 rep still waiting | tell them where it is | no intro logged on their request | R1010, R1062 |
+| 2 | Bertrand Vandermolen (119 days) | 1 rep still waiting, longest first | tell them nobody has it | 1 rep raised this and has heard nothing; the oldest has been waiting 119 days | R1062, R1010 |

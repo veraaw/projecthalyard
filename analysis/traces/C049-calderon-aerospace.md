@@ -40,4 +40,4 @@
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Rafael Salcedo | 1 rep still waiting | tell them where it is | no intro logged on their request | R1068 |
+| 1 | Rafael Salcedo (203 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 203 days | R1068 |
