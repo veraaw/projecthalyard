@@ -1,7 +1,7 @@
 """python3 -m unittest golden.test_resolver  (run from the repo root)"""
 import unittest
 
-from golden.resolve_dataset import load_resolver
+from golden.resolve_cli import load_resolver
 from golden.resolver import REVIEW_THRESHOLD
 
 
