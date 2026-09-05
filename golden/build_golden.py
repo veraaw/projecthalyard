@@ -16,6 +16,12 @@ Writes three Excel-friendly CSVs (UTF-8 with BOM, CRLF):
                                five sources: direct (connections_*.csv),
                                alumni / board / investor (investor_network.csv)
                                and offer (someone volunteered in a Slack thread).
+                               Every askable person (roster, off-roster people
+                               asked in intro_outcomes.csv, Slack volunteers)
+                               has at least one row: reach_type = "none" if
+                               they have no in-scope path. Connector-level
+                               facts (capacity, asks, allocation) are repeated
+                               on every row of that connector on purpose.
 
 Scope. A company is in scope if it is in crm_accounts.csv or is named as the
 target of any intro request. The set is recomputed on every run; nothing is
@@ -67,7 +73,8 @@ COMPANY_COLUMNS = [
 SUPPLY_COLUMNS = [
     "connector", "connector_type", "company_id", "company_name", "reach_type", "contact_name",
     "contact_title", "observed_date", "strength", "in_focus_area", "monthly_capacity",
-    "delivery_rate", "evidence",
+    "delivery_rate", "connector_paths_total", "asks_received", "intros_sent", "awaiting_forward",
+    "allocated_this_cycle", "idle_capacity", "last_asked_date", "evidence",
 ]
 
 MULTI = " | "  # delimiter for multi-value cells (never a comma)
@@ -459,6 +466,72 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
     return rows
 
 
+def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[dict],
+                  requests: list[dict], threads: dict[str, dict], today: date) -> list[dict]:
+    """Add a placeholder row for every askable person with no in-scope path,
+    then stamp connector-level facts on every row.
+
+    allocated_this_cycle = live requests routed to the connector and not yet
+    asked, plus asks dated in the as-of month. idle_capacity = monthly_capacity
+    - allocated_this_cycle (negative means over-allocated)."""
+    paths = Counter(r["connector"] for r in rows)
+    asks, intros, awaiting, allocated = Counter(), Counter(), Counter(), Counter()
+    last_asked: dict[str, str] = {}
+    for o in outcomes:
+        n = o["connector_asked"]
+        asks[n] += 1
+        if o["intro_sent"] == "Y":
+            intros[n] += 1
+        elif o["responded"] == "Y":
+            awaiting[n] += 1
+        if o["asked_date"]:
+            last_asked[n] = max(last_asked.get(n, ""), o["asked_date"])
+    cycle = today.strftime("%Y-%m")
+    for r in requests:
+        n = r["routed_to"]
+        if not n:
+            continue
+        if r["asked_date"]:
+            if r["asked_date"].startswith(cycle):
+                allocated[n] += 1
+        elif r["status_as_filed"] in OPEN_STATUSES:
+            allocated[n] += 1
+
+    askable = set(roster) | {o["connector_asked"] for o in outcomes if o["connector_asked"]}
+    askable |= {m["user"] for th in threads.values() for m in th["offers"]}
+    for name in sorted(askable - set(paths)):
+        r = roster.get(name)
+        rows.append({
+            "connector": name,
+            "connector_type": r["type"] if r else "not on roster",
+            "company_id": "",
+            "company_name": "",
+            "reach_type": "none",
+            "contact_name": "",
+            "contact_title": "",
+            "observed_date": "",
+            "strength": "0.000",
+            "in_focus_area": "",
+            "monthly_capacity": r["stated_monthly_capacity"] if r else "",
+            "delivery_rate": f"{rates[name]:.3f}" if r else "",
+            "evidence": "no in-scope path",
+        })
+
+    for r in rows:
+        n = r["connector"]
+        cap = r["monthly_capacity"]
+        r.update({
+            "connector_paths_total": paths[n],
+            "asks_received": asks[n],
+            "intros_sent": intros[n],
+            "awaiting_forward": awaiting[n],
+            "allocated_this_cycle": allocated[n],
+            "idle_capacity": int(cap) - allocated[n] if cap else "",
+            "last_asked_date": last_asked.get(n, ""),
+        })
+    return rows
+
+
 # ---------------------------------------------------------------------------
 # demand side
 # ---------------------------------------------------------------------------
@@ -740,13 +813,17 @@ def main() -> None:
     threads = load_threads()
 
     supply = build_supply(reg, roster, rates, today, {rid: c for rid, (c, _, _) in resolved.items()}, threads)
-    write_csv(SUPPLY_OUT, SUPPLY_COLUMNS, supply)
 
     supply_by = defaultdict(list)
     for s in supply:
         supply_by[s["company_id"]].append(s)
     requests = build_requests(reg, roster, rates, supply_by, resolved, threads)
     existing, appended, added, warnings = append_only_write(requests)
+
+    # connector allocation reads routed_to from the filed requests, so supply
+    # is finalised and written only after golden_requests.csv is
+    supply = finish_supply(supply, roster, rates, outcomes, read_csv(REQUESTS_OUT), threads, today)
+    write_csv(SUPPLY_OUT, SUPPLY_COLUMNS, supply)
 
     companies = build_companies(reg, supply, today)
     write_csv(COMPANIES_OUT, COMPANY_COLUMNS, companies)
