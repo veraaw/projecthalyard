@@ -201,10 +201,13 @@ demand_fig.update_layout(legend=dict(orientation="h", y=1.04, x=0),
                          xaxis=dict(title="asks"), yaxis=dict(automargin=True))
 demand_div = pio.to_html(demand_fig, include_plotlyjs=False, full_html=False, div_id="demand",
                          config={"displayModeBar": False, "responsive": True})
-demand_rows = [(b["name"], b["industry"] or "—", b["requests"], b["routed"], b["requests"] - b["routed"],
+demand_rows = [(b["name"], b["industry"] or ("—" if b["in_crm"] else "no CRM record"), b["requests"], b["routed"], b["requests"] - b["routed"],
                 len(b["requesters"]), b["paths"], usd(b["value"])) for b in demand_top]
+demand_rows += [(b["name"], "unresolvable", b["requests"], b["routed"], b["requests"] - b["routed"],
+                 len(b["requesters"]), "—", "—") for b in demand["unresolvable"]]
 demand_table = table(["Company", "Industry", "Asks", "Routed", "Never routed", "Requesters", "Paths in network", "Value"],
                      demand_rows)
+unresolvable_asks = sum(b["requests"] for b in demand["unresolvable"])
 
 top_rows = [(b["name"], usd(b["value"]), "CRM ARR" if b["value_source"] == "CRM" else "deal value",
              b["requests"], b["routed"], f'{b["responded"]}/{b["intros"]}/{b["meetings"]}/{b["opps"]}',
@@ -601,7 +604,7 @@ page = f"""<!doctype html>
 
 <section id="accounts">
   <h2>Account-level demand</h2>
-  <p class="lede">Asks per company after entity resolution ({len(demand["companies"])} distinct companies behind {len(requests)} requests, from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked.</p>
+  <p class="lede">Asks per company after entity resolution ({len(demand["companies"])} distinct companies behind {len(requests) - unresolvable_asks} of {len(requests)} requests, from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked. The {unresolvable_asks} asks that resolve to no company are grouped by why, not by the name written.</p>
   <div class="kpis">
     {kpi(len(demand["companies"]), "distinct companies requested", f"{demand['repeat_share']:.0%} of asks are for a repeat company")}
     {kpi(demand["singletons"], "companies asked exactly once", f"{len(demand['companies']) - demand['singletons']} asked more than once")}
@@ -617,7 +620,7 @@ page = f"""<!doctype html>
       <h3>Reading it</h3>
       <div class="finding warn"><b>Demand is concentrated and repetitive.</b>{demand['repeat_share']:.0%} of all asks are for a company that was already requested at least once — the same {len(demand['companies']) - demand['singletons']} companies come back again and again, which is what the duplicate-checking in Slack is reacting to.</div>
       <div class="finding warn"><b>Some companies are asked repeatedly and never routed.</b>{", ".join(b["name"] for b in demand["companies"][:20] if b["routed"] == 0)} each have multiple asks and zero connector rows.</div>
-      <div class="finding"><b>Unresolvable asks cluster too.</b>{sum(b["requests"] for b in demand["companies"] if b["company_id"] == "")} requests never name a company that can be resolved at all; they are grouped as <em>(unidentifiable)</em>.</div>
+      <div class="finding"><b>Unresolvable asks cluster too.</b>{unresolvable_asks} requests resolve to no company at all: {"; ".join(f'{b["requests"]} {b["name"].strip("()")}' for b in demand["unresolvable"])}. They sit at the bottom of the detail table and are excluded from the company counts above.</div>
     </div>
   </div>
   <h3>Per-company detail</h3>
