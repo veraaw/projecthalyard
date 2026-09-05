@@ -1,4 +1,6 @@
-"""Routing KPIs over dataset/ — regenerates scoping/routing_kpis.md.
+"""Routing KPIs over dataset/ — regenerates analysis/routing/routing_kpis.md.
+
+    python3 -m analysis.routing.routing_kpis      # from the repo root
 
 Read-only. Add a new `kpi_*` function and list it in KPIS to extend the report.
 """
@@ -11,8 +13,10 @@ import statistics
 from collections import defaultdict
 from datetime import datetime, timezone
 
-DATA = "dataset"
-OUT = "scoping/routing_kpis.md"
+from paths import DATASET, ROUTING
+
+DATA = str(DATASET)
+OUT = str(ROUTING / "routing_kpis.md")
 
 OFFER_RE = re.compile(
     r"happy to intro|leave it with me|I'll take this one|I met their |happy to reach out", re.I
@@ -185,7 +189,7 @@ def main():
     w("# Routing KPIs\n")
     w(f"Source: `dataset/` — {len(THREADS)} Slack threads, {len(REQUESTS)} intro requests, "
       f"{sum(len(v) for v in OUTCOMES.values())} outcome rows. Regenerate with "
-      "`python3 scoping/routing_kpis.py`; this file is append-only as KPIs are added.\n")
+      "`python3 build.py routing`; this file is append-only as KPIs are added.\n")
     for kpi in KPIS:
         kpi(w)
     with open(OUT, "w", encoding="utf-8") as fh:

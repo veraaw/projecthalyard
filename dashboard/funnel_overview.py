@@ -3,15 +3,16 @@
 A request drops out at the first stage that fails, so the eight buckets partition
 `intro_requests.csv` and their `deal_value_usd` sums partition the requested pipeline.
 
-    python3 dashboard/funnel_overview.py     # prints the table
+    python3 -m dashboard.funnel_overview     # prints the table
 """
 import csv
 import glob
 import os
 import re
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.path.join(ROOT, "dataset")
+from paths import DATASET
+
+DATA = str(DATASET)
 DOMAIN = re.compile(r"\b([a-z0-9-]+)\.(?:com|net|io|ai|co\.uk)\b", re.I)
 
 

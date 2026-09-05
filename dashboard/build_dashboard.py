@@ -1,11 +1,12 @@
-"""Build dashboard/halyardscoping.html: one page summarising the scoping (Slack thread) findings,
-the verification (CSV profile) findings, the intro funnel Sankey, and the integrity audit.
+"""Build docs/halyardscoping.html: one page summarising the Slack thread findings,
+the CSV profile findings, the intro funnel Sankey, and the integrity audit.
 
 Every number is recomputed from dataset/ so the page stays in step with the data;
-the narrative findings mirror scoping/slack_thread_findings.md and verify/profile.md.
+the narrative findings mirror analysis/slack/slack_thread_findings.md and
+analysis/profile/profile.md.
 
     pip install plotly
-    python3 dashboard/build_dashboard.py      # from the repo root
+    python3 build.py dashboard      # from the repo root
 """
 import csv
 import html
@@ -13,21 +14,19 @@ import json
 import os
 import re
 import statistics
-import sys
 from collections import Counter
 from datetime import datetime
 
 import plotly.graph_objects as go
 import plotly.io as pio
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.path.join(ROOT, "dataset")
-sys.path.insert(0, os.path.join(ROOT, "scoping"))
-sys.path.insert(0, os.path.join(ROOT, "integrity"))
-import data_cuts  # noqa: E402
-from funnel_overview import dropoff_rows, ratios  # noqa: E402
-from sankey_funnel import build_figure, funnel_stages  # noqa: E402
-from integrity_audit import fragment as integrity_fragment  # noqa: E402
+from analysis.integrity.integrity_audit import fragment as integrity_fragment
+from dashboard import data_cuts
+from dashboard.funnel_overview import dropoff_rows, ratios
+from dashboard.sankey_funnel import build_figure, funnel_stages
+from paths import DATASET, DOCS, PROFILE
+
+DATA = str(DATASET)
 
 
 def rows(name):
@@ -105,7 +104,7 @@ def norm_entity(v):
 
 
 def md_table(text, heading):
-    """Return the rows of the first markdown table under `heading` in verify/profile.md."""
+    """Return the rows of the first markdown table under `heading` in analysis/profile/profile.md."""
     body = text.split(heading, 1)[1]
     out = []
     for line in body.splitlines()[1:]:
@@ -119,7 +118,7 @@ def md_table(text, heading):
     return out
 
 
-with open(os.path.join(ROOT, "verify", "profile.md"), encoding="utf-8") as f:
+with open(PROFILE / "profile.md", encoding="utf-8") as f:
     profile_md = f.read()
 inventory = [(fn, int(r), int(c), int(fl)) for fn, r, c, fl in md_table(profile_md, "## Files")[1:]]
 flags = [(fn, col, re.sub(r"`", "", issue)) for fn, col, issue in md_table(profile_md, "## All flags, by file")[1:]]
@@ -139,7 +138,7 @@ opp_status_mismatch = [o["request_id"] for o in outcomes
                        if o["opportunity_created"] == "Y" and requests[o["request_id"]]["status"] in ("Open", "Stalled", "Routed")]
 
 # --------------------------------------------------------------------------- integrity audit
-integrity_div = integrity_fragment()  # also refreshes integrity/findings.md
+integrity_div = integrity_fragment()  # also refreshes analysis/integrity/findings.md
 
 # --------------------------------------------------------------------------- render
 def kpi(value, label, sub=""):
@@ -342,7 +341,7 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
 
 <section id="joins">
   <h2>Scoped joins</h2>
-  <p class="lede">Every entity link measured in both directions at the loosest normalization tier (lowercase, punctuation and legal suffixes stripped), from <code>scoping/join_rates.md</code>. "Left matched" is the share of distinct left-hand values that find a counterpart.</p>
+  <p class="lede">Every entity link measured in both directions at the loosest normalization tier (lowercase, punctuation and legal suffixes stripped), from <code>analysis/joins/join_rates.md</code>. "Left matched" is the share of distinct left-hand values that find a counterpart.</p>
   <div class="kpis">
     {kpi(len(joins["perfect"]), "joins clean in both directions", f"of {len(joins['joins'])} links measured")}
     {kpi(f"{joins['concerning'][0][1]:.0f}%", "worst link: target_person_raw -> connections", "no requested person exists in the network")}
@@ -381,7 +380,7 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
     <div>
       <h3>Lookup result</h3>
       {target_table}
-      <p class="foot">Exact match after trimming; the same lookup at looser tiers in <code>scoping/join_rates.md</code> is also 0%.</p>
+      <p class="foot">Exact match after trimming; the same lookup at looser tiers in <code>analysis/joins/join_rates.md</code> is also 0%.</p>
     </div>
     <div>
       <h3>Findings</h3>
@@ -418,7 +417,7 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
 
 <section id="scoping">
   <h2>Scoping — what happens in <code>#intro-requests</code></h2>
-  <p class="lede">From <code>dataset/slack_threads.jsonl</code>: {len(threads)} threads, {sum(len(t["messages"]) for t in threads)} messages, {len(replies)} replies. Full write-up in <code>scoping/slack_thread_findings.md</code>.</p>
+  <p class="lede">From <code>dataset/slack_threads.jsonl</code>: {len(threads)} threads, {sum(len(t["messages"]) for t in threads)} messages, {len(replies)} replies. Full write-up in <code>analysis/slack/slack_thread_findings.md</code>.</p>
   <div class="kpis">
     {kpi(f"{canned_total/len(replies):.0%}", "of replies are canned", f"{len(masked)} distinct texts after name masking")}
     {kpi(len(offers), "genuine offers to help", f"across {len({r for r, _ in offers})} threads")}
@@ -497,7 +496,7 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
 
 <section id="verify">
   <h2>Verification — CSV inventory profile</h2>
-  <p class="lede">From <code>verify/profile.md</code> (generated by <code>verify/profile_csvs.py</code>): {len(inventory)} CSV files, {sum(r for _, r, _, _ in inventory):,} data rows, {len(flags)} column-level flags.</p>
+  <p class="lede">From <code>analysis/profile/profile.md</code> (generated by <code>analysis/profile/profile_csvs.py</code>): {len(inventory)} CSV files, {sum(r for _, r, _, _ in inventory):,} data rows, {len(flags)} column-level flags.</p>
   <div class="kpis">
     {kpi(len(inventory), "CSV files profiled", f"{sum(r for _, r, _, _ in inventory):,} rows")}
     {kpi(len(flags), "column flags raised", f"{len(flag_categories)} categories")}
@@ -529,7 +528,7 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
 
 <section id="integrity" style="padding:0 0 10px">
   {integrity_div}
-  <p class="foot" style="padding:0 30px">Readable report: <code>integrity/findings.md</code> (generated by <code>integrity/integrity_audit.py</code>).</p>
+  <p class="foot" style="padding:0 30px">Readable report: <code>analysis/integrity/findings.md</code> (generated by <code>analysis/integrity/integrity_audit.py</code>).</p>
 </section>
 
 <h2 class="part" id="golden">2. Cleaned data (golden dataset)</h2>
@@ -556,7 +555,7 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
       <div class="finding warn"><b>The biggest leak is before anyone is asked.</b>{counts[0]-counts[1]} of {counts[0]} requests ({(counts[0]-counts[1])/counts[0]:.0%}) never reach a connector — larger than every downstream drop combined.</div>
       <div class="finding"><b>Once asked, the funnel is healthy-ish.</b>{counts[2]/counts[1]:.0%} respond, {counts[3]/counts[2]:.0%} of responders send the intro, {counts[4]/counts[3]:.0%} of intros book a meeting, {counts[5]/counts[4]:.0%} of meetings create an opportunity.</div>
       <div class="finding"><b>Status and outcomes disagree.</b>{len(opp_status_mismatch)} of the {counts[5]} opportunity requests still show status Open/Stalled/Routed in <code>intro_requests.csv</code> ({", ".join(opp_status_mismatch)}).</div>
-      <p class="foot">Standalone chart + code: <code>scoping/sankey_funnel.py</code>, <code>scoping/sankey_funnel.html</code>.</p>
+      <p class="foot">Standalone chart + code: <code>dashboard/sankey_funnel.py</code>, <code>docs/sankey_funnel.html</code>.</p>
     </div>
   </div>
 </section>
@@ -620,7 +619,7 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
 </body></html>
 """
 
-out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "halyardscoping.html")
+out_path = str(DOCS / "halyardscoping.html")
 with open(out_path, "w", encoding="utf-8") as f:
     f.write(page)
 print(f"wrote {out_path}")

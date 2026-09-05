@@ -2,7 +2,7 @@
 
 For every plausible entity link, reports the directional match rate under three
 normalization tiers and lists the top unmatched values on each side.
-Run from the repo root: python3 scoping/join_rates.py
+Run from the repo root: python3 -m analysis.joins.join_rates
 """
 
 import csv
@@ -10,8 +10,10 @@ import os
 import re
 from collections import Counter
 
-DATA = "dataset"
-OUT = "scoping/join_rates.md"
+from paths import DATASET, JOINS
+
+DATA = str(DATASET)
+OUT = str(JOINS / "join_rates.md")
 TOP_N = 20
 
 LEGAL_SUFFIXES = {

@@ -1,3 +1,9 @@
+"""Slack thread analysis over dataset/slack_threads.jsonl.
+
+Regenerates analysis/slack/slack_thread_findings.md.
+
+    python3 -m analysis.slack.slack_threads_analysis      # from the repo root
+"""
 import csv
 import json
 import os
@@ -6,7 +12,9 @@ import statistics
 from collections import Counter, defaultdict
 from datetime import datetime
 
-DATA = "dataset"
+from paths import DATASET, SLACK
+
+DATA = str(DATASET)
 
 
 def rows(name):
@@ -171,7 +179,7 @@ w("- The 6 roster connectors account for "
 w("- Everyone named in \"adding X who might know\" is a CRM account owner / AE, not a roster "
   "connector, which is why the follow-through rate is 0.\n")
 
-path = "scoping/slack_thread_findings.md"
+path = str(SLACK / "slack_thread_findings.md")
 with open(path, "w", encoding="utf-8") as fh:
     fh.write("\n".join(out))
 print(path)
