@@ -17,8 +17,8 @@ cycle,request_id,company_id,company_name,target_title,value_usd,urgency_declared
 2026-09,R1134,C024,Marlowe Freight Systems,Chief Technology Officer,1200000,High,2026-03-05,Open,Marcus Aldridge,2026-09 Marcus Aldridge,4,direct,Marcus Merriweather,0.161,,"Marcus Aldridge (direct, 0.16)"
 2026-09,R1179,C006,Blackwood Holdings,SVP Digital,250000,High,2025-12-10,Open,Marcus Aldridge,2026-09 Marcus Aldridge,4,direct,Bram Quillane,0.180,,"Elena Duvall (direct, 0.19)"
 2026-09,R1034,C037,Sundermere Bank,Chief Data Officer,400000,High,2025-10-13,Open,Nadia Okonkwo,2026-09 Nadia Okonkwo,1,offer,,0.213,,"Nadia Okonkwo (offer, 0.21)"
+2026-09,R1039,C033,Ravensmoor Defense,Head of Developer Productivity,2000000,High,2026-01-29,Stalled,Owen Trask,2026-09 Owen Trask,2,offer,,0.091,,"Owen Trask (offer, 0.09)"
 2026-09,R1049,C033,Ravensmoor Defense,Chief Digital Officer,750000,Critical,2025-10-07,Open,Owen Trask,2026-09 Owen Trask,2,offer,,0.091,,"Owen Trask (offer, 0.09)"
-2026-09,R1087,C035,Silverbrook Paper,VP Data & Analytics,400000,Critical,2026-02-10,Routed,Owen Trask,2026-09 Owen Trask,2,direct,Elena Rushworth,0.041,,"Owen Trask (direct, 0.04)"
 2026-09,R1028,C028,Osric Networks,Chief Digital Officer,2000000,Critical,2026-07-18,Open,Priya Raghunathan,2026-09 Priya Raghunathan,3,offer,,0.164,,"Priya Raghunathan (offer, 0.16)"
 2026-09,R1084,C019,Hollowbrook Grocers,VP Engineering,2000000,Critical,2026-07-13,Open,Priya Raghunathan,2026-09 Priya Raghunathan,3,investor,CEO / exec team,0.184,,"Priya Raghunathan (investor, 0.18)"
 2026-09,R1159,C019,Hollowbrook Grocers,VP Enterprise Architecture,1200000,Critical,2025-12-11,Open,Priya Raghunathan,2026-09 Priya Raghunathan,3,investor,CEO / exec team,0.184,,"Priya Raghunathan (investor, 0.18)"
@@ -26,7 +26,7 @@ cycle,request_id,company_id,company_name,target_title,value_usd,urgency_declared
 2026-09,R1048,C005,Bexley Bioworks,Chief Data Officer,750000,High,2026-04-14,Stalled,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Yusuf Wolstenholme,0.096,,"Priya Raghunathan (investor, 0.41)"
 2026-09,R1059,C008,Cindermill Holdings,VP Data & Analytics,250000,High,2025-09-06,Open,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Bo Marchetti,0.061,,"Elena Duvall (direct, 0.12)"
 2026-09,R1125,C036,Strathmore Holdings,Chief Operating Officer,400000,High,2026-07-05,Open,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Bertrand Lomsadze,0.053,,"Tomás Beckett (direct, 0.05)"
-2026-09,R1126,C009,Cobalt Lane Capital Markets,Chief Information Officer,750000,High,2026-03-09,Open,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Greta Petrossian,0.080,,"Priya Raghunathan (direct, 0.09)"
+2026-09,R1132,C036,Strathmore Holdings,Chief Operating Officer,150000,High,2025-12-13,Routed,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Bertrand Lomsadze,0.053,,"Tomás Beckett (direct, 0.05)"
 2026-09,R1144,C008,Cindermill Holdings,VP Engineering,400000,Critical,2025-08-17,Open,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Bo Marchetti,0.061,,"Elena Duvall (direct, 0.12)"
 2026-09,R1153,C018,Harrowgate Health,Chief Operating Officer,750000,Critical,2025-11-29,Stalled,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Marcus Salcedo,0.079,,"Tomás Beckett (direct, 0.08)"
 2026-09,R1174,C031,Priorwood Chemicals,Head of Platform Engineering,150000,Critical,2026-05-29,Open,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Curtis Marchetti,0.048,,"Elena Duvall (direct, 0.11)"
@@ -36,7 +36,7 @@ cycle,request_id,company_id,company_name,target_title,value_usd,urgency_declared
 2026-09,R1004,C023,Marchford Clinics,Head of Developer Productivity,750000,Medium,2026-07-06,Open,,,,,,,capacity exhausted this cycle,"Marcus Aldridge (direct, 0.08)"
 2026-09,R1007,C017,Halcyon Grid,Head of Platform Engineering,80000,High,2026-06-01,Open,,,,,,,no path to this company in the network,
 2026-09,R1010,C022,Larkhall Software,Chief Technology Officer,250000,Medium,2026-05-24,Open,,,,,,,no path to this company in the network,
-2026-09,R1011,C040,Thornbury Financial,Head of Platform Engineering,400000,High,2025-08-29,Open,,,,,,,no path to this company in the network,
+2026-09,R1011,,,Head of Platform Engineering,400000,High,2025-08-29,Open,,,,,,,company unresolved,
 2026-09,R1013,C027,Nortonbury Logistics,Chief Operating Officer,80000,Low,2026-05-10,Open,,,,,,,capacity exhausted this cycle,"Marcus Aldridge (direct, 0.18)"
 2026-09,R1018,C043,Wrenfield Robotics,Chief Technology Officer,1200000,High,2026-05-31,Open,,,,,,,capacity exhausted this cycle,"Priya Raghunathan (direct, 0.13)"
 2026-09,R1019,C026,Northwind Freight,Chief Data Officer,400000,High,2026-01-01,Open,,,,,,,no path to this company in the network,
@@ -44,7 +44,6 @@ cycle,request_id,company_id,company_name,target_title,value_usd,urgency_declared
 2026-09,R1030,C021,Larchmont Aerospace,Head of Platform Engineering,80000,High,2026-07-01,Open,,,,,,,no path to this company in the network,
 2026-09,R1036,C034,Sablefield Motors,Chief Data Officer,150000,Critical,2026-05-19,Open,,,,,,,no path to this company in the network,
 2026-09,R1037,C039,Thistledown Energy,Head of Platform Engineering,1200000,Low,2025-11-26,Open,,,,,,,no path to this company in the network,
-2026-09,R1039,C033,Ravensmoor Defense,Head of Developer Productivity,2000000,High,2026-01-29,Stalled,,,,,,,capacity exhausted this cycle,"Owen Trask (offer, 0.09)"
 2026-09,R1041,C002,Apex Logistics,SVP Digital,750000,Medium,2025-12-02,Open,,,,,,,capacity exhausted this cycle,"Marcus Aldridge (direct, 0.13)"
 2026-09,R1050,C030,Pemberton Retail,Head of Developer Productivity,400000,Medium,2025-09-05,Open,,,,,,,no path to this company in the network,
 2026-09,R1054,C014,Kestrel Airlines,Chief Operating Officer,1200000,Low,2026-01-10,Routed,,,,,,,no path to this company in the network,
@@ -56,15 +55,16 @@ cycle,request_id,company_id,company_name,target_title,value_usd,urgency_declared
 2026-09,R1080,C042,Volney Industrial Systems,VP Engineering,750000,High,2026-01-14,Open,,,,,,,no path to this company in the network,
 2026-09,R1081,C034,Sablefield Motors,SVP Digital,80000,Low,2025-09-30,Open,,,,,,,no path to this company in the network,
 2026-09,R1083,C039,Thistledown Energy,VP Engineering,750000,Critical,2026-06-04,Open,,,,,,,no path to this company in the network,
-2026-09,R1096,C035,Silverbrook Paper,Head of Developer Productivity,750000,High,2026-03-25,Open,,,,,,,capacity exhausted this cycle,"Owen Trask (direct, 0.04)"
+2026-09,R1087,,,VP Data & Analytics,400000,Critical,2026-02-10,Routed,,,,,,,company unresolved,
+2026-09,R1096,,,Head of Developer Productivity,750000,High,2026-03-25,Open,,,,,,,company unresolved,
 2026-09,R1099,C001,Aldergate Telecom,VP Enterprise Architecture,400000,Critical,2026-01-09,Open,,,,,,,no path to this company in the network,
 2026-09,R1105,C040,Thornbury Financial,Chief Information Officer,2000000,High,2025-09-14,Open,,,,,,,no path to this company in the network,
 2026-09,R1106,,,Head of Developer Productivity,80000,Critical,2026-07-14,Stalled,,,,,,,company unresolved,
 2026-09,R1116,C059,Marrow Point Airways,Chief Digital Officer,2000000,Medium,2026-04-24,Open,,,,,,,no path to this company in the network,
 2026-09,R1117,C034,Sablefield Motors,SVP Digital,250000,Low,2026-04-11,Open,,,,,,,no path to this company in the network,
 2026-09,R1119,,,VP Enterprise Architecture,150000,Critical,2026-06-10,Open,,,,,,,company unresolved,
+2026-09,R1126,,,Chief Information Officer,750000,High,2026-03-09,Open,,,,,,,company unresolved,
 2026-09,R1127,C017,Halcyon Grid,SVP Digital,750000,High,2026-05-26,Open,,,,,,,no path to this company in the network,
-2026-09,R1132,C036,Strathmore Holdings,Chief Operating Officer,150000,High,2025-12-13,Routed,,,,,,,capacity exhausted this cycle,"Tomás Beckett (direct, 0.05)"
 2026-09,R1133,C059,Marrow Point Airways,Chief Technology Officer,1200000,Low,2026-04-08,Open,,,,,,,no path to this company in the network,
 2026-09,R1138,C034,Sablefield Motors,Chief Information Officer,80000,High,2026-04-06,Open,,,,,,,no path to this company in the network,
 2026-09,R1142,C023,Marchford Clinics,Chief Technology Officer,2000000,Low,2025-09-26,Stalled,,,,,,,capacity exhausted this cycle,"Marcus Aldridge (direct, 0.08)"

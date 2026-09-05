@@ -64,7 +64,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.resolver import domain_stem, normalize, normalize_strict  # noqa: E402
+from golden.resolver import Resolver, domain_stem, normalize, normalize_strict  # noqa: E402
 
 DATASET = ROOT / "dataset"
 OUT = ROOT / "golden"
@@ -116,7 +116,9 @@ BLOCK_FUND_OR_OPCO = "fund or operating company \u2014 ask the requester"
 BLOCK_NO_ROSTER_PATH = "no path on the roster"
 BLOCK_CLOSED_LOST = "account is Closed Lost"
 BLOCK_NEVER_ROUTED = "path exists, never routed"  # filed with no routed_to before the path was known
-FUND_WORDS = {"capital", "partners", "ventures", "equity", "growth", "fund"}
+# a bare name shared by a fund and a customer (Thornbury, Silverbrook, Cobalt Lane,
+# Meridian Peak): golden/resolver.py refuses it; the request gets no company_id
+FUND_COLLISION = "fund-collision"
 # reach types that outlast the request they were observed on; offers are request-scoped
 DURABLE_REACH = {"direct", "investor", "alumni"}
 
@@ -229,7 +231,8 @@ class Company:
 
 
 class Registry:
-    def __init__(self, accounts: list[dict]):
+    def __init__(self, accounts: list[dict], funds: list[str] = ()):
+        self._canon = Resolver(accounts, funds)  # the fund-collision guard lives there
         self.by_domain: dict[str, Company] = {}
         self._strict: dict[str, Company] = {}
         self._loose: dict[str, Company] = {}
@@ -249,7 +252,10 @@ class Registry:
         self._loose.setdefault(normalize(name), c)
 
     def resolve(self, raw: str, domain_hint: str = "") -> tuple[Company | None, str]:
-        """Return (company, method). Never creates."""
+        """Return (company, method). Never creates. A bare name the canonical
+        resolver refuses as fund-or-customer is refused here too."""
+        if self._canon.resolve(raw, domain_hint).method == "fund-or-customer":
+            return None, FUND_COLLISION
         if domain_hint:
             c = self.by_domain.get(domain_hint.lower()) or self._stem.get(domain_stem(domain_hint))
             if c:
@@ -297,8 +303,10 @@ class Registry:
             self._index(raw, c)
         return c, method
 
-    def resolve_or_create(self, raw: str, domain_hint: str = "") -> tuple[Company, str]:
+    def resolve_or_create(self, raw: str, domain_hint: str = "") -> tuple[Company | None, str]:
         c, method = self.resolve(raw, domain_hint)
+        if method == FUND_COLLISION:
+            return None, method
         if c is None:
             c = Company(domain_hint.lower())
             self.by_domain[domain_hint.lower() or f"~{normalize_strict(raw)}"] = c
@@ -725,15 +733,17 @@ def resolve_requests(reg: Registry, filed: list[dict]) -> dict[str, dict]:
     raw = {rq["request_id"]: rq for rq in read_csv(DATASET / "intro_requests.csv")}
     out = {}
     for r in filed:
-        company = None
+        company, method = None, r["resolved_by"]
         written = r["company_as_written"]
         if r["company_id"] and written:
             domain_hint = request_target(raw[r["request_id"]])[1] if r["request_id"] in raw else ""
             if not domain_hint and _looks_like_domain(written):
                 domain_hint = written
-            company, _ = reg.resolve_or_create(written, domain_hint)
+            company, how = reg.resolve_or_create(written, domain_hint)
+            if how == FUND_COLLISION:
+                method = how  # filed against a company the guard now refuses; corrected on write
         out[r["request_id"]] = {
-            "company": company, "written": written, "method": r["resolved_by"],
+            "company": company, "written": written, "method": method,
             "target_title": r["target_title"], "value_usd": r["value_usd"], "urgency": r["urgency_declared"],
             "request_date": r["request_date"], "status": r["status_as_filed"],
         }
@@ -745,7 +755,7 @@ def resolve_requests(reg: Registry, filed: list[dict]) -> dict[str, dict]:
             company, method = reg.resolve_or_create(written, domain_hint)
             if not written:
                 written = domain_hint
-            if parsed_from_ask:
+            if parsed_from_ask and method != FUND_COLLISION:
                 method = f"raw_ask:{method}"
         else:
             company, method = None, "unresolved"
@@ -755,18 +765,6 @@ def resolve_requests(reg: Registry, filed: list[dict]) -> dict[str, dict]:
             "urgency": rq["urgency"], "request_date": rq["request_date"], "status": rq["status"],
         }
     return out
-
-
-def fund_stems() -> dict[str, str]:
-    """normalised fund name minus generic fund words -> fund name, for every
-    fund in investor_network.csv (Thornbury Equity -> thornbury)."""
-    stems = {}
-    for inv in read_csv(DATASET / "investor_network.csv"):
-        fund = inv["fund"].strip()
-        words = [w for w in re.split(r"[^a-z0-9]+", fund.lower()) if w and w not in FUND_WORDS]
-        if fund and words:
-            stems["".join(words)] = fund
-    return stems
 
 
 def contradicts_log(status: str, outcome: dict | None) -> str:
@@ -781,19 +779,13 @@ def contradicts_log(status: str, outcome: dict | None) -> str:
     return ""
 
 
-def blocked_reason(company: Company | None, paths: list[dict], roster: dict,
-                   alloc: dict | None, stems: dict[str, str]) -> str:
+def blocked_reason(company: Company | None, paths: list[dict], roster: dict, alloc: dict | None) -> str:
     """For a request nobody is routed to: the first thing an operator would
     have to fix, in the order they would fix it. Identity first (no company,
-    could be the fund rather than the operating company, no CRM record), then
-    whether the account is worth a connector (Closed Lost), then supply."""
+    no CRM record), then whether the account is worth a connector (Closed
+    Lost), then supply. Fund collisions are decided before this is called."""
     if company is None:
         return BLOCK_NO_COMPANY
-    for spelling in [company.name, *company.names]:
-        key = normalize_strict(spelling)
-        for stem, fund in stems.items():
-            if key.startswith(stem) and key != normalize_strict(fund):
-                return BLOCK_FUND_OR_OPCO
     if not company.accounts:
         return BLOCK_NO_CRM
     if company.survivor["stage"] == "Closed Lost":
@@ -810,7 +802,6 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
                    allocation: dict[str, dict], filed: list[dict]) -> list[dict]:
     outcomes = {o["request_id"]: o for o in read_csv(DATASET / "intro_outcomes.csv")}
     filed_by = {r["request_id"]: r for r in filed}
-    stems = fund_stems()
     rows = []
     for rq in read_csv(DATASET / "intro_requests.csv"):
         rid = rq["request_id"]
@@ -819,7 +810,9 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
         company, written, method = resolved[rid]["company"], resolved[rid]["written"], resolved[rid]["method"]
 
         review = []
-        if company is None:
+        if method == FUND_COLLISION:
+            review.append("bare name is a fund and a customer")
+        elif company is None:
             review.append("company not identifiable")
         elif not company.accounts:
             review.append("no CRM account")
@@ -871,8 +864,12 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
 
         # a filed row keeps its filed routing, so judge its block against that
         effective_routed_to = filed_by[rid]["routed_to"] if rid in filed_by else routed_to
-        blocked = "" if effective_routed_to else blocked_reason(
-            company, paths, roster, allocation.get(rid), stems)
+        if method == FUND_COLLISION:
+            blocked = BLOCK_FUND_OR_OPCO
+        elif effective_routed_to:
+            blocked = ""
+        else:
+            blocked = blocked_reason(company, paths, roster, allocation.get(rid))
 
         th = threads.get(rid, {"replies": 0, "offer": "N", "all_noise": "no replies"})
         if not money(rq["deal_value_usd"]):
@@ -913,7 +910,10 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
 
 
 def append_only_write(rows: list[dict]) -> tuple[int, int, list[str], list[str]]:
-    """Append rows whose request_id is new. Existing values are never touched.
+    """Append rows whose request_id is new. Existing values are never touched,
+    with one exception: a filed row whose company the fund-collision guard now
+    refuses (a bare name such as "Thornbury" filed as Thornbury Financial) is
+    replaced by its recomputed row, so it carries no company_id.
     If the schema has gained columns, the file is rewritten with the same rows
     in the new column order; existing cells keep their filed value and only the
     added columns are filled in. A column that disappeared from the schema is
@@ -930,10 +930,17 @@ def append_only_write(rows: list[dict]) -> tuple[int, int, list[str], list[str]]
 
     warnings = []
     new = []
+    corrected = 0
     for r in rows:
         old = seen.get(r["request_id"])
         if old is None:
             new.append(r)
+            continue
+        if r["resolved_by"] == FUND_COLLISION and old["company_id"]:
+            warnings.append(f"{r['request_id']}: '{old['company_as_written']}' was filed as {old['company_id']}; "
+                            f"{FUND_COLLISION} -> company_id cleared, row recomputed")
+            old.update({c: r.get(c, "") for c in REQUEST_COLUMNS})
+            corrected += 1
             continue
         for c in added:
             old[c] = r.get(c, "")
@@ -941,7 +948,7 @@ def append_only_write(rows: list[dict]) -> tuple[int, int, list[str], list[str]]
         if diff:
             warnings.append(f"{r['request_id']}: recomputed {', '.join(diff)} differ from filed row (kept filed)")
 
-    if added or has_bom:
+    if added or has_bom or corrected:
         write_csv(REQUESTS_OUT, REQUEST_COLUMNS, existing + new)
     else:
         write_csv(REQUESTS_OUT, REQUEST_COLUMNS, new, mode="a")
@@ -1050,7 +1057,8 @@ def main() -> None:
     # already filed, plus raw requests about to be appended). IDs are pinned to
     # the existing golden files before any supply-side source is read.
     filed = read_csv(REQUESTS_OUT) if REQUESTS_OUT.exists() else []
-    reg = Registry(read_csv(DATASET / "crm_accounts.csv"))
+    reg = Registry(read_csv(DATASET / "crm_accounts.csv"),
+                   [inv["fund"] for inv in read_csv(DATASET / "investor_network.csv")])
     resolved = resolve_requests(reg, filed)
     reg.assign_ids()
 
