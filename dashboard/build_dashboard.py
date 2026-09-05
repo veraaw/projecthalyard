@@ -145,10 +145,9 @@ def table(headers, body_rows, cls=""):
     return f'<table class="{cls}"><thead><tr>{h}</tr></thead><tbody>{b}</tbody></table>'
 
 
-counts = [c for _, c, _ in stages]
-dollars = [d for _, _, d in stages]
-funnel_rows = [(name, c, usd(d), f"{c/counts[0]:.0%}", f"{c/counts[i-1]:.0%}" if i else "—")
-               for i, (name, c, d) in enumerate(stages)]
+counts = [c for _, c in stages]
+funnel_rows = [(name, c, f"{c/counts[0]:.0%}", f"{c/counts[i-1]:.0%}" if i else "—")
+               for i, (name, c) in enumerate(stages)]
 
 sankey_div = pio.to_html(sankey_fig, include_plotlyjs=False, full_html=False, div_id="sankey",
                          config={"displayModeBar": False, "responsive": True})
@@ -201,25 +200,25 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
 
 <section id="funnel">
   <h2>Where the requests go</h2>
-  <p class="lede">Each request carries its <code>deal_value_usd</code>; node labels show how many requests and how much pipeline survive each step.</p>
+  <p class="lede">Node labels show how many requests survive each step. Pipeline $ is deliberately omitted: the same <code>deal_value_usd</code> would be re-counted at every stage a request passes through.</p>
   <div class="kpis">
-    {kpi(counts[0], "requests", usd(dollars[0]) + " of pipeline")}
-    {kpi(counts[1], "asked", f"{counts[1]/counts[0]:.0%} of requests · {usd(dollars[1])}")}
-    {kpi(counts[3], "intros sent", f"{counts[3]/counts[1]:.0%} of asks · {usd(dollars[3])}")}
-    {kpi(counts[4], "meetings", f"{counts[4]/counts[3]:.0%} of intros · {usd(dollars[4])}")}
-    {kpi(counts[5], "opportunities", f"{usd(dollars[5])} · {dollars[5]/dollars[0]:.1%} of requested $")}
+    {kpi(counts[0], "requests")}
+    {kpi(counts[1], "asked", f"{counts[1]/counts[0]:.0%} of requests")}
+    {kpi(counts[3], "intros sent", f"{counts[3]/counts[1]:.0%} of asks")}
+    {kpi(counts[4], "meetings", f"{counts[4]/counts[3]:.0%} of intros")}
+    {kpi(counts[5], "opportunities", f"{counts[5]/counts[0]:.1%} of requests end-to-end")}
   </div>
   {sankey_div}
   <div class="grid2">
     <div>
       <h3>Stage table</h3>
-      {table(["Stage", "Count", "Pipeline $", "of requests", "step conversion"], funnel_rows)}
+      {table(["Stage", "Count", "of requests", "step conversion"], funnel_rows)}
     </div>
     <div>
       <h3>Reading it</h3>
-      <div class="finding warn"><b>The biggest leak is before anyone is asked.</b>{counts[0]-counts[1]} of {counts[0]} requests ({(counts[0]-counts[1])/counts[0]:.0%}, {usd(dollars[0]-dollars[1])}) never reach a connector — larger than every downstream drop combined.</div>
+      <div class="finding warn"><b>The biggest leak is before anyone is asked.</b>{counts[0]-counts[1]} of {counts[0]} requests ({(counts[0]-counts[1])/counts[0]:.0%}) never reach a connector — larger than every downstream drop combined.</div>
       <div class="finding"><b>Once asked, the funnel is healthy-ish.</b>{counts[2]/counts[1]:.0%} respond, {counts[3]/counts[2]:.0%} of responders send the intro, {counts[4]/counts[3]:.0%} of intros book a meeting, {counts[5]/counts[4]:.0%} of meetings create an opportunity.</div>
-      <div class="finding"><b>Opportunity $ is carried over, not validated.</b>All {counts[5]} opportunity values equal the original requested deal value; {len(opp_status_mismatch)} of them still show status Open/Stalled/Routed in <code>intro_requests.csv</code> ({", ".join(opp_status_mismatch)}).</div>
+      <div class="finding"><b>Status and outcomes disagree.</b>{len(opp_status_mismatch)} of the {counts[5]} opportunity requests still show status Open/Stalled/Routed in <code>intro_requests.csv</code> ({", ".join(opp_status_mismatch)}).</div>
       <p class="foot">Standalone chart + code: <code>scoping/sankey_funnel.py</code>, <code>scoping/sankey_funnel.html</code>.</p>
     </div>
   </div>
