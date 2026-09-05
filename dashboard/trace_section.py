@@ -125,7 +125,17 @@ def fragment() -> str:
     else matches.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.id === current));
   }}
   q.addEventListener('input', update);
-  update();
+  // #C018 (a link from another tab) opens that company; the hash is kept in step so the view is shareable
+  function fromHash() {{
+    const id = decodeURIComponent(location.hash.slice(1));
+    const t = id && T.find(t => t.company_id === id);
+    if (t) q.value = t.company_id;
+    update();
+  }}
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  const _render = render;
+  render = function (t) {{ _render(t); if (t && location.hash !== '#' + t.company_id) history.replaceState(null, '', '#' + t.company_id); }};
 }})();
 </script>
 """
