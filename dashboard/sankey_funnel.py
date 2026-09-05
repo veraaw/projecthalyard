@@ -13,11 +13,24 @@ import csv
 import os
 
 import plotly.graph_objects as go
+import plotly.io as pio
 
 from paths import DOCS, GOLDEN as GOLDEN_DIR
 
 GOLDEN = str(GOLDEN_DIR / "golden_requests.csv")
 OUT = str(DOCS)
+
+INK, MUTE, LINE = "#0a0a0a", "#6b6b6b", "#e2e2e2"
+pio.templates["mono"] = go.layout.Template(layout=dict(
+    paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
+    font=dict(color=INK, family='-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif'),
+    colorway=[INK, "#8c8c8c", "#d9d9d9", "#4d4d4d", "#b3b3b3"],
+    xaxis=dict(gridcolor=LINE, linecolor=LINE, zerolinecolor=LINE, tickcolor=MUTE, tickfont=dict(color=MUTE)),
+    yaxis=dict(gridcolor=LINE, linecolor=LINE, zerolinecolor=LINE, tickcolor=MUTE, tickfont=dict(color=MUTE)),
+    legend=dict(font=dict(color=INK)),
+    hoverlabel=dict(bgcolor=INK, font=dict(color="#ffffff"), bordercolor=INK),
+))
+pio.templates.default = "mono"
 
 
 def funnel_stages():
