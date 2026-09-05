@@ -1,6 +1,7 @@
 """Build docs/halyardscoping.html: one page summarising the Slack thread findings,
 the CSV profile findings, the intro funnel Sankey, and the integrity audit. Also
-writes the second tab, docs/companytrace.html (dashboard/trace_section.py).
+writes the second tab, docs/companytrace.html (dashboard/trace_section.py), and
+the third, docs/livepriorities.html (dashboard/live_priorities.py).
 
 Every number is recomputed from dataset/ so the page stays in step with the data;
 the narrative findings mirror analysis/slack/slack_thread_findings.md and
@@ -25,6 +26,7 @@ import plotly.io as pio
 from analysis.integrity.integrity_audit import fragment as integrity_fragment
 from dashboard import data_cuts, theme
 from dashboard.funnel_overview import dropoff_rows, ratios
+from dashboard.live_priorities import PAGE as LIVE_PAGE, fragment as live_fragment
 from dashboard.sankey_funnel import build_figure, funnel_stages
 from dashboard.trace_section import fragment as trace_fragment
 from paths import DATASET, DOCS, PROFILE, ROUTING
@@ -330,9 +332,43 @@ img{{max-width:100%}}
 .tabs a{{font-family:var(--sans);font-size:14px;color:var(--mute);text-decoration:none;padding:8px 16px;margin-bottom:-1px;border:1px solid transparent}}
 .tabs a:hover{{color:var(--ink)}}
 .tabs a.on{{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}}
+/* live priorities */
+#lp h2 .foot{{display:block;font-weight:400;margin-top:2px}}
+#lp .lede{{font-size:15.5px}}
+#lp q{{quotes:"\\201C" "\\201D";font-family:var(--serif);font-style:italic}}
+#lp b.warn,#lp .warn{{color:var(--warn)}}
+#lp td.rid,#lp td.date{{font-family:var(--mono);font-size:12.5px;white-space:nowrap}}
+#lp .empty{{color:var(--mute);font-style:italic;margin:0}}
+#lp .drop{{border:1px dashed var(--mute);padding:26px;text-align:center;color:var(--mute);cursor:pointer;font-family:var(--sans);font-size:14px;background:var(--bg);position:relative}}
+#lp .drop.over{{border-color:var(--blue);color:var(--blue)}}
+#lp .drop input{{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}}
+#lp .strip{{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin:14px 0 8px}}
+#lp .strip .cell{{background:var(--surface);padding:14px 16px 12px;font-family:var(--sans)}}
+#lp .strip .v{{font-size:26px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}}
+#lp .strip .n{{color:var(--mute);font-size:12.5px;margin-top:2px}}
+#lp .strip .l{{margin-top:8px;font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}}
+@media(max-width:900px){{#lp .strip{{grid-template-columns:repeat(3,1fr)}}}}
+#lp table.top td.order{{color:var(--mute)}}
+#lp table.top td.ev{{font-size:18px;font-weight:500;color:var(--blue)}}
+#lp table.top tr.done td{{color:var(--mute);text-decoration:line-through}}
+#lp table.top tr.done td.ev{{color:var(--mute)}}
+#lp table.top .tick{{width:16px;height:16px;accent-color:var(--blue)}}
+#lp .parts .c{{border-bottom:1px dotted var(--mute);cursor:help}}
+#lp th .fm{{font-weight:400;font-size:11px;text-transform:none;letter-spacing:0}}
+#lp .formula{{margin-top:14px;padding:12px 16px;background:var(--bg);border-left:2px solid var(--blue)}}
+#lp .formula p{{margin:0 0 6px}}
+#lp .subtabs{{display:flex;flex-wrap:wrap;gap:4px;margin:12px 0 18px;border-bottom:1px solid var(--line)}}
+#lp .subtabs button{{font-family:var(--sans);font-size:14px;color:var(--mute);background:none;border:1px solid transparent;padding:8px 14px;margin-bottom:-1px;cursor:pointer}}
+#lp .subtabs button .n{{margin-left:8px;font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}}
+#lp .subtabs button.on{{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}}
+#lp .dl{{display:flex;gap:16px;align-items:flex-start;margin:14px 0;font-size:14px;font-family:var(--sans)}}
+#lp .dl span{{color:var(--mute);padding-top:6px}}
+#lp button:not(.subtabs button){{font-family:var(--sans);font-size:14px;font-weight:500;background:var(--blue);color:#fff;border:1px solid var(--blue);padding:8px 16px;cursor:pointer;white-space:nowrap}}
+#lp button.secondary{{background:var(--surface);color:var(--ink);border-color:var(--ink)}}
+#lp table.preview tr.flag td{{background:rgba(159,45,0,.035)}}
 </style>"""
 
-TABS = [("halyardscoping.html", "Dashboard"), ("companytrace.html", "Company Trace")]
+TABS = [("halyardscoping.html", "Dashboard"), ("companytrace.html", "Company Trace"), (LIVE_PAGE, "Live Priorities")]
 
 
 def tabs(active):
@@ -680,6 +716,25 @@ trace_page = f"""<!doctype html>
 </body></html>
 """
 
+live_page = f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halyard — live priorities</title>
+{theme.FONT_LINK}
+{STYLE}</head>
+<body>
+<header>
+  {tabs(LIVE_PAGE)}
+  <h1>Live priorities — what to do next, and who does it</h1>
+  <p>Every number here is computed by <code>dashboard/live_priorities.py</code> from <code>golden/</code> and <code>dataset/</code> at build time and written into the page; the browser only renders it. Every company name opens its <a href="companytrace.html">Company Trace</a> · {built}</p>
+</header>
+<main>
+{live_fragment()}
+<p class="foot">Regenerate with <code>python3 build.py dashboard</code>. Ranking constants live at the top of <code>dashboard/live_priorities.py</code>.</p>
+</main>
+</body></html>
+"""
+
 shutil.copyfile(ROUTING / "routing_flow.png", DOCS / "routing_flow.png")
 out_path = str(DOCS / "halyardscoping.html")
 with open(out_path, "w", encoding="utf-8") as f:
@@ -689,6 +744,10 @@ trace_path = str(DOCS / "companytrace.html")
 with open(trace_path, "w", encoding="utf-8") as f:
     f.write(trace_page)
 print(f"wrote {trace_path}")
+live_path = str(DOCS / LIVE_PAGE)
+with open(live_path, "w", encoding="utf-8") as f:
+    f.write(live_page)
+print(f"wrote {live_path}")
 print(f"funnel {counts}  offers {len(offers)} unlogged {len(offers_unlogged)} adds {len(adds)}/{adds_followed} "
       f"no_reply {len(no_reply)}/{len(no_reply_asked)} median_h {statistics.median(first_reply_h):.1f} "
       f"flags {len(flags)} dupes {len(crm_dupes)}/{crm_dup_owner_conflicts}")

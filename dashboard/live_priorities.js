@@ -1,0 +1,378 @@
+/* Live Priorities tab. Renders the payload dashboard/live_priorities.py wrote;
+   derives nothing. The only input it processes is a dropped .jsonl of Slack
+   threads, and for that it applies the parser tables the payload carries
+   (golden/parse.py cues, golden/resolver.py layers, build_golden.py OFFER_RE)
+   in the same order the Python does — tests/test_live_priorities.py runs this
+   file under node against the Python parser on every thread on disk. */
+const LP = (function () {
+  'use strict';
+
+  // ---------------------------------------------------------------- helpers
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const co = ref => ref && ref.href ? `<a href="${esc(ref.href)}">${esc(ref.company_name)}</a>` : esc(ref ? ref.company_name : '');
+  const plural = (n, w) => `${n} ${n === 1 ? w : w.endsWith('y') ? w.slice(0, -1) + 'ies' : w.endsWith('ch') ? w + 'es' : w + 's'}`;
+  const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  const get = (o, k, d) => has(o, k) ? o[k] : d;
+  const csvCell = v => { const s = String(v ?? ''); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const toCsv = (cols, rows) => [cols.join(',')].concat(rows.map(r => cols.map(c => csvCell(r[c])).join(','))).join('\r\n') + '\r\n';
+  function download(name, text) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // ------------------------------------------------ golden/resolver.py, ported
+  const ascii = s => (s || '').normalize('NFKD').replace(/[^\x00-\x7f]/g, '').toLowerCase();
+  const normStrict = s => ascii(s).replace(/[^a-z0-9]+/g, '');
+  const domainStem = d => (d || '').trim().toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\..*$/, '');
+  const isDomain = s => /^(https?:\/\/)?(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+\/?$/.test((s || '').trim().toLowerCase());
+
+  function makeResolver(R) {
+    const noise = new RegExp(R.noise.source, R.noise.flags);
+    const normLoose = s => ascii(s).replace(/[^a-z0-9]+/g, ' ').replace(noise, ' ').replace(/\s+/g, '');
+    const E = R.entities;
+    const MIN = R.min_prefix_stem;
+    const strictT = new Map(Object.entries(R.strict)), looseT = new Map(Object.entries(R.loose)),
+          stemT = new Map(Object.entries(R.stem)), domainT = new Map(Object.entries(R.by_domain));
+    const looseEntries = [...looseT.entries()];
+    const stemEntries = [...stemT.entries()].map(([k, v]) => [k, [v]]);
+    const res = (raw, id, method, candidates) => {
+      const confidence = R.confidence[method];
+      const review = confidence < R.review_threshold;
+      const e = id ? E[id] : null;
+      return { raw, entity: e, method, confidence, needs_review: review, candidates: candidates || [],
+               entity_id: e && !review ? e.id : '', name: e && !review ? e.name : '', kind: e && !review ? e.kind : '' };
+    };
+    const refuse = (raw, ids) => {
+      const cands = [...ids].sort().map(id => E[id]);
+      const kinds = new Set(cands.map(c => c.kind));
+      const method = kinds.size === 2 && kinds.has('company') && kinds.has('fund') ? 'fund-or-customer' : 'ambiguous';
+      return res(raw, null, method, cands);
+    };
+    const byDomainString = (dom, raw) => {
+      dom = dom.trim().toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/+$/, '');
+      if (domainT.has(dom)) return res(raw, domainT.get(dom), 'domain');
+      const st = stemT.get(domainStem(dom));
+      return st ? res(raw, st, 'domain-stem') : null;
+    };
+    function resolve(raw, domainHint) {
+      raw = (raw || '').trim(); domainHint = domainHint || '';
+      if (domainHint || isDomain(raw)) {
+        const r = byDomainString(domainHint || raw, raw);
+        if (r) return r;
+        if (!raw) return res(domainHint, null, 'unmatched');
+      }
+      const strict = normStrict(raw);
+      if (!strict) return res(raw, null, 'empty');
+      let hits = new Set(strictT.get(strict) || []);
+      if (hits.size === 1) {
+        const e = E[[...hits][0]];
+        const method = strict === domainStem(e.domain) && !e.names.some(n => normStrict(n) === strict) ? 'domain-stem' : 'name-exact';
+        return res(raw, e.id, method);
+      }
+      if (hits.size > 1) return refuse(raw, hits);
+      const loose = normLoose(raw);
+      hits = new Set(looseT.get(loose) || []);
+      if (stemT.has(loose)) hits.add(stemT.get(loose));
+      if (hits.size && loose.length < MIN) {
+        for (const [key, ids] of looseEntries.concat(stemEntries)) if (key.startsWith(loose)) ids.forEach(id => hits.add(id));
+      }
+      if (hits.size === 1) return res(raw, [...hits][0], 'name-loose');
+      if (hits.size > 1) return refuse(raw, hits);
+      if (loose.length >= MIN) {
+        const cands = new Set();
+        for (const [key, ids] of looseEntries.concat(stemEntries)) {
+          if (key.length >= MIN && (key.startsWith(loose) || loose.startsWith(key))) ids.forEach(id => cands.add(id));
+        }
+        if (cands.size === 1) { const id = [...cands][0]; return res(raw, id, 'name-prefix', [E[id]]); }
+        if (cands.size > 1) return refuse(raw, cands);
+      }
+      return res(raw, null, 'unmatched');
+    }
+    return { resolve, normStrict, normLoose };
+  }
+
+  // --------------------------------------------------- golden/parse.py, ported
+  function extract(text, P, resolver) {
+    text = text || '';
+    const seen = new Map();
+    const split = new RegExp(P.split.source, P.split.flags);
+    for (const cue of P.cues) {
+      const re = new RegExp(cue.source, cue.flags + 'gd');
+      for (const m of text.matchAll(re)) {
+        let start = m.indices.groups.co[0];
+        for (let part of m.groups.co.split(split)) {
+          part = part.trim();
+          if (!part) continue;
+          const at = text.indexOf(part, start);
+          const key = at + '\u0000' + part;
+          if (!seen.has(key)) seen.set(key, { text: part, cue: cue.label, score: cue.score, start: at, is_domain: false });
+          start = at + part.length;
+        }
+      }
+    }
+    const dre = new RegExp(P.domain.source, P.domain.flags + 'gd');
+    for (const m of text.matchAll(dre)) {
+      const dom = m[1].toLowerCase(), at = m.indices[1][0];
+      const key = at + '\u0000' + dom;
+      if (!seen.has(key)) seen.set(key, { text: dom, cue: P.domain_cue, score: P.domain_score, start: at, is_domain: true });
+    }
+    const mentions = [...seen.values()].sort((a, b) => a.start - b.start);
+    if (resolver) for (const x of mentions) x.resolution = x.is_domain ? resolver.resolve('', x.text) : resolver.resolve(x.text);
+    let target = null;
+    for (const m of mentions) {
+      if (m.score <= 0) continue;
+      if (!target || m.score > target.score || (m.score === target.score && m.start < target.start)) target = m;
+    }
+    return { text, mentions, target };
+  }
+
+  // ------------------------------------------------------------ upload preview
+  function parseJsonl(text) {
+    const threads = [], errors = [];
+    text.split(/\r?\n/).forEach((line, i) => {
+      if (!line.trim()) return;
+      try {
+        const t = JSON.parse(line);
+        if (!t.request_id || !Array.isArray(t.messages) || !t.messages.length) errors.push(`line ${i + 1}: needs request_id and a non-empty messages list`);
+        else threads.push(t);
+      } catch (e) { errors.push(`line ${i + 1}: ${e.message}`); }
+    });
+    return { threads, errors };
+  }
+
+  function previewThreads(jsonlText, P) {
+    const resolver = makeResolver(P.resolver);
+    const offerRe = new RegExp(P.offer.source, P.offer.flags);
+    const { threads, errors } = parseJsonl(jsonlText);
+    const rows = threads.map(t => {
+      const first = t.messages[0], replies = t.messages.slice(1);
+      const offers = replies.filter(m => offerRe.test(m.text || '')).map(m => ({ who: m.user, text: m.text, date: (m.ts || '').slice(0, 10) }));
+      const human = [];
+      const row = { request_id: t.request_id, posted: (first.ts || '').slice(0, 10), requested_by: first.user || '', raw_ask: first.text || '',
+                    company_as_written: '', company_id: '', company_name: '', resolved_by: '', href: '', offers, offer_by: '', offer_text: '',
+                    route_to: '', path: '', needs_human: '', flags: human, filed: false, mentions: [] };
+      const filed = get(P.filed, t.request_id, null);
+      if (filed) {
+        Object.assign(row, { filed: true, company_id: filed.company_id, company_name: filed.company_name, href: filed.href,
+                             resolved_by: `already filed (${filed.status}); filed facts are kept, only new offers land` });
+        if (filed.asked) human.push('already asked — an offer in the thread changes nothing');
+      } else {
+        const ex = extract(first.text || '', P, resolver);
+        row.mentions = ex.mentions;
+        const tg = ex.target;
+        if (!tg) { row.resolved_by = 'no company named in the ask'; human.push('no company named — the build files it with no company_id'); }
+        else {
+          row.company_as_written = tg.text;
+          const r = tg.resolution;
+          if (r.entity_id && r.kind === 'company') {
+            Object.assign(row, { company_id: r.entity_id, resolved_by: `${r.method} (${r.confidence.toFixed(2)})` });
+          } else if (r.entity_id && r.kind === 'fund') {
+            row.resolved_by = `${r.method}: names the fund ${r.name}, not a customer`;
+            human.push(`"${tg.text}" is an investor fund — the build would file a new company under that name`);
+          } else if (r.method === 'fund-or-customer' || r.method === 'ambiguous') {
+            row.resolved_by = `${r.method}: ${r.candidates.map(c => `${c.id} ${c.name} (${c.kind})`).join(' | ')}`;
+            human.push(r.method === 'fund-or-customer' ? 'bare name is a fund and a customer — ask the requester which' : 'ambiguous between two companies — pick one');
+          } else {
+            const name = tg.is_domain ? domainStem(tg.text) : tg.text;
+            const known = get(P.known_no_crm, resolver.normStrict(name), '') || get(P.known_no_crm, resolver.normLoose(name), '');
+            if (known) { row.company_id = known; row.resolved_by = 'matches a company on file that has no CRM account'; human.push('no CRM account — create one (see What the CRM is missing)'); }
+            else { row.resolved_by = 'new company — the build creates it with no domain and no CRM account'; human.push('new company: no CRM account, no domain — confirm the spelling'); }
+          }
+        }
+        const C = get(P.companies, row.company_id, null);
+        if (C) { row.company_name = C.company_name; row.href = C.href; if (C.stage === 'Closed Lost') human.push('CRM account is Closed Lost — reopen it or close the request'); }
+        else if (row.company_as_written) row.company_name = row.company_as_written;
+        human.push('thread carries no deal value, urgency or target title — add them to the request file');
+      }
+      // who it would route to: the best existing path vs any offer in the thread, scored as the build scores them
+      const C = get(P.companies, row.company_id, null);
+      const cands = [];
+      if (C && C.best) cands.push({ who: C.best.connector, score: C.best.score, label: C.best.label });
+      for (const o of offers) {
+        const score = C ? get(C.offer_score, o.who, C.offer_score_unknown) : get(P.offer_score_no_industry, o.who, P.offer_score_unknown);
+        cands.push({ who: o.who, score, label: 'offered in Slack' });
+      }
+      cands.sort((a, b) => b.score - a.score);
+      if (offers.length) { row.offer_by = offers.map(o => o.who).join(' | '); row.offer_text = offers.map(o => o.text).join(' | '); }
+      if (filed && filed.asked) {
+        row.path = 'already asked — not re-routed';
+      } else if (cands.length) {
+        const best = cands[0], conn = get(P.connectors, best.who, null);
+        row.route_to = best.who; row.path = `${best.label} (${best.score.toFixed(2)})`;
+        if (conn && conn.idle <= 0) human.push(`${best.who} has no slot left this cycle — would be "capacity exhausted" unless a slot frees`);
+        if (conn && !conn.on_roster) human.push(`${best.who} is not on the connector roster`);
+        if (!conn) human.push(`${best.who} is unknown to the roster and the outcome log`);
+      } else {
+        row.path = 'no path';
+        if (row.company_id) human.push('no path to this company in the network — exception unless someone offers');
+      }
+      row.flags = human.filter(Boolean);
+      row.needs_human = row.flags.join('; ');
+      return row;
+    });
+    return { rows, errors, count: threads.length };
+  }
+
+  // ------------------------------------------------------------------ render
+  function boot(D, root) {
+    const P = D.parser;
+    const done = new Set(JSON.parse(localStorage.getItem('lp-done') || '[]'));
+    let out = '';
+
+    // 0. upload
+    out += `<section id="upload"><h2>Preview a Slack export before anything is written</h2>
+      <p class="lede">Drop a <code>.jsonl</code> of Slack threads (one <code>{request_id, messages:[{ts,user,text}…]}</code> per line). Every row shows the company the build would resolve, any offer spotted in the replies, who it would route to and what needs a human — using the build's own cues, resolver tables and offer pattern, so the preview matches what lands. A static page cannot write to disk: export the preview and run the command to file it.</p>
+      <div class="drop" id="lp-drop"><input type="file" id="lp-file" accept=".jsonl,.json,.txt"><span>Drop a .jsonl here or click to choose</span></div>
+      <div id="lp-preview"></div></section>`;
+
+    // 1. stages
+    const S = D.stages;
+    out += `<section id="stages"><h2>Deal value by stage <span class="foot">point in time, as of ${esc(S.as_of)} — each request counted once</span></h2>
+      <div class="strip">${S.stages.map(s => `<div class="cell"><div class="v">${esc(s.usd_fmt)}</div><div class="n">${plural(s.count, 'request')}</div><div class="l">${esc(s.stage)}</div></div>`).join('')}</div>
+      <p class="foot">${S.total.count} live or completed requests, ${esc(S.total.usd_fmt)}; ${S.excluded.count} filed <i>Closed - no path</i> (${esc(S.excluded.usd_fmt)}) are not on the strip. "needs data" = no company or no deal value; "to be routed" = live with nobody assigned; "routed" = a connector is assigned or allocated this cycle but not yet asked; "asked" = in <code>intro_outcomes.csv</code> with no intro; "introduced" = intro logged or filed; "won" = meeting booked.</p></section>`;
+
+    // 2. top 5
+    const T = D.priorities;
+    const comp = (r, k, fmt) => `<span class="c" title="${esc(k.replace(/_/g, ' '))}">${fmt(r.components[k])}</span>`;
+    out += `<section id="top"><h2>Top ${T.top.length} priorities <span class="foot">do these next — sorted by expected value across ${T.considered} live requests with a connector to act on</span></h2>
+      <table class="top"><thead><tr><th></th><th>#</th><th>request</th><th>company</th><th>who wants</th><th>ask</th><th class="num">expected value</th><th>request priority<br><span class="fm">deal $M × stage × age × reps</span></th><th>connector score<br><span class="fm">path × fit × rate × capacity</span></th></tr></thead><tbody>`
+      + T.top.map(r => `<tr class="${done.has(r.request_id) ? 'done' : ''}" data-rid="${esc(r.request_id)}"><td><input type="checkbox" class="tick" ${done.has(r.request_id) ? 'checked' : ''} aria-label="done"></td><td class="order">${r.rank}</td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.crm_stage)}</span></td><td>${co(r)}<br><span class="foot">${esc(r.target_title)}</span></td><td>${esc(r.requested_by)}${r.reps.length > 1 ? `<br><span class="foot">+${r.reps.length - 1} more waiting</span>` : ''}</td><td><b>${esc(r.connector)}</b><br><span class="foot">${esc(r.path)}</span></td><td class="num ev">${r.expected_value.toFixed(3)}</td><td class="parts"><b>${r.request_priority.toFixed(3)}</b> = ${comp(r, 'deal_value_musd', v => v.toFixed(2))} × ${comp(r, 'stage_weight', v => v.toFixed(2))} × ${comp(r, 'age', v => v.toFixed(2))} × ${comp(r, 'reps_waiting', v => v)}<br><span class="foot">${r.days_waiting} days waiting</span></td><td class="parts"><b>${r.connector_score.toFixed(3)}</b> = ${comp(r, 'path_strength', v => v.toFixed(2))} × ${comp(r, 'focus_fit', v => v.toFixed(2))} × ${comp(r, 'delivery_rate', v => v.toFixed(2))} × ${comp(r, 'capacity_left', v => v.toFixed(2))}<br><span class="foot">${esc(r.capacity_note)}</span></td></tr>`).join('')
+      + `</tbody></table>
+      <div class="formula"><p><code>${esc(T.formula.expected_value)}</code></p><p><code>${esc(T.formula.request_priority)}</code><br><code>${esc(T.formula.connector_score)}</code></p>
+      <p class="foot">stage weight by CRM stage: ${Object.entries(T.formula.stage_weight).map(([k, v]) => `${esc(k)} ${v}`).join(' · ')}. age: ${esc(T.formula.age)}. reps waiting: ${esc(T.formula.reps_waiting)}. path strength: ${esc(T.formula.path_strength)}. focus fit: ${esc(T.formula.focus_fit)}. delivery rate: ${esc(T.formula.delivery_rate)}. capacity left: ${esc(T.formula.capacity_left)}. Ticks are kept in this browser only.</p></div></section>`;
+
+    // 3. current asks
+    const A = D.asks;
+    out += `<section id="asks"><h2>Current asks <span class="foot">cycle ${esc(A.cycle)} — ${A.allocated} requests allocated in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code></span></h2>`;
+    for (const b of A.batches) {
+      out += `<h3>${esc(b.connector)} <span class="foot">${esc(b.connector_type)} · ${plural(b.size, 'request')} · ${esc(b.value_fmt)} · <code>${esc(b.batch_id)}</code></span></h3>
+        <table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>why this connector</th></tr></thead><tbody>`
+        + b.companies.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td class="foot">${esc(c.why)}</td></tr>`).join('')
+        + `</tbody></table>`;
+    }
+    out += `<details><summary>${plural(A.exception_count, 'exception')} — not allocated this cycle: ${A.exceptions.map(e => `${e.count} ${esc(e.reason.replace(' to this company in the network', ''))}`).join(', ')}</summary>`;
+    for (const e of A.exceptions) {
+      out += `<h3>${esc(e.reason)} <span class="foot">${e.count} · ${esc(e.value_fmt)}</span></h3><table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>who</th><th>value</th><th>urgency</th><th>status</th><th>${e.reason.startsWith('capacity') ? 'best path (no slot)' : e.reason.startsWith('company') ? 'as written' : 'note'}</th></tr></thead><tbody>`
+        + e.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}</td><td>${co(r)}</td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td><td>${esc(r.value_fmt)}</td><td>${esc(r.urgency)}</td><td>${esc(r.status)}</td><td class="foot">${esc(r.best_path || (e.reason.startsWith('company') ? r.company_as_written || '(nothing parseable)' : 'nobody in the network reaches them'))}</td></tr>`).join('')
+        + `</tbody></table>`;
+    }
+    out += `</details></section>`;
+
+    // 4. offer gaps
+    const O = D.offer_gaps;
+    out += `<section id="offers"><h2>Already offered, needs response <span class="foot">${plural(O.count, 'request')}, ${esc(O.value_fmt)} — someone volunteered in the Slack thread and no ask was ever logged</span></h2>
+      <p class="lede">These cost nothing to action: someone already said yes. Reply in the thread and log the ask.</p>
+      <table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>who offered</th><th>what they wrote</th><th>status the request carries</th></tr></thead><tbody>`
+      + O.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)}</span></td><td>${co(r)}<br><span class="foot">for ${esc(r.requested_by)}</span></td><td>${esc(r.target_title)}</td><td>${r.offers.map(o => `<b>${esc(o.who)}</b>${o.on_roster ? '' : ' <span class="foot">off roster</span>'}<br><span class="foot">${esc(o.date)} · ${o.days_ago} days ago</span>`).join('<br>')}</td><td>${r.offers.map(o => `<q>${esc(o.text)}</q>`).join('<br>')}</td><td><b class="${r.status === 'Closed - no path' ? 'warn' : ''}">${esc(r.status)}</b><br><span class="foot">${esc(r.note)}</span></td></tr>`).join('')
+      + `</tbody></table></section>`;
+
+    // 5. bottlenecks
+    const B = D.bottlenecks;
+    out += `<section id="bottlenecks"><h2>Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro — ${esc(B.value_fmt)} — from <code>intro_outcomes.csv</code></span></h2>
+      <p class="lede">Each of these is a <b>nudge</b>, not a re-ask: asking again spends a fresh slot for an answer you already have. ${B.by_connector.map(c => `${esc(c.connector)} ${c.count}`).join(' · ')}.</p>
+      <table><thead><tr><th>action</th><th>request</th><th>company</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
+      + B.rows.map(r => `<tr><td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`).join('')
+      + `</tbody></table></section>`;
+
+    // 6. per-connector tabs
+    out += `<section id="connectors"><h2>Connectors <span class="foot">one tab each: queue this cycle, capacity used against stated capacity, delivery rate, what they are already sitting on</span></h2>
+      <div class="subtabs" id="lp-ctabs">${D.connectors.map((c, i) => `<button data-i="${i}" class="${i ? '' : 'on'}">${esc(c.connector)}<span class="n">${c.used}/${c.capacity}</span></button>`).join('')}</div>`;
+    D.connectors.forEach((c, i) => {
+      out += `<div class="cpanel" data-i="${i}" ${i ? 'hidden' : ''}>
+        <p class="lede">${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''}<br><span class="foot">${esc(c.notes)}</span></p>
+        <div class="kpis"><div class="kpi"><div class="v">${c.used} / ${c.capacity}</div><div class="l">capacity used this cycle</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated · ${c.idle} idle</div></div>
+          <div class="kpi"><div class="v">${Math.round(c.delivery_rate * 100)}%</div><div class="l">delivery rate</div><div class="s">${c.intros_all_time} intros / ${c.asks_all_time} asks, shrunk toward the prior</div></div>
+          <div class="kpi ${c.sitting_on.length ? 'warn' : ''}"><div class="v">${c.sitting_on.length}</div><div class="l">already sitting on</div><div class="s">asked, live, no intro yet</div></div>
+          <div class="kpi"><div class="v">${c.queue.length}</div><div class="l">in this cycle's ask</div><div class="s">${c.queue.length ? 'one consolidated batch' : 'nothing allocated'}</div></div></div>
+        <h3>queue this cycle</h3>` + (c.queue.length ? `<table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>for</th><th>path</th><th class="num">score</th><th>value</th><th>urgency</th></tr></thead><tbody>`
+          + c.queue.map(q => `<tr><td class="rid">${esc(q.request_id)}</td><td>${co(q)}</td><td>${esc(q.target_title)}</td><td>${esc(q.requested_by)}</td><td>${esc(q.path_type)}${q.contact ? ` <span class="foot">via ${esc(q.contact)}</span>` : ''}</td><td class="num">${esc(q.route_score)}</td><td>${esc(q.value_fmt)}</td><td>${esc(q.urgency)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing allocated to ${esc(c.connector)} this cycle</p>`)
+        + `<h3>already sitting on</h3>` + (c.sitting_on.length ? `<table><thead><tr><th>request</th><th>company</th><th>asked</th><th class="num">days</th><th>responded</th><th>value</th></tr></thead><tbody>`
+          + c.sitting_on.map(s => `<tr><td class="rid">${esc(s.request_id)}</td><td>${co(s)}</td><td class="date">${esc(s.asked_date)}</td><td class="num">${s.days_since_asked}</td><td>${s.responded ? '<b>yes — nudge</b>' : 'no'}</td><td>${esc(s.value_fmt)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing outstanding</p>`)
+        + `</div>`;
+    });
+    out += `</section>`;
+
+    // 7. check-ins
+    const K = D.checkins;
+    out += `<section id="checkins"><h2>Overdue a check-in <span class="foot">${plural(K.count, 'company')} with requests and a CRM account; ${K.both} failed both tests</span></h2>
+      <p class="lede">Two tests, ${K.days} days each: has anyone touched the CRM account, and has anyone asked a connector for an intro. A company failing both is being neither sold to nor networked into.</p>
+      <table><thead><tr><th>company</th><th>owner</th><th>stage</th><th>CRM last_touch_date</th><th>last intro ask</th><th>failed</th><th>live</th></tr></thead><tbody>`
+      + K.rows.map(r => `<tr><td>${co(r)}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage)}</td><td class="date">${esc(r.last_touch_date || 'never')}${r.touch_days != null ? ` <span class="foot">${r.touch_days}d</span>` : ''}</td><td class="date">${esc(r.last_ask_date || 'never')}${r.ask_days != null ? ` <span class="foot">${r.ask_days}d</span>` : ''}</td><td>${r.failed.map(f => `<b class="${r.failed.length === 2 ? 'warn' : ''}">${esc(f)}</b>`).join(' + ')}</td><td>${r.live_requests ? `${r.live_requests} · ${esc(r.live_value_fmt)}` : '—'}</td></tr>`).join('')
+      + `</tbody></table></section>`;
+
+    // 8. unrouted in focus
+    const U = D.unrouted, F = U.finding;
+    out += `<section id="unrouted"><h2>Unrouted company asks, per connector <span class="foot">${U.unrouted_companies} companies with live requests nobody is allocated to, matched to each connector's stated focus areas</span></h2>
+      <p class="lede">In-focus asks convert at <b>${esc(F.in_focus_pct)}</b> versus ${esc(F.out_focus_pct)} outside, yet only ${F.in_focus_asks} of ${F.total_asks} asks landed in focus. These are the names that finding points at.</p>`;
+    for (const c of U.per_connector) {
+      out += `<h3>${esc(c.connector)} <span class="foot">${c.focus.map(esc).join(', ')} · ${plural(c.count, 'company')} · ${esc(c.value_fmt)} · ${c.idle} idle slots</span></h3>`;
+      out += c.companies.length ? `<table><thead><tr><th>company</th><th>industry</th><th>wanted</th><th>waiting</th><th>value</th><th>why unrouted</th><th>their way in</th></tr></thead><tbody>`
+        + c.companies.map(x => `<tr><td>${co(x)}<br><span class="foot">${x.request_ids.map(esc).join(', ')}</span></td><td>${esc(x.industry)}</td><td>${x.wanted.map(esc).join('<br>')}</td><td>${x.waiting.map(esc).join('<br>')}</td><td>${esc(x.value_fmt)}</td><td class="foot">${x.reasons.map(esc).join('; ')}</td><td class="${x.has_path ? '' : 'foot'}">${esc(x.path)}</td></tr>`).join('') + `</tbody></table>`
+        : `<p class="empty">no unrouted company in ${esc(c.connector)}'s focus areas</p>`;
+    }
+    out += `</section>`;
+
+    // 9. CRM
+    const C = D.crm;
+    out += `<section id="crm"><h2>What the CRM is missing <span class="foot">${C.groups.map(g => `${g.count} ${esc(g.group)}`).join(' · ')}</span></h2>
+      <div class="dl"><button id="lp-dl-import">Download ${esc(C.import.filename)}</button><span>${plural(C.import.count, 'account')} to create, importer-shaped columns only (<code>${C.import.columns.map(esc).join(', ')}</code>). It can be uploaded straight into the CRM.</span></div>
+      <div class="dl"><button id="lp-dl-review" class="secondary">Download ${esc(C.review.filename)}</button><span>${plural(C.review.count, 'recommendation')} (${C.review.groups.map(g => `${g.count} ${esc(g.group)}`).join(', ')}), every row <code>status = ${esc(C.status)}</code>. Merges and owner conflicts are recommended, never executed — ownership is compensation.</span></div>`;
+    for (const g of C.groups) {
+      out += `<h3>${esc(g.title)} <span class="foot">${g.count} · ${esc(g.value_fmt)}</span></h3>`;
+      out += g.rows.length ? `<table><thead><tr><th>company</th><th>CRM accounts</th><th>owner</th><th>stage</th><th>action</th><th>why</th><th class="num">at stake</th></tr></thead><tbody>`
+        + g.rows.map(r => `<tr><td>${co(r)}<br><span class="foot">${r.request_ids.map(esc).join(', ')}</span></td><td class="rid">${esc(r.crm_account_ids || '—')}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage || '—')}</td><td><b>${esc(r.action)}</b></td><td class="foot">${esc(r.why)}<br>${esc(r.evidence)}</td><td class="num">${esc(r.value_fmt)}</td></tr>`).join('') + `</tbody></table>`
+        : `<p class="empty">nothing to do</p>`;
+    }
+    out += `</section>`;
+
+    root.innerHTML = out;
+
+    // wiring: ticks, connector tabs, downloads, upload
+    root.querySelectorAll('.tick').forEach(cb => cb.addEventListener('change', () => {
+      const tr = cb.closest('tr'), rid = tr.dataset.rid;
+      cb.checked ? done.add(rid) : done.delete(rid);
+      tr.classList.toggle('done', cb.checked);
+      localStorage.setItem('lp-done', JSON.stringify([...done]));
+    }));
+    const ctabs = root.querySelector('#lp-ctabs');
+    ctabs.querySelectorAll('button').forEach(b => b.onclick = () => {
+      ctabs.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      root.querySelectorAll('.cpanel').forEach(p => p.hidden = p.dataset.i !== b.dataset.i);
+    });
+    root.querySelector('#lp-dl-import').onclick = () => download(C.import.filename, C.import.csv);
+    root.querySelector('#lp-dl-review').onclick = () => download(C.review.filename, C.review.csv);
+
+    const drop = root.querySelector('#lp-drop'), file = root.querySelector('#lp-file'), prev = root.querySelector('#lp-preview');
+    const handle = f => {
+      if (!f) return;
+      f.text().then(text => renderPreview(previewThreads(text, P), f.name, P, prev));
+    };
+    drop.addEventListener('click', e => { if (e.target !== file) file.click(); });
+    file.addEventListener('change', () => handle(file.files[0]));
+    ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+    drop.addEventListener('drop', e => handle(e.dataTransfer.files[0]));
+  }
+
+  function renderPreview(pv, filename, P, el) {
+    const flagged = pv.rows.filter(r => r.flags.length).length, offers = pv.rows.filter(r => r.offers.length).length;
+    const name = (filename || 'threads.jsonl').replace(/\.[^.]+$/, '');
+    let out = `<div class="kpis"><div class="kpi"><div class="v">${pv.count}</div><div class="l">threads</div><div class="s">${pv.rows.filter(r => r.filed).length} already filed</div></div>
+      <div class="kpi"><div class="v">${pv.rows.filter(r => r.company_id).length}</div><div class="l">resolved to a company</div><div class="s">${pv.rows.filter(r => !r.filed && !r.company_id).length} not</div></div>
+      <div class="kpi"><div class="v">${offers}</div><div class="l">with an offer in the replies</div></div>
+      <div class="kpi ${flagged ? 'warn' : ''}"><div class="v">${flagged}</div><div class="l">need a human</div></div></div>`;
+    if (pv.errors.length) out += `<div class="finding warn"><b>${plural(pv.errors.length, 'line')} skipped</b>${pv.errors.slice(0, 5).map(esc).join('<br>')}</div>`;
+    out += `<div class="dl"><button id="lp-dl-preview">Export preview CSV</button><span>Nothing has been written. To apply it for real, from the repo root:<br><code>${esc(P.command.replace('{file}', filename || 'threads.jsonl'))}</code></span></div>`;
+    out += `<table class="preview"><thead><tr><th>request</th><th>posted · by</th><th>resolved company</th><th>offer in replies</th><th>would route to</th><th>needs a human</th></tr></thead><tbody>`
+      + pv.rows.map(r => `<tr class="${r.flags.length ? 'flag' : ''}"><td class="rid">${esc(r.request_id)}${r.filed ? '<br><span class="foot">filed</span>' : ''}</td><td class="date">${esc(r.posted)}<br><span class="foot">${esc(r.requested_by)}</span></td><td>${r.company_id ? `${co(r)} <span class="foot">${esc(r.company_id)}</span>` : `<i>${esc(r.company_name || '—')}</i>`}<br><span class="foot">${esc(r.company_as_written ? `"${r.company_as_written}" · ` : '')}${esc(r.resolved_by)}</span></td><td>${r.offers.length ? r.offers.map(o => `<b>${esc(o.who)}</b> <span class="foot">${esc(o.date)}</span><br><q>${esc(o.text)}</q>`).join('<br>') : '<span class="foot">none</span>'}</td><td>${r.route_to ? `<b>${esc(r.route_to)}</b><br><span class="foot">${esc(r.path)}</span>` : `<span class="foot">${esc(r.path || '—')}</span>`}</td><td class="foot">${r.flags.length ? r.flags.map(esc).join('<br>') : 'nothing'}</td></tr>`).join('')
+      + `</tbody></table>`;
+    el.innerHTML = out;
+    el.querySelector('#lp-dl-preview').onclick = () => download(`${name}_preview.csv`, toCsv(P.preview_columns, pv.rows));
+  }
+
+  return { boot, extract, makeResolver, previewThreads, parseJsonl, normStrict, toCsv };
+})();
+if (typeof module !== 'undefined') module.exports = LP;

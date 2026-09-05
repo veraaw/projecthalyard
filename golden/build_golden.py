@@ -1,6 +1,13 @@
 """Build the golden datasets from the raw exports in dataset/.
 
-    python3 golden/build_golden.py [--as-of YYYY-MM-DD]
+    python3 golden/build_golden.py [--as-of YYYY-MM-DD] [--threads FILE.jsonl]
+
+--threads ingests a Slack export (one {request_id, messages:[{ts,user,text}...]}
+per line) alongside dataset/slack_threads.jsonl: a thread whose request_id is
+not yet filed becomes a request (requested_by / request_date / raw_ask from the
+first message, the company parsed from it by golden/parse.py, status Open, no
+deal value or target title, so needs_review is set), and offers in its replies
+become supply. The Live Priorities tab previews exactly this before it is run.
 
 golden/ is the state; dataset/ is read-only input and is never written.
 
@@ -80,6 +87,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+from golden.parse import extract as extract_target  # noqa: E402
 from golden.resolver import Resolver, domain_stem, normalize, normalize_strict  # noqa: E402
 
 DATASET = ROOT / "dataset"
@@ -317,6 +325,13 @@ class Registry:
             if len(cands) > 1:
                 return None, "ambiguous"
         return None, "unmatched"
+
+    def target_from_message(self, text: str) -> tuple[str, str]:
+        """(company_as_written, domain_hint) named by a Slack message, via golden/parse.py."""
+        t = extract_target(text, self._canon).target
+        if t is None:
+            return "", ""
+        return ("", t.text) if t.is_domain else (t.text, "")
 
     def resolve_in_scope(self, raw: str) -> tuple[Company | None, str]:
         """Resolve a spelling from a supply-side source. Never creates: a company
@@ -606,25 +621,32 @@ def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[di
 # ---------------------------------------------------------------------------
 # demand side
 # ---------------------------------------------------------------------------
-def load_threads() -> dict[str, dict]:
+def load_threads(extra: Path | None = None) -> dict[str, dict]:
+    """request_id -> thread facts from dataset/slack_threads.jsonl, plus the
+    threads in `extra` (--threads), which are marked ingested=True."""
     out = {}
-    with open(DATASET / "slack_threads.jsonl", encoding="utf-8") as f:
-        for line in f:
-            if not line.strip():
-                continue
-            t = json.loads(line)
-            replies = t["messages"][1:]
-            offers = [m for m in replies if OFFER_RE.search(m["text"])]
-            if not replies:
-                all_noise = "no replies"
-            else:
-                all_noise = "yes" if all(NOISE_RE.match(m["text"].strip()) for m in replies) else "no"
-            out[t["request_id"]] = {
-                "replies": len(replies),
-                "offer": "Y" if offers else "N",
-                "offers": offers,
-                "all_noise": all_noise,
-            }
+    for path, ingested in ((DATASET / "slack_threads.jsonl", False), (extra, True)):
+        if path is None:
+            continue
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                t = json.loads(line)
+                replies = t["messages"][1:]
+                offers = [m for m in replies if OFFER_RE.search(m["text"])]
+                if not replies:
+                    all_noise = "no replies"
+                else:
+                    all_noise = "yes" if all(NOISE_RE.match(m["text"].strip()) for m in replies) else "no"
+                out[t["request_id"]] = {
+                    "replies": len(replies),
+                    "offer": "Y" if offers else "N",
+                    "offers": offers,
+                    "all_noise": all_noise,
+                    "first": t["messages"][0],
+                    "ingested": ingested,
+                }
     return out
 
 
@@ -767,10 +789,23 @@ def source_facts(rq: dict) -> dict:
     }
 
 
-def resolve_requests(reg: Registry, filed: list[dict]) -> dict[str, dict]:
+def thread_facts(rid: str, first: dict) -> dict:
+    """FACT_COLUMNS as the first message of an ingested Slack thread states them."""
+    return {
+        "request_id": rid, "requested_by": first["user"], "request_date": first["ts"][:10],
+        "raw_ask": first["text"], "company_as_written": "",
+        "value_usd": "", "urgency_declared": "", "status_as_filed": "Open",
+    }
+
+
+def resolve_requests(reg: Registry, filed: list[dict], ingest: dict[str, dict] | None = None) -> dict[str, dict]:
     """request_id -> {company, method, target_title, facts, source}: every
     request the file will hold after this run. Registers every requested
     company, so after this the registry is the in-scope set.
+
+    ingest (--threads) adds Slack threads whose request_id is neither filed
+    nor in the raw export: facts come from the first message, the company
+    from golden/parse.py on its text.
 
     facts (FACT_COLUMNS) come from the filed row when there is one (a filed
     request keeps its filed spelling even if the raw export changes or no
@@ -802,6 +837,14 @@ def resolve_requests(reg: Registry, filed: list[dict]) -> dict[str, dict]:
         facts = source_facts(rq)
         out[rid] = {"company": company, "method": method, "target_title": rq["target_title_raw"].strip(),
                     "facts": facts, "source": facts}
+    for rid, th in (ingest or {}).items():
+        if rid in out:
+            continue
+        written, domain_hint = reg.target_from_message(th["first"]["text"])
+        company, method = resolve_target(reg, written, domain_hint, bool(written or domain_hint))
+        facts = thread_facts(rid, th["first"])
+        facts["company_as_written"] = written or domain_hint
+        out[rid] = {"company": company, "method": method, "target_title": "", "facts": facts, "source": facts}
     return out
 
 
@@ -1080,6 +1123,7 @@ def write_derived(supply: list[dict], allocation: list[dict], companies: list[di
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--as-of", default=date.today().isoformat())
+    ap.add_argument("--threads", type=Path, help="a Slack export (.jsonl) to ingest alongside dataset/slack_threads.jsonl")
     args = ap.parse_args()
     today = parse_date(args.as_of) or date.today()
 
@@ -1089,12 +1133,12 @@ def main() -> None:
     filed = read_csv(REQUESTS_OUT) if REQUESTS_OUT.exists() else []
     reg = Registry(read_csv(DATASET / "crm_accounts.csv"),
                    [inv["fund"] for inv in read_csv(DATASET / "investor_network.csv")])
-    resolved = resolve_requests(reg, filed)
+    threads = load_threads(args.threads)
+    resolved = resolve_requests(reg, filed, {rid: th for rid, th in threads.items() if th["ingested"]})
     reg.assign_ids()
 
     roster = load_roster()
     outcomes = read_csv(DATASET / "intro_outcomes.csv")
-    threads = load_threads()
     rates = delivery_rates(roster, outcomes, threads)
 
     supply = build_supply(reg, roster, rates, today, {rid: rq["company"] for rid, rq in resolved.items()}, threads)
