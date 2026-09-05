@@ -42,7 +42,9 @@ Writes four CSVs (UTF-8, no BOM, CRLF):
 Scope. A company is in scope if it is in crm_accounts.csv or is named as the
 target of any intro request. The set is recomputed on every run; nothing is
 hard-coded. Connection / investor rows naming a company outside that set are
-not emitted (the raw exports are left as delivered).
+not emitted (the raw exports are left as delivered). supply_reach.csv and
+golden_companies.csv cover the same companies: a CRM account with no request
+has no company row (total_requests would be 0) and so no supply rows either.
 
 Company identity is the CRM domain, not the account name. Spellings from any
 source are matched on the resolver's normalised key ("Blackwood Industrial" ->
@@ -442,14 +444,18 @@ def fit(connector: dict, industry: str) -> float:
 
 def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
                  request_company: dict[str, Company | None], threads: dict[str, dict]) -> list[dict]:
-    """One row per way into an in-scope company. Sources that name a company
-    outside the CRM + requested set produce no row."""
+    """One row per way into a requested company. Sources that name a company
+    outside the CRM + requested set produce no row; nor does a CRM account
+    nobody has asked for, so every company_id here has a golden_companies row."""
     rows: list[dict] = []
     person_to_connectors: dict[str, list[tuple[str, dict]]] = defaultdict(list)
+    requested = {c for c in request_company.values() if c is not None}
 
     def emit(connector: str, company: Company, kind: str, contact: str, title: str,
              observed: str, strength: float, evidence: str, offer_age: int | None = None,
              board_seat: str = ""):
+        if company not in requested:
+            return
         r = roster.get(connector)
         s = company.survivor
         industry = s["industry"] if s else ""
