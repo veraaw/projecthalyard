@@ -292,14 +292,14 @@ body{{margin:0;font:16px/1.55 var(--serif);color:var(--ink);background:var(--bg)
 h1,h2,h3,h4,nav,th,.kpi,.foot,summary{{font-family:var(--sans)}}
 h1,h2,h3,h4{{font-weight:500;letter-spacing:-.01em}}
 a{{color:var(--blue)}}
-header{{background:var(--bg);border-bottom:1px solid var(--line);padding:40px 40px 28px}}
+header{{background:var(--bg);border-bottom:1px solid var(--line);padding:32px 40px 28px}}
 header h1{{margin:0 0 6px;font-size:34px;line-height:1.15;font-weight:400;letter-spacing:-.02em}}
 header p{{margin:0;color:var(--mute)}}
 nav a{{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}}
 nav a:hover{{color:var(--blue)}}
 .part-lede{{margin-bottom:24px}}
 main{{max-width:1240px;margin:0 auto;padding:28px 40px 72px}}
-section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px}}
+section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:60px}}
 h2{{margin:0 0 6px;font-size:22px}}
 h3{{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}}
 details{{margin-top:26px}}
@@ -331,7 +331,7 @@ td:nth-child(n+2):not(:last-child).num,th.num{{text-align:right}}
 .foot{{color:var(--mute);font-size:13px}}
 code{{font-family:var(--mono);background:rgba(0,0,0,.04);padding:1px 5px;font-size:12.5px}}
 img{{max-width:100%}}
-.tabs{{display:flex;gap:4px;margin:0 0 22px;border-bottom:1px solid var(--line)}}
+.tabs{{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:4px;padding:10px 40px 0;background:var(--bg);border-bottom:1px solid var(--line)}}
 .tabs a{{font-family:var(--sans);font-size:14px;color:var(--mute);text-decoration:none;padding:8px 16px;margin-bottom:-1px;border:1px solid transparent}}
 .tabs a:hover{{color:var(--ink)}}
 .tabs a.on{{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}}
@@ -400,8 +400,8 @@ def head(title):
 
 raw_page = f"""{head("raw Sept data dashboard")}
 <body>
+{tabs(RAW_HTML)}
 <header>
-  {tabs(RAW_HTML)}
   <h1>Raw Sept data — scoping &amp; verification</h1>
   <p>200 warm-intro requests · Aug 2025 – Jul 2026 · source: the September exports in <code>dataset/</code>, as filed · {built}</p>
   <nav style="margin-top:12px"><a href="#flow">File flow</a><a href="#overview">Funnel overview</a><a href="#joins">Joins</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a></nav>
@@ -623,8 +623,8 @@ raw_page = f"""{head("raw Sept data dashboard")}
 
 live_page = f"""{head("live data dashboard")}
 <body>
+{tabs(LIVE_HTML)}
 <header>
-  {tabs(LIVE_HTML)}
   <h1>Live data — funnel, accounts and connectors</h1>
   <p>The same {len(requests)} requests after entity resolution · source: <code>golden/</code>, rebuilt from <code>dataset/</code> by <code>python3 build.py</code> · {built}</p>
   <nav style="margin-top:12px"><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a></nav>
@@ -725,8 +725,8 @@ trace_page = f"""<!doctype html>
 {theme.FONT_LINK}
 {STYLE}</head>
 <body>
+{tabs(TRACE_HTML)}
 <header>
-  {tabs(TRACE_HTML)}
   <h1>Company trace — the full history of one company</h1>
   <p>What <code>analysis/trace.py</code> prints, for any of the 48 companies with a request · sources: <code>dataset/</code>, <code>golden/</code> · {built}</p>
 </header>
@@ -742,8 +742,8 @@ trace_page = f"""<!doctype html>
 
 priorities_page = f"""{head("live priorities")}
 <body>
+{tabs(PRIORITIES_HTML)}
 <header>
-  {tabs(PRIORITIES_HTML)}
   <h1>Live priorities — what to do next, and who does it</h1>
   <p>Every number here is computed by <code>dashboard/live_priorities.py</code> from <code>golden/</code> and <code>dataset/</code> at build time and written into the page; the browser only renders it. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
 </header>
