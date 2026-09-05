@@ -52,17 +52,19 @@ td:nth-child(n+2):not(:last-child).num,th.num{text-align:right}
 code{font-family:var(--mono);background:rgba(0,0,0,.04);padding:1px 5px;font-size:12.5px}
 img{max-width:100%}
 .topbar{position:sticky;top:0;z-index:10;background:var(--bg)}
-.mastrow{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 28px;padding:10px 40px 0;border-bottom:1px solid var(--line)}
-.mast{display:flex;align-items:center;gap:12px;padding:2px 0 10px;text-decoration:none;color:var(--ink)}
+.mastrow{display:flex;align-items:center;justify-content:space-between;gap:8px 28px;padding:10px 40px 8px;border-bottom:1px solid var(--line);background:var(--surface)}
+.mastrow .built{font-family:var(--sans);font-size:12px;color:var(--mute);white-space:nowrap}
+.mast{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink)}
 .mast .logo{flex:none;display:block}
 .mast .t{font-family:var(--sans);font-size:17px;line-height:1.2;letter-spacing:-.01em;color:var(--mute);white-space:nowrap}
 .mast .t b{font-weight:600;color:var(--navy)}
-.tabs{display:flex;flex-wrap:wrap;gap:4px;margin-left:auto}
+.tabs{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;padding:6px 40px 0;border-bottom:1px solid var(--line)}
 .tabs a{font-family:var(--sans);font-size:14px;color:var(--mute);text-decoration:none;padding:8px 16px;margin-bottom:-1px;border:1px solid transparent}
 .tabs a:hover{color:var(--ink)}
 .tabs a.on{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}
-.tabs.people{margin-left:0;padding:6px 40px 0;background:rgba(196,118,62,0.08);border-bottom:1px solid rgba(196,118,62,0.35)}
-.tabs.people .lbl{font-family:var(--sans);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--baton);padding:11px 12px 0 0;align-self:flex-start}
+.tabs a.parent{color:var(--ink);border-color:rgba(196,118,62,0.35) rgba(196,118,62,0.35) transparent;background:rgba(196,118,62,0.08)}
+.tabs.people{padding:4px 40px 0;background:rgba(196,118,62,0.08);border-bottom:1px solid rgba(196,118,62,0.35)}
+.tabs.people .lbl{font-family:var(--sans);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--baton);padding:10px 12px 0 0}
 .tabs.people a{color:#7a4520;font-size:13.5px;padding:7px 13px}
 .tabs.people a .n{margin-left:6px;font-size:11.5px;color:var(--baton);font-variant-numeric:tabular-nums}
 .tabs.people a:hover{color:var(--navy)}
@@ -108,7 +110,7 @@ img{max-width:100%}
 #lp table.preview tr.flag td{background:rgba(159,45,0,.035)}
 </style></head>
 <body>
-<div class="topbar"><div class="mastrow"><a class="mast" href="livedata.html"><svg class="logo" width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="7" fill="#17293f"/><rect x="9" y="9" width="3.4" height="22" fill="#fff"/><rect x="27.6" y="9" width="3.4" height="22" fill="#fff"/><path d="M12.4 26.4 27.6 14.6" stroke="#c4763e" stroke-width="3"/></svg><span class="t"><b>Halyard Baton</b> / intro routing console</span></a><div class="tabs"><a href="halyardscoping.html" class="on">Raw Sept Data Dashboard</a><a href="livedata.html">Live Data Dashboard</a><a href="companytrace.html">Company Trace</a><a href="livepriorities.html">Live Priorities</a></div></div><div class="tabs people"><span class="lbl">by connector</span><a href="connector-marcus-aldridge.html">Marcus Aldridge<span class="n">8</span></a><a href="connector-dana-whitfield.html">Dana Whitfield<span class="n">6</span></a><a href="connector-priya-raghunathan.html">Priya Raghunathan<span class="n">8</span></a><a href="connector-tomas-beckett.html">Tomás Beckett<span class="n">8</span></a><a href="connector-elena-duvall.html">Elena Duvall<span class="n">3</span></a><a href="connector-owen-trask.html">Owen Trask<span class="n">3</span></a><a href="connector-imani-mkhize.html">Imani Mkhize<span class="n">2</span></a><a href="connector-curtis-hartigan.html">Curtis Hartigan<span class="n">2</span></a><a href="connector-yusuf-petrossian.html">Yusuf Petrossian<span class="n">2</span></a><a href="connector-nadia-okonkwo.html">Nadia Okonkwo<span class="n">1</span></a></div></div>
+<div class="topbar"><div class="mastrow"><a class="mast" href="livedata.html"><svg class="logo" width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="7" fill="#17293f"/><rect x="9" y="9" width="3.4" height="22" fill="#fff"/><rect x="27.6" y="9" width="3.4" height="22" fill="#fff"/><path d="M12.4 26.4 27.6 14.6" stroke="#c4763e" stroke-width="3"/></svg><span class="t"><b>Halyard Baton</b> / intro routing console</span></a><span class="built">built 2026-09-05</span></div><div class="tabs"><a href="halyardscoping.html" class="on">Raw Sept Data Dashboard</a><a href="livedata.html">Live Data Dashboard</a><a href="companytrace.html">Company Trace</a><a href="livepriorities.html">Live Priorities</a></div><div class="tabs people"><span class="lbl">Live Priorities · by connector</span><a href="connector-marcus-aldridge.html">Marcus Aldridge<span class="n">8</span></a><a href="connector-dana-whitfield.html">Dana Whitfield<span class="n">6</span></a><a href="connector-priya-raghunathan.html">Priya Raghunathan<span class="n">8</span></a><a href="connector-tomas-beckett.html">Tomás Beckett<span class="n">8</span></a><a href="connector-elena-duvall.html">Elena Duvall<span class="n">3</span></a><a href="connector-owen-trask.html">Owen Trask<span class="n">3</span></a><a href="connector-imani-mkhize.html">Imani Mkhize<span class="n">2</span></a><a href="connector-curtis-hartigan.html">Curtis Hartigan<span class="n">2</span></a><a href="connector-yusuf-petrossian.html">Yusuf Petrossian<span class="n">2</span></a><a href="connector-nadia-okonkwo.html">Nadia Okonkwo<span class="n">1</span></a></div></div>
 <header>
   <h1>Raw Sept data — scoping &amp; verification</h1>
   <p>200 warm-intro requests · Aug 2025 – Jul 2026 · source: the September exports in <code>dataset/</code>, as filed · built 2026-09-05</p>

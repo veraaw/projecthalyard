@@ -367,17 +367,19 @@ td:nth-child(n+2):not(:last-child).num,th.num{{text-align:right}}
 code{{font-family:var(--mono);background:rgba(0,0,0,.04);padding:1px 5px;font-size:12.5px}}
 img{{max-width:100%}}
 .topbar{{position:sticky;top:0;z-index:10;background:var(--bg)}}
-.mastrow{{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 28px;padding:10px 40px 0;border-bottom:1px solid var(--line)}}
-.mast{{display:flex;align-items:center;gap:12px;padding:2px 0 10px;text-decoration:none;color:var(--ink)}}
+.mastrow{{display:flex;align-items:center;justify-content:space-between;gap:8px 28px;padding:10px 40px 8px;border-bottom:1px solid var(--line);background:var(--surface)}}
+.mastrow .built{{font-family:var(--sans);font-size:12px;color:var(--mute);white-space:nowrap}}
+.mast{{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink)}}
 .mast .logo{{flex:none;display:block}}
 .mast .t{{font-family:var(--sans);font-size:17px;line-height:1.2;letter-spacing:-.01em;color:var(--mute);white-space:nowrap}}
 .mast .t b{{font-weight:600;color:var(--navy)}}
-.tabs{{display:flex;flex-wrap:wrap;gap:4px;margin-left:auto}}
+.tabs{{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;padding:6px 40px 0;border-bottom:1px solid var(--line)}}
 .tabs a{{font-family:var(--sans);font-size:14px;color:var(--mute);text-decoration:none;padding:8px 16px;margin-bottom:-1px;border:1px solid transparent}}
 .tabs a:hover{{color:var(--ink)}}
 .tabs a.on{{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}}
-.tabs.people{{margin-left:0;padding:6px 40px 0;background:{theme.rgba(theme.BATON, 0.08)};border-bottom:1px solid {theme.rgba(theme.BATON, 0.35)}}}
-.tabs.people .lbl{{font-family:var(--sans);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--baton);padding:11px 12px 0 0;align-self:flex-start}}
+.tabs a.parent{{color:var(--ink);border-color:{theme.rgba(theme.BATON, 0.35)} {theme.rgba(theme.BATON, 0.35)} transparent;background:{theme.rgba(theme.BATON, 0.08)}}}
+.tabs.people{{padding:4px 40px 0;background:{theme.rgba(theme.BATON, 0.08)};border-bottom:1px solid {theme.rgba(theme.BATON, 0.35)}}}
+.tabs.people .lbl{{font-family:var(--sans);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--baton);padding:10px 12px 0 0}}
 .tabs.people a{{color:#7a4520;font-size:13.5px;padding:7px 13px}}
 .tabs.people a .n{{margin-left:6px;font-size:11.5px;color:var(--baton);font-variant-numeric:tabular-nums}}
 .tabs.people a:hover{{color:var(--navy)}}
@@ -438,16 +440,22 @@ MASTHEAD = (f'<a class="mast" href="{LIVE_HTML}">{theme.logo()}'
 
 
 def tabs(active):
-    """The sticky bar on every page: masthead, the page tabs, and a second row in the
-    baton colour with one tab per connector."""
+    """The sticky bar on every page: the masthead across the top, the page tabs, and
+    under Live Priorities a sub-row in the baton colour with one tab per connector.
+    The rows are right-aligned so the connector row hangs from the Live Priorities tab;
+    on a connector's page that tab is marked as the parent."""
+    on_connector = any(c["page"] == active for c, _ in connector_pages)
+
     def link(href, label, extra=""):
-        cls = ' class="on"' if href == active else ""
-        return f'<a href="{href}"{cls}>{esc(label)}{extra}</a>'
+        cls = "on" if href == active else "parent" if href == PRIORITIES_HTML and on_connector else ""
+        attr = f' class="{cls}"' if cls else ""
+        return f'<a href="{href}"{attr}>{esc(label)}{extra}</a>'
     pages = "".join(link(href, label) for href, label in TABS)
     people = "".join(link(c["page"], c["connector"], f'<span class="n">{len(c["top"]) + len(c["rest"])}</span>')
                      for c, _ in connector_pages)
-    return (f'<div class="topbar"><div class="mastrow">{MASTHEAD}<div class="tabs">{pages}</div></div>'
-            f'<div class="tabs people"><span class="lbl">by connector</span>{people}</div></div>')
+    return (f'<div class="topbar"><div class="mastrow">{MASTHEAD}<span class="built">{built}</span></div>'
+            f'<div class="tabs">{pages}</div>'
+            f'<div class="tabs people"><span class="lbl">Live Priorities · by connector</span>{people}</div></div>')
 
 
 built = f"built {datetime.now():%Y-%m-%d}"
