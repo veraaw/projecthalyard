@@ -203,17 +203,54 @@ class Live:
             return "needs data"
         return "to be routed"
 
+    def company_value(self, cid: str) -> tuple[int, str]:
+        """One $ per company: CRM ARR potential (golden_companies.value_usd, the max
+        across its accounts) when the company has one, else the deal value on its
+        most recent request that carries one. Returns (usd, source)."""
+        c = self.companies.get(cid, {})
+        if c.get("crm_account_ids") and usd(c.get("value_usd")):
+            return usd(c["value_usd"]), "crm"
+        for r in sorted(self.by_company.get(cid, []), key=lambda r: (r["request_date"], r["request_id"]), reverse=True):
+            if usd(r["value_usd"]):
+                return usd(r["value_usd"]), "deal"
+        return 0, "none"
+
+    def company_stage(self, cid: str) -> str:
+        """The furthest stage any of the company's requests has reached: a company
+        already won stays won however many fresh asks are open on it. 'closed'
+        only when every request is Closed - no path."""
+        stages = {self.stage_of(r) for r in self.by_company.get(cid, [])}
+        return max((s for s in stages if s != "closed"), key=STAGES.index, default="closed")
+
     def stages(self) -> dict:
-        count, dollars = Counter(), Counter()
-        for r in self.requests:
-            s = self.stage_of(r)
+        """Each company counted once, at its furthest stage, at one $ value. A
+        request that resolved to no company cannot be tied to a CRM account or to
+        its sibling requests, so it stands on its own at its own deal value."""
+        count, dollars, unresolved, unresolved_usd, source = Counter(), Counter(), Counter(), Counter(), Counter()
+        for cid in self.by_company:
+            s = self.company_stage(cid)
+            v, src = self.company_value(cid)
             count[s] += 1
-            dollars[s] += usd(r["value_usd"])
+            dollars[s] += v
+            if s != "closed":
+                source[src] += 1
+        for r in self.requests:
+            if not r["company_id"]:
+                s = self.stage_of(r)
+                count[s] += 1
+                unresolved[s] += 1
+                dollars[s] += usd(r["value_usd"])
+                unresolved_usd[s] += usd(r["value_usd"])
         return {
             "as_of": self.today.isoformat(),
-            "stages": [{"stage": s, "count": count[s], "usd": dollars[s], "usd_fmt": money(dollars[s])} for s in STAGES],
-            "excluded": {"stage": "closed", "count": count["closed"], "usd_fmt": money(dollars["closed"])},
-            "total": {"count": sum(count[s] for s in STAGES), "usd_fmt": money(sum(dollars[s] for s in STAGES))},
+            "stages": [{"stage": s, "count": count[s], "unresolved": unresolved[s], "usd": dollars[s], "usd_fmt": money(dollars[s])}
+                       for s in STAGES],
+            "excluded": {"stage": "closed", "count": count["closed"], "unresolved": unresolved["closed"], "usd_fmt": money(dollars["closed"])},
+            "total": {"count": sum(count[s] for s in STAGES), "usd_fmt": money(sum(dollars[s] for s in STAGES)),
+                      "companies": sum(count[s] - unresolved[s] for s in STAGES),
+                      "unresolved": sum(unresolved[s] for s in STAGES),
+                      "unresolved_usd_fmt": money(sum(unresolved_usd[s] for s in STAGES))},
+            "value_source": {"crm": source["crm"], "deal": source["deal"], "none": source["none"]},
         }
 
     # -- 2. top priorities ----------------------------------------------------
