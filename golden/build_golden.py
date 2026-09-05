@@ -50,6 +50,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import re
 import sys
 from collections import Counter, defaultdict
@@ -614,8 +615,9 @@ def path_score(p: dict, roster: dict, rates: dict, industry: str) -> float:
 
 
 def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company: dict[str, list[dict]],
-             resolved: dict[str, tuple[Company | None, str, str]], today: date) -> dict[str, dict]:
-    """request_id -> allocation row for every live request not yet asked.
+             resolved: dict[str, dict], today: date) -> dict[str, dict]:
+    """request_id -> allocation row for every live request not yet asked,
+    taken from the request file (filed rows plus the ones about to be appended).
 
     Each connector has a budget for the cycle: stated_monthly_capacity minus
     asks already dated in the cycle (OFF_ROSTER_CAPACITY off the roster).
@@ -631,15 +633,13 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
             budget[o["connector_asked"]] -= 1
 
     asked = {o["request_id"] for o in outcomes}
-    live = [rq for rq in read_csv(DATASET / "intro_requests.csv")
-            if rq["status"] in OPEN_STATUSES and rq["request_id"] not in asked]
-    live.sort(key=lambda rq: (URGENCY_RANK.get(rq["urgency"], 9), -float(money(rq["deal_value_usd"]) or 0),
-                              rq["request_date"], rq["request_id"]))
+    live = [(rid, rq) for rid, rq in resolved.items() if rq["status"] in OPEN_STATUSES and rid not in asked]
+    live.sort(key=lambda t: (URGENCY_RANK.get(t[1]["urgency"], 9), -float(t[1]["value_usd"] or 0),
+                             t[1]["request_date"], t[0]))
 
     out: dict[str, dict] = {}
-    for rq in live:
-        rid = rq["request_id"]
-        company, _, _ = resolved[rid]
+    for rid, rq in live:
+        company = rq["company"]
         s = company.survivor if company else None
         industry = s["industry"] if s else ""
         paths = supply_by_company.get(company.company_id, []) if company else []
@@ -648,8 +648,8 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
             "request_id": rid,
             "company_id": company.company_id if company else "",
             "company_name": company.name if company else "",
-            "target_title": rq["target_title_raw"].strip(),
-            "value_usd": money(rq["deal_value_usd"]),
+            "target_title": rq["target_title"],
+            "value_usd": rq["value_usd"],
             "urgency_declared": rq["urgency"],
             "request_date": rq["request_date"],
             "status_as_filed": rq["status"],
@@ -701,17 +701,50 @@ def path_label(p: dict) -> str:
     return label
 
 
-def resolve_requests(reg: Registry) -> dict[str, tuple[Company | None, str, str]]:
-    """request_id -> (company, company_as_written, method). Registers every
-    requested company, so after this the registry is the in-scope set."""
+def _looks_like_domain(s: str) -> bool:
+    return "." in s and " " not in s
+
+
+def request_target(rq: dict) -> tuple[str, str, bool]:
+    """(company_as_written, domain_hint, parsed_from_raw_ask) for a raw request."""
+    written = rq["target_company_raw"].strip()
+    if written:
+        return written, "", False
+    written, domain_hint = company_from_ask(rq["raw_ask"])
+    return written, domain_hint, bool(written or domain_hint)
+
+
+def resolve_requests(reg: Registry, filed: list[dict]) -> dict[str, dict]:
+    """request_id -> {company, written, method, target_title, value_usd,
+    urgency, request_date, status}: the request as the file holds (or will
+    hold) it. Registers every requested company, so after this the registry is
+    the in-scope set.
+
+    Scope comes from the request file as it will stand after this run: every
+    row already filed in golden_requests.csv (its company_as_written, which is
+    pinned to its company_id) plus the target of every raw request not yet
+    filed. A filed request keeps its filed spelling and company even if the raw
+    export changes; the raw row, when still present, only contributes the email
+    domain parsed from raw_ask so the company keeps its domain."""
+    raw = {rq["request_id"]: rq for rq in read_csv(DATASET / "intro_requests.csv")}
     out = {}
-    for rq in read_csv(DATASET / "intro_requests.csv"):
-        written = rq["target_company_raw"].strip()
-        domain_hint = ""
-        parsed_from_ask = False
-        if not written:
-            written, domain_hint = company_from_ask(rq["raw_ask"])
-            parsed_from_ask = bool(written or domain_hint)
+    for r in filed:
+        company = None
+        written = r["company_as_written"]
+        if r["company_id"] and written:
+            domain_hint = request_target(raw[r["request_id"]])[1] if r["request_id"] in raw else ""
+            if not domain_hint and _looks_like_domain(written):
+                domain_hint = written
+            company, _ = reg.resolve_or_create(written, domain_hint)
+        out[r["request_id"]] = {
+            "company": company, "written": written, "method": r["resolved_by"],
+            "target_title": r["target_title"], "value_usd": r["value_usd"], "urgency": r["urgency_declared"],
+            "request_date": r["request_date"], "status": r["status_as_filed"],
+        }
+    for rid, rq in raw.items():
+        if rid in out:
+            continue
+        written, domain_hint, parsed_from_ask = request_target(rq)
         if written or domain_hint:
             company, method = reg.resolve_or_create(written, domain_hint)
             if not written:
@@ -720,18 +753,24 @@ def resolve_requests(reg: Registry) -> dict[str, tuple[Company | None, str, str]
                 method = f"raw_ask:{method}"
         else:
             company, method = None, "unresolved"
-        out[rq["request_id"]] = (company, written, method)
+        out[rid] = {
+            "company": company, "written": written, "method": method,
+            "target_title": rq["target_title_raw"].strip(), "value_usd": money(rq["deal_value_usd"]),
+            "urgency": rq["urgency"], "request_date": rq["request_date"], "status": rq["status"],
+        }
     return out
 
 
 def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: dict[str, list[dict]],
-                   resolved: dict[str, tuple[Company | None, str, str]], threads: dict[str, dict],
+                   resolved: dict[str, dict], threads: dict[str, dict],
                    allocation: dict[str, dict]) -> list[dict]:
     outcomes = {o["request_id"]: o for o in read_csv(DATASET / "intro_outcomes.csv")}
     rows = []
     for rq in read_csv(DATASET / "intro_requests.csv"):
         rid = rq["request_id"]
-        company, written, method = resolved[rid]
+        if rid not in resolved:
+            continue
+        company, written, method = resolved[rid]["company"], resolved[rid]["written"], resolved[rid]["method"]
 
         review = []
         if company is None:
@@ -859,8 +898,7 @@ def append_only_write(rows: list[dict]) -> tuple[int, int, list[str], list[str]]
 # ---------------------------------------------------------------------------
 # companies: rebuilt from golden_requests.csv every run
 # ---------------------------------------------------------------------------
-def build_companies(reg: Registry, supply: list[dict], today: date) -> list[dict]:
-    requests = read_csv(REQUESTS_OUT)
+def build_companies(reg: Registry, supply: list[dict], requests: list[dict], today: date) -> list[dict]:
     by_company = defaultdict(list)
     for r in requests:
         if r["company_id"]:
@@ -929,16 +967,38 @@ def build_companies(reg: Registry, supply: list[dict], today: date) -> list[dict
     return rows
 
 
+def write_derived(supply: list[dict], allocation: list[dict], companies: list[dict]) -> None:
+    """supply_reach.csv, golden_allocation.csv and golden_companies.csv are
+    one derived view of the same scope and are only ever written together:
+    every file is rendered to a sibling .tmp first, and the .tmp files are
+    swapped in only once all three rendered, so a failure never leaves a
+    company file that counts a path the supply file denies."""
+    targets = [
+        (SUPPLY_OUT, SUPPLY_COLUMNS, supply),
+        (ALLOCATION_OUT, ALLOCATION_COLUMNS, allocation),
+        (COMPANIES_OUT, COMPANY_COLUMNS, companies),
+    ]
+    tmps = []
+    for path, cols, rows in targets:
+        tmp = path.with_name(path.name + ".tmp")
+        write_csv(tmp, cols, rows)
+        tmps.append((tmp, path))
+    for tmp, path in tmps:
+        os.replace(tmp, path)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--as-of", default=date.today().isoformat())
     args = ap.parse_args()
     today = parse_date(args.as_of) or date.today()
 
-    # In-scope set = CRM accounts + every requested company. IDs are pinned to
+    # In-scope set = CRM accounts + every company in the request file (rows
+    # already filed, plus raw requests about to be appended). IDs are pinned to
     # the existing golden files before any supply-side source is read.
+    filed = read_csv(REQUESTS_OUT) if REQUESTS_OUT.exists() else []
     reg = Registry(read_csv(DATASET / "crm_accounts.csv"))
-    resolved = resolve_requests(reg)
+    resolved = resolve_requests(reg, filed)
     reg.assign_ids()
 
     roster = load_roster()
@@ -946,7 +1006,7 @@ def main() -> None:
     threads = load_threads()
     rates = delivery_rates(roster, outcomes, threads)
 
-    supply = build_supply(reg, roster, rates, today, {rid: c for rid, (c, _, _) in resolved.items()}, threads)
+    supply = build_supply(reg, roster, rates, today, {rid: rq["company"] for rid, rq in resolved.items()}, threads)
 
     supply_by = defaultdict(list)
     for s in supply:
@@ -955,14 +1015,12 @@ def main() -> None:
     requests = build_requests(reg, roster, rates, supply_by, resolved, threads, allocation)
     existing, appended, added, warnings = append_only_write(requests)
 
+    # Derived files: all three computed from the request file as just written,
+    # then swapped in together.
     supply = finish_supply(supply, roster, rates, outcomes, allocation, threads, today)
-    write_csv(SUPPLY_OUT, SUPPLY_COLUMNS, supply)
-
     alloc_rows = sorted(allocation.values(), key=lambda a: (a["allocated_to"] == "", a["batch_id"], a["request_id"]))
-    write_csv(ALLOCATION_OUT, ALLOCATION_COLUMNS, alloc_rows)
-
-    companies = build_companies(reg, supply, today)
-    write_csv(COMPANIES_OUT, COMPANY_COLUMNS, companies)
+    companies = build_companies(reg, supply, read_csv(REQUESTS_OUT), today)
+    write_derived(supply, alloc_rows, companies)
 
     print(f"golden_requests.csv   {existing + appended} rows ({existing} kept, {appended} appended"
           + (f"; columns added: {', '.join(added)}" if added else "") + ")")
