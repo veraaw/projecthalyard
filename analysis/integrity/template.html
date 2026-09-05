@@ -3,67 +3,69 @@
 <head>
 <meta charset="utf-8">
 <title>Integrity audit — dataset/</title>
-<style>body{margin:0}</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>body{margin:0;background:#f7f6f5}</style>
 </head>
 <body>
 <!--IA-FRAGMENT-START-->
 <div id="ia">
 <style>
-#ia{--high:#b3261e;--medium:#c47f00;--info:#4a6fa5;--zero:#b8b8b8;--ink:#1d1d1d;--muted:#666;--line:#e3e3e3;--bg:#fafafa}
+#ia{--high:#9f2d00;--medium:#b58200;--info:#2200ff;--zero:#c9c5c1;--ink:#191919;--muted:#6f6d6a;--line:rgba(0,0,0,.09);--bg:#f7f6f5}
 #ia *{box-sizing:border-box}
-#ia{margin:0;font:14px/1.45 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:var(--ink);background:#fff}
+#ia{margin:0;font:14px/1.45 var(--sans,"Inter",-apple-system,Segoe UI,Helvetica,Arial,sans-serif);color:var(--ink);background:#fff}
+#ia code{font-family:var(--mono,"Geist Mono",ui-monospace,monospace);background:rgba(0,0,0,.04);padding:1px 5px;font-size:12.5px}
 #ia .ia-main{max-width:1180px;margin:0 auto;padding:24px 28px 80px}
-#ia h1{font-size:22px;margin:0 0 4px}
-#ia h2{font-size:17px;margin:40px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
-#ia h3{font-size:14px;margin:18px 0 8px}
+#ia h1{font-size:22px;margin:0 0 4px;font-weight:500;letter-spacing:-.01em}
+#ia h2{font-size:16px;font-weight:500;letter-spacing:-.01em;margin:40px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+#ia h3{font-size:14px;font-weight:500;margin:18px 0 8px;color:var(--ink);text-transform:none;letter-spacing:0}
 #ia .sub{color:var(--muted);margin:0 0 18px}
 #ia .legend span{display:inline-block;margin-right:14px}
-#ia .sw{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+#ia .sw{display:inline-block;width:11px;height:11px;vertical-align:-1px;margin-right:5px}
 #ia .sev-high{background:var(--high)}
 #ia .sev-medium{background:var(--medium)}
 #ia .sev-info{background:var(--info)}
 #ia .sev-zero{background:var(--zero)}
 #ia .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
-#ia .tile{border:1px solid var(--line);border-left:5px solid var(--zero);border-radius:4px;padding:10px 12px;background:var(--bg)}
+#ia .tile{border:1px solid var(--line);border-left:3px solid var(--zero);padding:10px 12px;background:var(--bg)}
 #ia .tile.high{border-left-color:var(--high)}
 #ia .tile.medium{border-left-color:var(--medium)}
 #ia .tile.info{border-left-color:var(--info)}
-#ia .tile .n{font-size:26px;font-weight:600;line-height:1.1}
+#ia .tile .n{font-size:26px;font-weight:400;line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 #ia .tile.zero .n{color:var(--muted)}
 #ia .tile .t{font-size:12px;margin-top:4px}
 #ia .tile .d{font-size:11px;color:var(--muted);margin-top:4px}
 #ia .num{cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px}
 #ia .num:hover{text-decoration:underline}
-#ia .join{margin:14px 0 22px;border:1px solid var(--line);border-radius:4px;padding:12px}
-#ia .bar{display:flex;height:26px;border-radius:3px;overflow:hidden;background:#eee;margin:8px 0 6px}
+#ia .join{margin:14px 0 22px;border:1px solid var(--line);padding:12px}
+#ia .bar{display:flex;height:26px;overflow:hidden;background:#eee;margin:8px 0 6px}
 #ia .bar div{display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden;min-width:0}
-#ia .bar .matched{background:#8a8a8a}
+#ia .bar .matched{background:#a8a49f}
 #ia .sides{display:flex;justify-content:space-between;gap:16px;font-size:12px}
 #ia .sides>div{flex:1}
 #ia .names{margin:4px 0 0;padding-left:16px;font-size:12px;columns:2}
 #ia .names li{break-inside:avoid}
 #ia .chart{position:relative;margin:8px 0 4px}
-#ia svg text{font-size:10px;fill:#444}
-#ia .axis line,#ia .axis path{stroke:#999}
+#ia svg text{font-size:10px;fill:#6f6d6a;font-family:inherit}
+#ia .axis line,#ia .axis path{stroke:#a8a49f}
 #ia .rule{stroke:var(--ink);stroke-dasharray:3 2}
 #ia .facets{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
-#ia .facet{border:1px solid var(--line);border-radius:4px;padding:8px}
-#ia .facet h4{margin:0 0 4px;font-size:12px;font-weight:600}
+#ia .facet{border:1px solid var(--line);padding:8px}
+#ia .facet h4{margin:0 0 4px;font-size:12px;font-weight:500}
 #ia .mx{display:inline-grid;grid-template-columns:auto 1fr 1fr;gap:4px;margin:6px 32px 12px 0;vertical-align:top}
 #ia .mx div{padding:8px 14px;text-align:center;min-width:110px}
-#ia .mx .hd{font-size:11px;color:var(--muted);font-weight:600}
-#ia .mx .cell{border:1px solid var(--line);border-radius:3px;background:var(--bg);font-size:18px}
+#ia .mx .hd{font-size:11px;color:var(--muted);font-weight:500}
+#ia .mx .cell{border:1px solid var(--line);background:var(--bg);font-size:18px}
 #ia .mx .cell.bad{color:#fff}
 #ia .mx .cell.bad.high{background:var(--high)}
 #ia .mx .cell.bad.zero{background:var(--zero);color:var(--ink)}
 #ia table{border-collapse:collapse;width:100%;font-size:12px;margin:6px 0 14px}
 #ia th,#ia td{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
-#ia th{background:var(--bg);font-weight:600}
-#ia td.hl{background:#fff6e5}
+#ia th{background:var(--bg);font-weight:500;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0}
+#ia td.hl{background:#fbf1e6}
 #ia .none{color:var(--muted);font-style:italic;font-size:12px}
-#ia-panel{position:fixed;top:0;right:0;width:min(720px,100%);height:100%;background:#fff;border-left:1px solid var(--line);box-shadow:-4px 0 18px rgba(0,0,0,.12);transform:translateX(105%);transition:transform .15s;overflow:auto;padding:18px 20px;z-index:5}
+#ia-panel{position:fixed;top:0;right:0;width:min(720px,100%);height:100%;background:#fff;border-left:1px solid var(--line);box-shadow:-4px 0 18px rgba(0,0,0,.08);transform:translateX(105%);transition:transform .15s;overflow:auto;padding:18px 20px;z-index:5;font:14px/1.45 var(--sans,"Inter",-apple-system,Segoe UI,Helvetica,Arial,sans-serif)}
 #ia-panel.open{transform:none}
-#ia-panel .close{float:right;border:1px solid var(--line);background:#fff;padding:3px 9px;border-radius:3px;cursor:pointer}
+#ia-panel .close{float:right;border:none;background:#191919;color:#fff;padding:4px 10px;cursor:pointer;font:inherit;font-size:13px}
 #ia-panel h3{margin-top:0}
 #ia .small{font-size:11px;color:var(--muted)}
 </style>
@@ -229,7 +231,7 @@ function histogram(bins, opts) {
     if (b.label !== undefined && (bins.length <= 30 || i % Math.ceil(bins.length / 12) === 0))
       s += `<text x="${x + bw / 2}" y="${H - padB + 12}" text-anchor="middle">${esc(b.label)}</text>`;
   });
-  s += `<line x1="${padL}" y1="${H - padB}" x2="${W - 2}" y2="${H - padB}" stroke="#999"></line>`;
+  s += `<line x1="${padL}" y1="${H - padB}" x2="${W - 2}" y2="${H - padB}" stroke="#a8a49f"></line>`;
   if (opts.ruleAt !== undefined) {
     const x = padL + opts.ruleAt * bw;
     s += `<line class="rule" x1="${x}" y1="${padT - 6}" x2="${x}" y2="${H - padB}"></line>` +
@@ -238,7 +240,7 @@ function histogram(bins, opts) {
   if (opts.xlabel) s += `<text x="${W / 2}" y="${H - 4}" text-anchor="middle">${esc(opts.xlabel)}</text>`;
   return s + "</svg>";
 }
-const COLOR = {high: "#b3261e", medium: "#c47f00", info: "#4a6fa5", zero: "#b8b8b8", neutral: "#8a8a8a"};
+const COLOR = {high: "#9f2d00", medium: "#b58200", info: "#2200ff", zero: "#c9c5c1", neutral: "#a8a49f"};
 
 el("ia-lags").innerHTML = D.lags.map(l => {
   const c = CHECK[l.check_id];

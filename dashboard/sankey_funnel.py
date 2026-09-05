@@ -14,6 +14,7 @@ import os
 
 import plotly.graph_objects as go
 
+from dashboard import theme
 from paths import DOCS, GOLDEN as GOLDEN_DIR
 
 GOLDEN = str(GOLDEN_DIR / "golden_requests.csv")
@@ -41,14 +42,14 @@ def build_figure(stages):
 
     labels = [f"<b>{n}</b><br>{c}" for n, c in zip(names, counts)]
     labels += [f"{dn}<br>{counts[i]-counts[i+1]}" for i, dn in enumerate(drop_names)]
-    node_colors = ["#1f5f8b"] * len(names) + ["#b8b8b8"] * len(drop_names)
+    node_colors = [theme.ACCENT] * len(names) + [theme.NEUTRAL_DARK] * len(drop_names)
 
     src, tgt, vals, link_colors = [], [], [], []
     for i in range(len(names) - 1):
         src += [i, i]
         tgt += [i + 1, len(names) + i]
         vals += [counts[i + 1], counts[i] - counts[i + 1]]
-        link_colors += ["rgba(31,95,139,0.45)", "rgba(184,184,184,0.35)"]
+        link_colors += [theme.rgba(theme.ACCENT, 0.35), theme.rgba(theme.NEUTRAL_DARK, 0.35)]
 
     n = len(names)
     # wider final gap so the right-aligned last label doesn't collide with the previous one
@@ -69,8 +70,10 @@ def build_figure(stages):
         title=dict(text=f"Warm-intro funnel: {counts[0]} requests → {counts[-1]} opportunities"
                         f"<br><sup>Node label = number of requests still alive at that stage "
                         f"({counts[-1]/counts[0]:.1%} end-to-end). Aug 2025 – Jul 2026.</sup>"),
-        font=dict(size=14), width=1400, height=700, margin=dict(l=20, r=60, t=90, b=40),
+        width=1400, height=700, margin=dict(l=20, r=60, t=90, b=40),
+        **theme.PLOTLY_LAYOUT,
     )
+    fig.update_layout(font_size=14, paper_bgcolor=theme.SURFACE)
     return fig
 
 
