@@ -22,8 +22,10 @@ Writes four CSVs (UTF-8, no BOM, CRLF):
                                asked in intro_outcomes.csv, Slack volunteers)
                                has at least one row: reach_type = "none" if
                                they have no in-scope path. Connector-level
-                               facts (capacity, asks, allocation) are repeated
-                               on every row of that connector on purpose.
+                               facts (type, capacity, delivery_rate,
+                               idle_capacity) are repeated on every row of
+                               that connector on purpose; connector history
+                               (asks, intros, last asked) is not carried here.
   golden/golden_allocation.csv one row per live, not-yet-asked request: the
                                connector it is allocated to this cycle, or an
                                exception (capacity exhausted this cycle / no
@@ -86,8 +88,7 @@ COMPANY_COLUMNS = [
 SUPPLY_COLUMNS = [
     "connector", "connector_type", "company_id", "company_name", "reach_type", "board_seat", "contact_name",
     "contact_title", "observed_date", "offer_age_days", "strength", "in_focus_area", "monthly_capacity",
-    "delivery_rate", "connector_paths_total", "asks_received", "intros_sent", "awaiting_forward",
-    "allocated_this_cycle", "idle_capacity", "last_asked_date", "evidence",
+    "delivery_rate", "idle_capacity", "evidence",
 ]
 
 ALLOCATION_COLUMNS = [
@@ -510,24 +511,13 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
 def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[dict],
                   allocation: dict[str, dict], threads: dict[str, dict], today: date) -> list[dict]:
     """Add a placeholder row for every askable person with no in-scope path,
-    then stamp connector-level facts on every row.
+    then stamp idle_capacity on every row.
 
-    allocated_this_cycle = asks dated in the as-of month plus requests the
-    allocator assigned to the connector this cycle. idle_capacity =
-    monthly_capacity - allocated_this_cycle, never negative because the
-    allocator stops at the budget."""
+    idle_capacity = monthly_capacity minus asks dated in the as-of month minus
+    requests the allocator assigned to the connector this cycle; never negative
+    because the allocator stops at the budget."""
     paths = Counter(r["connector"] for r in rows)
-    asks, intros, awaiting, allocated = Counter(), Counter(), Counter(), Counter()
-    last_asked: dict[str, str] = {}
-    for o in outcomes:
-        n = o["connector_asked"]
-        asks[n] += 1
-        if o["intro_sent"] == "Y":
-            intros[n] += 1
-        elif o["responded"] == "Y":
-            awaiting[n] += 1
-        if o["asked_date"]:
-            last_asked[n] = max(last_asked.get(n, ""), o["asked_date"])
+    allocated = Counter()
     cycle = today.strftime("%Y-%m")
     for o in outcomes:
         if o["asked_date"].startswith(cycle):
@@ -559,16 +549,7 @@ def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[di
         })
 
     for r in rows:
-        n = r["connector"]
-        r.update({
-            "connector_paths_total": paths[n],
-            "asks_received": asks[n],
-            "intros_sent": intros[n],
-            "awaiting_forward": awaiting[n],
-            "allocated_this_cycle": allocated[n],
-            "idle_capacity": int(r["monthly_capacity"]) - allocated[n],
-            "last_asked_date": last_asked.get(n, ""),
-        })
+        r["idle_capacity"] = int(r["monthly_capacity"]) - allocated[r["connector"]]
     return rows
 
 
