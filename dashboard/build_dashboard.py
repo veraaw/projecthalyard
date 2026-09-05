@@ -25,6 +25,7 @@ from analysis.integrity.integrity_audit import fragment as integrity_fragment
 from dashboard import data_cuts, theme
 from dashboard.funnel_overview import dropoff_rows, ratios
 from dashboard.sankey_funnel import build_figure, funnel_stages
+from dashboard.trace_section import fragment as trace_fragment
 from paths import DATASET, DOCS, PROFILE, ROUTING
 
 DATA = str(DATASET)
@@ -335,7 +336,7 @@ img{{max-width:100%}}
 <header>
   <h1>Halyard — scoping &amp; verification dashboard</h1>
   <p>200 warm-intro requests · Aug 2025 – Jul 2026 · sources: <code>dataset/</code>, <code>golden/</code> · built {datetime.now():%Y-%m-%d}</p>
-  <nav style="margin-top:12px"><span class="navgrp">1. Raw data</span><a href="#flow">File flow</a><a href="#overview">Funnel overview</a><a href="#joins">Joins</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a><br><span class="navgrp">2. Cleaned data</span><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a></nav>
+  <nav style="margin-top:12px"><span class="navgrp">1. Raw data</span><a href="#flow">File flow</a><a href="#overview">Funnel overview</a><a href="#joins">Joins</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a><br><span class="navgrp">2. Cleaned data</span><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a><a href="#trace">Company trace</a></nav>
 </header>
 <main>
 
@@ -629,6 +630,12 @@ img{{max-width:100%}}
       <div class="finding"><b>Tomás Beckett — "fast responder, broad but shallow".</b>{[f"{c['responded']/c['asked']:.0%}" for c in connectors["connectors"] if c["name"] == "Tomás Beckett"][0]} response rate but only {[f"{c['intros']/c['responded']:.0%}" for c in connectors["connectors"] if c["name"] == "Tomás Beckett"][0]} of those responses became an intro.</div>
     </div>
   </div>
+</section>
+
+<section id="trace">
+  <h2>Company trace — the full history of one company</h2>
+  <p class="lede">Pick a company to see what <code>analysis/trace.py</code> prints for it: the header, where the files disagree, who can reach them, every event from all four source files oldest first, and who needs to do what next, cheapest action first. Search by name, alias, company id or CRM account id. The same traces are written to <code>analysis/traces/</code> by <code>python3 build.py trace</code>.</p>
+  {trace_fragment()}
 </section>
 
 <p class="foot">Regenerate with <code>python3 dashboard/build_dashboard.py</code>. Section 1 is computed from <code>dataset/</code>, section 2 from <code>golden/</code>, at build time.</p>

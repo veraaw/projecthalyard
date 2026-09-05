@@ -496,6 +496,49 @@ class Trace:
         sections.append(["## 5. Next steps, by person, cheapest first", "", *self.next_steps_table()])
         return "\n\n".join("\n".join(s) for s in sections) + "\n"
 
+    def as_dict(self) -> dict:
+        """The same five sections as data, for the dashboard."""
+        c = self.c
+        evs = self.events()
+        blocks: dict[str, list[Event]] = defaultdict(list)
+        for e in evs:
+            blocks[e.request_id].append(e)
+        ordered = sorted(blocks.items(), key=lambda kv: (kv[0] == "", min(e.when for e in kv[1]), kv[0]))
+        return {
+            "company_id": c["company_id"],
+            "company_name": c["company_name"],
+            "search": " ".join([c["company_id"], c["company_name"], *self.spellings(), *split_bar(c["crm_account_ids"])]),
+            "header": {
+                "stage": c["stage"], "industry": c["industry"], "owner": c["owner"],
+                "value_usd": money(c["value_usd"]), "largest_request_usd": money(c["largest_request_usd"]) if c["largest_request_usd"] else "",
+                "crm_account_ids": c["crm_account_ids"], "domain": c["domain"], "duplicate_accounts": c["duplicate_accounts"],
+                "also_known_as": self.spellings(),
+                "requests": len(self.requests),
+                "people": len({r["requested_by"] for r in self.requests}),
+                "titles": sorted({r["target_title"] for r in self.requests if r["target_title"]}),
+            },
+            "disagreements": [d[2:] for d in self.disagreements()],
+            "reach": [{"strength": float(p["strength"]), "connector": p["connector"], "connector_type": p["connector_type"],
+                       "reach_type": p["reach_type"] + (" (board seat)" if p["board_seat"] == "yes" else ""),
+                       "contact_name": p["contact_name"], "contact_title": p["contact_title"], "evidence": p["evidence"]}
+                      for p in self.paths],
+            "as_of": self.today.isoformat(),
+            "chronology": [[{"mark": e.mark, "date": e.when.isoformat(), "source": e.source, "who": e.who, "what": e.what,
+                             "request_id": e.request_id} for e in sorted(es, key=lambda e: (e.when, e.order))]
+                           for _, es in ordered],
+            "next_steps": [{"order": s.order, "who": s.who, "role": s.role, "action": s.action, "why": s.why,
+                            "request_ids": s.request_ids} for s in self.next_steps()],
+        }
+
+
+def all_traces(today: date | None = None) -> list[dict]:
+    """as_dict() for every company with a request, most-requested first."""
+    data = Data.load()
+    today = today or date.today()
+    companies = [c for c in data.companies if int(c["total_requests"] or 0)]
+    companies.sort(key=lambda c: (-int(c["total_requests"]), c["company_name"]))
+    return [Trace(data, c, today).as_dict() for c in companies]
+
 
 # ---------------------------------------------------------------------------
 # entry points
