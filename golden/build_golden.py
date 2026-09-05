@@ -2,7 +2,7 @@
 
     python3 golden/build_golden.py [--as-of YYYY-MM-DD]
 
-Writes three Excel-friendly CSVs (UTF-8 with BOM, CRLF):
+Writes four Excel-friendly CSVs (UTF-8 with BOM, CRLF):
 
   golden/golden_requests.csv   one row per intro request. APPEND-ONLY: rows
                                already in the file are never changed; only
@@ -22,6 +22,15 @@ Writes three Excel-friendly CSVs (UTF-8 with BOM, CRLF):
                                they have no in-scope path. Connector-level
                                facts (capacity, asks, allocation) are repeated
                                on every row of that connector on purpose.
+  golden/golden_allocation.csv one row per live, not-yet-asked request: the
+                               connector it is allocated to this cycle, or an
+                               exception (capacity exhausted this cycle / no
+                               path / company unresolved). Rebuilt wholesale.
+                               A connector is never allocated more than
+                               stated_monthly_capacity minus asks already made
+                               this cycle; everything allocated to one
+                               connector shares one batch_id (one consolidated
+                               ask per connector per cycle).
 
 Scope. A company is in scope if it is in crm_accounts.csv or is named as the
 target of any intro request. The set is recomputed on every run; nothing is
@@ -55,6 +64,7 @@ OUT = ROOT / "golden"
 REQUESTS_OUT = OUT / "golden_requests.csv"
 COMPANIES_OUT = OUT / "golden_companies.csv"
 SUPPLY_OUT = OUT / "supply_reach.csv"
+ALLOCATION_OUT = OUT / "golden_allocation.csv"
 
 REQUEST_COLUMNS = [
     "request_id", "company_id", "company_as_written", "target_title", "requested_by", "request_date",
@@ -77,8 +87,17 @@ SUPPLY_COLUMNS = [
     "allocated_this_cycle", "idle_capacity", "last_asked_date", "evidence",
 ]
 
+ALLOCATION_COLUMNS = [
+    "cycle", "request_id", "company_id", "company_name", "target_title", "value_usd",
+    "urgency_declared", "request_date", "status_as_filed", "allocated_to", "batch_id", "batch_size",
+    "path_type", "contact_name", "route_score", "exception_reason", "best_path_if_unbudgeted",
+]
+
 MULTI = " | "  # delimiter for multi-value cells (never a comma)
 OPEN_STATUSES = {"Open", "Routed", "Stalled"}
+URGENCY_RANK = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
+OFF_ROSTER_BUDGET = 1  # a Slack volunteer with no stated capacity gets one ask per cycle
+CAPACITY_EXHAUSTED = "capacity exhausted this cycle"
 # reach types that outlast the request they were observed on; offers are request-scoped
 DURABLE_REACH = {"direct", "board", "investor", "alumni"}
 
@@ -472,13 +491,14 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
 
 
 def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[dict],
-                  requests: list[dict], threads: dict[str, dict], today: date) -> list[dict]:
+                  allocation: dict[str, dict], threads: dict[str, dict], today: date) -> list[dict]:
     """Add a placeholder row for every askable person with no in-scope path,
     then stamp connector-level facts on every row.
 
-    allocated_this_cycle = live requests routed to the connector and not yet
-    asked, plus asks dated in the as-of month. idle_capacity = monthly_capacity
-    - allocated_this_cycle (negative means over-allocated)."""
+    allocated_this_cycle = asks dated in the as-of month plus requests the
+    allocator assigned to the connector this cycle. idle_capacity =
+    monthly_capacity - allocated_this_cycle, never negative because the
+    allocator stops at the budget."""
     paths = Counter(r["connector"] for r in rows)
     asks, intros, awaiting, allocated = Counter(), Counter(), Counter(), Counter()
     last_asked: dict[str, str] = {}
@@ -492,15 +512,12 @@ def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[di
         if o["asked_date"]:
             last_asked[n] = max(last_asked.get(n, ""), o["asked_date"])
     cycle = today.strftime("%Y-%m")
-    for r in requests:
-        n = r["routed_to"]
-        if not n:
-            continue
-        if r["asked_date"]:
-            if r["asked_date"].startswith(cycle):
-                allocated[n] += 1
-        elif r["status_as_filed"] in OPEN_STATUSES:
-            allocated[n] += 1
+    for o in outcomes:
+        if o["asked_date"].startswith(cycle):
+            allocated[o["connector_asked"]] += 1
+    for a in allocation.values():
+        if a["allocated_to"]:
+            allocated[a["allocated_to"]] += 1
 
     askable = set(roster) | {o["connector_asked"] for o in outcomes if o["connector_asked"]}
     askable |= {m["user"] for th in threads.values() for m in th["offers"]}
@@ -568,12 +585,93 @@ def best_route(paths: list[dict], roster: dict, rates: dict, industry: str, excl
     for p in paths:
         if p["connector"] == exclude_connector:
             continue
-        r = roster.get(p["connector"])
-        f = fit(r, industry) if r else 0.7
-        score = float(p["strength"]) * f * rates.get(p["connector"], PRIOR_RATE)
+        score = path_score(p, roster, rates, industry)
         if score > best_score:
             best, best_score = p, score
     return best, best_score
+
+
+def path_score(p: dict, roster: dict, rates: dict, industry: str) -> float:
+    r = roster.get(p["connector"])
+    f = fit(r, industry) if r else 0.7
+    return float(p["strength"]) * f * rates.get(p["connector"], PRIOR_RATE)
+
+
+def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company: dict[str, list[dict]],
+             resolved: dict[str, tuple[Company | None, str, str]], today: date) -> dict[str, dict]:
+    """request_id -> allocation row for every live request not yet asked.
+
+    Each connector has a budget for the cycle: stated_monthly_capacity minus
+    asks already dated in the cycle (OFF_ROSTER_BUDGET for Slack volunteers).
+    Requests are taken in priority order (urgency, value, age) and each goes to
+    its best-scoring connector that still has budget. Once every connector
+    with a path is spent the request becomes an exception. Requests allocated
+    to the same connector share a batch_id: one consolidated ask."""
+    cycle = today.strftime("%Y-%m")
+    budget: dict[str, int] = {n: int(r["stated_monthly_capacity"] or 0) for n, r in roster.items()}
+    for o in outcomes:
+        if o["asked_date"].startswith(cycle):
+            budget[o["connector_asked"]] = budget.get(o["connector_asked"], OFF_ROSTER_BUDGET) - 1
+
+    asked = {o["request_id"] for o in outcomes}
+    live = [rq for rq in read_csv(DATASET / "intro_requests.csv")
+            if rq["status"] in OPEN_STATUSES and rq["request_id"] not in asked]
+    live.sort(key=lambda rq: (URGENCY_RANK.get(rq["urgency"], 9), -float(money(rq["deal_value_usd"]) or 0),
+                              rq["request_date"], rq["request_id"]))
+
+    out: dict[str, dict] = {}
+    for rq in live:
+        rid = rq["request_id"]
+        company, _, _ = resolved[rid]
+        s = company.survivor if company else None
+        industry = s["industry"] if s else ""
+        paths = supply_by_company.get(company.company_id, []) if company else []
+        row = {
+            "cycle": cycle,
+            "request_id": rid,
+            "company_id": company.company_id if company else "",
+            "company_name": company.name if company else "",
+            "target_title": rq["target_title_raw"].strip(),
+            "value_usd": money(rq["deal_value_usd"]),
+            "urgency_declared": rq["urgency"],
+            "request_date": rq["request_date"],
+            "status_as_filed": rq["status"],
+            "allocated_to": "", "batch_id": "", "batch_size": "", "path_type": "", "contact_name": "",
+            "route_score": "", "exception_reason": "", "best_path_if_unbudgeted": "",
+        }
+        out[rid] = row
+        if company is None:
+            row["exception_reason"] = "company unresolved"
+            continue
+        scored = sorted(((path_score(p, roster, rates, industry), p) for p in paths),
+                        key=lambda t: -t[0])
+        scored = [(sc, p) for sc, p in scored if sc > 0]
+        if not scored:
+            row["exception_reason"] = "no path to this company in the network"
+            continue
+        best_sc, best = scored[0]
+        row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {best_sc:.2f})"
+        for sc, p in scored:
+            n = p["connector"]
+            if budget.get(n, OFF_ROSTER_BUDGET) <= 0:
+                continue
+            budget[n] = budget.get(n, OFF_ROSTER_BUDGET) - 1
+            row.update({
+                "allocated_to": n,
+                "batch_id": f"{cycle} {n}",
+                "path_type": p["reach_type"],
+                "contact_name": p["contact_name"],
+                "route_score": f"{sc:.3f}",
+            })
+            break
+        else:
+            row["exception_reason"] = CAPACITY_EXHAUSTED
+
+    sizes = Counter(r["batch_id"] for r in out.values() if r["batch_id"])
+    for r in out.values():
+        if r["batch_id"]:
+            r["batch_size"] = sizes[r["batch_id"]]
+    return out
 
 
 def path_label(p: dict) -> str:
@@ -610,7 +708,8 @@ def resolve_requests(reg: Registry) -> dict[str, tuple[Company | None, str, str]
 
 
 def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: dict[str, list[dict]],
-                   resolved: dict[str, tuple[Company | None, str, str]], threads: dict[str, dict]) -> list[dict]:
+                   resolved: dict[str, tuple[Company | None, str, str]], threads: dict[str, dict],
+                   allocation: dict[str, dict]) -> list[dict]:
     outcomes = {o["request_id"]: o for o in read_csv(DATASET / "intro_outcomes.csv")}
     rows = []
     for rq in read_csv(DATASET / "intro_requests.csv"):
@@ -647,12 +746,22 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
                 alt, alt_sc = best_route(paths, roster, rates, industry, exclude_connector=routed_to)
                 if alt and alt_sc > (sc or 0):
                     route_reason += f"; stronger path existed via {alt['connector']} ({alt['reach_type']}, {alt_sc:.2f})"
+        elif rid in allocation:
+            a = allocation[rid]
+            if a["allocated_to"]:
+                bp = next(p for p in paths if p["connector"] == a["allocated_to"]
+                          and p["reach_type"] == a["path_type"] and p["contact_name"] == a["contact_name"])
+                routed_to = a["allocated_to"]
+                route_score = a["route_score"]
+                route_reason = f"allocated to {a['batch_id']} batch, not yet asked; {path_label(bp)}"
+            else:
+                route_reason = f"not asked; {a['exception_reason']}"
+                if a["best_path_if_unbudgeted"]:
+                    route_reason += f"; best path via {a['best_path_if_unbudgeted']}"
         else:
             bp, sc = best_route(paths, roster, rates, industry)
             if bp:
-                routed_to = bp["connector"]
-                route_score = f"{sc:.3f}"
-                route_reason = f"recommended, not yet asked; {path_label(bp)}"
+                route_reason = f"not live; best path via {path_label(bp)}"
             elif company:
                 route_reason = "not asked; no path to this company in the network"
             else:
@@ -824,13 +933,15 @@ def main() -> None:
     supply_by = defaultdict(list)
     for s in supply:
         supply_by[s["company_id"]].append(s)
-    requests = build_requests(reg, roster, rates, supply_by, resolved, threads)
+    allocation = allocate(roster, rates, outcomes, supply_by, resolved, today)
+    requests = build_requests(reg, roster, rates, supply_by, resolved, threads, allocation)
     existing, appended, added, warnings = append_only_write(requests)
 
-    # connector allocation reads routed_to from the filed requests, so supply
-    # is finalised and written only after golden_requests.csv is
-    supply = finish_supply(supply, roster, rates, outcomes, read_csv(REQUESTS_OUT), threads, today)
+    supply = finish_supply(supply, roster, rates, outcomes, allocation, threads, today)
     write_csv(SUPPLY_OUT, SUPPLY_COLUMNS, supply)
+
+    alloc_rows = sorted(allocation.values(), key=lambda a: (a["allocated_to"] == "", a["batch_id"], a["request_id"]))
+    write_csv(ALLOCATION_OUT, ALLOCATION_COLUMNS, alloc_rows)
 
     companies = build_companies(reg, supply, today)
     write_csv(COMPANIES_OUT, COMPANY_COLUMNS, companies)
@@ -840,6 +951,9 @@ def main() -> None:
     print(f"golden_companies.csv  {len(companies)} rows (rebuilt)")
     print(f"supply_reach.csv      {len(supply)} rows (rebuilt): "
           + ", ".join(f"{k} {n}" for k, n in sorted(Counter(s['reach_type'] for s in supply).items())))
+    n_alloc = sum(1 for a in alloc_rows if a["allocated_to"])
+    print(f"golden_allocation.csv {len(alloc_rows)} rows (rebuilt): {n_alloc} allocated, "
+          + ", ".join(f"{n} {k}" for k, n in sorted(Counter(a['exception_reason'] for a in alloc_rows if a['exception_reason']).items())))
     for w in warnings:
         print("WARN", w)
 
