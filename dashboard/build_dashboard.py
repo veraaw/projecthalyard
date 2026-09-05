@@ -423,6 +423,21 @@ img{{max-width:100%}}
 #lp button:not(.subtabs button){{font-family:var(--sans);font-size:14px;font-weight:500;background:var(--blue);color:#fff;border:1px solid var(--blue);padding:8px 16px;cursor:pointer;white-space:nowrap}}
 #lp button.secondary{{background:var(--surface);color:var(--ink);border-color:var(--ink)}}
 #lp table.preview tr.flag td{{background:rgba(159,45,0,.035)}}
+#lp .presets{{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 8px;font-family:var(--sans);font-size:12.5px;color:var(--mute);align-items:center}}
+#lp .presets button{{font-size:12.5px;padding:5px 10px}}
+#lp .ask{{display:flex;gap:10px;align-items:stretch}}
+#lp textarea{{flex:1;font-family:var(--serif);font-size:15px;line-height:1.45;padding:10px 12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);resize:vertical;min-height:64px}}
+#lp textarea:focus{{outline:none;border-color:var(--blue)}}
+#lp dl.route{{display:grid;grid-template-columns:max-content 1fr;gap:8px 20px;margin:18px 0 6px;font-size:15px}}
+#lp dl.route dt{{font-family:var(--sans);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);padding-top:4px}}
+#lp dl.route dd{{margin:0}}
+#lp dl.route dd.key{{font-weight:500}}
+#lp dl.route dd.key .foot{{font-weight:400}}
+#lp dl.route .cue{{font-family:var(--mono);font-size:12px;color:var(--mute)}}
+#lp .route-note{{margin:14px 0 4px;padding:10px 16px;border-left:2px solid var(--warn);background:var(--bg);font-family:var(--sans);font-size:14px}}
+#lp .route-note.ok{{border-color:var(--blue)}}
+#lp .ev{{font-size:18px;font-weight:500;color:var(--blue)}}
+#lp #route td.path{{white-space:nowrap}}
 </style>"""
 
 RAW_HTML, LIVE_HTML, TRACE_HTML = "halyardscoping.html", "livedata.html", "companytrace.html"

@@ -216,6 +216,71 @@ const LP = (function () {
     return { rows, errors, count: threads.length };
   }
 
+  // --------------------------------------------------------- route a request
+  // What the router would do with one pasted message: apply the cues, take the
+  // highest positive score, look the key up, rank the company's exported paths.
+  // Nothing here is a rule; every number and every path comes from the payload.
+  function route(text, P) {
+    text = (text || '').trim();
+    const resolver = makeResolver(P.resolver);
+    const ex = extract(text, P, resolver);
+    const tm = new RegExp(P.title.source, P.title.flags).exec(text);
+    const tg = ex.target;
+    const out = { text, title: tm ? tm.groups.t : '', mentions: ex.mentions, target: null, company: null, crm: false,
+                  others: [], candidates: [], paths: [], top: null, priority: null, status: '', note: '' };
+    const lost = m => {
+      if (m.score <= 0) return `mentioned, but as a bridge or in passing — “${m.cue}” scores ${m.score}`;
+      if (m.score < tg.score) return `asked for too, but with a weaker cue — “${m.cue}” scores +${m.score} against +${tg.score}`;
+      return `same cue strength (+${m.score}), but named later in the message`;
+    };
+    out.others = ex.mentions.filter(m => m !== tg).map(m => ({
+      text: m.text, cue: m.cue, score: m.score, why: tg ? lost(m) : `“${m.cue}” scores ${m.score} — nothing in the message asks for anyone`,
+      name: m.resolution.entity_id ? m.resolution.name : '', company_id: m.resolution.kind === 'company' ? m.resolution.entity_id : '',
+    }));
+    if (!tg) {
+      out.status = 'no-target';
+      out.note = ex.mentions.length ? 'no target: every company named is negative or in passing' : 'no target: no company is named in the message';
+      return out;
+    }
+    const r = tg.resolution;
+    out.target = { text: tg.text, cue: tg.cue, score: tg.score, is_domain: tg.is_domain, method: r.method, confidence: r.confidence, name: r.name };
+    if (r.method === 'fund-or-customer' || r.method === 'ambiguous') {
+      out.status = 'refused';
+      out.candidates = r.candidates.map(c => ({ ...c, ref: get(P.companies, c.id, null) }));
+      out.note = r.method === 'fund-or-customer'
+        ? `“${tg.text}” is both a fund and a customer — refused. Ask which one is meant.`
+        : `“${tg.text}” matches more than one company — refused. Ask which one is meant.`;
+      return out;
+    }
+    if (r.entity_id && r.kind === 'fund') {
+      out.status = 'fund';
+      out.note = `“${tg.text}” resolves to ${r.name}, an investor fund, not a customer — the build would file a new company under that name.`;
+      return out;
+    }
+    let cid = r.entity_id;
+    if (!cid) {
+      const name = tg.is_domain ? domainStem(tg.text) : tg.text;
+      cid = get(P.known_no_crm, resolver.normStrict(name), '') || get(P.known_no_crm, resolver.normLoose(name), '');
+    }
+    const C = get(P.companies, cid, null);
+    if (!C) {
+      out.status = 'unknown';
+      out.note = `“${tg.text}” is not a company the build knows — no CRM record, no path on the roster. It would be filed as a new company.`;
+      return out;
+    }
+    out.company = C; out.crm = C.crm;
+    out.paths = C.paths;
+    out.top = C.paths.find(p => p.score > 0) || null;
+    out.priority = out.top ? {
+      ...C.priority, connector_score: out.top.connector_score,
+      expected_value: +(C.priority.request_priority * out.top.connector_score).toFixed(4),
+      connector_components: { path_strength: out.top.strength, focus_fit: out.top.fit, delivery_rate: out.top.rate, capacity_left: out.top.capacity_left },
+    } : { ...C.priority, connector_score: 0, expected_value: 0, connector_components: null };
+    out.status = out.top ? 'routed' : 'no-path';
+    out.note = out.top ? '' : `no path on the roster: nobody in the network reaches ${C.company_name}. It would be an exception this cycle unless someone offers.`;
+    return out;
+  }
+
   // ------------------------------------------------------------------ render
   const loadDone = () => new Set(JSON.parse(localStorage.getItem('lp-done') || '[]'));
   const comp = (r, k, fmt) => `<span class="c" title="${esc(k.replace(/_/g, ' '))}">${fmt(r.components[k])}</span>`;
@@ -278,6 +343,13 @@ const LP = (function () {
       <p class="lede">Drop a <code>.jsonl</code> of Slack threads (one <code>{request_id, messages:[{ts,user,text}…]}</code> per line). Every row shows the company the build would resolve, any offer spotted in the replies, who it would route to and what needs a human — using the build's own cues, resolver tables and offer pattern, so the preview matches what lands. A static page cannot write to disk: export the preview and run the command to file it.</p>
       <div class="drop" id="lp-drop"><input type="file" id="lp-file" accept=".jsonl,.json,.txt"><span>Drop a .jsonl here or click to choose</span></div>
       <div id="lp-preview"></div></section>`;
+
+    // 0b. route one message
+    out += `<section id="route"><h2>Route a live request <span class="foot">paste a Slack message and see what the router would do with it</span></h2>
+      <p class="lede">The browser applies the build's own rules, exported as data: the ${P.cues.length} cues from <code>golden/parse.py</code> score every company named, the highest positive score is the target, <code>golden/resolver.py</code>'s tables look the name up, and the company's paths from <code>supply_reach.csv</code> are ranked as the build ranks them. Nothing is written.</p>
+      <div class="presets">try a real shape:${P.route_presets.map((p, i) => `<button class="secondary" data-i="${i}">${esc(p.label)}</button>`).join('')}</div>
+      <div class="ask"><textarea id="lp-route-text" rows="3" placeholder="who do we know at …" aria-label="Slack message"></textarea><button id="lp-route-go">Route it</button></div>
+      <div id="lp-route-out"></div></section>`;
 
     // 1. stages
     const S = D.stages;
@@ -397,6 +469,46 @@ const LP = (function () {
     ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
     ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
     drop.addEventListener('drop', e => handle(e.dataTransfer.files[0]));
+
+    const ta = root.querySelector('#lp-route-text'), rout = root.querySelector('#lp-route-out');
+    const go = () => { rout.innerHTML = ta.value.trim() ? renderRoute(route(ta.value, P), P) : ''; };
+    root.querySelector('#lp-route-go').onclick = go;
+    ta.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) go(); });
+    root.querySelectorAll('#route .presets button').forEach(b => b.onclick = () => { ta.value = P.route_presets[+b.dataset.i].text; go(); });
+  }
+
+  function renderRoute(x, P) {
+    const T = x.target, C = x.company;
+    const hover = (o, keys) => keys.map(k => `${k.replace(/_/g, ' ')} ${o[k]}`).join(' × ');
+    const cue = m => `<span class="cue">“${esc(m.cue)}” ${m.score > 0 ? '+' : ''}${m.score}</span>`;
+    const row = (dt, dd, cls) => `<dt>${dt}</dt><dd${cls ? ` class="${cls}"` : ''}>${dd}</dd>`;
+    let target, account, priority;
+    if (!T) target = `<i>none</i> <span class="foot">${esc(x.note)}</span>`;
+    else if (x.status === 'refused') target = `<i>refused</i> — “${esc(T.text)}” ${cue(T)}<br><span class="foot">${x.candidates.map(c => c.kind === 'company' && c.ref ? `${co(c.ref)} <span class="foot">(customer, ${esc(c.id)})</span>` : `${esc(c.name)} <span class="foot">(${esc(c.kind)}, ${esc(c.id)})</span>`).join(' · or · ')}</span>`;
+    else if (x.status === 'fund') target = `${esc(T.name)} <span class="foot">— an investor fund, not a customer</span> ${cue(T)}`;
+    else if (!C) target = `${esc(T.text)} <span class="foot">— not a company the build knows</span> ${cue(T)}`;
+    else target = `${co(C)} <span class="foot">${esc(C.company_id)} · ${C.crm ? `${esc(T.method)} ${T.confidence.toFixed(2)}` : 'on file, no CRM account'}${T.is_domain || T.text !== C.company_name ? ` from “${esc(T.text)}”` : ''}</span> ${cue(T)}`;
+    if (!C) account = x.status === 'refused' ? `<i>${x.candidates.filter(c => c.kind === 'company').length ? 'two records answer to this name' : '—'}</i>` : `<b class="warn">no CRM record</b>`;
+    else if (!C.crm) account = `<b class="warn">no CRM record</b> <span class="foot">— the company is on file from earlier asks; create the account (see What the CRM is missing)</span>`;
+    else account = `${esc(C.stage)} · ${esc(C.industry || 'no industry')} · ${esc(C.owner || 'nobody')} · ${C.arr_fmt ? esc(C.arr_fmt) + ' ARR potential' : 'no ARR potential on file'}${C.stage === 'Closed Lost' ? ' · <b class="warn">Closed Lost — reopen it or close the request</b>' : ''}`;
+    const others = x.others.length
+      ? x.others.map(o => `<b>${esc(o.text)}</b> <span class="foot">${o.name && o.name !== o.text ? `(${esc(o.name)}) ` : ''}${esc(o.why)}</span>`).join('<br>')
+      : `<span class="foot">no other company is named</span>`;
+    if (x.priority) {
+      const p = x.priority;
+      const req = `<span class="c" title="${esc(hover(p.components, ['deal_value_musd', 'stage_weight', 'age', 'reps_waiting']))} — deal value is ${esc(p.deal_source)}; age 1.0 = posted today">request priority ${p.request_priority.toFixed(3)}</span>`;
+      if (!x.top) priority = `${req} <span class="foot">× no connector score — nobody reaches ${esc(C.company_name)}, so nothing to rank</span>`;
+      else priority = `<span class="ev" title="expected value = request priority × connector score">${p.expected_value.toFixed(3)}</span> = ${req} × <span class="c" title="${esc(hover(p.connector_components, ['path_strength', 'focus_fit', 'delivery_rate', 'capacity_left']))}">connector score ${p.connector_score.toFixed(3)}</span>${x.top.capacity_left <= 0 ? ` <span class="foot"><b class="warn">zero: ${esc(x.top.connector)} has no slot left this cycle</b> — ${(p.request_priority * x.top.score).toFixed(3)} the moment one frees</span>` : ''}`;
+    } else priority = `<span class="foot">— not scored${x.status === 'no-target' || x.status === 'refused' ? '' : ': nothing to route'}</span>`;
+    let out = `<dl class="route parts">${row('target', target, 'key')}${row('account', account)}${row('title', x.title ? esc(x.title) : '<span class="foot">none named</span>')}${row('not the target', others)}${row('priority', priority)}</dl>`;
+    if (x.note) out += `<div class="route-note${x.status === 'routed' ? ' ok' : ''}">${esc(x.note)}</div>`;
+    if (x.paths.length) {
+      out += `<h3>Ranked connectors <span class="foot">best first — path strength × focus fit × delivery rate, as <code>build_golden.py</code> scores them</span></h3>
+        <table><thead><tr><th>#</th><th>connector</th><th>path</th><th class="num">score</th><th>why</th></tr></thead><tbody>`
+        + x.paths.map((p, i) => `<tr class="${p.score > 0 ? '' : 'foot'}"><td class="order">${i + 1}</td><td><b>${esc(p.connector)}</b>${p.on_roster ? '' : '<br><span class="foot">not on the roster</span>'}</td><td class="path">${esc(p.reach_type)}${p.contact ? `<br><span class="foot">${esc(p.contact)}</span>` : ''}</td><td class="num"><span class="c" title="${p.strength} strength × ${p.fit} fit × ${p.rate} delivery rate">${p.score.toFixed(3)}</span></td><td class="foot">${esc(p.reason)}${p.score > 0 ? '' : ' — <b>would not be routed</b>'}</td></tr>`).join('')
+        + `</tbody></table>`;
+    } else if (C) out += `<p class="empty">no path on the roster</p>`;
+    return out;
   }
 
   function renderPreview(pv, filename, P, el) {
@@ -415,6 +527,6 @@ const LP = (function () {
     el.querySelector('#lp-dl-preview').onclick = () => download(`${name}_preview.csv`, toCsv(P.preview_columns, pv.rows));
   }
 
-  return { boot, bootConnector, extract, makeResolver, previewThreads, parseJsonl, normStrict, toCsv };
+  return { boot, bootConnector, extract, makeResolver, previewThreads, parseJsonl, route, normStrict, toCsv };
 })();
 if (typeof module !== 'undefined') module.exports = LP;
