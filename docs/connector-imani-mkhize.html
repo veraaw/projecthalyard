@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halyard — Imani Mkhize</title>
+<script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+:root{--ink:#191919;--mute:#6f6d6a;--blue:#2200ff;--line:rgba(0,0,0,.09);--bg:#f7f6f5;--surface:#ffffff;--warn:#9f2d00;--navy:#17293f;--baton:#c4763e;
+  --serif:"Newsreader", "Iowan Old Style", Georgia, serif;--sans:"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;--mono:"Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.55 var(--serif);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,nav,th,.kpi,.foot,summary{font-family:var(--sans)}
+h1,h2,h3,h4{font-weight:500;letter-spacing:-.01em}
+a{color:var(--blue)}
+header{background:var(--bg);border-bottom:1px solid var(--line);padding:32px 40px 28px}
+header h1{margin:0 0 6px;font-size:34px;line-height:1.15;font-weight:400;letter-spacing:-.02em}
+header p{margin:0;color:var(--mute)}
+nav a{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}
+nav a:hover{color:var(--blue)}
+.part-lede{margin-bottom:24px}
+main{max-width:1240px;margin:0 auto;padding:28px 40px 72px}
+section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:110px;overflow-x:auto}
+h2{margin:0 0 6px;font-size:22px}
+h3{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
+details{margin-top:26px}
+summary{cursor:pointer;list-style:none;margin-bottom:10px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+ ";color:var(--mute)}
+details[open] summary::before{content:"− "}
+.lede{color:var(--mute);margin:0 0 18px;font-size:17px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;margin:12px 0 6px;padding:1px}
+.kpi{background:var(--surface);padding:16px 18px 14px;box-shadow:0 0 0 1px var(--line)}
+.kpi .v{font-size:30px;font-weight:400;color:var(--ink);line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi.warn .v{color:var(--warn)}
+.kpi .l{margin-top:6px;font-weight:500;font-size:13px}
+.kpi .s{color:var(--mute);font-size:12px;margin-top:2px}
+table{border-collapse:collapse;width:100%;font-size:14px;font-family:var(--sans);font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:500;font-size:12.5px;border-bottom-color:var(--ink)}
+td:nth-child(n+2):not(:last-child).num,th.num{text-align:right}
+.fo th,.fo td{padding:6px 10px}
+.fo td.num,.fo th.num{text-align:right}
+.fo tr.total td{font-weight:600;border-top:1px solid var(--ink)}
+.fo tr.ratio td{color:var(--mute);border-bottom:none;padding-top:10px}
+.fo tr.ratio td.num{color:var(--ink);font-weight:600}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.finding{border-left:2px solid var(--blue);padding:6px 16px;margin:12px 0;background:var(--bg)}
+.finding.warn{border-color:var(--warn)}
+.finding b{display:block;font-family:var(--sans);font-weight:500;font-size:14px;margin-bottom:2px}
+.foot{color:var(--mute);font-size:13px}
+code{font-family:var(--mono);background:rgba(0,0,0,.04);padding:1px 5px;font-size:12.5px}
+img{max-width:100%}
+.topbar{position:sticky;top:0;z-index:10;background:var(--bg)}
+.mastrow{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 28px;padding:10px 40px 0;border-bottom:1px solid var(--line)}
+.mast{display:flex;align-items:center;gap:12px;padding:2px 0 10px;text-decoration:none;color:var(--ink)}
+.mast .logo{flex:none;display:block}
+.mast .t{font-family:var(--sans);font-size:17px;line-height:1.2;letter-spacing:-.01em;color:var(--mute);white-space:nowrap}
+.mast .t b{font-weight:600;color:var(--navy)}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;margin-left:auto}
+.tabs a{font-family:var(--sans);font-size:14px;color:var(--mute);text-decoration:none;padding:8px 16px;margin-bottom:-1px;border:1px solid transparent}
+.tabs a:hover{color:var(--ink)}
+.tabs a.on{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}
+.tabs.people{margin-left:0;padding:6px 40px 0;background:rgba(196,118,62,0.08);border-bottom:1px solid rgba(196,118,62,0.35)}
+.tabs.people .lbl{font-family:var(--sans);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--baton);padding:11px 12px 0 0;align-self:flex-start}
+.tabs.people a{color:#7a4520;font-size:13.5px;padding:7px 13px}
+.tabs.people a .n{margin-left:6px;font-size:11.5px;color:var(--baton);font-variant-numeric:tabular-nums}
+.tabs.people a:hover{color:var(--navy)}
+.tabs.people a.on{color:var(--navy);background:var(--surface);border-color:rgba(196,118,62,0.35) rgba(196,118,62,0.35) var(--surface);box-shadow:inset 0 2px 0 var(--baton)}
+.seg{display:inline-flex;border:1px solid var(--line);font-family:var(--sans);font-size:13px;margin:6px 0 4px}
+.seg button{background:var(--surface);color:var(--mute);border:0;padding:6px 14px;cursor:pointer;font:inherit}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--ink);color:var(--surface)}
+.fview[hidden]{display:none}
+/* live priorities */
+#lp h2 .foot{display:block;font-weight:400;margin-top:2px}
+#lp .lede{font-size:15.5px}
+#lp q{quotes:"\201C" "\201D";font-family:var(--serif);font-style:italic}
+#lp b.warn,#lp .warn{color:var(--warn)}
+#lp td.rid,#lp td.date{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+#lp .empty{color:var(--mute);font-style:italic;margin:0}
+#lp .drop{border:1px dashed var(--mute);padding:26px;text-align:center;color:var(--mute);cursor:pointer;font-family:var(--sans);font-size:14px;background:var(--bg);position:relative}
+#lp .drop.over{border-color:var(--blue);color:var(--blue)}
+#lp .drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+#lp .strip{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin:14px 0 8px}
+#lp .strip .cell{background:var(--surface);padding:14px 16px 12px;font-family:var(--sans)}
+#lp .strip .v{font-size:26px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+#lp .strip .n{color:var(--mute);font-size:12.5px;margin-top:2px}
+#lp .strip .l{margin-top:8px;font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+@media(max-width:900px){#lp .strip{grid-template-columns:repeat(3,1fr)}}
+#lp table.top td.order{color:var(--mute)}
+#lp table.top td.ev{font-size:18px;font-weight:500;color:var(--blue)}
+#lp table.top tr.done td{color:var(--mute);text-decoration:line-through}
+#lp table.top tr.done td.ev{color:var(--mute)}
+#lp table.top .tick{width:16px;height:16px;accent-color:var(--blue)}
+#lp .parts .c{border-bottom:1px dotted var(--mute);cursor:help}
+#lp th .fm{font-weight:400;font-size:11px;text-transform:none;letter-spacing:0}
+#lp .formula{margin-top:14px;padding:12px 16px;background:var(--bg);border-left:2px solid var(--blue)}
+#lp .formula p{margin:0 0 6px}
+#lp .subtabs{display:flex;flex-wrap:wrap;gap:4px;margin:12px 0 18px;border-bottom:1px solid var(--line)}
+#lp .subtabs button{font-family:var(--sans);font-size:14px;color:var(--mute);background:none;border:1px solid transparent;padding:8px 14px;margin-bottom:-1px;cursor:pointer}
+#lp .subtabs button .n{margin-left:8px;font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
+#lp .subtabs button.on{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}
+#lp .dl{display:flex;gap:16px;align-items:flex-start;margin:14px 0;font-size:14px;font-family:var(--sans)}
+#lp .dl span{color:var(--mute);padding-top:6px}
+#lp button:not(.subtabs button){font-family:var(--sans);font-size:14px;font-weight:500;background:var(--blue);color:#fff;border:1px solid var(--blue);padding:8px 16px;cursor:pointer;white-space:nowrap}
+#lp button.secondary{background:var(--surface);color:var(--ink);border-color:var(--ink)}
+#lp table.preview tr.flag td{background:rgba(159,45,0,.035)}
+</style></head>
+<body>
+<div class="topbar"><div class="mastrow"><a class="mast" href="livedata.html"><svg class="logo" width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="7" fill="#17293f"/><rect x="9" y="9" width="3.4" height="22" fill="#fff"/><rect x="27.6" y="9" width="3.4" height="22" fill="#fff"/><path d="M12.4 26.4 27.6 14.6" stroke="#c4763e" stroke-width="3"/></svg><span class="t"><b>Halyard Baton</b> / intro routing console</span></a><div class="tabs"><a href="halyardscoping.html">Raw Sept Data Dashboard</a><a href="livedata.html">Live Data Dashboard</a><a href="companytrace.html">Company Trace</a><a href="livepriorities.html">Live Priorities</a></div></div><div class="tabs people"><span class="lbl">by connector</span><a href="connector-marcus-aldridge.html">Marcus Aldridge<span class="n">8</span></a><a href="connector-dana-whitfield.html">Dana Whitfield<span class="n">6</span></a><a href="connector-priya-raghunathan.html">Priya Raghunathan<span class="n">8</span></a><a href="connector-tomas-beckett.html">Tomás Beckett<span class="n">8</span></a><a href="connector-elena-duvall.html">Elena Duvall<span class="n">3</span></a><a href="connector-owen-trask.html">Owen Trask<span class="n">3</span></a><a href="connector-imani-mkhize.html" class="on">Imani Mkhize<span class="n">2</span></a><a href="connector-curtis-hartigan.html">Curtis Hartigan<span class="n">2</span></a><a href="connector-yusuf-petrossian.html">Yusuf Petrossian<span class="n">2</span></a><a href="connector-nadia-okonkwo.html">Nadia Okonkwo<span class="n">1</span></a></div></div>
+<header>
+  <h1>Imani Mkhize — top 2, then the longer list</h1>
+  <p>not on the roster · 2 live requests routed to them this cycle, ranked by the same expected value as <a href="livepriorities.html#top">Live Priorities</a>; computed by <code>dashboard/live_priorities.py</code> at build time, rendered by the browser. Every company name opens its <a href="companytrace.html">Company Trace</a> · built 2026-09-05</p>
+</header>
+<main>
+
+<div id="lp"></div>
+<script id="lp-data" type="application/json">{"connector": "Imani Mkhize", "slug": "imani-mkhize", "page": "connector-imani-mkhize.html", "on_roster": false, "role": "", "type": "not on roster", "focus": [], "hard_decline": false, "notes": "", "capacity": 0, "asked_this_cycle": 0, "allocated_this_cycle": 2, "used": 2, "idle": 0, "delivery_rate": 0.469, "asks_all_time": 1, "intros_all_time": 1, "sitting_on": [], "queue": [{"request_id": "R1047", "company_id": "C029", "company_name": "Pelham Beverage", "href": "companytrace.html#C029", "target_title": "Director of Software Engineering", "requested_by": "Rafael Salcedo", "path_type": "offer", "contact": "", "route_score": "0.262", "value_fmt": "$250K", "urgency": "High"}, {"request_id": "R1200", "company_id": "C029", "company_name": "Pelham Beverage", "href": "companytrace.html#C029", "target_title": "Director of Software Engineering", "requested_by": "Hana Nakashima", "path_type": "offer", "contact": "", "route_score": "0.262", "value_fmt": "$750K", "urgency": "Medium"}], "top": [{"request_id": "R1200", "company_id": "C029", "company_name": "Pelham Beverage", "href": "companytrace.html#C029", "target_title": "Director of Software Engineering", "requested_by": "Hana Nakashima", "connector": "Imani Mkhize", "path": "offered in Slack (knows Head of Platform)", "value_fmt": "$750K", "crm_stage": "Evaluation", "days_waiting": 202, "reps": ["Hana Nakashima", "Rafael Salcedo", "Yusuf Petrossian"], "capacity_note": "1 of 2 slots left when reached", "components": {"deal_value_musd": 0.75, "stage_weight": 0.55, "age": 1.553, "reps_waiting": 3, "path_strength": 0.8, "focus_fit": 0.7, "delivery_rate": 0.469, "capacity_left": 0.5}, "request_priority": 1.922, "connector_score": 0.131, "expected_value": 0.2522, "allocated": true, "rank": 6, "rank_here": 1}, {"request_id": "R1047", "company_id": "C029", "company_name": "Pelham Beverage", "href": "companytrace.html#C029", "target_title": "Director of Software Engineering", "requested_by": "Rafael Salcedo", "connector": "Imani Mkhize", "path": "offered in Slack (knows Head of Platform)", "value_fmt": "$250K", "crm_stage": "Evaluation", "days_waiting": 384, "reps": ["Hana Nakashima", "Rafael Salcedo", "Yusuf Petrossian"], "capacity_note": "2 of 2 slots left when reached", "components": {"deal_value_musd": 0.25, "stage_weight": 0.55, "age": 2.0, "reps_waiting": 3, "path_strength": 0.8, "focus_fit": 0.7, "delivery_rate": 0.469, "capacity_left": 1.0}, "request_priority": 0.825, "connector_score": 0.262, "expected_value": 0.2165, "allocated": true, "rank": 7, "rank_here": 2}], "rest": [], "ranked_count": 2, "ranked_value_fmt": "$1M", "no_slot": 0, "formula": {"expected_value": "expected value = request priority × connector score", "request_priority": "request priority = deal value ($M) × stage weight × age × reps waiting", "connector_score": "connector score = path strength × focus fit × delivery rate × capacity left", "stage_weight": {"Negotiation": 0.9, "Pilot": 0.75, "Evaluation": 0.55, "Discovery": 0.35, "Prospect": 0.25, "Closed Lost": 0.1, "no CRM account": 0.25}, "age": "1 + min(days since request, 365) / 365", "reps_waiting": "distinct requesters with a live request on the same company", "path_strength": "supply_reach.csv strength of the path used", "focus_fit": "1.0 in the connector's focus areas, 0.45 outside, 0 if they decline outside, 0.7 when the industry or the connector is unknown", "delivery_rate": "intros / asks, shrunk toward the prior (supply_reach.csv delivery_rate)", "capacity_left": "share of stated monthly capacity still unspent when the allocator reached this request; 0 when the cycle's slots were gone"}}</script>
+<script>
+/* Live Priorities tab. Renders the payload dashboard/live_priorities.py wrote;
+   derives nothing. The only input it processes is a dropped .jsonl of Slack
+   threads, and for that it applies the parser tables the payload carries
+   (golden/parse.py cues, golden/resolver.py layers, build_golden.py OFFER_RE)
+   in the same order the Python does — tests/test_live_priorities.py runs this
+   file under node against the Python parser on every thread on disk. */
+const LP = (function () {
+  'use strict';
+
+  // ---------------------------------------------------------------- helpers
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const co = ref => ref && ref.href ? `<a href="${esc(ref.href)}">${esc(ref.company_name)}</a>` : esc(ref ? ref.company_name : '');
+  const plural = (n, w) => `${n} ${n === 1 ? w : w.endsWith('y') ? w.slice(0, -1) + 'ies' : w.endsWith('ch') ? w + 'es' : w + 's'}`;
+  const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  const get = (o, k, d) => has(o, k) ? o[k] : d;
+  const csvCell = v => { const s = String(v ?? ''); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const toCsv = (cols, rows) => [cols.join(',')].concat(rows.map(r => cols.map(c => csvCell(r[c])).join(','))).join('\r\n') + '\r\n';
+  function download(name, text) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // ------------------------------------------------ golden/resolver.py, ported
+  const ascii = s => (s || '').normalize('NFKD').replace(/[^\x00-\x7f]/g, '').toLowerCase();
+  const normStrict = s => ascii(s).replace(/[^a-z0-9]+/g, '');
+  const domainStem = d => (d || '').trim().toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\..*$/, '');
+  const isDomain = s => /^(https?:\/\/)?(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+\/?$/.test((s || '').trim().toLowerCase());
+
+  function makeResolver(R) {
+    const noise = new RegExp(R.noise.source, R.noise.flags);
+    const normLoose = s => ascii(s).replace(/[^a-z0-9]+/g, ' ').replace(noise, ' ').replace(/\s+/g, '');
+    const E = R.entities;
+    const MIN = R.min_prefix_stem;
+    const strictT = new Map(Object.entries(R.strict)), looseT = new Map(Object.entries(R.loose)),
+          stemT = new Map(Object.entries(R.stem)), domainT = new Map(Object.entries(R.by_domain));
+    const looseEntries = [...looseT.entries()];
+    const stemEntries = [...stemT.entries()].map(([k, v]) => [k, [v]]);
+    const res = (raw, id, method, candidates) => {
+      const confidence = R.confidence[method];
+      const review = confidence < R.review_threshold;
+      const e = id ? E[id] : null;
+      return { raw, entity: e, method, confidence, needs_review: review, candidates: candidates || [],
+               entity_id: e && !review ? e.id : '', name: e && !review ? e.name : '', kind: e && !review ? e.kind : '' };
+    };
+    const refuse = (raw, ids) => {
+      const cands = [...ids].sort().map(id => E[id]);
+      const kinds = new Set(cands.map(c => c.kind));
+      const method = kinds.size === 2 && kinds.has('company') && kinds.has('fund') ? 'fund-or-customer' : 'ambiguous';
+      return res(raw, null, method, cands);
+    };
+    const byDomainString = (dom, raw) => {
+      dom = dom.trim().toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/+$/, '');
+      if (domainT.has(dom)) return res(raw, domainT.get(dom), 'domain');
+      const st = stemT.get(domainStem(dom));
+      return st ? res(raw, st, 'domain-stem') : null;
+    };
+    function resolve(raw, domainHint) {
+      raw = (raw || '').trim(); domainHint = domainHint || '';
+      if (domainHint || isDomain(raw)) {
+        const r = byDomainString(domainHint || raw, raw);
+        if (r) return r;
+        if (!raw) return res(domainHint, null, 'unmatched');
+      }
+      const strict = normStrict(raw);
+      if (!strict) return res(raw, null, 'empty');
+      let hits = new Set(strictT.get(strict) || []);
+      if (hits.size === 1) {
+        const e = E[[...hits][0]];
+        const method = strict === domainStem(e.domain) && !e.names.some(n => normStrict(n) === strict) ? 'domain-stem' : 'name-exact';
+        return res(raw, e.id, method);
+      }
+      if (hits.size > 1) return refuse(raw, hits);
+      const loose = normLoose(raw);
+      hits = new Set(looseT.get(loose) || []);
+      if (stemT.has(loose)) hits.add(stemT.get(loose));
+      if (hits.size && loose.length < MIN) {
+        for (const [key, ids] of looseEntries.concat(stemEntries)) if (key.startsWith(loose)) ids.forEach(id => hits.add(id));
+      }
+      if (hits.size === 1) return res(raw, [...hits][0], 'name-loose');
+      if (hits.size > 1) return refuse(raw, hits);
+      if (loose.length >= MIN) {
+        const cands = new Set();
+        for (const [key, ids] of looseEntries.concat(stemEntries)) {
+          if (key.length >= MIN && (key.startsWith(loose) || loose.startsWith(key))) ids.forEach(id => cands.add(id));
+        }
+        if (cands.size === 1) { const id = [...cands][0]; return res(raw, id, 'name-prefix', [E[id]]); }
+        if (cands.size > 1) return refuse(raw, cands);
+      }
+      return res(raw, null, 'unmatched');
+    }
+    return { resolve, normStrict, normLoose };
+  }
+
+  // --------------------------------------------------- golden/parse.py, ported
+  function extract(text, P, resolver) {
+    text = text || '';
+    const seen = new Map();
+    const split = new RegExp(P.split.source, P.split.flags);
+    for (const cue of P.cues) {
+      const re = new RegExp(cue.source, cue.flags + 'gd');
+      for (const m of text.matchAll(re)) {
+        let start = m.indices.groups.co[0];
+        for (let part of m.groups.co.split(split)) {
+          part = part.trim();
+          if (!part) continue;
+          const at = text.indexOf(part, start);
+          const key = at + '\u0000' + part;
+          if (!seen.has(key)) seen.set(key, { text: part, cue: cue.label, score: cue.score, start: at, is_domain: false });
+          start = at + part.length;
+        }
+      }
+    }
+    const dre = new RegExp(P.domain.source, P.domain.flags + 'gd');
+    for (const m of text.matchAll(dre)) {
+      const dom = m[1].toLowerCase(), at = m.indices[1][0];
+      const key = at + '\u0000' + dom;
+      if (!seen.has(key)) seen.set(key, { text: dom, cue: P.domain_cue, score: P.domain_score, start: at, is_domain: true });
+    }
+    const mentions = [...seen.values()].sort((a, b) => a.start - b.start);
+    if (resolver) for (const x of mentions) x.resolution = x.is_domain ? resolver.resolve('', x.text) : resolver.resolve(x.text);
+    let target = null;
+    for (const m of mentions) {
+      if (m.score <= 0) continue;
+      if (!target || m.score > target.score || (m.score === target.score && m.start < target.start)) target = m;
+    }
+    return { text, mentions, target };
+  }
+
+  // ------------------------------------------------------------ upload preview
+  function parseJsonl(text) {
+    const threads = [], errors = [];
+    text.split(/\r?\n/).forEach((line, i) => {
+      if (!line.trim()) return;
+      try {
+        const t = JSON.parse(line);
+        if (!t.request_id || !Array.isArray(t.messages) || !t.messages.length) errors.push(`line ${i + 1}: needs request_id and a non-empty messages list`);
+        else threads.push(t);
+      } catch (e) { errors.push(`line ${i + 1}: ${e.message}`); }
+    });
+    return { threads, errors };
+  }
+
+  function previewThreads(jsonlText, P) {
+    const resolver = makeResolver(P.resolver);
+    const offerRe = new RegExp(P.offer.source, P.offer.flags);
+    const { threads, errors } = parseJsonl(jsonlText);
+    const rows = threads.map(t => {
+      const first = t.messages[0], replies = t.messages.slice(1);
+      const offers = replies.filter(m => offerRe.test(m.text || '')).map(m => ({ who: m.user, text: m.text, date: (m.ts || '').slice(0, 10) }));
+      const human = [];
+      const row = { request_id: t.request_id, posted: (first.ts || '').slice(0, 10), requested_by: first.user || '', raw_ask: first.text || '',
+                    company_as_written: '', company_id: '', company_name: '', resolved_by: '', href: '', offers, offer_by: '', offer_text: '',
+                    route_to: '', path: '', needs_human: '', flags: human, filed: false, mentions: [] };
+      const filed = get(P.filed, t.request_id, null);
+      if (filed) {
+        Object.assign(row, { filed: true, company_id: filed.company_id, company_name: filed.company_name, href: filed.href,
+                             resolved_by: `already filed (${filed.status}); filed facts are kept, only new offers land` });
+        if (filed.asked) human.push('already asked — an offer in the thread changes nothing');
+      } else {
+        const ex = extract(first.text || '', P, resolver);
+        row.mentions = ex.mentions;
+        const tg = ex.target;
+        if (!tg) { row.resolved_by = 'no company named in the ask'; human.push('no company named — the build files it with no company_id'); }
+        else {
+          row.company_as_written = tg.text;
+          const r = tg.resolution;
+          if (r.entity_id && r.kind === 'company') {
+            Object.assign(row, { company_id: r.entity_id, resolved_by: `${r.method} (${r.confidence.toFixed(2)})` });
+          } else if (r.entity_id && r.kind === 'fund') {
+            row.resolved_by = `${r.method}: names the fund ${r.name}, not a customer`;
+            human.push(`"${tg.text}" is an investor fund — the build would file a new company under that name`);
+          } else if (r.method === 'fund-or-customer' || r.method === 'ambiguous') {
+            row.resolved_by = `${r.method}: ${r.candidates.map(c => `${c.id} ${c.name} (${c.kind})`).join(' | ')}`;
+            human.push(r.method === 'fund-or-customer' ? 'bare name is a fund and a customer — ask the requester which' : 'ambiguous between two companies — pick one');
+          } else {
+            const name = tg.is_domain ? domainStem(tg.text) : tg.text;
+            const known = get(P.known_no_crm, resolver.normStrict(name), '') || get(P.known_no_crm, resolver.normLoose(name), '');
+            if (known) { row.company_id = known; row.resolved_by = 'matches a company on file that has no CRM account'; human.push('no CRM account — create one (see What the CRM is missing)'); }
+            else { row.resolved_by = 'new company — the build creates it with no domain and no CRM account'; human.push('new company: no CRM account, no domain — confirm the spelling'); }
+          }
+        }
+        const C = get(P.companies, row.company_id, null);
+        if (C) { row.company_name = C.company_name; row.href = C.href; if (C.stage === 'Closed Lost') human.push('CRM account is Closed Lost — reopen it or close the request'); }
+        else if (row.company_as_written) row.company_name = row.company_as_written;
+        human.push('thread carries no deal value, urgency or target title — add them to the request file');
+      }
+      // who it would route to: the best existing path vs any offer in the thread, scored as the build scores them
+      const C = get(P.companies, row.company_id, null);
+      const cands = [];
+      if (C && C.best) cands.push({ who: C.best.connector, score: C.best.score, label: C.best.label });
+      for (const o of offers) {
+        const score = C ? get(C.offer_score, o.who, C.offer_score_unknown) : get(P.offer_score_no_industry, o.who, P.offer_score_unknown);
+        cands.push({ who: o.who, score, label: 'offered in Slack' });
+      }
+      cands.sort((a, b) => b.score - a.score);
+      if (offers.length) { row.offer_by = offers.map(o => o.who).join(' | '); row.offer_text = offers.map(o => o.text).join(' | '); }
+      if (filed && filed.asked) {
+        row.path = 'already asked — not re-routed';
+      } else if (cands.length) {
+        const best = cands[0], conn = get(P.connectors, best.who, null);
+        row.route_to = best.who; row.path = `${best.label} (${best.score.toFixed(2)})`;
+        if (conn && conn.idle <= 0) human.push(`${best.who} has no slot left this cycle — would be "capacity exhausted" unless a slot frees`);
+        if (conn && !conn.on_roster) human.push(`${best.who} is not on the connector roster`);
+        if (!conn) human.push(`${best.who} is unknown to the roster and the outcome log`);
+      } else {
+        row.path = 'no path';
+        if (row.company_id) human.push('no path to this company in the network — exception unless someone offers');
+      }
+      row.flags = human.filter(Boolean);
+      row.needs_human = row.flags.join('; ');
+      return row;
+    });
+    return { rows, errors, count: threads.length };
+  }
+
+  // ------------------------------------------------------------------ render
+  const loadDone = () => new Set(JSON.parse(localStorage.getItem('lp-done') || '[]'));
+  const comp = (r, k, fmt) => `<span class="c" title="${esc(k.replace(/_/g, ' '))}">${fmt(r.components[k])}</span>`;
+  const FM_HEAD = '<th class="num">expected value</th><th>request priority<br><span class="fm">deal $M × stage × age × reps</span></th><th>connector score<br><span class="fm">path × fit × rate × capacity</span></th>';
+  const fmCells = r => `<td class="num ev">${r.expected_value.toFixed(3)}</td><td class="parts"><b>${r.request_priority.toFixed(3)}</b> = ${comp(r, 'deal_value_musd', v => v.toFixed(2))} × ${comp(r, 'stage_weight', v => v.toFixed(2))} × ${comp(r, 'age', v => v.toFixed(2))} × ${comp(r, 'reps_waiting', v => v)}<br><span class="foot">${r.days_waiting} days waiting</span></td><td class="parts"><b>${r.connector_score.toFixed(3)}</b> = ${comp(r, 'path_strength', v => v.toFixed(2))} × ${comp(r, 'focus_fit', v => v.toFixed(2))} × ${comp(r, 'delivery_rate', v => v.toFixed(2))} × ${comp(r, 'capacity_left', v => v.toFixed(2))}<br><span class="foot">${esc(r.capacity_note)}</span></td>`;
+
+  // rows of ranked() with tick-boxes; `rankKey` picks the number shown in the # column
+  function priorityTable(rows, done, rankKey, withConnector) {
+    return `<table class="top"><thead><tr><th></th><th>#</th><th>request</th><th>company</th><th>who wants</th>${withConnector ? '<th>ask</th>' : '<th>path</th>'}${FM_HEAD}</tr></thead><tbody>`
+      + rows.map(r => `<tr class="${done.has(r.request_id) ? 'done' : ''}" data-rid="${esc(r.request_id)}"><td><input type="checkbox" class="tick" ${done.has(r.request_id) ? 'checked' : ''} aria-label="done"></td><td class="order">${r[rankKey]}</td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.crm_stage)}</span></td><td>${co(r)}<br><span class="foot">${esc(r.target_title)}</span></td><td>${esc(r.requested_by)}${r.reps.length > 1 ? `<br><span class="foot">+${r.reps.length - 1} more waiting</span>` : ''}</td><td>${withConnector ? `<b>${esc(r.connector)}</b><br><span class="foot">${esc(r.path)}</span>` : `${esc(r.path)}${r.allocated ? '' : '<br><b class="warn">no slot this cycle</b>'}`}</td>${fmCells(r)}</tr>`).join('')
+      + `</tbody></table>`;
+  }
+
+  function formulaNote(F) {
+    return `<div class="formula"><p><code>${esc(F.expected_value)}</code></p><p><code>${esc(F.request_priority)}</code><br><code>${esc(F.connector_score)}</code></p>
+      <p class="foot">stage weight by CRM stage: ${Object.entries(F.stage_weight).map(([k, v]) => `${esc(k)} ${v}`).join(' · ')}. age: ${esc(F.age)}. reps waiting: ${esc(F.reps_waiting)}. path strength: ${esc(F.path_strength)}. focus fit: ${esc(F.focus_fit)}. delivery rate: ${esc(F.delivery_rate)}. capacity left: ${esc(F.capacity_left)}. Ticks are kept in this browser only.</p></div>`;
+  }
+
+  function wireTicks(root, done) {
+    root.querySelectorAll('.tick').forEach(cb => cb.addEventListener('change', () => {
+      const tr = cb.closest('tr'), rid = tr.dataset.rid;
+      cb.checked ? done.add(rid) : done.delete(rid);
+      tr.classList.toggle('done', cb.checked);
+      localStorage.setItem('lp-done', JSON.stringify([...done]));
+    }));
+  }
+
+  const sittingTable = c => c.sitting_on.length ? `<table><thead><tr><th>action</th><th>request</th><th>company</th><th>wanted</th><th>for</th><th>asked</th><th class="num">days</th><th>responded</th><th>value</th></tr></thead><tbody>`
+    + c.sitting_on.map(s => `<tr><td><b>${esc(s.action)}</b></td><td class="rid">${esc(s.request_id)}</td><td>${co(s)}</td><td>${esc(s.target_title)}</td><td>${esc(s.requested_by)}</td><td class="date">${esc(s.asked_date)}</td><td class="num">${s.days_since_asked}</td><td>${s.responded ? '<b>yes — nudge, do not re-ask</b>' : 'no'}</td><td>${esc(s.value_fmt)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing outstanding</p>`;
+
+  // one connector's page (docs/connector-<slug>.html): top 5, then the longer list
+  function bootConnector(c, root) {
+    const done = loadDone();
+    const cap = c.capacity ? `${c.used} / ${c.capacity}` : `${c.used}`;
+    let out = `<section id="top"><h2>Top ${c.top.length} for ${esc(c.connector)} <span class="foot">do these next — ${esc(c.connector)}'s share of the ${c.ranked_count} live requests routed to them this cycle, sorted by expected value${c.no_slot ? `; ${c.no_slot} have no slot until capacity frees up` : ''}</span></h2>
+      <p class="lede">${c.on_roster ? `${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''}` : `<b>not on the roster</b> · ${esc(c.type)} · no stated capacity or focus areas`}${c.notes ? `<br><span class="foot">${esc(c.notes)}</span>` : ''}</p>
+      <div class="kpis"><div class="kpi"><div class="v">${cap}</div><div class="l">${c.capacity ? 'capacity used this cycle' : 'asks this cycle'}</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated${c.capacity ? ` · ${c.idle} idle` : ''}</div></div>
+        <div class="kpi"><div class="v">${Math.round(c.delivery_rate * 100)}%</div><div class="l">delivery rate</div><div class="s">${c.intros_all_time} intros / ${c.asks_all_time} asks, shrunk toward the prior</div></div>
+        <div class="kpi"><div class="v">${c.ranked_count}</div><div class="l">requests on their list</div><div class="s">${esc(c.ranked_value_fmt)} of deal value</div></div>
+        <div class="kpi ${c.sitting_on.length ? 'warn' : ''}"><div class="v">${c.sitting_on.length}</div><div class="l">already sitting on</div><div class="s">asked, live, no intro yet</div></div></div>`
+      + (c.top.length ? priorityTable(c.top, done, 'rank_here', false) : `<p class="empty">nothing routed to ${esc(c.connector)} this cycle</p>`)
+      + `<p class="foot"># is the rank within ${esc(c.connector)}'s list; the same rows rank ${c.top.map(r => r.rank).join(', ') || '—'} on the <a href="livepriorities.html#top">overall list</a>.</p></section>`;
+
+    out += `<section id="rest"><h2>The longer list <span class="foot">everything else on ${esc(c.connector)}'s plate — ${plural(c.rest.length, 'more request')} to ask, then ${plural(c.sitting_on.length, 'ask')} already made and waiting on them</span></h2>
+      <h3>after the top ${c.top.length}</h3>` + (c.rest.length ? priorityTable(c.rest, done, 'rank_here', false) : `<p class="empty">${c.ranked_count ? 'the top ' + c.top.length + ' is the whole list' : 'nothing to ask'}</p>`)
+      + `<h3>already sitting on</h3>` + sittingTable(c)
+      + formulaNote(c.formula) + `</section>`;
+
+    root.innerHTML = out;
+    wireTicks(root, done);
+  }
+
+  function boot(D, root) {
+    const P = D.parser;
+    const done = loadDone();
+    let out = '';
+
+    // 0. upload
+    out += `<section id="upload"><h2>Preview a Slack export before anything is written</h2>
+      <p class="lede">Drop a <code>.jsonl</code> of Slack threads (one <code>{request_id, messages:[{ts,user,text}…]}</code> per line). Every row shows the company the build would resolve, any offer spotted in the replies, who it would route to and what needs a human — using the build's own cues, resolver tables and offer pattern, so the preview matches what lands. A static page cannot write to disk: export the preview and run the command to file it.</p>
+      <div class="drop" id="lp-drop"><input type="file" id="lp-file" accept=".jsonl,.json,.txt"><span>Drop a .jsonl here or click to choose</span></div>
+      <div id="lp-preview"></div></section>`;
+
+    // 1. stages
+    const S = D.stages;
+    out += `<section id="stages"><h2>Deal value by stage <span class="foot">point in time, as of ${esc(S.as_of)} — each request counted once</span></h2>
+      <div class="strip">${S.stages.map(s => `<div class="cell"><div class="v">${esc(s.usd_fmt)}</div><div class="n">${plural(s.count, 'request')}</div><div class="l">${esc(s.stage)}</div></div>`).join('')}</div>
+      <p class="foot">${S.total.count} live or completed requests, ${esc(S.total.usd_fmt)}; ${S.excluded.count} filed <i>Closed - no path</i> (${esc(S.excluded.usd_fmt)}) are not on the strip. "needs data" = no company or no deal value; "to be routed" = live with nobody assigned; "routed" = a connector is assigned or allocated this cycle but not yet asked; "asked" = in <code>intro_outcomes.csv</code> with no intro; "introduced" = intro logged or filed; "won" = meeting booked.</p></section>`;
+
+    // 2. top 5
+    const T = D.priorities;
+    out += `<section id="top"><h2>Top ${T.top.length} priorities <span class="foot">do these next — sorted by expected value across ${T.considered} live requests with a connector to act on</span></h2>`
+      + priorityTable(T.top, done, 'rank', true)
+      + `<p class="foot">Per connector: ${D.connector_pages.map(c => `<a href="${esc(c.page)}">${esc(c.connector)}</a>`).join(' · ')} — each tab opens on their own top 5, with the longer list below.</p>`
+      + formulaNote(T.formula) + `</section>`;
+
+    // 3. current asks
+    const A = D.asks;
+    out += `<section id="asks"><h2>Current asks <span class="foot">cycle ${esc(A.cycle)} — ${A.allocated} requests allocated in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code></span></h2>`;
+    for (const b of A.batches) {
+      out += `<h3>${esc(b.connector)} <span class="foot">${esc(b.connector_type)} · ${plural(b.size, 'request')} · ${esc(b.value_fmt)} · <code>${esc(b.batch_id)}</code></span></h3>
+        <table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>why this connector</th></tr></thead><tbody>`
+        + b.companies.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td class="foot">${esc(c.why)}</td></tr>`).join('')
+        + `</tbody></table>`;
+    }
+    out += `<details><summary>${plural(A.exception_count, 'exception')} — not allocated this cycle: ${A.exceptions.map(e => `${e.count} ${esc(e.reason.replace(' to this company in the network', ''))}`).join(', ')}</summary>`;
+    for (const e of A.exceptions) {
+      out += `<h3>${esc(e.reason)} <span class="foot">${e.count} · ${esc(e.value_fmt)}</span></h3><table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>who</th><th>value</th><th>urgency</th><th>status</th><th>${e.reason.startsWith('capacity') ? 'best path (no slot)' : e.reason.startsWith('company') ? 'as written' : 'note'}</th></tr></thead><tbody>`
+        + e.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}</td><td>${co(r)}</td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td><td>${esc(r.value_fmt)}</td><td>${esc(r.urgency)}</td><td>${esc(r.status)}</td><td class="foot">${esc(r.best_path || (e.reason.startsWith('company') ? r.company_as_written || '(nothing parseable)' : 'nobody in the network reaches them'))}</td></tr>`).join('')
+        + `</tbody></table>`;
+    }
+    out += `</details></section>`;
+
+    // 4. offer gaps
+    const O = D.offer_gaps;
+    out += `<section id="offers"><h2>Already offered, needs response <span class="foot">${plural(O.count, 'request')}, ${esc(O.value_fmt)} — someone volunteered in the Slack thread and no ask was ever logged</span></h2>
+      <p class="lede">These cost nothing to action: someone already said yes. Reply in the thread and log the ask.</p>
+      <table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>who offered</th><th>what they wrote</th><th>status the request carries</th></tr></thead><tbody>`
+      + O.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)}</span></td><td>${co(r)}<br><span class="foot">for ${esc(r.requested_by)}</span></td><td>${esc(r.target_title)}</td><td>${r.offers.map(o => `<b>${esc(o.who)}</b>${o.on_roster ? '' : ' <span class="foot">off roster</span>'}<br><span class="foot">${esc(o.date)} · ${o.days_ago} days ago</span>`).join('<br>')}</td><td>${r.offers.map(o => `<q>${esc(o.text)}</q>`).join('<br>')}</td><td><b class="${r.status === 'Closed - no path' ? 'warn' : ''}">${esc(r.status)}</b><br><span class="foot">${esc(r.note)}</span></td></tr>`).join('')
+      + `</tbody></table></section>`;
+
+    // 5. bottlenecks
+    const B = D.bottlenecks;
+    out += `<section id="bottlenecks"><h2>Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro — ${esc(B.value_fmt)} — from <code>intro_outcomes.csv</code></span></h2>
+      <p class="lede">Each of these is a <b>nudge</b>, not a re-ask: asking again spends a fresh slot for an answer you already have. ${B.by_connector.map(c => `${esc(c.connector)} ${c.count}`).join(' · ')}.</p>
+      <table><thead><tr><th>action</th><th>request</th><th>company</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
+      + B.rows.map(r => `<tr><td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`).join('')
+      + `</tbody></table></section>`;
+
+    // 6. per-connector tabs
+    out += `<section id="connectors"><h2>Connectors <span class="foot">roster, one panel each: queue this cycle, capacity used against stated capacity, delivery rate, what they are already sitting on — the coloured tabs at the top open each connector's own page</span></h2>
+      <div class="subtabs" id="lp-ctabs">${D.connectors.map((c, i) => `<button data-i="${i}" class="${i ? '' : 'on'}">${esc(c.connector)}<span class="n">${c.used}/${c.capacity}</span></button>`).join('')}</div>`;
+    D.connectors.forEach((c, i) => {
+      out += `<div class="cpanel" data-i="${i}" ${i ? 'hidden' : ''}>
+        <p class="lede">${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''} · <a href="${esc(c.page)}">their top 5 →</a><br><span class="foot">${esc(c.notes)}</span></p>
+        <div class="kpis"><div class="kpi"><div class="v">${c.used} / ${c.capacity}</div><div class="l">capacity used this cycle</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated · ${c.idle} idle</div></div>
+          <div class="kpi"><div class="v">${Math.round(c.delivery_rate * 100)}%</div><div class="l">delivery rate</div><div class="s">${c.intros_all_time} intros / ${c.asks_all_time} asks, shrunk toward the prior</div></div>
+          <div class="kpi ${c.sitting_on.length ? 'warn' : ''}"><div class="v">${c.sitting_on.length}</div><div class="l">already sitting on</div><div class="s">asked, live, no intro yet</div></div>
+          <div class="kpi"><div class="v">${c.queue.length}</div><div class="l">in this cycle's ask</div><div class="s">${c.queue.length ? 'one consolidated batch' : 'nothing allocated'}</div></div></div>
+        <h3>queue this cycle</h3>` + (c.queue.length ? `<table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>for</th><th>path</th><th class="num">score</th><th>value</th><th>urgency</th></tr></thead><tbody>`
+          + c.queue.map(q => `<tr><td class="rid">${esc(q.request_id)}</td><td>${co(q)}</td><td>${esc(q.target_title)}</td><td>${esc(q.requested_by)}</td><td>${esc(q.path_type)}${q.contact ? ` <span class="foot">via ${esc(q.contact)}</span>` : ''}</td><td class="num">${esc(q.route_score)}</td><td>${esc(q.value_fmt)}</td><td>${esc(q.urgency)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing allocated to ${esc(c.connector)} this cycle</p>`)
+        + `<h3>already sitting on</h3>` + sittingTable(c)
+        + `</div>`;
+    });
+    out += `</section>`;
+
+    // 7. check-ins
+    const K = D.checkins;
+    out += `<section id="checkins"><h2>Overdue a check-in <span class="foot">${plural(K.count, 'company')} with requests and a CRM account; ${K.both} failed both tests</span></h2>
+      <p class="lede">Two tests, ${K.days} days each: has anyone touched the CRM account, and has anyone asked a connector for an intro. A company failing both is being neither sold to nor networked into.</p>
+      <table><thead><tr><th>company</th><th>owner</th><th>stage</th><th>CRM last_touch_date</th><th>last intro ask</th><th>failed</th><th>live</th></tr></thead><tbody>`
+      + K.rows.map(r => `<tr><td>${co(r)}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage)}</td><td class="date">${esc(r.last_touch_date || 'never')}${r.touch_days != null ? ` <span class="foot">${r.touch_days}d</span>` : ''}</td><td class="date">${esc(r.last_ask_date || 'never')}${r.ask_days != null ? ` <span class="foot">${r.ask_days}d</span>` : ''}</td><td>${r.failed.map(f => `<b class="${r.failed.length === 2 ? 'warn' : ''}">${esc(f)}</b>`).join(' + ')}</td><td>${r.live_requests ? `${r.live_requests} · ${esc(r.live_value_fmt)}` : '—'}</td></tr>`).join('')
+      + `</tbody></table></section>`;
+
+    // 8. unrouted in focus
+    const U = D.unrouted, F = U.finding;
+    out += `<section id="unrouted"><h2>Unrouted company asks, per connector <span class="foot">${U.unrouted_companies} companies with live requests nobody is allocated to, matched to each connector's stated focus areas</span></h2>
+      <p class="lede">In-focus asks convert at <b>${esc(F.in_focus_pct)}</b> versus ${esc(F.out_focus_pct)} outside, yet only ${F.in_focus_asks} of ${F.total_asks} asks landed in focus. These are the names that finding points at.</p>`;
+    for (const c of U.per_connector) {
+      out += `<h3>${esc(c.connector)} <span class="foot">${c.focus.map(esc).join(', ')} · ${plural(c.count, 'company')} · ${esc(c.value_fmt)} · ${c.idle} idle slots</span></h3>`;
+      out += c.companies.length ? `<table><thead><tr><th>company</th><th>industry</th><th>wanted</th><th>waiting</th><th>value</th><th>why unrouted</th><th>their way in</th></tr></thead><tbody>`
+        + c.companies.map(x => `<tr><td>${co(x)}<br><span class="foot">${x.request_ids.map(esc).join(', ')}</span></td><td>${esc(x.industry)}</td><td>${x.wanted.map(esc).join('<br>')}</td><td>${x.waiting.map(esc).join('<br>')}</td><td>${esc(x.value_fmt)}</td><td class="foot">${x.reasons.map(esc).join('; ')}</td><td class="${x.has_path ? '' : 'foot'}">${esc(x.path)}</td></tr>`).join('') + `</tbody></table>`
+        : `<p class="empty">no unrouted company in ${esc(c.connector)}'s focus areas</p>`;
+    }
+    out += `</section>`;
+
+    // 9. CRM
+    const C = D.crm;
+    out += `<section id="crm"><h2>What the CRM is missing <span class="foot">${C.groups.map(g => `${g.count} ${esc(g.group)}`).join(' · ')}</span></h2>
+      <div class="dl"><button id="lp-dl-import">Download ${esc(C.import.filename)}</button><span>${plural(C.import.count, 'account')} to create, importer-shaped columns only (<code>${C.import.columns.map(esc).join(', ')}</code>). It can be uploaded straight into the CRM.</span></div>
+      <div class="dl"><button id="lp-dl-review" class="secondary">Download ${esc(C.review.filename)}</button><span>${plural(C.review.count, 'recommendation')} (${C.review.groups.map(g => `${g.count} ${esc(g.group)}`).join(', ')}), every row <code>status = ${esc(C.status)}</code>. Merges and owner conflicts are recommended, never executed — ownership is compensation.</span></div>`;
+    for (const g of C.groups) {
+      out += `<h3>${esc(g.title)} <span class="foot">${g.count} · ${esc(g.value_fmt)}</span></h3>`;
+      out += g.rows.length ? `<table><thead><tr><th>company</th><th>CRM accounts</th><th>owner</th><th>stage</th><th>action</th><th>why</th><th class="num">at stake</th></tr></thead><tbody>`
+        + g.rows.map(r => `<tr><td>${co(r)}<br><span class="foot">${r.request_ids.map(esc).join(', ')}</span></td><td class="rid">${esc(r.crm_account_ids || '—')}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage || '—')}</td><td><b>${esc(r.action)}</b></td><td class="foot">${esc(r.why)}<br>${esc(r.evidence)}</td><td class="num">${esc(r.value_fmt)}</td></tr>`).join('') + `</tbody></table>`
+        : `<p class="empty">nothing to do</p>`;
+    }
+    out += `</section>`;
+
+    root.innerHTML = out;
+
+    // wiring: ticks, connector tabs, downloads, upload
+    wireTicks(root, done);
+    const ctabs = root.querySelector('#lp-ctabs');
+    ctabs.querySelectorAll('button').forEach(b => b.onclick = () => {
+      ctabs.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      root.querySelectorAll('.cpanel').forEach(p => p.hidden = p.dataset.i !== b.dataset.i);
+    });
+    root.querySelector('#lp-dl-import').onclick = () => download(C.import.filename, C.import.csv);
+    root.querySelector('#lp-dl-review').onclick = () => download(C.review.filename, C.review.csv);
+
+    const drop = root.querySelector('#lp-drop'), file = root.querySelector('#lp-file'), prev = root.querySelector('#lp-preview');
+    const handle = f => {
+      if (!f) return;
+      f.text().then(text => renderPreview(previewThreads(text, P), f.name, P, prev));
+    };
+    drop.addEventListener('click', e => { if (e.target !== file) file.click(); });
+    file.addEventListener('change', () => handle(file.files[0]));
+    ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+    drop.addEventListener('drop', e => handle(e.dataTransfer.files[0]));
+  }
+
+  function renderPreview(pv, filename, P, el) {
+    const flagged = pv.rows.filter(r => r.flags.length).length, offers = pv.rows.filter(r => r.offers.length).length;
+    const name = (filename || 'threads.jsonl').replace(/\.[^.]+$/, '');
+    let out = `<div class="kpis"><div class="kpi"><div class="v">${pv.count}</div><div class="l">threads</div><div class="s">${pv.rows.filter(r => r.filed).length} already filed</div></div>
+      <div class="kpi"><div class="v">${pv.rows.filter(r => r.company_id).length}</div><div class="l">resolved to a company</div><div class="s">${pv.rows.filter(r => !r.filed && !r.company_id).length} not</div></div>
+      <div class="kpi"><div class="v">${offers}</div><div class="l">with an offer in the replies</div></div>
+      <div class="kpi ${flagged ? 'warn' : ''}"><div class="v">${flagged}</div><div class="l">need a human</div></div></div>`;
+    if (pv.errors.length) out += `<div class="finding warn"><b>${plural(pv.errors.length, 'line')} skipped</b>${pv.errors.slice(0, 5).map(esc).join('<br>')}</div>`;
+    out += `<div class="dl"><button id="lp-dl-preview">Export preview CSV</button><span>Nothing has been written. To apply it for real, from the repo root:<br><code>${esc(P.command.replace('{file}', filename || 'threads.jsonl'))}</code></span></div>`;
+    out += `<table class="preview"><thead><tr><th>request</th><th>posted · by</th><th>resolved company</th><th>offer in replies</th><th>would route to</th><th>needs a human</th></tr></thead><tbody>`
+      + pv.rows.map(r => `<tr class="${r.flags.length ? 'flag' : ''}"><td class="rid">${esc(r.request_id)}${r.filed ? '<br><span class="foot">filed</span>' : ''}</td><td class="date">${esc(r.posted)}<br><span class="foot">${esc(r.requested_by)}</span></td><td>${r.company_id ? `${co(r)} <span class="foot">${esc(r.company_id)}</span>` : `<i>${esc(r.company_name || '—')}</i>`}<br><span class="foot">${esc(r.company_as_written ? `"${r.company_as_written}" · ` : '')}${esc(r.resolved_by)}</span></td><td>${r.offers.length ? r.offers.map(o => `<b>${esc(o.who)}</b> <span class="foot">${esc(o.date)}</span><br><q>${esc(o.text)}</q>`).join('<br>') : '<span class="foot">none</span>'}</td><td>${r.route_to ? `<b>${esc(r.route_to)}</b><br><span class="foot">${esc(r.path)}</span>` : `<span class="foot">${esc(r.path || '—')}</span>`}</td><td class="foot">${r.flags.length ? r.flags.map(esc).join('<br>') : 'nothing'}</td></tr>`).join('')
+      + `</tbody></table>`;
+    el.innerHTML = out;
+    el.querySelector('#lp-dl-preview').onclick = () => download(`${name}_preview.csv`, toCsv(P.preview_columns, pv.rows));
+  }
+
+  return { boot, bootConnector, extract, makeResolver, previewThreads, parseJsonl, normStrict, toCsv };
+})();
+if (typeof module !== 'undefined') module.exports = LP;
+
+LP.bootConnector(JSON.parse(document.getElementById('lp-data').textContent), document.getElementById('lp'));
+</script>
+
+<p class="foot">Regenerate with <code>python3 build.py dashboard</code>. Ticks are shared with the Live Priorities tab in this browser.</p>
+</main>
+</body></html>
