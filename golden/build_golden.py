@@ -23,12 +23,14 @@ import csv
 import json
 import re
 import sys
-import unicodedata
 from collections import Counter, defaultdict
 from datetime import date, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from golden.resolver import domain_stem, normalize, normalize_strict  # noqa: E402
+
 DATASET = ROOT / "dataset"
 OUT = ROOT / "golden"
 
@@ -56,30 +58,6 @@ SUPPLY_COLUMNS = [
 ]
 
 OPEN_STATUSES = {"Open", "Routed", "Stalled"}
-
-# ---------------------------------------------------------------------------
-# name normalisation (same rules as halyard's resolver)
-# ---------------------------------------------------------------------------
-_NOISE = r"\b(inc|incorporated|corp|corporation|company|co|ltd|limited|llc|lp|plc|group|holdings|holding|the|and)\b"
-
-
-def normalize_strict(name: str) -> str:
-    s = unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode().lower()
-    return re.sub(r"[^a-z0-9]+", "", s)
-
-
-def normalize(name: str) -> str:
-    s = unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode().lower()
-    s = re.sub(r"[^a-z0-9]+", " ", s)
-    s = re.sub(_NOISE, " ", s)
-    return re.sub(r"\s+", "", s)
-
-
-def domain_stem(domain: str) -> str:
-    d = (domain or "").strip().lower()
-    d = re.sub(r"^(https?://)?(www\.)?", "", d)
-    return re.sub(r"\..*$", "", d)
-
 
 # ---------------------------------------------------------------------------
 # routing constants (same weights as halyard/relay)
