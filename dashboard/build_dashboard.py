@@ -373,7 +373,7 @@ img{{max-width:100%}}
 .mast .logo{{flex:none;display:block}}
 .mast .t{{font-family:var(--sans);font-size:17px;line-height:1.2;letter-spacing:-.01em;color:var(--mute);white-space:nowrap}}
 .mast .t b{{font-weight:600;color:var(--navy)}}
-.tabs{{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;padding:6px 40px 0;border-bottom:1px solid var(--line)}}
+.tabs{{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:4px;padding:6px 40px 0;border-bottom:1px solid var(--line)}}
 .tabs a{{font-family:var(--sans);font-size:14px;color:var(--mute);text-decoration:none;padding:8px 16px;margin-bottom:-1px;border:1px solid transparent}}
 .tabs a:hover{{color:var(--ink)}}
 .tabs a.on{{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}}
@@ -442,10 +442,10 @@ img{{max-width:100%}}
 
 RAW_HTML, LIVE_HTML, TRACE_HTML = "halyardscoping.html", "livedata.html", "companytrace.html"
 TABS = [
-    (RAW_HTML, "Raw Sept Data Dashboard"),
-    (LIVE_HTML, "Live Data Dashboard"),
     (TRACE_HTML, "Company Trace"),
     (PRIORITIES_HTML, "Live Priorities"),
+    (RAW_HTML, "Raw Sept Data Dashboard"),
+    (LIVE_HTML, "Live Data Dashboard"),
 ]
 
 
