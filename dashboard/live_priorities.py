@@ -260,6 +260,59 @@ class Live:
     def asks_this_cycle(self, connector: str) -> int:
         return sum(1 for o in self.outcomes if o["connector_asked"] == connector and o["asked_date"].startswith(self.cycle))
 
+    def cycle_list(self) -> list[str]:
+        """Every calendar month from the first ask on file through the current cycle."""
+        first = min((o["asked_date"][:7] for o in self.outcomes if o["asked_date"]), default=self.cycle)
+        y, m = int(first[:4]), int(first[5:7])
+        out = []
+        while f"{y:04d}-{m:02d}" <= self.cycle:
+            out.append(f"{y:04d}-{m:02d}")
+            y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+        return out
+
+    def cycle_rows(self, names: list[str]) -> list[dict]:
+        """Per cycle (a calendar month, the allocator's unit): asks made, slots used
+        against stated capacity, intros made (by intro_date) and the running total
+        of intros. One connector, or several summed. Capacity is the stated monthly
+        capacity of whoever in `names` is on the roster, and only their asks count
+        against it; the current cycle counts this build's allocation as slots used,
+        since those asks are about to go out."""
+        names = set(names)
+        on_roster = {n for n in names if n in self.roster}
+        cap = sum(int(self.roster[n]["stated_monthly_capacity"] or 0) for n in on_roster)
+        mine = [o for o in self.outcomes if o["connector_asked"] in names]
+        allocated = sum(1 for a in self.allocation if a["allocated_to"] in names)
+        allocated_roster = sum(1 for a in self.allocation if a["allocated_to"] in on_roster)
+        rows, cum = [], 0
+        for cyc in self.cycle_list():
+            asks = sum(1 for o in mine if o["asked_date"].startswith(cyc))
+            asks_roster = sum(1 for o in mine if o["asked_date"].startswith(cyc) and o["connector_asked"] in on_roster)
+            intros = sum(1 for o in mine if o["intro_sent"] == "Y" and o["intro_date"].startswith(cyc))
+            current = cyc == self.cycle
+            used = asks_roster + (allocated_roster if current else 0)
+            cum += intros
+            rows.append({
+                "cycle": cyc, "current": current, "asks": asks, "allocated": allocated if current else 0,
+                "allocated_off_roster": allocated - allocated_roster if current else 0, "used": used, "capacity": cap,
+                "capacity_pct": round(used / cap, 3) if cap else None,
+                "intros": intros, "intros_cumulative": cum,
+            })
+        return rows
+
+    def cycles(self) -> dict:
+        """The roster's cycle-by-cycle record, summed, for the Live Data tab."""
+        names = sorted({o["connector_asked"] for o in self.outcomes} | set(self.roster)
+                       | {a["allocated_to"] for a in self.allocation if a["allocated_to"]})
+        rows = self.cycle_rows(names)
+        cur = rows[-1]
+        return {
+            "cycle": self.cycle, "rows": rows, "current": cur,
+            "roster_capacity": cur["capacity"], "off_roster": sorted(n for n in names if n not in self.roster),
+            "intros_total": cur["intros_cumulative"], "asks_total": sum(r["asks"] for r in rows),
+            "best": max(rows, key=lambda r: (r["intros"], r["cycle"])),
+            "per_connector": [{"connector": n, "rows": self.cycle_rows([n])} for n in self.roster],
+        }
+
     def path_for(self, a: dict) -> dict | None:
         return next((p for p in self.paths.get(a["company_id"], [])
                      if p["connector"] == a["allocated_to"] and p["reach_type"] == a["path_type"]
@@ -511,6 +564,7 @@ class Live:
                    and self.by_rid.get(o["request_id"], {}).get("status_as_filed") in bg.OPEN_STATUSES]
         asks = [o for o in self.outcomes if o["connector_asked"] == name]
         intros = [o for o in asks if o["intro_sent"] == "Y"]
+        cycles = self.cycle_rows([name])
         facts = self.connector_facts.get(name, {})
         return {
             "connector": name, "slug": slug(name), "page": CONNECTOR_PAGE.format(slug=slug(name)),
@@ -521,6 +575,7 @@ class Live:
             "capacity": cap, "asked_this_cycle": asked_cycle, "allocated_this_cycle": len(queue),
             "used": asked_cycle + len(queue), "idle": max(0, cap - asked_cycle - len(queue)),
             "delivery_rate": round(self.rate(name), 3), "asks_all_time": len(asks), "intros_all_time": len(intros),
+            "intros_this_cycle": cycles[-1]["intros"], "cycles": cycles,
             "sitting_on": [{
                 "request_id": o["request_id"], **self.company_ref(self.by_rid.get(o["request_id"], {}).get("company_id", "")),
                 "target_title": self.by_rid.get(o["request_id"], {}).get("target_title", ""),
@@ -789,6 +844,10 @@ LP.{entry}(JSON.parse(document.getElementById('lp-data').textContent), document.
 
 def fragment(today: date | None = None) -> str:
     return _fragment(payload(today), "boot")
+
+
+def cycles(today: date | None = None) -> dict:
+    return Live(today or date.today()).cycles()
 
 
 def connector_fragments(today: date | None = None) -> list[tuple[dict, str]]:

@@ -32,7 +32,7 @@ from analysis.integrity.integrity_audit import fragment as integrity_fragment
 from dashboard import data_cuts, theme
 from dashboard.funnel_overview import dropoff_rows, ratios
 from dashboard.live_priorities import (PAGE as PRIORITIES_HTML, connector_fragments,
-                                       fragment as priorities_fragment)
+                                       cycles as connector_cycles, fragment as priorities_fragment)
 from dashboard.sankey_funnel import GOLDEN as GOLDEN_REQUESTS, build_figure, funnel_stages
 from dashboard.trace_section import fragment as trace_fragment
 from paths import DATASET, DOCS, PROFILE, ROUTING
@@ -296,6 +296,59 @@ monthly_rows = [(month, n, a, i, f"{i/n:.0%}", f"{lat:.1f} d" if lat is not None
 monthly_table = table(["Month", "Requests", "Routed", "Intros sent", "Completion rate", "Mean days to ask"],
                       monthly_rows)
 
+# --------------------------------------------------------------------------- intros by cycle
+cycles = connector_cycles(TODAY)
+cyc_rows = cycles["rows"]
+cyc_fig = go.Figure()
+cyc_fig.add_bar(x=[r["cycle"] for r in cyc_rows], y=[r["used"] for r in cyc_rows], name="roster slots used",
+                marker_color=theme.NEUTRAL)
+cyc_fig.add_bar(x=[r["cycle"] for r in cyc_rows], y=[r["intros"] for r in cyc_rows], name="intros made",
+                marker_color=theme.ACCENT)
+cyc_fig.add_scatter(x=[r["cycle"] for r in cyc_rows], y=[r["intros_cumulative"] for r in cyc_rows],
+                    name="cumulative intros", mode="lines+markers", line=dict(color=theme.WARN, width=2))
+cyc_fig.add_scatter(x=[r["cycle"] for r in cyc_rows], y=[r["capacity_pct"] for r in cyc_rows],
+                    name="capacity used", yaxis="y2", mode="lines", line=dict(color=theme.BATON, width=2, dash="dot"))
+cyc_fig.update_layout(barmode="overlay", height=380, autosize=True, margin=dict(l=10, r=10, t=10, b=30),
+                      **theme.PLOTLY_LAYOUT)
+cyc_fig.update_layout(legend=dict(orientation="h", y=1.08, x=0),
+                      xaxis=dict(title="cycle", type="category"), yaxis=dict(title="asks / intros"),
+                      yaxis2=dict(overlaying="y", side="right", tickformat=".0%", rangemode="tozero",
+                                  title="capacity used", showgrid=False))
+cyc_div = pio.to_html(cyc_fig, include_plotlyjs=False, full_html=False, div_id="cycles-chart",
+                      config={"displayModeBar": False, "responsive": True})
+
+
+def cycle_cell(r):
+    return f'{r["asks"]}' + (f' <span class="foot">+ {r["allocated"]} allocated</span>' if r["allocated"] else "")
+
+
+def cycle_pct(r):
+    return (f'{r["capacity_pct"]:.0%} <span class="foot">{r["used"]} / {r["capacity"]}</span>'
+            if r["capacity_pct"] is not None else "—")
+
+
+def cycle_table(rows):
+    NOW, TAG = ' class="now"', ' <span class="foot">this cycle</span>'
+    body = "".join(
+        f'<tr{NOW if r["current"] else ""}><td class="date">{esc(r["cycle"])}{TAG if r["current"] else ""}</td>'
+        f'<td class="num">{cycle_cell(r)}</td><td class="num">{cycle_pct(r)}</td>'
+        f'<td class="num">{r["intros"]}</td><td class="num">{r["intros_cumulative"]}</td></tr>'
+        for r in rows)
+    return ('<table class="cycles"><thead><tr><th>Cycle</th><th class="num">Asks</th><th class="num">Of capacity</th>'
+            f'<th class="num">Intros made</th><th class="num">Cumulative intros</th></tr></thead><tbody>{body}</tbody></table>')
+
+
+cyc_connector_rows = [(p["connector"], p["rows"][-1]["capacity"], f'{p["rows"][-1]["used"]} ({p["rows"][-1]["capacity_pct"]:.0%})',
+                       p["rows"][-1]["intros"], p["rows"][-1]["intros_cumulative"],
+                       f'{sum(r["asks"] for r in p["rows"]) / len(p["rows"]):.1f}',
+                       f'{sum(r["capacity_pct"] for r in p["rows"][:-1]) / max(1, len(p["rows"]) - 1):.0%}',
+                       f'{sum(r["intros"] for r in p["rows"]) / len(p["rows"]):.1f}')
+                      for p in cycles["per_connector"]]
+cyc_connector_table = table(["Connector", "Capacity/mo", "Slots used this cycle", "Intros this cycle", "Cumulative intros",
+                             "Asks / cycle", "Capacity used / cycle", "Intros / cycle"], cyc_connector_rows)
+cyc_prev = [r for r in cyc_rows if not r["current"]]
+cyc_avg_pct = sum(r["capacity_pct"] for r in cyc_prev) / len(cyc_prev) if cyc_prev else 0
+
 dup_table = table(["Reply text", "Occurrences"], [(text, n) for text, n in slack["dup_phrases"]])
 
 flag_order = ["Path found", "No path found", "Unknown", "(blank)"]
@@ -334,7 +387,7 @@ nav a{{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}}
 nav a:hover{{color:var(--blue)}}
 .part-lede{{margin-bottom:24px}}
 main{{max-width:1240px;margin:0 auto;padding:28px 40px 72px}}
-section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:110px}}
+section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:190px}}
 h2{{margin:0 0 6px;font-size:22px}}
 h3{{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}}
 details{{margin-top:26px}}
@@ -358,6 +411,10 @@ td:nth-child(n+2):not(:last-child).num,th.num{{text-align:right}}
 .fo tr.total td{{font-weight:600;border-top:1px solid var(--ink)}}
 .fo tr.ratio td{{color:var(--mute);border-bottom:none;padding-top:10px}}
 .fo tr.ratio td.num{{color:var(--ink);font-weight:600}}
+table.cycles td.num,table.cycles th.num{{text-align:right;white-space:nowrap}}
+table.cycles td.date{{font-family:var(--mono);font-size:12.5px;white-space:nowrap}}
+table.cycles tr.now td{{background:{theme.rgba(theme.BATON, 0.08)};font-weight:500}}
+table.cycles tr.now td .foot{{font-weight:400}}
 .grid2{{display:grid;grid-template-columns:1fr 1fr;gap:32px}}
 @media(max-width:900px){{.grid2{{grid-template-columns:1fr}}}}
 .finding{{border-left:2px solid var(--blue);padding:6px 16px;margin:12px 0;background:var(--bg)}}
@@ -712,7 +769,7 @@ live_page = f"""{head("live data dashboard")}
 <header>
   <h1>Live data — funnel, accounts and connectors</h1>
   <p>The same {len(requests)} requests after entity resolution · source: <code>golden/</code>, rebuilt from <code>dataset/</code> by <code>python3 build.py</code> · {built}</p>
-  <nav style="margin-top:12px"><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a></nav>
+  <nav style="margin-top:12px"><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a><a href="#cycles">Intros by cycle</a></nav>
 </header>
 <main>
 
@@ -825,6 +882,33 @@ live_page = f"""{head("live data dashboard")}
       <div class="finding"><b>Tomás Beckett — "fast responder, broad but shallow".</b>{[f"{c['responded']/c['asked']:.0%}" for c in connectors["connectors"] if c["name"] == "Tomás Beckett"][0]} response rate but only {[f"{c['intros']/c['responded']:.0%}" for c in connectors["connectors"] if c["name"] == "Tomás Beckett"][0]} of those responses became an intro.</div>
     </div>
   </div>
+</section>
+
+<section id="cycles">
+  <h2>Intros by cycle</h2>
+  <p class="lede">Every connector summed, one row per cycle (a calendar month, the allocator's unit) from the first ask on file to the current cycle {cycles["cycle"]}. Asks by <code>asked_date</code> and intros by <code>intro_date</code> from <code>intro_outcomes.csv</code>; capacity used is roster asks against the roster's stated monthly capacity of {cycles["roster_capacity"]} in <code>connector_roster.csv</code>. The current cycle counts this build's allocation as slots used, since those asks are about to go out. Each connector's own record is on their tab under Live Priorities.</p>
+  <div class="kpis">
+    {kpi(cycles["current"]["intros"], "intros made this cycle", f"{cycles['cycle']} · {cyc_prev[-1]['intros'] if cyc_prev else 0} in {cyc_prev[-1]['cycle'] if cyc_prev else 'the cycle before'}")}
+    {kpi(cycles["intros_total"], "cumulative intros", f"since {cycles['rows'][0]['cycle']}, from {cycles['asks_total']} asks")}
+    {kpi(f"{cycles['current']['capacity_pct']:.0%}", "roster capacity used this cycle", f"{cycles['current']['used']} of {cycles['roster_capacity']} slots" + (f" · {cycles['current']['allocated_off_roster']} more allocated off-roster" if cycles['current']['allocated_off_roster'] else ""))}
+    {kpi(f"{cyc_avg_pct:.0%}", "capacity used per cycle, to date", f"average over {len(cyc_prev)} closed cycles; best month {cycles['best']['cycle']} with {cycles['best']['intros']} intros")}
+  </div>
+  {cyc_div}
+  <div class="grid2">
+    <div>
+      <h3>By cycle, all connectors</h3>
+      {cycle_table(cyc_rows)}
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      <div class="finding warn"><b>Closed cycles used {cyc_avg_pct:.0%} of roster capacity.</b>That is the average against {cycles['roster_capacity']} stated monthly slots; the busiest month used {max(r['capacity_pct'] for r in cyc_prev):.0%}. {"This cycle's allocation is the first to fill it." if cycles['current']['capacity_pct'] >= 1 else f"This cycle's allocation takes it to {cycles['current']['capacity_pct']:.0%}."}</div>
+      <div class="finding"><b>Intros arrive at roughly {cycles['intros_total'] / max(1, len(cyc_prev)):.1f} a month.</b>{cycles['intros_total']} intros over {len(cyc_prev)} closed cycles from {cycles['asks_total']} asks — about one intro per {cycles['asks_total'] / max(1, cycles['intros_total']):.1f} asks. The cumulative line is the honest read; single months swing between {min(r['intros'] for r in cyc_prev)} and {max(r['intros'] for r in cyc_prev)}.</div>
+      <p class="foot">Asks to people off the roster ({", ".join(cycles['off_roster'])}) are counted in asks and intros but not against capacity, as they have none stated.</p>
+    </div>
+  </div>
+  <h3>Per connector, this cycle and the run rate</h3>
+  {cyc_connector_table}
+  <p class="foot">Run-rate columns average every cycle since {cycles['rows'][0]['cycle']}; capacity used per cycle averages closed cycles only. Click a connector's tab for their cycle-by-cycle table.</p>
 </section>
 
 <p class="foot">Regenerate with <code>python3 build.py dashboard</code>. Everything on this tab is computed from <code>golden/</code> at build time. The <a href="{TRACE_HTML}">Company Trace</a> tab has the full history of any one company.</p>

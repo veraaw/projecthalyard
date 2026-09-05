@@ -18,7 +18,7 @@ nav a{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}
 nav a:hover{color:var(--blue)}
 .part-lede{margin-bottom:24px}
 main{max-width:1240px;margin:0 auto;padding:28px 40px 72px}
-section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:110px}
+section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:190px}
 h2{margin:0 0 6px;font-size:22px}
 h3{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
 details{margin-top:26px}
@@ -42,6 +42,10 @@ td:nth-child(n+2):not(:last-child).num,th.num{text-align:right}
 .fo tr.total td{font-weight:600;border-top:1px solid var(--ink)}
 .fo tr.ratio td{color:var(--mute);border-bottom:none;padding-top:10px}
 .fo tr.ratio td.num{color:var(--ink);font-weight:600}
+table.cycles td.num,table.cycles th.num{text-align:right;white-space:nowrap}
+table.cycles td.date{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+table.cycles tr.now td{background:rgba(196,118,62,0.08);font-weight:500}
+table.cycles tr.now td .foot{font-weight:400}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:32px}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
 .finding{border-left:2px solid var(--blue);padding:6px 16px;margin:12px 0;background:var(--bg)}

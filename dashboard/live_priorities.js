@@ -311,13 +311,26 @@ const LP = (function () {
   const sittingTable = c => c.sitting_on.length ? `<table><thead><tr><th>action</th><th>request</th><th>company</th><th>wanted</th><th>for</th><th>asked</th><th class="num">days</th><th>responded</th><th>value</th></tr></thead><tbody>`
     + c.sitting_on.map(s => `<tr><td><b>${esc(s.action)}</b></td><td class="rid">${esc(s.request_id)}</td><td>${co(s)}</td><td>${esc(s.target_title)}</td><td>${esc(s.requested_by)}</td><td class="date">${esc(s.asked_date)}</td><td class="num">${s.days_since_asked}</td><td>${s.responded ? '<b>yes — nudge, do not re-ask</b>' : 'no'}</td><td>${esc(s.value_fmt)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing outstanding</p>`;
 
+  const pctOf = v => v == null ? '—' : `${Math.round(v * 100)}%`;
+
+  // cycle-by-cycle record: asks against capacity, intros made, running total
+  const cycleTable = (rows, who) => `<table class="cycles"><thead><tr><th>cycle</th><th class="num">asks</th><th class="num">of capacity</th><th class="num">intros made</th><th class="num">cumulative intros</th></tr></thead><tbody>`
+    + rows.map(r => `<tr${r.current ? ' class="now"' : ''}><td class="date">${esc(r.cycle)}${r.current ? ' <span class="foot">this cycle</span>' : ''}</td>`
+      + `<td class="num">${r.asks}${r.allocated ? ` <span class="foot">+ ${r.allocated} allocated</span>` : ''}</td>`
+      + `<td class="num">${pctOf(r.capacity_pct)}${r.capacity ? ` <span class="foot">${r.used} / ${r.capacity}</span>` : ''}</td>`
+      + `<td class="num">${r.intros}</td><td class="num">${r.intros_cumulative}</td></tr>`).join('')
+    + `</tbody></table><p class="foot">A cycle is a calendar month, the allocator's unit. Asks by <code>asked_date</code>, intros by <code>intro_date</code> from <code>intro_outcomes.csv</code>; capacity is ${esc(who)}'s stated monthly capacity in <code>connector_roster.csv</code>. This cycle's allocation counts as slots used because those asks are about to go out.</p>`;
+
   // one connector's page (docs/connector-<slug>.html): top 5, then the longer list
   function bootConnector(c, root) {
     const done = loadDone();
     const cap = c.capacity ? `${c.used} / ${c.capacity}` : `${c.used}`;
+    const now = c.cycles[c.cycles.length - 1];
     let out = `<section id="top"><h2>Top ${c.top.length} for ${esc(c.connector)} <span class="foot">do these next — ${esc(c.connector)}'s share of the ${c.ranked_count} live requests routed to them this cycle, sorted by expected value${c.no_slot ? `; ${c.no_slot} have no slot until capacity frees up` : ''}</span></h2>
       <p class="lede">${c.on_roster ? `${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''}` : `<b>not on the roster</b> · ${esc(c.type)} · no stated capacity or focus areas`}${c.notes ? `<br><span class="foot">${esc(c.notes)}</span>` : ''}</p>
       <div class="kpis"><div class="kpi"><div class="v">${cap}</div><div class="l">${c.capacity ? 'capacity used this cycle' : 'asks this cycle'}</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated${c.capacity ? ` · ${c.idle} idle` : ''}</div></div>
+        <div class="kpi"><div class="v">${c.intros_this_cycle}</div><div class="l">intros made this cycle</div><div class="s">${esc(now.cycle)} · ${c.capacity ? `${pctOf(now.capacity_pct)} of capacity used` : 'no stated capacity'}</div></div>
+        <div class="kpi"><div class="v">${c.intros_all_time}</div><div class="l">cumulative intros</div><div class="s">since ${esc(c.cycles[0].cycle)}, over ${c.asks_all_time} asks</div></div>
         <div class="kpi"><div class="v">${Math.round(c.delivery_rate * 100)}%</div><div class="l">delivery rate</div><div class="s">${c.intros_all_time} intros / ${c.asks_all_time} asks, shrunk toward the prior</div></div>
         <div class="kpi"><div class="v">${c.ranked_count}</div><div class="l">requests on their list</div><div class="s">${esc(c.ranked_value_fmt)} of deal value</div></div>
         <div class="kpi ${c.sitting_on.length ? 'warn' : ''}"><div class="v">${c.sitting_on.length}</div><div class="l">already sitting on</div><div class="s">asked, live, no intro yet</div></div></div>`
@@ -328,6 +341,9 @@ const LP = (function () {
       <h3>after the top ${c.top.length}</h3>` + (c.rest.length ? priorityTable(c.rest, done, 'rank_here', false) : `<p class="empty">${c.ranked_count ? 'the top ' + c.top.length + ' is the whole list' : 'nothing to ask'}</p>`)
       + `<h3>already sitting on</h3>` + sittingTable(c)
       + formulaNote(c.formula) + `</section>`;
+
+    out += `<section id="cycles"><h2>By cycle <span class="foot">${esc(c.connector)}'s asks against capacity, intros made and the running total, one row per month since ${esc(c.cycles[0].cycle)}</span></h2>`
+      + cycleTable(c.cycles, c.connector) + `</section>`;
 
     root.innerHTML = out;
     wireTicks(root, done);
