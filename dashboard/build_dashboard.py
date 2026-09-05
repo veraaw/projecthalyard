@@ -22,7 +22,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 
 from analysis.integrity.integrity_audit import fragment as integrity_fragment
-from dashboard import data_cuts
+from dashboard import data_cuts, theme
 from dashboard.funnel_overview import dropoff_rows, ratios
 from dashboard.sankey_funnel import build_figure, funnel_stages
 from paths import DATASET, DOCS, PROFILE, ROUTING
@@ -47,7 +47,7 @@ def esc(s):
 stages = funnel_stages()
 sankey_fig = build_figure(stages)
 sankey_fig.update_layout(width=None, height=560, autosize=True, title=None,
-                         margin=dict(l=10, r=10, t=20, b=20))
+                         margin=dict(l=10, r=10, t=20, b=20), paper_bgcolor="rgba(0,0,0,0)")
 
 # --------------------------------------------------------------------------- slack scoping
 requests = {r["request_id"]: r for r in rows("intro_requests.csv")}
@@ -91,12 +91,12 @@ for t in threads:
 
 reply_fig = go.Figure(go.Bar(
     y=[p for p, _ in canned[:8]][::-1], x=[n for _, n in canned[:8]][::-1], orientation="h",
-    marker_color=["#1f5f8b" if p.startswith("adding") else "#b8b8b8" for p, _ in canned[:8]][::-1],
+    marker_color=[theme.ACCENT if p.startswith("adding") else theme.NEUTRAL for p, _ in canned[:8]][::-1],
     text=[n for _, n in canned[:8]][::-1], textposition="outside",
 ))
-reply_fig.update_layout(height=330, margin=dict(l=10, r=40, t=10, b=30), autosize=True,
-                        xaxis=dict(title="replies", range=[0, max(n for _, n in canned[:8]) * 1.15]),
-                        yaxis=dict(automargin=True), font=dict(size=13))
+reply_fig.update_layout(height=330, margin=dict(l=10, r=40, t=10, b=30), autosize=True, **theme.PLOTLY_LAYOUT)
+reply_fig.update_layout(xaxis=dict(title="replies", range=[0, max(n for _, n in canned[:8]) * 1.15]),
+                        yaxis=dict(automargin=True), font_size=13)
 
 # --------------------------------------------------------------------------- csv verification
 def norm_entity(v):
@@ -189,12 +189,13 @@ joins_table = table(["Link (left -> right)", "Left matched", "Right matched", "W
 demand_top = demand["companies"][:20]
 demand_fig = go.Figure()
 demand_fig.add_bar(y=[b["name"] for b in demand_top][::-1], x=[b["routed"] for b in demand_top][::-1],
-                   name="routed to a connector", orientation="h", marker_color="#1f5f8b")
+                   name="routed to a connector", orientation="h", marker_color=theme.ACCENT)
 demand_fig.add_bar(y=[b["name"] for b in demand_top][::-1],
                    x=[b["requests"] - b["routed"] for b in demand_top][::-1],
-                   name="never routed", orientation="h", marker_color="#d3d8de")
+                   name="never routed", orientation="h", marker_color=theme.NEUTRAL)
 demand_fig.update_layout(barmode="stack", height=560, autosize=True, margin=dict(l=10, r=20, t=10, b=30),
-                         legend=dict(orientation="h", y=1.04, x=0), font=dict(size=12),
+                         **theme.PLOTLY_LAYOUT)
+demand_fig.update_layout(legend=dict(orientation="h", y=1.04, x=0),
                          xaxis=dict(title="asks"), yaxis=dict(automargin=True))
 demand_div = pio.to_html(demand_fig, include_plotlyjs=False, full_html=False, div_id="demand",
                          config={"displayModeBar": False, "responsive": True})
@@ -231,15 +232,16 @@ for i in range(len(weeks)):
     roll.append(sum(w[3] for w in window) / req_n if req_n else None)
 trend_fig = go.Figure()
 trend_fig.add_bar(x=[w[0] for w in weeks], y=[w[1] for w in weeks], name="requests filed",
-                  marker_color="#d3d8de")
-trend_fig.add_bar(x=[w[0] for w in weeks], y=[w[3] for w in weeks], name="intros sent", marker_color="#1f5f8b")
+                  marker_color=theme.NEUTRAL)
+trend_fig.add_bar(x=[w[0] for w in weeks], y=[w[3] for w in weeks], name="intros sent", marker_color=theme.ACCENT)
 trend_fig.add_scatter(x=[w[0] for w in weeks], y=roll, name="completion rate (4-week rolling)",
-                      yaxis="y2", mode="lines", line=dict(color="#b4541c", width=2))
+                      yaxis="y2", mode="lines", line=dict(color=theme.WARN, width=2))
 trend_fig.update_layout(barmode="overlay", height=380, autosize=True, margin=dict(l=10, r=10, t=10, b=30),
-                        legend=dict(orientation="h", y=1.08, x=0), font=dict(size=12),
+                        **theme.PLOTLY_LAYOUT)
+trend_fig.update_layout(legend=dict(orientation="h", y=1.08, x=0),
                         xaxis=dict(title="week of request"), yaxis=dict(title="requests"),
                         yaxis2=dict(overlaying="y", side="right", tickformat=".0%", range=[0, 1],
-                                    title="completion rate"))
+                                    title="completion rate", showgrid=False))
 trend_div = pio.to_html(trend_fig, include_plotlyjs=False, full_html=False, div_id="trend",
                         config={"displayModeBar": False, "responsive": True})
 monthly_rows = [(month, n, a, i, f"{i/n:.0%}", f"{lat:.1f} d" if lat is not None else "—")
@@ -277,50 +279,57 @@ page = f"""<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Halyard — scoping &amp; verification dashboard</title>
 <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
+{theme.FONT_LINK}
 <style>
-:root{{--ink:#1c2430;--mute:#6b7480;--blue:#1f5f8b;--line:#e4e7eb;--bg:#f6f7f9;--warn:#b4541c}}
+:root{{--ink:{theme.INK};--mute:{theme.MUTE};--blue:{theme.ACCENT};--line:{theme.LINE};--bg:{theme.PAPER};--surface:{theme.SURFACE};--warn:{theme.WARN};
+  --serif:{theme.SERIF};--sans:{theme.SANS};--mono:{theme.MONO}}}
 *{{box-sizing:border-box}}
-body{{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}}
-header{{background:#fff;border-bottom:1px solid var(--line);padding:28px 40px}}
-header h1{{margin:0 0 4px;font-size:26px}}
+body{{margin:0;font:16px/1.55 var(--serif);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}}
+h1,h2,h3,h4,nav,th,.kpi,.navgrp,.foot,summary{{font-family:var(--sans)}}
+h1,h2,h3,h4{{font-weight:500;letter-spacing:-.01em}}
+a{{color:var(--blue)}}
+header{{background:var(--bg);border-bottom:1px solid var(--line);padding:40px 40px 28px}}
+header h1{{margin:0 0 6px;font-size:34px;line-height:1.15;font-weight:400;letter-spacing:-.02em}}
 header p{{margin:0;color:var(--mute)}}
-nav a{{margin-right:18px;color:var(--blue);text-decoration:none;font-weight:600}}
-nav .navgrp{{display:inline-block;min-width:130px;color:var(--mute);font-size:13px;text-transform:uppercase;letter-spacing:.04em}}
-h2.part{{font-size:24px;margin:18px 0 4px;padding-top:18px;border-top:2px solid var(--ink)}}
+nav a{{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}}
+nav a:hover{{color:var(--blue)}}
+nav .navgrp{{display:inline-block;min-width:130px;color:var(--mute);font-size:12px;text-transform:uppercase;letter-spacing:.06em}}
+h2.part{{font-size:28px;margin:22px 0 6px;padding-top:22px;border-top:1px solid var(--ink);font-weight:400;letter-spacing:-.02em}}
 h2.part:first-of-type{{border-top:none;padding-top:0}}
-.part-lede{{margin-bottom:22px}}
-main{{max-width:1240px;margin:0 auto;padding:24px 40px 60px}}
-section{{background:#fff;border:1px solid var(--line);border-radius:10px;padding:26px 30px;margin:0 0 24px}}
-h2{{margin:0 0 6px;font-size:21px}}
-h3{{margin:26px 0 10px;font-size:16px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}}
+.part-lede{{margin-bottom:24px}}
+main{{max-width:1240px;margin:0 auto;padding:28px 40px 72px}}
+section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px}}
+h2{{margin:0 0 6px;font-size:22px}}
+h3{{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}}
 details{{margin-top:26px}}
 summary{{cursor:pointer;list-style:none;margin-bottom:10px}}
 summary::-webkit-details-marker{{display:none}}
-summary::before{{content:"▸ ";color:var(--mute)}}
-details[open] summary::before{{content:"▾ "}}
-.lede{{color:var(--mute);margin:0 0 18px}}
-.kpis{{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:12px 0 6px}}
-.kpi{{background:var(--bg);border-radius:8px;padding:14px 16px}}
-.kpi .v{{font-size:28px;font-weight:700;color:var(--blue);line-height:1.1}}
+summary::before{{content:"+ ";color:var(--mute)}}
+details[open] summary::before{{content:"− "}}
+.lede{{color:var(--mute);margin:0 0 18px;font-size:17px}}
+.kpis{{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;margin:12px 0 6px;background:var(--line);border:1px solid var(--line)}}
+.kpi{{background:var(--surface);padding:16px 18px 14px}}
+.kpi .v{{font-size:30px;font-weight:400;color:var(--ink);line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}}
 .kpi.warn .v{{color:var(--warn)}}
-.kpi .l{{margin-top:4px;font-weight:600}}
-.kpi .s{{color:var(--mute);font-size:13px}}
-table{{border-collapse:collapse;width:100%;font-size:14px}}
-th,td{{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}}
-th{{color:var(--mute);font-weight:600;font-size:13px}}
+.kpi .l{{margin-top:6px;font-weight:500;font-size:13px}}
+.kpi .s{{color:var(--mute);font-size:12px;margin-top:2px}}
+table{{border-collapse:collapse;width:100%;font-size:14px;font-family:var(--sans);font-variant-numeric:tabular-nums}}
+th,td{{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}}
+th{{color:var(--mute);font-weight:500;font-size:12.5px;border-bottom-color:var(--ink)}}
 td:nth-child(n+2):not(:last-child).num,th.num{{text-align:right}}
-.fo th,.fo td{{padding:5px 10px}}
-.fo td.num,.fo th.num{{text-align:right;font-variant-numeric:tabular-nums}}
-.fo tr.total td{{font-weight:700;border-top:2px solid var(--ink)}}
+.fo th,.fo td{{padding:6px 10px}}
+.fo td.num,.fo th.num{{text-align:right}}
+.fo tr.total td{{font-weight:600;border-top:1px solid var(--ink)}}
 .fo tr.ratio td{{color:var(--mute);border-bottom:none;padding-top:10px}}
 .fo tr.ratio td.num{{color:var(--ink);font-weight:600}}
-.grid2{{display:grid;grid-template-columns:1fr 1fr;gap:28px}}
+.grid2{{display:grid;grid-template-columns:1fr 1fr;gap:32px}}
 @media(max-width:900px){{.grid2{{grid-template-columns:1fr}}}}
-.finding{{border-left:3px solid var(--blue);padding:4px 14px;margin:12px 0;background:var(--bg);border-radius:0 6px 6px 0}}
+.finding{{border-left:2px solid var(--blue);padding:6px 16px;margin:12px 0;background:var(--bg)}}
 .finding.warn{{border-color:var(--warn)}}
-.finding b{{display:block}}
+.finding b{{display:block;font-family:var(--sans);font-weight:500;font-size:14px;margin-bottom:2px}}
 .foot{{color:var(--mute);font-size:13px}}
-code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
+code{{font-family:var(--mono);background:rgba(0,0,0,.04);padding:1px 5px;font-size:12.5px}}
+img{{max-width:100%}}
 </style></head>
 <body>
 <header>
