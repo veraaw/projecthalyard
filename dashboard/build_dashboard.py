@@ -298,7 +298,7 @@ h2.part{{font-size:28px;margin:22px 0 6px;padding-top:22px;border-top:1px solid 
 h2.part:first-of-type{{border-top:none;padding-top:0}}
 .part-lede{{margin-bottom:24px}}
 main{{max-width:1240px;margin:0 auto;padding:28px 40px 72px}}
-section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px}}
+section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;overflow-x:auto}}
 h2{{margin:0 0 6px;font-size:22px}}
 h3{{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}}
 details{{margin-top:26px}}
@@ -307,8 +307,8 @@ summary::-webkit-details-marker{{display:none}}
 summary::before{{content:"+ ";color:var(--mute)}}
 details[open] summary::before{{content:"− "}}
 .lede{{color:var(--mute);margin:0 0 18px;font-size:17px}}
-.kpis{{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;margin:12px 0 6px;background:var(--line);border:1px solid var(--line)}}
-.kpi{{background:var(--surface);padding:16px 18px 14px}}
+.kpis{{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;margin:12px 0 6px;padding:1px}}
+.kpi{{background:var(--surface);padding:16px 18px 14px;box-shadow:0 0 0 1px var(--line)}}
 .kpi .v{{font-size:30px;font-weight:400;color:var(--ink);line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}}
 .kpi.warn .v{{color:var(--warn)}}
 .kpi .l{{margin-top:6px;font-weight:500;font-size:13px}}
