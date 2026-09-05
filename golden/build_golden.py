@@ -103,7 +103,7 @@ OFFER_RE = re.compile(
 )
 # what the offer says about who they can reach
 _OFFER_TITLE_RE = re.compile(r"i met their (?P<t>.+?) at a conference|their (?P<t2>[^,]+?) reports to", re.I)
-_OFFER_PERSON_RE = re.compile(r"i know (?P<p>[A-Z][\w'\-]+(?: [A-Z][\w'\-]+)+) there")
+_OFFER_PERSON_RE = re.compile(r"\bI know (?P<p>[A-Z][\w'\-]+(?: [A-Z][\w'\-]+)+) there")
 # stock replies that carry no path information
 NOISE_RE = re.compile(
     r"^(no idea sorry|did we not already lose this one\?|what's the deal size here\?"
