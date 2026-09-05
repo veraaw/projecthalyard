@@ -35,6 +35,7 @@ STEPS = [
     ("routing", "analysis.routing.routing_kpis"),
     ("slack", "analysis.slack.slack_threads_analysis"),
     ("integrity", "analysis.integrity.integrity_audit"),
+    ("repeat-companies", "analysis.profile.repeat_companies"),
     ("trace", write_traces),
     ("sankey", "dashboard.sankey_funnel"),
     ("dashboard", "dashboard.build_dashboard"),

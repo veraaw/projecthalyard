@@ -138,10 +138,22 @@ w("")
 w(f"Total deal value attached to those requests: "
   f"${sum(int(dv) for _, _, dv, _, _ in offer_gaps if dv.isdigit()):,}\n")
 
+roster = {r["name"].strip() for r in rows("connector_roster.csv")}
 w("## 4. \"adding X who might know\"\n")
 asked_after = [a for a in adds if a[2]]
-w(f"{len(adds)} such replies; the named person was subsequently logged as asked in "
-  f"**{len(asked_after)}** case(s).\n")
+added_people = Counter(p for _, p, _ in adds)
+added_on_roster = {p for p in added_people if p in roster}
+w(f"{len(adds)} such replies naming {len(added_people)} distinct people; the named person was "
+  f"subsequently logged as asked on that request in **{len(asked_after)}** case(s).")
+w(f"- Distinct people added who are on `connector_roster.csv`: **{len(added_on_roster)} / {len(added_people)}**"
+  + (f" ({', '.join(sorted(added_on_roster))})" if added_on_roster else ""))
+w(f"- Replies whose X is a roster connector: **{sum(n for p, n in added_people.items() if p in roster)} / {len(adds)}**\n")
+w("| Person added | Times added | On roster? | Later asked (on that request) |")
+w("| --- | ---: | --- | ---: |")
+for person, n in added_people.most_common():
+    w(f"| {person} | {n} | {'yes' if person in roster else 'no'} | "
+      f"{sum(1 for _, p, was in adds if p == person and was)} |")
+w("")
 w("| request_id | Person added | Later asked? |")
 w("| --- | --- | --- |")
 for rid, person, was in sorted(adds):
@@ -166,7 +178,6 @@ w(f"- Threads with at least one reply: {len(deltas)}")
 w(f"- Median: **{statistics.median(deltas):.1f} hours**")
 w(f"- Mean {statistics.mean(deltas):.1f} h, min {min(deltas):.1f} h, max {max(deltas):.1f} h\n")
 
-roster = {r["name"].strip() for r in rows("connector_roster.csv")}
 asked_all = Counter(o["connector_asked"].strip() for o in rows("intro_outcomes.csv"))
 w("## Caveats\n")
 w(f"- `intro_outcomes.csv` has {sum(asked_all.values())} rows, one per request_id, so \"asked\" is "
