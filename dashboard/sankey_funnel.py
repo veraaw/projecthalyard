@@ -41,14 +41,14 @@ def build_figure(stages):
 
     labels = [f"<b>{n}</b><br>{c}" for n, c in zip(names, counts)]
     labels += [f"{dn}<br>{counts[i]-counts[i+1]}" for i, dn in enumerate(drop_names)]
-    node_colors = ["#1f5f8b"] * len(names) + ["#b8b8b8"] * len(drop_names)
+    node_colors = ["#0a0a0a"] * len(names) + ["#b8b8b8"] * len(drop_names)
 
     src, tgt, vals, link_colors = [], [], [], []
     for i in range(len(names) - 1):
         src += [i, i]
         tgt += [i + 1, len(names) + i]
         vals += [counts[i + 1], counts[i] - counts[i + 1]]
-        link_colors += ["rgba(31,95,139,0.45)", "rgba(184,184,184,0.35)"]
+        link_colors += ["rgba(10,10,10,0.55)", "rgba(184,184,184,0.3)"]
 
     n = len(names)
     # wider final gap so the right-aligned last label doesn't collide with the previous one

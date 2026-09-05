@@ -90,7 +90,7 @@ for t in threads:
 
 reply_fig = go.Figure(go.Bar(
     y=[p for p, _ in canned[:8]][::-1], x=[n for _, n in canned[:8]][::-1], orientation="h",
-    marker_color=["#1f5f8b" if p.startswith("adding") else "#b8b8b8" for p, _ in canned[:8]][::-1],
+    marker_color=["#0a0a0a" if p.startswith("adding") else "#b8b8b8" for p, _ in canned[:8]][::-1],
     text=[n for _, n in canned[:8]][::-1], textposition="outside",
 ))
 reply_fig.update_layout(height=330, margin=dict(l=10, r=40, t=10, b=30), autosize=True,
@@ -188,10 +188,10 @@ joins_table = table(["Link (left -> right)", "Left matched", "Right matched", "W
 demand_top = demand["companies"][:20]
 demand_fig = go.Figure()
 demand_fig.add_bar(y=[b["name"] for b in demand_top][::-1], x=[b["routed"] for b in demand_top][::-1],
-                   name="routed to a connector", orientation="h", marker_color="#1f5f8b")
+                   name="routed to a connector", orientation="h", marker_color="#0a0a0a")
 demand_fig.add_bar(y=[b["name"] for b in demand_top][::-1],
                    x=[b["requests"] - b["routed"] for b in demand_top][::-1],
-                   name="never routed", orientation="h", marker_color="#d3d8de")
+                   name="never routed", orientation="h", marker_color="#d9d9d9")
 demand_fig.update_layout(barmode="stack", height=560, autosize=True, margin=dict(l=10, r=20, t=10, b=30),
                          legend=dict(orientation="h", y=1.04, x=0), font=dict(size=12),
                          xaxis=dict(title="asks"), yaxis=dict(automargin=True))
@@ -230,10 +230,10 @@ for i in range(len(weeks)):
     roll.append(sum(w[3] for w in window) / req_n if req_n else None)
 trend_fig = go.Figure()
 trend_fig.add_bar(x=[w[0] for w in weeks], y=[w[1] for w in weeks], name="requests filed",
-                  marker_color="#d3d8de")
-trend_fig.add_bar(x=[w[0] for w in weeks], y=[w[3] for w in weeks], name="intros sent", marker_color="#1f5f8b")
+                  marker_color="#d9d9d9")
+trend_fig.add_bar(x=[w[0] for w in weeks], y=[w[3] for w in weeks], name="intros sent", marker_color="#0a0a0a")
 trend_fig.add_scatter(x=[w[0] for w in weeks], y=roll, name="completion rate (4-week rolling)",
-                      yaxis="y2", mode="lines", line=dict(color="#b4541c", width=2))
+                      yaxis="y2", mode="lines", line=dict(color="#6b6b6b", dash="dot", width=2))
 trend_fig.update_layout(barmode="overlay", height=380, autosize=True, margin=dict(l=10, r=10, t=10, b=30),
                         legend=dict(orientation="h", y=1.08, x=0), font=dict(size=12),
                         xaxis=dict(title="week of request"), yaxis=dict(title="requests"),
@@ -277,19 +277,19 @@ page = f"""<!doctype html>
 <title>Halyard — scoping &amp; verification dashboard</title>
 <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
 <style>
-:root{{--ink:#1c2430;--mute:#6b7480;--blue:#1f5f8b;--line:#e4e7eb;--bg:#f6f7f9;--warn:#b4541c}}
+:root{{--ink:#0a0a0a;--mute:#6b6b6b;--blue:#0a0a0a;--line:#e2e2e2;--bg:#f4f4f4;--warn:#0a0a0a}}
 *{{box-sizing:border-box}}
 body{{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}}
 header{{background:#fff;border-bottom:1px solid var(--line);padding:28px 40px}}
 header h1{{margin:0 0 4px;font-size:26px}}
 header p{{margin:0;color:var(--mute)}}
-nav a{{margin-right:18px;color:var(--blue);text-decoration:none;font-weight:600}}
+nav a{{margin-right:18px;color:var(--ink);text-decoration:underline;text-underline-offset:3px;font-weight:600}}
 nav .navgrp{{display:inline-block;min-width:130px;color:var(--mute);font-size:13px;text-transform:uppercase;letter-spacing:.04em}}
 h2.part{{font-size:24px;margin:18px 0 4px;padding-top:18px;border-top:2px solid var(--ink)}}
 h2.part:first-of-type{{border-top:none;padding-top:0}}
 .part-lede{{margin-bottom:22px}}
 main{{max-width:1240px;margin:0 auto;padding:24px 40px 60px}}
-section{{background:#fff;border:1px solid var(--line);border-radius:10px;padding:26px 30px;margin:0 0 24px}}
+section{{background:#fff;border:1px solid var(--line);border-radius:4px;padding:26px 30px;margin:0 0 24px}}
 h2{{margin:0 0 6px;font-size:21px}}
 h3{{margin:26px 0 10px;font-size:16px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}}
 details{{margin-top:26px}}
@@ -299,9 +299,9 @@ summary::before{{content:"▸ ";color:var(--mute)}}
 details[open] summary::before{{content:"▾ "}}
 .lede{{color:var(--mute);margin:0 0 18px}}
 .kpis{{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:12px 0 6px}}
-.kpi{{background:var(--bg);border-radius:8px;padding:14px 16px}}
+.kpi{{background:#fff;border:1px solid var(--ink);border-radius:4px;padding:14px 16px}}
 .kpi .v{{font-size:28px;font-weight:700;color:var(--blue);line-height:1.1}}
-.kpi.warn .v{{color:var(--warn)}}
+.kpi.warn{{background:var(--ink);color:#fff}}.kpi.warn .v{{color:#fff}}.kpi.warn .s{{color:#bdbdbd}}
 .kpi .l{{margin-top:4px;font-weight:600}}
 .kpi .s{{color:var(--mute);font-size:13px}}
 table{{border-collapse:collapse;width:100%;font-size:14px}}
@@ -315,8 +315,8 @@ td:nth-child(n+2):not(:last-child).num,th.num{{text-align:right}}
 .fo tr.ratio td.num{{color:var(--ink);font-weight:600}}
 .grid2{{display:grid;grid-template-columns:1fr 1fr;gap:28px}}
 @media(max-width:900px){{.grid2{{grid-template-columns:1fr}}}}
-.finding{{border-left:3px solid var(--blue);padding:4px 14px;margin:12px 0;background:var(--bg);border-radius:0 6px 6px 0}}
-.finding.warn{{border-color:var(--warn)}}
+.finding{{border-left:2px solid var(--line);padding:4px 14px;margin:12px 0;background:#fff;border-radius:0}}
+.finding.warn{{border-left:4px solid var(--ink);background:var(--bg)}}
 .finding b{{display:block}}
 .foot{{color:var(--mute);font-size:13px}}
 code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
