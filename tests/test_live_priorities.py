@@ -279,6 +279,51 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(seen, len(live.ranked()), "every ranked request lands on exactly one connector page")
         self.assertEqual(lp.slug("Tomás Beckett"), "tomas-beckett")
 
+    def test_cycles_intros_capacity_and_running_total(self):
+        live = lp.Live(AS_OF)
+        C = live.cycles()
+        months = [r["cycle"] for r in C["rows"]]
+        self.assertEqual(months[0], min(o["asked_date"][:7] for o in live.outcomes))
+        self.assertEqual(months[-1], live.cycle)
+        self.assertEqual(len(set(months)), len(months))
+        for a, b in zip(months, months[1:]):
+            y, m = int(a[:4]), int(a[5:7])
+            self.assertEqual(b, f"{y + 1:04d}-01" if m == 12 else f"{y:04d}-{m + 1:02d}", "no month skipped")
+        intros = [o for o in live.outcomes if o["intro_sent"] == "Y"]
+        self.assertEqual(C["intros_total"], len(intros))
+        self.assertEqual(C["asks_total"], len(live.outcomes))
+        self.assertEqual(sum(r["intros"] for r in C["rows"]), len(intros))
+        run = 0
+        for r in C["rows"]:
+            run += r["intros"]
+            self.assertEqual(r["intros_cumulative"], run)
+            self.assertEqual(r["intros"], sum(1 for o in intros if o["intro_date"].startswith(r["cycle"])))
+            self.assertEqual(r["asks"], sum(1 for o in live.outcomes if o["asked_date"].startswith(r["cycle"])))
+            self.assertEqual(r["capacity"], C["roster_capacity"])
+            self.assertAlmostEqual(r["capacity_pct"], r["used"] / r["capacity"], places=3)
+            if not r["current"]:
+                self.assertEqual((r["allocated"], r["allocated_off_roster"]), (0, 0))
+                self.assertEqual(r["used"], sum(1 for o in live.outcomes if o["asked_date"].startswith(r["cycle"])
+                                                and o["connector_asked"] in live.roster))
+        cur = C["rows"][-1]
+        self.assertEqual(cur["allocated"], sum(1 for a in live.allocation if a["allocated_to"]))
+        self.assertEqual(cur["allocated_off_roster"], sum(1 for a in live.allocation if a["allocated_to"] and a["allocated_to"] not in live.roster))
+        self.assertEqual(C["roster_capacity"], sum(int(r["stated_monthly_capacity"]) for r in live.roster.values()))
+        # per connector: the same rows, one name at a time; the pages carry them
+        self.assertEqual([p["connector"] for p in C["per_connector"]], list(live.roster))
+        for c in live.connector_pages():
+            rows = c["cycles"]
+            self.assertEqual([r["cycle"] for r in rows], months)
+            self.assertEqual(rows[-1]["intros_cumulative"], c["intros_all_time"])
+            self.assertEqual(rows[-1]["intros"], c["intros_this_cycle"])
+            self.assertEqual(rows[-1]["used"], c["used"] if c["on_roster"] else 0)
+            self.assertEqual(rows[-1]["capacity"], c["capacity"])
+            if not c["on_roster"]:
+                self.assertTrue(all(r["capacity_pct"] is None for r in rows))
+        summed = [sum(p["rows"][i]["intros"] for p in C["per_connector"]) for i in range(len(months))]
+        off = [sum(1 for o in intros if o["connector_asked"] not in live.roster and o["intro_date"].startswith(m)) for m in months]
+        self.assertEqual([a + b for a, b in zip(summed, off)], [r["intros"] for r in C["rows"]])
+
     def test_page_embeds_the_payload_and_no_arithmetic_on_facts(self):
         html = lp.fragment(AS_OF)
         self.assertIn('<script id="lp-data" type="application/json">', html)
