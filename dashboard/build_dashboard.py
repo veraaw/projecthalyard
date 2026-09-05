@@ -1,5 +1,6 @@
 """Build docs/halyardscoping.html: one page summarising the Slack thread findings,
-the CSV profile findings, the intro funnel Sankey, and the integrity audit.
+the CSV profile findings, the intro funnel Sankey, and the integrity audit. Also
+writes the second tab, docs/companytrace.html (dashboard/trace_section.py).
 
 Every number is recomputed from dataset/ so the page stays in step with the data;
 the narrative findings mirror analysis/slack/slack_thread_findings.md and
@@ -275,13 +276,7 @@ sankey_div = pio.to_html(sankey_fig, include_plotlyjs=False, full_html=False, di
 reply_div = pio.to_html(reply_fig, include_plotlyjs=False, full_html=False, div_id="replies",
                         config={"displayModeBar": False, "responsive": True})
 
-page = f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Halyard — scoping &amp; verification dashboard</title>
-<script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
-{theme.FONT_LINK}
-<style>
+STYLE = f"""<style>
 :root{{--ink:{theme.INK};--mute:{theme.MUTE};--blue:{theme.ACCENT};--line:{theme.LINE};--bg:{theme.PAPER};--surface:{theme.SURFACE};--warn:{theme.WARN};
   --serif:{theme.SERIF};--sans:{theme.SANS};--mono:{theme.MONO}}}
 *{{box-sizing:border-box}}
@@ -331,12 +326,38 @@ td:nth-child(n+2):not(:last-child).num,th.num{{text-align:right}}
 .foot{{color:var(--mute);font-size:13px}}
 code{{font-family:var(--mono);background:rgba(0,0,0,.04);padding:1px 5px;font-size:12.5px}}
 img{{max-width:100%}}
-</style></head>
+.tabs{{display:flex;gap:4px;margin:0 0 22px;border-bottom:1px solid var(--line)}}
+.tabs a{{font-family:var(--sans);font-size:14px;color:var(--mute);text-decoration:none;padding:8px 16px;margin-bottom:-1px;border:1px solid transparent}}
+.tabs a:hover{{color:var(--ink)}}
+.tabs a.on{{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}}
+</style>"""
+
+TABS = [("halyardscoping.html", "Dashboard"), ("companytrace.html", "Company Trace")]
+
+
+def tabs(active):
+    links = []
+    for href, label in TABS:
+        cls = ' class="on"' if href == active else ""
+        links.append(f'<a href="{href}"{cls}>{label}</a>')
+    return '<div class="tabs">' + "".join(links) + "</div>"
+
+
+built = f"built {datetime.now():%Y-%m-%d}"
+
+page = f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halyard — scoping &amp; verification dashboard</title>
+<script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
+{theme.FONT_LINK}
+{STYLE}</head>
 <body>
 <header>
+  {tabs("halyardscoping.html")}
   <h1>Halyard — scoping &amp; verification dashboard</h1>
-  <p>200 warm-intro requests · Aug 2025 – Jul 2026 · sources: <code>dataset/</code>, <code>golden/</code> · built {datetime.now():%Y-%m-%d}</p>
-  <nav style="margin-top:12px"><span class="navgrp">1. Raw data</span><a href="#flow">File flow</a><a href="#overview">Funnel overview</a><a href="#joins">Joins</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a><br><span class="navgrp">2. Cleaned data</span><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a><a href="#trace">Company trace</a></nav>
+  <p>200 warm-intro requests · Aug 2025 – Jul 2026 · sources: <code>dataset/</code>, <code>golden/</code> · {built}</p>
+  <nav style="margin-top:12px"><span class="navgrp">1. Raw data</span><a href="#flow">File flow</a><a href="#overview">Funnel overview</a><a href="#joins">Joins</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a><br><span class="navgrp">2. Cleaned data</span><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a></nav>
 </header>
 <main>
 
@@ -632,13 +653,29 @@ img{{max-width:100%}}
   </div>
 </section>
 
+<p class="foot">Regenerate with <code>python3 dashboard/build_dashboard.py</code>. Section 1 is computed from <code>dataset/</code>, section 2 from <code>golden/</code>, at build time. The <a href="companytrace.html">Company Trace</a> tab has the full history of any one company.</p>
+</main>
+</body></html>
+"""
+
+trace_page = f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halyard — company trace</title>
+{theme.FONT_LINK}
+{STYLE}</head>
+<body>
+<header>
+  {tabs("companytrace.html")}
+  <h1>Company trace — the full history of one company</h1>
+  <p>What <code>analysis/trace.py</code> prints, for any of the 48 companies with a request · sources: <code>dataset/</code>, <code>golden/</code> · {built}</p>
+</header>
+<main>
 <section id="trace">
-  <h2>Company trace — the full history of one company</h2>
-  <p class="lede">Pick a company to see what <code>analysis/trace.py</code> prints for it: the header, where the files disagree, who can reach them, every event from all four source files oldest first, and who needs to do what next, cheapest action first. Search by name, alias, company id or CRM account id. The same traces are written to <code>analysis/traces/</code> by <code>python3 build.py trace</code>.</p>
+  <p class="lede">Search by name, alias, company id or CRM account id. Five sections: the header, where the files disagree (omitted when the files agree), who can reach them by strength, every event from <code>intro_requests.csv</code>, <code>slack_threads.jsonl</code>, <code>intro_outcomes.csv</code> and <code>crm_accounts.csv</code> oldest first, and who needs to do what next, cheapest action first. The same traces are written to <code>analysis/traces/</code> by <code>python3 build.py trace</code>.</p>
   {trace_fragment()}
 </section>
-
-<p class="foot">Regenerate with <code>python3 dashboard/build_dashboard.py</code>. Section 1 is computed from <code>dataset/</code>, section 2 from <code>golden/</code>, at build time.</p>
+<p class="foot">Regenerate with <code>python3 dashboard/build_dashboard.py</code>.</p>
 </main>
 </body></html>
 """
@@ -648,6 +685,10 @@ out_path = str(DOCS / "halyardscoping.html")
 with open(out_path, "w", encoding="utf-8") as f:
     f.write(page)
 print(f"wrote {out_path}")
+trace_path = str(DOCS / "companytrace.html")
+with open(trace_path, "w", encoding="utf-8") as f:
+    f.write(trace_page)
+print(f"wrote {trace_path}")
 print(f"funnel {counts}  offers {len(offers)} unlogged {len(offers_unlogged)} adds {len(adds)}/{adds_followed} "
       f"no_reply {len(no_reply)}/{len(no_reply_asked)} median_h {statistics.median(first_reply_h):.1f} "
       f"flags {len(flags)} dupes {len(crm_dupes)}/{crm_dup_owner_conflicts}")

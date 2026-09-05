@@ -1,4 +1,4 @@
-"""The "Company trace" section of docs/halyardscoping.html.
+"""The "Company Trace" tab, docs/companytrace.html (built by dashboard/build_dashboard.py).
 
     from dashboard.trace_section import fragment
     html = fragment()          # <div> with a search box + the five trace sections, rendered client-side
