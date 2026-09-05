@@ -5,12 +5,15 @@
     python3 build.py dashboard  # one step (any prefix of the names below)
 
 The dashboard reads analysis/joins/join_rates.md and analysis/profile/profile.md,
-so those steps run before it.
+so those steps run before it. The golden/ tests run first: a failing check
+exits non-zero and stops the build (`python3 build.py test` runs just them).
 """
 import runpy
 import sys
 
 STEPS = [
+    ("test-golden", "tests.test_golden"),
+    ("test-allocation", "tests.test_allocation"),
     ("profile", "analysis.profile.profile_csvs"),
     ("joins", "analysis.joins.join_rates"),
     ("routing", "analysis.routing.routing_kpis"),
