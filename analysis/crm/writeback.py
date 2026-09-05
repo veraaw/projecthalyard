@@ -21,13 +21,15 @@ wrong is costing something right now:
 
 Two exports, and nothing in either has been executed - they are recommendations:
 
-  crm_import.csv   group 1 only, in the shape a CRM importer accepts:
-                   account_name, domain, owner, stage, source, plus
-                   blocked_requests and requested_value_usd so whoever imports it
-                   can see why. Owner is the rep who asked first, stage Prospect.
-  crm_review.csv   groups 2-5, one row per recommendation: what to do, why, the
-                   evidence, the value at stake and the request ids behind it.
-                   Merges and owner reassignments never go into the import file.
+  crm_import.csv   the machine artifact: group 1 only, in the shape a CRM
+                   importer accepts and nothing else - account_name, domain,
+                   owner, stage, source, plus blocked_requests and
+                   requested_value_usd so whoever imports it can see why. Owner
+                   is the rep who asked first, stage Prospect.
+  crm_review.csv   the human record of what the run recommended: all five groups,
+                   one row per recommendation - what to do, why, the evidence, the
+                   value at stake and the request ids behind it. Merges and owner
+                   reassignments never go into the import file.
 """
 from __future__ import annotations
 
@@ -270,16 +272,16 @@ def counts(rows: list[Row]) -> list[str]:
 
 
 def write_all(today: date | None = None) -> tuple[list[dict], list[Row]]:
-    """crm_import.csv (account creation only) and crm_review.csv (everything else) -> analysis/crm/."""
+    """crm_import.csv (account creation only) and crm_review.csv (every recommendation) -> analysis/crm/."""
     wb = Writeback(today or date.today())
     review = wb.review_rows()
     imports = wb.import_rows()
     CRM.mkdir(exist_ok=True)
     write_csv(IMPORT_OUT, IMPORT_COLUMNS, imports)
-    write_csv(REVIEW_OUT, REVIEW_COLUMNS, [asdict(r) for r in review if r.group != CREATE])
+    write_csv(REVIEW_OUT, REVIEW_COLUMNS, [asdict(r) for r in review])
     print("\n".join(counts(review)))
     print(f"wrote {len(imports)} accounts to {IMPORT_OUT.name}, "
-          f"{sum(r.group != CREATE for r in review)} recommendations to {REVIEW_OUT.name} in {CRM}/")
+          f"{len(review)} recommendations to {REVIEW_OUT.name} in {CRM}/")
     return imports, review
 
 

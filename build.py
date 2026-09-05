@@ -7,7 +7,8 @@
 The trace step writes one company history per company with a request to
 analysis/traces/ (`python3 analysis/trace.py "Harrowgate Health"` prints one).
 The crm step writes what the CRM should learn from the routing data to
-analysis/crm/ (crm_import.csv, crm_review.csv) and prints the counts per group.
+analysis/crm/ (crm_import.csv for the importer, crm_review.csv with every
+recommendation) and prints the counts per group.
 
 The dashboard reads analysis/joins/join_rates.md and analysis/profile/profile.md,
 so those steps run before it. The tests run first (`python3 -m unittest

@@ -141,8 +141,10 @@ class WritebackTest(unittest.TestCase):
         self.assertEqual(list(got_import[0]), IMPORT_COLUMNS)
         self.assertEqual(list(got_review[0]), REVIEW_COLUMNS)
         self.assertEqual(len(got_import), len(imports))
-        self.assertEqual(len(got_review), sum(r.group != CREATE for r in review))
-        self.assertEqual({r["group"] for r in got_review}, set(GROUPS) - {CREATE})
+        self.assertEqual(len(got_review), len(review))
+        self.assertEqual({r["group"] for r in got_review}, set(GROUPS))
+        self.assertEqual(sum(r["group"] == CREATE for r in got_review), len(got_import),
+                         "every account in the import file is also a recommendation in the review file")
         self.assertTrue(all(r["status"] == STATUS and not r["executed_on"] for r in got_review))
 
 
