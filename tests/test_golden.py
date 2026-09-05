@@ -1,170 +1,187 @@
 """Tests for the golden dataset.
 
+    python3 -m unittest tests.test_golden
+
 Every assertion here corresponds to a bug that actually occurred while building
 this, not a hypothetical. That is the point: a test suite written from
 imagination tests what you already thought of.
 
-    python3 tests/test_golden.py
-
-Plain asserts, no framework, exits non-zero on failure. Run it after every
+Counts are derived from the files, never fixed: a rebuild merges (see
+tests/test_rebuild.py), so golden_requests.csv grows over time. Run after every
 regeneration and before every rehearsal.
 """
 from __future__ import annotations
 
 import csv
 import sys
-from collections import Counter
+import unittest
+from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 G = ROOT / "golden"
+D = ROOT / "dataset"
 
-PASS, FAIL = [], []
+# supply_reach was once the raw connection export: 4,975 of 5,075 rows pointed
+# at companies nobody sells to.
+DECOYS = {"Inglenook Bakery", "Tannerly Design", "Corbridge Realty",
+          "Whitlock Staffing", "Bellchamber Media", "Elmsworth Tutors",
+          "Ambrose Trading", "Fairbourne Fitness", "Yardley Print", "Zenner Foods"}
+UNRESOLVED = {"empty", "unresolved", "fund-collision"}
 
 
-def check(name: str, condition, detail: str = "") -> None:
-    (PASS if condition else FAIL).append((name, detail))
-
-
-def rows(filename: str) -> list[dict]:
-    with open(G / filename, newline="", encoding="utf-8") as fh:
+def rows(path: Path) -> list[dict]:
+    with open(path, newline="", encoding="utf-8-sig") as fh:
         return list(csv.DictReader(fh))
 
 
-def main() -> int:
-    companies = rows("golden_companies.csv")
-    requests = rows("golden_requests.csv")
-    reach = rows("supply_reach.csv")
+class GoldenTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.companies = rows(G / "golden_companies.csv")
+        cls.requests = rows(G / "golden_requests.csv")
+        cls.reach = rows(G / "supply_reach.csv")
+        cls.source = rows(D / "intro_requests.csv")
+        cls.crm = rows(D / "crm_accounts.csv")
+        cls.company_ids = {c["company_id"] for c in cls.companies}
 
     # ── 1. structure ───────────────────────────────────────────────────
-    # A row with an unescaped comma in a multi-value cell has more fields than
-    # the header, and every column after it silently shifts. This is how a
-    # sample row showed an owner where the stage should be.
-    for fn, data in [("golden_companies.csv", companies),
-                     ("golden_requests.csv", requests),
-                     ("supply_reach.csv", reach)]:
-        with open(G / fn, newline="", encoding="utf-8") as fh:
-            r = csv.reader(fh)
-            header = next(r)
-            ragged = [i for i, row in enumerate(r, 2) if len(row) != len(header)]
-        check(f"{fn}: every row has {len(header)} fields",
-              not ragged, f"ragged rows at lines {ragged[:5]}")
-        check(f"{fn}: no None keys (row longer than header)",
-              all(None not in d for d in data))
+    def test_every_row_has_the_headers_field_count(self):
+        # A row with an unescaped comma in a multi-value cell has more fields
+        # than the header, and every column after it silently shifts. This is
+        # how a sample row showed an owner where the stage should be.
+        for fn, data in [("golden_companies.csv", self.companies),
+                         ("golden_requests.csv", self.requests),
+                         ("supply_reach.csv", self.reach)]:
+            with self.subTest(file=fn):
+                with open(G / fn, newline="", encoding="utf-8") as fh:
+                    r = csv.reader(fh)
+                    header = next(r)
+                    ragged = [i for i, row in enumerate(r, 2) if len(row) != len(header)]
+                self.assertEqual(ragged, [], f"ragged rows at lines {ragged[:5]}")
+                self.assertTrue(all(None not in d for d in data), "row longer than header")
 
     # ── 2. grain and uniqueness ────────────────────────────────────────
-    check("one row per request_id",
-          len({r["request_id"] for r in requests}) == len(requests),
-          f"{len(requests)} rows, {len({r['request_id'] for r in requests})} ids")
-    check("one row per company_id",
-          len({c["company_id"] for c in companies}) == len(companies))
-    key = lambda x: (x["connector"], x["company_id"], x["reach_type"], x["contact_name"])
-    dupes = [k for k, n in Counter(map(key, reach)).items() if n > 1]
-    check("supply_reach unique on connector+company+type+contact",
-          not dupes, f"{len(dupes)} duplicates")
+    def test_one_row_per_request_id(self):
+        dupes = [k for k, n in Counter(r["request_id"] for r in self.requests).items() if n > 1]
+        self.assertEqual(dupes, [])
+
+    def test_one_row_per_company_id(self):
+        dupes = [k for k, n in Counter(c["company_id"] for c in self.companies).items() if n > 1]
+        self.assertEqual(dupes, [])
+
+    def test_supply_reach_unique_on_connector_company_type_contact(self):
+        key = lambda x: (x["connector"], x["company_id"], x["reach_type"], x["contact_name"])
+        dupes = [k for k, n in Counter(map(key, self.reach)).items() if n > 1]
+        self.assertEqual(dupes, [], f"{len(dupes)} duplicates")
 
     # ── 3. referential integrity ───────────────────────────────────────
-    company_ids = {c["company_id"] for c in companies}
-    orphan_req = {r["company_id"] for r in requests
-                  if r["company_id"] and r["company_id"] not in company_ids}
-    check("every request's company_id exists in companies",
-          not orphan_req, f"orphans: {sorted(orphan_req)[:5]}")
-    orphan_reach = {x["company_id"] for x in reach
-                    if x["company_id"] and x["company_id"] not in company_ids}
-    check("every reach row's company_id exists in companies",
-          not orphan_reach, f"orphans: {sorted(orphan_reach)[:5]}")
+    def test_every_requests_company_exists(self):
+        orphans = {r["company_id"] for r in self.requests
+                   if r["company_id"] and r["company_id"] not in self.company_ids}
+        self.assertEqual(orphans, set())
+
+    def test_every_reach_rows_company_exists(self):
+        orphans = {x["company_id"] for x in self.reach
+                   if x["company_id"] and x["company_id"] not in self.company_ids}
+        self.assertEqual(orphans, set())
 
     # ── 4. conservation — nothing may vanish ───────────────────────────
-    check("200 requests preserved", len(requests) == 200, f"got {len(requests)}")
-    blanks = [r for r in requests if not r["company_as_written"]]
-    check("13 requests are genuinely unresolvable",
-          len([r for r in requests if r["resolved_by"] in ("empty", "unresolved")]) == 13,
-          f"got {len([r for r in requests if r['resolved_by'] in ('empty','unresolved')])}")
+    def test_every_source_request_is_present(self):
+        # A rebuild merges: the file may hold more than the export (live routes,
+        # ingested threads), never less.
+        filed = {r["request_id"] for r in self.requests}
+        missing = sorted({r["request_id"] for r in self.source} - filed)
+        self.assertEqual(missing, [], f"{len(missing)} export rows missing from golden_requests.csv")
+
+    def test_unresolvable_requests_have_no_company_and_vice_versa(self):
+        no_company = {r["request_id"] for r in self.requests if not r["company_id"]}
+        unresolved = {r["request_id"] for r in self.requests if r["resolved_by"] in UNRESOLVED}
+        self.assertEqual(no_company, unresolved)
+        self.assertTrue(unresolved, "every dataset so far has had unresolvable asks; none is suspicious")
 
     # ── 5. regression tests for bugs that actually happened ────────────
-    named = {c["company_name"] for c in companies}
+    def test_apex_logistics_and_apex_logistics_group_stay_separate(self):
+        # The normaliser stripped "Group" and merged two different companies.
+        apex = {c["company_id"] for c in self.companies
+                if "Apex" in c["company_name"] or "Apex" in (c["also_known_as"] or "")}
+        self.assertGreaterEqual(len(apex), 2, f"found {len(apex)} Apex companies")
 
-    # The normaliser stripped "Group" and merged two different companies.
-    apex = [c for c in companies if "Apex" in c["company_name"]
-            or "Apex" in (c["also_known_as"] or "")]
-    check("Apex Logistics and Apex Logistics Group stay separate",
-          len({c["company_id"] for c in apex}) >= 2,
-          f"found {len({c['company_id'] for c in apex})} Apex companies")
+    def test_blackwood_resolves_despite_crm_trading_name_mismatch(self):
+        # Path lookup keyed on the CRM name missed the trading name.
+        black = [c for c in self.companies if "Blackwood" in c["company_name"]
+                 or "Blackwood" in (c["also_known_as"] or "")]
+        self.assertTrue(black)
 
-    # Path lookup keyed on the CRM name missed the trading name.
-    black = [c for c in companies if "Blackwood" in c["company_name"]
-             or "Blackwood" in (c["also_known_as"] or "")]
-    check("Blackwood resolves despite CRM/trading name mismatch", bool(black))
-    check("aliases are populated where the CRM renames a company",
-          sum(1 for c in companies if c["also_known_as"]) >= 5,
-          f"{sum(1 for c in companies if c['also_known_as'])} companies with aliases")
+    def test_aliases_are_populated_where_the_crm_renames_a_company(self):
+        n = sum(1 for c in self.companies if c["also_known_as"])
+        self.assertGreaterEqual(n, 5, f"{n} companies with aliases")
 
-    # The CRM holds the same company twice, sometimes under two owners.
-    dup = [c for c in companies if c["duplicate_accounts"] != "no"]
-    check("6 duplicate CRM clusters detected", len(dup) == 6, f"got {len(dup)}")
-    check("5 of them have disagreeing owners",
-          sum(1 for c in dup if "disagree" in c["duplicate_accounts"]) == 5)
+    def test_duplicate_crm_clusters_match_the_crm(self):
+        # The CRM holds the same company twice, sometimes under two owners.
+        by_domain = defaultdict(list)
+        for a in self.crm:
+            by_domain[a["domain"].lower()].append(a)
+        clusters = {d: v for d, v in by_domain.items() if len(v) > 1}
+        disagree = {d for d, v in clusters.items() if len({a["owner"] for a in v}) > 1}
+        self.assertTrue(clusters, "the CRM export has always held duplicates")
+        flagged = {c["domain"]: c["duplicate_accounts"] for c in self.companies
+                   if c["duplicate_accounts"] != "no"}
+        self.assertEqual(set(flagged), set(clusters))
+        self.assertEqual({d for d, v in flagged.items() if "disagree" in v}, disagree)
 
-    # supply_reach was the raw connection export: 4,975 of 5,075 rows pointed at
-    # companies nobody sells to.
-    DECOYS = {"Inglenook Bakery", "Tannerly Design", "Corbridge Realty",
-              "Whitlock Staffing", "Bellchamber Media", "Elmsworth Tutors",
-              "Ambrose Trading", "Fairbourne Fitness", "Yardley Print", "Zenner Foods"}
-    leaked = DECOYS & {x["company_name"] for x in reach}
-    check("no out-of-scope companies in supply_reach",
-          not leaked, f"leaked: {sorted(leaked)}")
-    check("supply_reach is a filtered view, not the raw export",
-          len(reach) < 500, f"{len(reach)} rows — the six exports total 5,075")
+    def test_no_out_of_scope_companies_in_supply_reach(self):
+        leaked = DECOYS & {x["company_name"] for x in self.reach}
+        self.assertEqual(leaked, set())
+        self.assertLess(len(self.reach), 500, "supply_reach is a filtered view, not the raw export")
 
-    # All path kinds must survive the filter. Board seats are investor paths
-    # with board_seat = yes (a strength modifier, not a separate mechanism).
-    kinds = Counter(x["reach_type"] for x in reach)
-    for k in ("direct", "alumni", "offer", "investor"):
-        check(f"supply_reach contains {k} paths", kinds[k] > 0, f"{k}={kinds[k]}")
-    seats = [x for x in reach if x["board_seat"] == "yes"]
-    check("supply_reach contains board seats",
-          seats and all(x["reach_type"] == "investor" for x in seats),
-          f"{len(seats)} rows with board_seat = yes")
+    def test_all_path_kinds_survive_the_filter(self):
+        # Board seats are investor paths with board_seat = yes (a strength
+        # modifier, not a separate mechanism).
+        kinds = Counter(x["reach_type"] for x in self.reach)
+        for k in ("direct", "alumni", "offer", "investor"):
+            with self.subTest(reach_type=k):
+                self.assertGreater(kinds[k], 0)
+        seats = [x for x in self.reach if x["board_seat"] == "yes"]
+        self.assertTrue(seats)
+        self.assertTrue(all(x["reach_type"] == "investor" for x in seats))
 
-    # Every askable person must appear, even with no path.
-    check("every connector appears at least once",
-          len({x["connector"] for x in reach}) >= 6,
-          f"{len({x['connector'] for x in reach})} connectors present")
+    def test_every_connector_appears_at_least_once(self):
+        # Every askable person must appear, even with no path.
+        connectors = {x["connector"] for x in self.reach}
+        self.assertGreaterEqual(len(connectors), 6, f"{len(connectors)} connectors present")
 
     # ── 6. cross-file agreement ────────────────────────────────────────
-    by_company = Counter(r["company_id"] for r in requests if r["company_id"])
-    mismatched = [c["company_name"] for c in companies
-                  if int(c["total_requests"]) != by_company[c["company_id"]]]
-    check("total_requests matches the request rows",
-          not mismatched, f"mismatched: {mismatched[:5]}")
+    def test_total_requests_matches_the_request_rows(self):
+        by_company = Counter(r["company_id"] for r in self.requests if r["company_id"])
+        mismatched = [c["company_name"] for c in self.companies
+                      if int(c["total_requests"]) != by_company[c["company_id"]]]
+        self.assertEqual(mismatched, [])
+        self.assertEqual(sum(by_company.values()),
+                         sum(int(c["total_requests"]) for c in self.companies))
 
-    reach_by_company = Counter(x["company_id"] for x in reach)
-    bad_paths = [c["company_name"] for c in companies
-                 if int(c["paths_available"]) != reach_by_company[c["company_id"]]]
-    check("paths_available matches supply_reach",
-          not bad_paths, f"mismatched: {bad_paths[:5]}")
+    def test_paths_available_matches_supply_reach(self):
+        by_company = Counter(x["company_id"] for x in self.reach)
+        bad = [c["company_name"] for c in self.companies
+               if int(c["paths_available"]) != by_company[c["company_id"]]]
+        self.assertEqual(bad, [])
 
-    if any("durable_paths" in c for c in companies):
-        durable = Counter(x["company_id"] for x in reach if x["reach_type"] != "offer")
-        bad = [c["company_name"] for c in companies
+    def test_durable_paths_excludes_offers(self):
+        durable = Counter(x["company_id"] for x in self.reach if x["reach_type"] != "offer")
+        bad = [c["company_name"] for c in self.companies
                if int(c["durable_paths"]) != durable[c["company_id"]]]
-        check("durable_paths excludes offers", not bad, f"mismatched: {bad[:5]}")
+        self.assertEqual(bad, [])
 
     # ── 7. the numbers the presentation rests on ───────────────────────
-    routed = [r for r in requests if r["routed_to"]]
-    check("some requests are routed", len(routed) > 40, f"{len(routed)} routed")
-    offers = [x for x in reach if x["reach_type"] == "offer"]
-    check("15 offers found in the Slack threads", len(offers) == 15, f"got {len(offers)}")
+    def test_some_requests_are_routed(self):
+        routed = [r for r in self.requests if r["routed_to"]]
+        self.assertGreater(len(routed), 40, f"{len(routed)} routed")
 
-    # ── report ─────────────────────────────────────────────────────────
-    for name, detail in PASS:
-        print(f"  ok    {name}")
-    for name, detail in FAIL:
-        print(f"  FAIL  {name}" + (f"\n          {detail}" if detail else ""))
-    print(f"\n  {len(PASS)} passed, {len(FAIL)} failed\n")
-    return 1 if FAIL else 0
+    def test_offers_found_in_the_slack_threads(self):
+        offers = [x for x in self.reach if x["reach_type"] == "offer"]
+        self.assertEqual(len(offers), 15)
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    unittest.main()
