@@ -1,6 +1,7 @@
 """Sankey of the warm-intro funnel: requests -> asked -> responded -> intros -> meetings -> opportunities.
 
-Counts are computed from dataset/intro_requests.csv and dataset/intro_outcomes.csv.
+Counts are computed from golden/golden_requests.csv (one row per request; stage columns
+asked_date / responded / intro_sent / meeting_booked / opportunity_usd).
 Dollar values are intentionally not shown: a request's deal_value_usd appears at every stage
 it survives, so summing per stage double-counts pipeline.
 Writes scoping/sankey_funnel.html and scoping/sankey_funnel.png.
@@ -14,22 +15,20 @@ import os
 import plotly.graph_objects as go
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.path.join(ROOT, "dataset")
+GOLDEN = os.path.join(ROOT, "golden", "golden_requests.csv")
 OUT = os.path.dirname(os.path.abspath(__file__))
 
 
 def funnel_stages():
-    with open(os.path.join(DATA, "intro_requests.csv"), newline="", encoding="utf-8") as f:
-        req = {r["request_id"]: r for r in csv.DictReader(f)}
-    with open(os.path.join(DATA, "intro_outcomes.csv"), newline="", encoding="utf-8") as f:
-        out = list(csv.DictReader(f))
+    with open(GOLDEN, newline="", encoding="utf-8-sig") as f:
+        req = list(csv.DictReader(f))
     stages = [
-        ("Requests", list(req.values())),
-        ("Asked", out),
-        ("Responded", [o for o in out if o["responded"] == "Y"]),
-        ("Intros", [o for o in out if o["intro_sent"] == "Y"]),
-        ("Meetings", [o for o in out if o["meeting_booked"] == "Y"]),
-        ("Opportunities", [o for o in out if o["opportunity_created"] == "Y"]),
+        ("Requests", req),
+        ("Asked", [r for r in req if r["asked_date"].strip()]),
+        ("Responded", [r for r in req if r["responded"] == "Y"]),
+        ("Intros", [r for r in req if r["intro_sent"] == "Y"]),
+        ("Meetings", [r for r in req if r["meeting_booked"] == "Y"]),
+        ("Opportunities", [r for r in req if r["opportunity_usd"].strip()]),
     ]
     return [(name, len(s)) for name, s in stages]
 
