@@ -13,6 +13,7 @@ import html
 import json
 import os
 import re
+import shutil
 import statistics
 from collections import Counter
 from datetime import datetime
@@ -24,7 +25,7 @@ from analysis.integrity.integrity_audit import fragment as integrity_fragment
 from dashboard import data_cuts
 from dashboard.funnel_overview import dropoff_rows, ratios
 from dashboard.sankey_funnel import build_figure, funnel_stages
-from paths import DATASET, DOCS, PROFILE
+from paths import DATASET, DOCS, PROFILE, ROUTING
 
 DATA = str(DATASET)
 
@@ -325,12 +326,19 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
 <header>
   <h1>Halyard — scoping &amp; verification dashboard</h1>
   <p>200 warm-intro requests · Aug 2025 – Jul 2026 · sources: <code>dataset/</code>, <code>golden/</code> · built {datetime.now():%Y-%m-%d}</p>
-  <nav style="margin-top:12px"><span class="navgrp">1. Raw data</span><a href="#overview">Funnel overview</a><a href="#joins">Joins</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a><br><span class="navgrp">2. Cleaned data</span><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a></nav>
+  <nav style="margin-top:12px"><span class="navgrp">1. Raw data</span><a href="#flow">File flow</a><a href="#overview">Funnel overview</a><a href="#joins">Joins</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a><br><span class="navgrp">2. Cleaned data</span><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a></nav>
 </header>
 <main>
 
 <h2 class="part" id="raw">1. Raw data</h2>
 <p class="lede part-lede">Computed directly from the exports in <code>dataset/</code>: intro requests and outcomes, CRM accounts, connection lists, roster and Slack threads, as filed.</p>
+
+<section id="flow">
+  <h2>How the files connect</h2>
+  <p class="lede">An intro request moves from Slack to a logged outcome; the four reference tables feed the routing step by name/company text only — <code>request_id</code> is the sole real key.</p>
+  <img src="routing_flow.png" alt="Intro-request routing flow across the CSV files" style="display:block;max-width:720px;width:100%;margin:0 auto">
+  <p class="foot">Source: <code>analysis/routing/routing_flow.mmd</code>; narrative in <code>analysis/routing/routing_flow.md</code>.</p>
+</section>
 
 <section id="overview">
   <h2>Funnel overview</h2>
@@ -619,6 +627,7 @@ code{{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:13px}}
 </body></html>
 """
 
+shutil.copyfile(ROUTING / "routing_flow.png", DOCS / "routing_flow.png")
 out_path = str(DOCS / "halyardscoping.html")
 with open(out_path, "w", encoding="utf-8") as f:
     f.write(page)
