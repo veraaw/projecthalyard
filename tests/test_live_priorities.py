@@ -25,6 +25,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from collections import Counter
 from datetime import date
 from pathlib import Path
 
@@ -106,9 +107,47 @@ class PayloadTest(unittest.TestCase):
         S = self.P["stages"]
         self.assertEqual([s["stage"] for s in S["stages"]],
                          ["needs data", "to be routed", "routed", "asked", "introduced", "won"])
-        self.assertEqual(sum(s["count"] for s in S["stages"]) + S["excluded"]["count"], 200,
-                         "each request lands in exactly one stage (or is excluded as Closed - no path)")
+        reqs = read_csv(ROOT / "golden" / "golden_requests.csv")
+        companies = {r["company_id"] for r in reqs if r["company_id"]}
+        unresolved = [r for r in reqs if not r["company_id"]]
+        self.assertEqual(sum(s["count"] for s in S["stages"]) + S["excluded"]["count"], len(companies) + len(unresolved),
+                         "each company lands in exactly one stage (or is excluded as Closed - no path); "
+                         "a request with no company stands alone")
+        self.assertEqual(sum(s["unresolved"] for s in S["stages"]) + S["excluded"]["unresolved"], len(unresolved))
+        self.assertEqual(S["total"]["companies"] + S["total"]["unresolved"], S["total"]["count"])
         self.assertEqual(S["excluded"]["stage"], "closed")
+
+    def test_stage_dollars_are_one_value_per_company(self):
+        """CRM ARR potential first, else the latest request's deal value; never the
+        sum of a company's requests. A won company stays won whatever else is open on it."""
+        L = lp.Live(AS_OF)
+        cos = read_csv(ROOT / "golden" / "golden_companies.csv")
+        by_stage = {s["stage"]: s for s in self.P["stages"]["stages"]}
+        expect = Counter()
+        for c in cos:
+            cid = c["company_id"]
+            if cid not in L.by_company:
+                continue
+            stage = L.company_stage(cid)
+            reqs = sorted(L.by_company[cid], key=lambda r: (r["request_date"], r["request_id"]))
+            if c["crm_account_ids"] and int(c["value_usd"] or 0):
+                value = int(c["value_usd"])
+            else:
+                value = next((int(r["value_usd"]) for r in reversed(reqs) if r["value_usd"]), 0)
+            self.assertEqual(L.company_value(cid)[0], value, cid)
+            stages = {L.stage_of(r) for r in reqs}
+            if "won" in stages:
+                self.assertEqual(stage, "won", f"{cid} is won, whatever else is open")
+            if stage != "closed":
+                expect[stage] += value
+        for r in L.requests:
+            if not r["company_id"] and L.stage_of(r) != "closed":
+                expect[L.stage_of(r)] += lp.usd(r["value_usd"])
+        for s, usd in expect.items():
+            self.assertEqual(by_stage[s]["usd"], usd, s)
+        # the strip is strictly less than summing every request's deal value
+        self.assertLess(sum(s["usd"] for s in by_stage.values()),
+                        sum(lp.usd(r["value_usd"]) for r in L.requests if L.stage_of(r) != "closed"))
 
     def test_top_five_is_the_stated_formula(self):
         T = self.P["priorities"]
