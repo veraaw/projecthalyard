@@ -182,6 +182,8 @@ class Resolver:
             r = self._by_domain_string(domain_hint or raw, raw)
             if r is not None:
                 return r
+            if not raw:
+                return Resolution(domain_hint, None, "unmatched", CONFIDENCE["unmatched"])
         strict = normalize_strict(raw)
         if not strict:
             return Resolution(raw, None, "empty", CONFIDENCE["empty"])
@@ -337,6 +339,54 @@ def company_strings() -> dict[str, set[str]]:
     return seen
 
 
+# ---------------------------------------------------------------------------
+# slack threads: the opening message names the target company (or doesn't)
+# ---------------------------------------------------------------------------
+_C = r"(?P<c>[A-Z][\w&'-]*(?: [A-Z&][\w&'-]*)*)"
+_SLACK_PATTERNS = [re.compile(p) for p in (
+    r"email domain is (?P<d>[a-z0-9.-]+\.[a-z]{2,})",
+    r"account I actually need is " + _C + r"\s*\(",
+    r"^" + _C + r" is the target\.",
+    r"^we need " + _C + r"\.",
+    r"^asking again: " + _C + r"\.",
+    r"^long shot — " + _C + r"\.",
+    r"^trying to reach .+? at " + _C + r"(?: —|\.)",
+    r"^(?:any connections|path) into " + _C + r"\?",
+    r"^(?:who do we know|does anyone know anyone|who knows someone|need an intro) at " + _C + r"(?:\?| —)",
+    r"^need help getting to " + _C + r"\.",
+)]
+
+
+def company_from_slack(text: str) -> tuple[str, str]:
+    """-> (company string, domain hint); both empty when the message names only a person."""
+    for pat in _SLACK_PATTERNS:
+        m = pat.search(text)
+        if m:
+            d = m.groupdict()
+            return d.get("c") or "", d.get("d") or ""
+    return "", ""
+
+
+def resolve_slack_threads(res: Resolver) -> list[dict]:
+    rows = []
+    with open(DATASET / "slack_threads.jsonl", encoding="utf-8") as f:
+        for line in f:
+            t = json.loads(line)
+            text = t["messages"][0]["text"]
+            written, hint = company_from_slack(text)
+            if not written and not hint:
+                r = Resolution("", None, "no-company-named", 0.0)
+            else:
+                r = res.resolve(written, hint)
+            rows.append({"request_id": t["request_id"], "opening_message": text,
+                         "extracted": written or hint, **r.row()})
+    return rows
+
+
+SLACK_COLUMNS = ["request_id", "company_id", "company_name", "kind", "method", "confidence",
+                 "needs_review", "candidates", "extracted", "opening_message"]
+SLACK_OUT = OUT / "slack_resolutions.csv"
+
 RESOLUTION_COLUMNS = ["company_string", "sources", "company_id", "company_name", "kind",
                       "method", "confidence", "needs_review", "candidates"]
 ENTITY_COLUMNS = ["company_id", "kind", "company_name", "domain", "also_known_as",
@@ -371,6 +421,19 @@ def main(argv: list[str]) -> None:
     print(f"company_review_queue.csv   {len(review)} for a human")
     for r in review:
         print(f"  {r['company_string']!r:32} {r['method']:17} {r['candidates'] or '-'}")
+
+    slack = resolve_slack_threads(res)
+    write_csv(SLACK_OUT, SLACK_COLUMNS, slack)
+    exact = sum(r["method"] in ("name-exact", "domain") for r in slack)
+    confident = sum(r["needs_review"] == "no" for r in slack) - exact
+    escalated = [r for r in slack if r["needs_review"] == "yes"]
+    print(f"slack_resolutions.csv      {len(slack)} threads: {exact} exact string/domain, "
+          f"{confident} joined with confidence < 1.00, {len(escalated)} escalated")
+    slack_methods = defaultdict(int)
+    for r in slack:
+        slack_methods[r["method"]] += 1
+    for m, n in sorted(slack_methods.items(), key=lambda kv: -kv[1]):
+        print(f"  {m:18} {n}")
 
 
 if __name__ == "__main__":
