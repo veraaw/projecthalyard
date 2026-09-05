@@ -12,7 +12,7 @@ import runpy
 import sys
 
 STEPS = [
-    ("resolve", "golden.resolver"),
+    ("resolve", "golden.resolve_dataset"),
     ("profile", "analysis.profile.profile_csvs"),
     ("joins", "analysis.joins.join_rates"),
     ("routing", "analysis.routing.routing_kpis"),
