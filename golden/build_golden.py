@@ -13,8 +13,10 @@ Writes four CSVs (UTF-8, no BOM, CRLF):
                                with; blocked_reason says what would unblock a
                                request nobody is routed to.
   golden/golden_companies.csv  one row per in-scope company (grouped by
-                               domain). Always rebuilt from golden_requests.csv
-                               plus crm_accounts.csv and supply_reach.csv.
+                               domain), including CRM accounts nobody has
+                               requested (total_requests = 0). Always rebuilt
+                               from golden_requests.csv plus crm_accounts.csv
+                               and supply_reach.csv.
   golden/supply_reach.csv      one row per way into an in-scope company, from
                                four sources: direct (connections_*.csv),
                                alumni and investor (investor_network.csv;
@@ -970,10 +972,8 @@ def build_companies(reg: Registry, supply: list[dict], requests: list[dict], tod
 
     rows = []
     for c in reg.companies():
-        if c.company_id not in by_company:
-            continue
-        reqs = sorted(by_company[c.company_id], key=lambda r: (r["request_date"], r["request_id"]))
-        latest = reqs[-1]
+        reqs = sorted(by_company.get(c.company_id, []), key=lambda r: (r["request_date"], r["request_id"]))
+        latest = reqs[-1] if reqs else {k: "" for k in REQUEST_COLUMNS}
         s = c.survivor
         owners = sorted({a["owner"] for a in c.accounts})
         if len(c.accounts) > 1:
