@@ -19,7 +19,7 @@ nav a{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}
 nav a:hover{color:var(--blue)}
 .part-lede{margin-bottom:24px}
 main{max-width:1240px;margin:0 auto;padding:28px 40px 72px}
-section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:110px}
+section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:150px}
 h2{margin:0 0 6px;font-size:22px}
 h3{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
 details{margin-top:26px}
@@ -67,6 +67,9 @@ img{max-width:100%}
 .tabs.people a .n{margin-left:6px;font-size:11.5px;color:var(--baton);font-variant-numeric:tabular-nums}
 .tabs.people a:hover{color:var(--navy)}
 .tabs.people a.on{color:var(--navy);background:var(--surface);border-color:rgba(196,118,62,0.35) rgba(196,118,62,0.35) var(--surface);box-shadow:inset 0 2px 0 var(--baton)}
+.totop{position:fixed;right:28px;bottom:28px;z-index:20;width:44px;height:44px;border:1px solid var(--ink);background:var(--surface);color:var(--ink);font:20px/1 var(--sans);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12);opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .2s,transform .2s,visibility .2s}
+.totop.show{opacity:1;visibility:visible;transform:none}
+.totop:hover{background:var(--ink);color:var(--surface)}
 .seg{display:inline-flex;border:1px solid var(--line);font-family:var(--sans);font-size:13px;margin:6px 0 4px}
 .seg button{background:var(--surface);color:var(--mute);border:0;padding:6px 14px;cursor:pointer;font:inherit}
 .seg button+button{border-left:1px solid var(--line)}
@@ -108,7 +111,16 @@ img{max-width:100%}
 #lp table.preview tr.flag td{background:rgba(159,45,0,.035)}
 </style></head>
 <body>
-<div class="topbar"><div class="mastrow"><a class="mast" href="livedata.html"><svg class="logo" width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="7" fill="#17293f"/><rect x="9" y="9" width="3.4" height="22" fill="#fff"/><rect x="27.6" y="9" width="3.4" height="22" fill="#fff"/><path d="M12.4 26.4 27.6 14.6" stroke="#c4763e" stroke-width="3"/></svg><span class="t"><b>Halyard Baton</b> / intro routing console</span></a><div class="tabs"><a href="halyardscoping.html">Raw Sept Data Dashboard</a><a href="livedata.html">Live Data Dashboard</a><a href="companytrace.html">Company Trace</a><a href="livepriorities.html">Live Priorities</a></div></div><div class="tabs people"><span class="lbl">by connector</span><a href="connector-marcus-aldridge.html">Marcus Aldridge<span class="n">8</span></a><a href="connector-dana-whitfield.html" class="on">Dana Whitfield<span class="n">6</span></a><a href="connector-priya-raghunathan.html">Priya Raghunathan<span class="n">8</span></a><a href="connector-tomas-beckett.html">Tomás Beckett<span class="n">8</span></a><a href="connector-elena-duvall.html">Elena Duvall<span class="n">3</span></a><a href="connector-owen-trask.html">Owen Trask<span class="n">3</span></a><a href="connector-imani-mkhize.html">Imani Mkhize<span class="n">2</span></a><a href="connector-curtis-hartigan.html">Curtis Hartigan<span class="n">2</span></a><a href="connector-yusuf-petrossian.html">Yusuf Petrossian<span class="n">2</span></a><a href="connector-nadia-okonkwo.html">Nadia Okonkwo<span class="n">1</span></a></div></div>
+<div class="topbar"><div class="mastrow"><a class="mast" href="livedata.html"><svg class="logo" width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="7" fill="#17293f"/><rect x="9" y="9" width="3.4" height="22" fill="#fff"/><rect x="27.6" y="9" width="3.4" height="22" fill="#fff"/><path d="M12.4 26.4 27.6 14.6" stroke="#c4763e" stroke-width="3"/></svg><span class="t"><b>Halyard Baton</b> / intro routing console</span></a><div class="tabs"><a href="halyardscoping.html">Raw Sept Data Dashboard</a><a href="livedata.html">Live Data Dashboard</a><a href="companytrace.html">Company Trace</a><a href="livepriorities.html">Live Priorities</a></div></div><div class="tabs people"><span class="lbl">by connector</span><a href="connector-marcus-aldridge.html">Marcus Aldridge<span class="n">8</span></a><a href="connector-dana-whitfield.html" class="on">Dana Whitfield<span class="n">6</span></a><a href="connector-priya-raghunathan.html">Priya Raghunathan<span class="n">8</span></a><a href="connector-tomas-beckett.html">Tomás Beckett<span class="n">8</span></a><a href="connector-elena-duvall.html">Elena Duvall<span class="n">3</span></a><a href="connector-owen-trask.html">Owen Trask<span class="n">3</span></a><a href="connector-imani-mkhize.html">Imani Mkhize<span class="n">2</span></a><a href="connector-curtis-hartigan.html">Curtis Hartigan<span class="n">2</span></a><a href="connector-yusuf-petrossian.html">Yusuf Petrossian<span class="n">2</span></a><a href="connector-nadia-okonkwo.html">Nadia Okonkwo<span class="n">1</span></a></div></div><button class="totop" type="button" title="Back to top" aria-label="Back to top">&uarr;</button>
+<script>
+(function () {
+  var b = document.querySelector('.totop');
+  var show = function () { b.classList.toggle('show', window.scrollY > 400); };
+  window.addEventListener('scroll', show, { passive: true });
+  show();
+  b.onclick = function () { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+})();
+</script>
 <header>
   <h1>Dana Whitfield — top 5, then the longer list</h1>
   <p>Chief Revenue Officer · Internal · 6 live requests routed to them this cycle, ranked by the same expected value as <a href="livepriorities.html#top">Live Priorities</a>; computed by <code>dashboard/live_priorities.py</code> at build time, rendered by the browser. Every company name opens its <a href="companytrace.html">Company Trace</a> · built 2026-09-05</p>

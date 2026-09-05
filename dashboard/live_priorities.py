@@ -50,6 +50,12 @@ TOP_N = 5
 PAGE = "livepriorities.html"
 TRACE_PAGE = "companytrace.html"
 CONNECTOR_PAGE = "connector-{slug}.html"
+# section ids as rendered by live_priorities.js boot(), in page order; drives the header nav
+SECTIONS = [
+    ("upload", "Preview an export"), ("stages", "Deal value by stage"), ("top", "Top priorities"),
+    ("asks", "Current asks"), ("offers", "Offered, needs response"), ("bottlenecks", "Bottlenecks"),
+    ("connectors", "Connectors"), ("checkins", "Check-ins"), ("unrouted", "Unrouted"), ("crm", "CRM gaps"),
+]
 THREADS_COMMAND = "python3 golden/build_golden.py --threads {file} && python3 build.py"
 
 

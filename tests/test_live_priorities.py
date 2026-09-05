@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -286,6 +287,12 @@ class PayloadTest(unittest.TestCase):
         for token in ("deal_value_usd", "value_usd *", "* 0.9", "/ 365", "STAGE_WEIGHT"):
             self.assertNotIn(token, js, f"the browser renders; {token!r} would be it calculating")
 
+    def test_section_nav_matches_the_sections_the_page_renders(self):
+        js = (ROOT / "dashboard" / "live_priorities.js").read_text(encoding="utf-8")
+        boot = js.split("function boot(")[1].split("function renderPreview(")[0]
+        self.assertEqual([sid for sid, _ in lp.SECTIONS], re.findall(r'<section id="([^"]+)"', boot),
+                         "SECTIONS is the header nav; it must list every section boot() renders, in order")
+
 
 class FunnelWindowTest(unittest.TestCase):
     """Live Data's cumulative / last-12-months toggle: both views are computed here."""
@@ -333,6 +340,13 @@ class BuiltPagesTest(unittest.TestCase):
             self.assertEqual(blob["connector"], c["connector"])
             self.assertEqual([r["request_id"] for r in blob["top"]], [r["request_id"] for r in c["top"]])
             self.assertEqual(len(blob["rest"]), len(c["rest"]))
+
+    def test_priorities_header_nav_and_back_to_top(self):
+        html = self.pages["livepriorities.html"]
+        for sid, label in lp.SECTIONS:
+            self.assertIn(f'<a href="#{sid}">{label}</a>', html)
+        for name, page in self.pages.items():
+            self.assertEqual(page.count('<button class="totop"'), 1, name)
 
     def test_live_data_has_both_funnel_views(self):
         html = self.pages["livedata.html"]

@@ -31,7 +31,7 @@ import plotly.io as pio
 from analysis.integrity.integrity_audit import fragment as integrity_fragment
 from dashboard import data_cuts, theme
 from dashboard.funnel_overview import dropoff_rows, ratios
-from dashboard.live_priorities import (PAGE as PRIORITIES_HTML, connector_fragments,
+from dashboard.live_priorities import (PAGE as PRIORITIES_HTML, SECTIONS as PRIORITIES_SECTIONS, connector_fragments,
                                        fragment as priorities_fragment)
 from dashboard.sankey_funnel import GOLDEN as GOLDEN_REQUESTS, build_figure, funnel_stages
 from dashboard.trace_section import fragment as trace_fragment
@@ -334,7 +334,7 @@ nav a{{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}}
 nav a:hover{{color:var(--blue)}}
 .part-lede{{margin-bottom:24px}}
 main{{max-width:1240px;margin:0 auto;padding:28px 40px 72px}}
-section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:110px}}
+section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:150px}}
 h2{{margin:0 0 6px;font-size:22px}}
 h3{{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}}
 details{{margin-top:26px}}
@@ -382,6 +382,9 @@ img{{max-width:100%}}
 .tabs.people a .n{{margin-left:6px;font-size:11.5px;color:var(--baton);font-variant-numeric:tabular-nums}}
 .tabs.people a:hover{{color:var(--navy)}}
 .tabs.people a.on{{color:var(--navy);background:var(--surface);border-color:{theme.rgba(theme.BATON, 0.35)} {theme.rgba(theme.BATON, 0.35)} var(--surface);box-shadow:inset 0 2px 0 var(--baton)}}
+.totop{{position:fixed;right:28px;bottom:28px;z-index:20;width:44px;height:44px;border:1px solid var(--ink);background:var(--surface);color:var(--ink);font:20px/1 var(--sans);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12);opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .2s,transform .2s,visibility .2s}}
+.totop.show{{opacity:1;visibility:visible;transform:none}}
+.totop:hover{{background:var(--ink);color:var(--surface)}}
 .seg{{display:inline-flex;border:1px solid var(--line);font-family:var(--sans);font-size:13px;margin:6px 0 4px}}
 .seg button{{background:var(--surface);color:var(--mute);border:0;padding:6px 14px;cursor:pointer;font:inherit}}
 .seg button+button{{border-left:1px solid var(--line)}}
@@ -447,7 +450,19 @@ def tabs(active):
     people = "".join(link(c["page"], c["connector"], f'<span class="n">{len(c["top"]) + len(c["rest"])}</span>')
                      for c, _ in connector_pages)
     return (f'<div class="topbar"><div class="mastrow">{MASTHEAD}<div class="tabs">{pages}</div></div>'
-            f'<div class="tabs people"><span class="lbl">by connector</span>{people}</div></div>')
+            f'<div class="tabs people"><span class="lbl">by connector</span>{people}</div></div>{TOTOP}')
+
+
+TOTOP = """<button class="totop" type="button" title="Back to top" aria-label="Back to top">&uarr;</button>
+<script>
+(function () {
+  var b = document.querySelector('.totop');
+  var show = function () { b.classList.toggle('show', window.scrollY > 400); };
+  window.addEventListener('scroll', show, { passive: true });
+  show();
+  b.onclick = function () { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+})();
+</script>"""
 
 
 built = f"built {datetime.now():%Y-%m-%d}"
@@ -837,6 +852,7 @@ priorities_page = f"""{head("live priorities")}
 <header>
   <h1>Live priorities — what to do next, and who does it</h1>
   <p>Every number here is computed by <code>dashboard/live_priorities.py</code> from <code>golden/</code> and <code>dataset/</code> at build time and written into the page; the browser only renders it. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
+  <nav style="margin-top:12px">{"".join(f'<a href="#{sid}">{esc(label)}</a>' for sid, label in PRIORITIES_SECTIONS)}</nav>
 </header>
 <main>
 {priorities_fragment()}
