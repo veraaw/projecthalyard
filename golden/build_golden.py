@@ -68,17 +68,19 @@ COMPANY_COLUMNS = [
     "duplicate_accounts", "owner", "stage", "value_usd", "largest_request_usd", "total_requests",
     "open_requests", "distinct_requesters", "targets_wanted", "latest_request_id",
     "latest_request_date", "latest_request_status", "routed_to", "routed_on", "route_reason",
-    "paths_available", "best_path_type", "someone_offered", "days_since_movement",
+    "paths_available", "durable_paths", "best_path_type", "someone_offered", "days_since_movement",
 ]
 SUPPLY_COLUMNS = [
     "connector", "connector_type", "company_id", "company_name", "reach_type", "contact_name",
-    "contact_title", "observed_date", "strength", "in_focus_area", "monthly_capacity",
+    "contact_title", "observed_date", "offer_age_days", "strength", "in_focus_area", "monthly_capacity",
     "delivery_rate", "connector_paths_total", "asks_received", "intros_sent", "awaiting_forward",
     "allocated_this_cycle", "idle_capacity", "last_asked_date", "evidence",
 ]
 
 MULTI = " | "  # delimiter for multi-value cells (never a comma)
 OPEN_STATUSES = {"Open", "Routed", "Stalled"}
+# reach types that outlast the request they were observed on; offers are request-scoped
+DURABLE_REACH = {"direct", "board", "investor", "alumni"}
 
 # ---------------------------------------------------------------------------
 # routing constants (same weights as halyard/relay)
@@ -391,7 +393,7 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
     person_to_connectors: dict[str, list[tuple[str, dict]]] = defaultdict(list)
 
     def emit(connector: str, company: Company, kind: str, contact: str, title: str,
-             observed: str, strength: float, evidence: str):
+             observed: str, strength: float, evidence: str, offer_age: int | None = None):
         r = roster.get(connector)
         s = company.survivor
         industry = s["industry"] if s else ""
@@ -408,6 +410,7 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
             "contact_name": contact,
             "contact_title": title,
             "observed_date": observed,
+            "offer_age_days": "" if offer_age is None else offer_age,
             "strength": f"{strength:.3f}",
             "in_focus_area": focus,
             "monthly_capacity": r["stated_monthly_capacity"] if r else "",
@@ -458,9 +461,11 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
             title_m = _OFFER_TITLE_RE.search(m["text"])
             person_m = _OFFER_PERSON_RE.search(m["text"])
             title = (title_m.group("t") or title_m.group("t2")) if title_m else ("exec team" if "exec team" in m["text"] else "")
+            made = parse_date(m["ts"])
             emit(m["user"], company, "offer", person_m.group("p") if person_m else "", title,
                  m["ts"][:10], PATH_BASE["offer"],
-                 f"slack_threads.jsonl {rid} {m['ts'][:10]} {m['user']}: \"{m['text']}\"")
+                 f"slack_threads.jsonl {rid} {m['ts'][:10]} {m['user']}: \"{m['text']}\"",
+                 (today - made).days if made else None)
 
     rows.sort(key=lambda r: (r["company_id"], r["reach_type"], r["connector"], r["contact_name"], r["evidence"]))
     return rows
@@ -510,6 +515,7 @@ def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[di
             "contact_name": "",
             "contact_title": "",
             "observed_date": "",
+            "offer_age_days": "",
             "strength": "0.000",
             "in_focus_area": "",
             "monthly_capacity": r["stated_monthly_capacity"] if r else "",
@@ -788,6 +794,7 @@ def build_companies(reg: Registry, supply: list[dict], today: date) -> list[dict
             "routed_on": latest["routed_on"],
             "route_reason": latest["route_reason"],
             "paths_available": len(paths),
+            "durable_paths": sum(1 for p in paths if p["reach_type"] in DURABLE_REACH),
             "best_path_type": best["reach_type"] if best else "",
             "someone_offered": "yes" if any(r["offer_in_thread"] == "Y" for r in reqs) else "no",
             "days_since_movement": (today - max(moves)).days if moves else "",
