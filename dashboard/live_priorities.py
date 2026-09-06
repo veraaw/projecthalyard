@@ -246,7 +246,7 @@ class Live:
             elif fit >= 1.0:
                 focus = "in their focus area"
             elif fit <= 0.0:
-                focus = "outside their focus — they decline anything outside"
+                focus = "outside their focus, and they decline anything outside"
             else:
                 focus = "outside their focus area"
             cap = bg.capacity(self.roster, n)
@@ -855,7 +855,7 @@ class Live:
                     "value_usd": sum(usd(g["value_usd"]) for g in group),
                     "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
                     "has_path": bool(own),
-                    "path": bg.path_label(max(own, key=lambda p: float(p["strength"]))) if own else "no known path — ask them if they know anyone",
+                    "path": bg.path_label(max(own, key=lambda p: float(p["strength"]))) if own else "no known path; ask them if they know anyone",
                 })
             companies.sort(key=lambda c: (not c["has_path"], -c["value_usd"]))
             per.append({"connector": name, "page": CONNECTOR_PAGE.format(slug=slug(name)), "focus": sorted(r["focus"]),

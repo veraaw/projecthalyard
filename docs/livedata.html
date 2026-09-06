@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Halyard — live data dashboard</title>
+<title>Halyard · live data dashboard</title>
 <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <style>
@@ -19,6 +19,35 @@ nav a{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}
 nav a:hover{color:var(--blue)}
 .part-lede{margin-bottom:24px}
 main{max-width:1240px;margin:0 auto;padding:28px 40px 72px}
+/* the left rail: a sticky list of the page's sections, highlighted as you scroll */
+.layout{display:grid;grid-template-columns:224px minmax(0,1fr);gap:0 36px;max-width:1560px;margin:0 auto;padding:0 40px;align-items:start}
+.layout>main{max-width:none;margin:0;padding:28px 0 72px}
+.side{position:sticky;top:var(--topbar,140px);max-height:calc(100vh - var(--topbar,140px));overflow-y:auto;padding:30px 0 40px;font-family:var(--sans);scrollbar-width:thin}
+.side .side-h{margin:0 0 10px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.side .side-h .foot{font-weight:400;letter-spacing:0;text-transform:none;margin-left:6px;font-size:11.5px}
+.side input[type=search]{width:100%;font:13px var(--sans);padding:7px 10px;margin:0 0 10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);outline:none}
+.side input[type=search]:focus{border-color:var(--blue)}
+.toc{display:flex;flex-direction:column}
+.toc a{display:block;margin:0;padding:5px 12px;border-left:2px solid var(--line);color:var(--mute);text-decoration:none;font-size:13.5px;line-height:1.35}
+.toc a:hover{color:var(--ink)}
+.toc a.on{color:var(--ink);border-left-color:var(--blue);font-weight:500}
+.toc a.band{margin-top:14px;padding-left:0;border-left-color:transparent;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--baton)}
+.toc a.band:first-child{margin-top:0}
+.toc a .n{float:right;margin-left:8px;color:var(--mute);font-size:11.5px;font-variant-numeric:tabular-nums}
+.toc .empty{color:var(--mute);font-style:italic;font-size:13px;padding:5px 12px}
+/* long tables: 20 rows at a time, with a filter box; .tall tables scroll inside a fixed height instead */
+.pager{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:10px 0 4px;font-family:var(--sans);font-size:12.5px;color:var(--mute)}
+.pager input{font:inherit;padding:5px 9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);min-width:170px}
+.pager input:focus{outline:none;border-color:var(--blue)}
+.pager .pg-b{display:inline-flex;gap:3px;align-items:center}
+.pager .pg-b span{padding:0 4px}
+.pager button{font:inherit;padding:4px 9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;min-width:30px}
+.pager button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager button.pg-all{margin-left:auto}
+.pager button[hidden]{display:none}
+.tscroll.tall{max-height:min(70vh,640px);overflow-y:auto}
+.tscroll.tall thead th{position:sticky;top:0;z-index:1;background:var(--surface);border-bottom-color:transparent;box-shadow:inset 0 -1px 0 var(--ink)}
 section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:calc(var(--topbar,140px) + 16px)}
 h2{margin:0 0 6px;font-size:22px}
 h3{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
@@ -51,6 +80,20 @@ table.cycles tr.now td .foot{font-weight:400}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:32px}
 .grid2>*{min-width:0}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+@media(max-width:1100px){
+  .layout{display:block;padding:0}
+  .layout>main{padding:24px 40px 72px}
+  .side{position:static;max-height:none;overflow:visible;padding:12px 40px 0;border-bottom:1px solid var(--line);background:var(--bg)}
+  .side .side-h{display:none}
+  .side input[type=search]{max-width:360px}
+  .toc{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;gap:2px;scrollbar-width:none}
+  .toc::-webkit-scrollbar{display:none}
+  .toc a{flex:none;white-space:nowrap;border-left:0;border-bottom:2px solid transparent;padding:6px 10px}
+  .toc a.on{border-bottom-color:var(--blue)}
+  .toc a.band{margin:0 0 0 12px;padding:8px 6px 6px 0}
+  .toc a.band:first-child{margin-left:0}
+  .toc a .n{float:none}
+}
 .finding{border-left:2px solid var(--blue);padding:6px 16px;margin:12px 0;background:var(--bg)}
 .finding.warn{border-color:var(--warn)}
 .finding b{display:block;font-family:var(--sans);font-weight:500;font-size:14px;margin-bottom:2px}
@@ -142,7 +185,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 #lp .subtabs button.on{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}
 #lp .dl{display:flex;gap:16px;align-items:flex-start;margin:14px 0;font-size:14px;font-family:var(--sans)}
 #lp .dl span{color:var(--mute);padding-top:6px}
-#lp button:not(.subtabs button){font-family:var(--sans);font-size:14px;font-weight:500;background:var(--blue);color:#fff;border:1px solid var(--blue);padding:8px 16px;cursor:pointer;white-space:nowrap}
+#lp button:not(.subtabs button):not(.pager button){font-family:var(--sans);font-size:14px;font-weight:500;background:var(--blue);color:#fff;border:1px solid var(--blue);padding:8px 16px;cursor:pointer;white-space:nowrap}
 #lp button.secondary{background:var(--surface);color:var(--ink);border-color:var(--ink)}
 #lp .submitbar{position:sticky;bottom:0;z-index:5;display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:0 -2px;padding:12px 18px;background:var(--surface);border-top:2px solid var(--blue);box-shadow:0 -6px 18px rgba(0,0,0,.08);font-family:var(--sans);font-size:14px}
 #lp .submitbar[hidden]{display:none}
@@ -184,7 +227,8 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
   header h1{font-size:26px}
   header p{font-size:14px}
   nav a{display:inline-block;margin:0 14px 6px 0}
-  main{padding:16px 10px 64px}
+  main,.layout>main{padding:16px 10px 64px}
+  .side{padding:10px 16px 0}
   section{padding:18px 14px;margin-bottom:14px}
   h2{font-size:20px}
   h3{margin-top:22px}
@@ -223,7 +267,8 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 <body>
 <div class="topbar"><div class="mastrow"><a class="mast" href="livedata.html"><svg class="logo" width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="7" fill="#17293f"/><rect x="9" y="9" width="3.4" height="22" fill="#fff"/><rect x="27.6" y="9" width="3.4" height="22" fill="#fff"/><path d="M12.4 26.4 27.6 14.6" stroke="#c4763e" stroke-width="3"/></svg><span class="t"><b>Halyard Baton</b> / intro routing console</span></a><span class="built">built 2026-09-06</span></div><div class="tabs"><a href="livepriorities.html">Live Priorities</a><a href="batchask.html">Batched-Ask for Connectors</a><a href="companytrace.html">Company Trace</a><a href="livedata.html" class="on">Live Data Dashboard</a><a href="halyardscoping.html">Raw Sept Data Dashboard</a></div></div><button class="totop" type="button" title="Back to top" aria-label="Back to top">&uarr;</button>
 <script>
-(function () {
+// this script sits in the top bar, ahead of <main>, so it waits for the rest of the page to parse
+document.addEventListener('DOMContentLoaded', function () {
   var b = document.querySelector('.totop');
   var show = function () { b.classList.toggle('show', window.scrollY > 400); };
   window.addEventListener('scroll', show, { passive: true });
@@ -236,35 +281,143 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
   window.addEventListener('resize', fit);
   window.addEventListener('load', fit);
 
+  var PAGE = 20, MIN_ROWS = 25;
+  var pages = function (n, p) {
+    if (n <= 7) { var all = []; for (var i = 0; i < n; i++) all.push(i); return all; }
+    var keep = {}, out = [];
+    [0, 1, n - 2, n - 1, p - 1, p, p + 1].forEach(function (i) { if (i >= 0 && i < n) keep[i] = true; });
+    for (var j = 0; j < n; j++) {
+      if (keep[j]) out.push(j);
+      else if (out[out.length - 1] !== -1) out.push(-1);
+    }
+    return out;
+  };
+  var pager = function (t) {
+    if (t.dataset.pager || t.classList.contains('nopage') || !t.tBodies.length) return;
+    var rows = Array.prototype.slice.call(t.tBodies[0].rows);
+    if (rows.length < MIN_ROWS) return;
+    t.dataset.pager = '1';
+    var box = t.parentElement, q = '', p = 0, all = false;
+    var barEl = document.createElement('div');
+    barEl.className = 'pager';
+    barEl.innerHTML = '<input type="search" placeholder="filter rows" aria-label="filter rows"><span class="pg-l"></span><span class="pg-b"></span><button type="button" class="pg-all"></button>';
+    box.parentNode.insertBefore(barEl, box.nextSibling);
+    var label = barEl.querySelector('.pg-l'), nums = barEl.querySelector('.pg-b'), allBtn = barEl.querySelector('.pg-all');
+    var draw = function () {
+      var hits = rows.filter(function (r) { return !q || r.textContent.toLowerCase().indexOf(q) >= 0; });
+      var n = Math.max(1, Math.ceil(hits.length / PAGE));
+      if (p >= n) p = n - 1;
+      rows.forEach(function (r) { r.hidden = true; });
+      var shown = all ? hits : hits.slice(p * PAGE, (p + 1) * PAGE);
+      shown.forEach(function (r) { r.hidden = false; });
+      var of = q ? ' matching' : '';
+      label.textContent = !hits.length ? 'no rows match' : all || hits.length <= PAGE ? hits.length + of + ' rows'
+        : 'rows ' + (p * PAGE + 1) + '–' + (p * PAGE + shown.length) + ' of ' + hits.length + of;
+      nums.innerHTML = '';
+      if (!all && n > 1) {
+        var mk = function (txt, to, dis, on) {
+          var x = document.createElement('button');
+          x.type = 'button'; x.textContent = txt; x.disabled = !!dis; if (on) x.className = 'on';
+          x.onclick = function () { p = to; draw(); };
+          nums.appendChild(x);
+        };
+        mk('‹', p - 1, p === 0);
+        pages(n, p).forEach(function (i) {
+          if (i < 0) { var s = document.createElement('span'); s.textContent = '…'; nums.appendChild(s); }
+          else mk(String(i + 1), i, false, i === p);
+        });
+        mk('›', p + 1, p === n - 1);
+      }
+      allBtn.hidden = hits.length <= PAGE;
+      allBtn.textContent = all ? 'Show ' + PAGE + ' at a time' : 'Show all ' + hits.length;
+    };
+    barEl.querySelector('input').addEventListener('input', function (e) { q = e.target.value.trim().toLowerCase(); p = 0; draw(); });
+    allBtn.onclick = function () { all = !all; p = 0; draw(); };
+    draw();
+  };
+
   var wrap = function () {
     document.querySelectorAll('table').forEach(function (t) {
-      if (t.parentElement.classList.contains('tscroll')) return;
-      var row = t.querySelector('tr'), cols = 0;
-      if (row) for (var i = 0; i < row.cells.length; i++) cols += row.cells[i].colSpan;
-      t.style.setProperty('--tmin', Math.min(cols * 130, 1100) + 'px');
-      var d = document.createElement('div');
-      d.className = 'tscroll';
-      t.parentNode.insertBefore(d, t);
-      d.appendChild(t);
+      if (!t.parentElement.classList.contains('tscroll')) {
+        var row = t.querySelector('tr'), cols = 0;
+        if (row) for (var i = 0; i < row.cells.length; i++) cols += row.cells[i].colSpan;
+        t.style.setProperty('--tmin', Math.min(cols * 130, 1100) + 'px');
+        var d = document.createElement('div');
+        d.className = 'tscroll' + (t.classList.contains('tall') ? ' tall' : '');
+        t.parentNode.insertBefore(d, t);
+        d.appendChild(t);
+      }
+      pager(t);
     });
   };
+
+  var toc = document.querySelector('.side nav.toc'), main = document.querySelector('main'), tocKey = '';
+  var heading = function (s) {
+    var h = s.querySelector('h2');
+    if (!h) return '';
+    var c = h.cloneNode(true);
+    c.querySelectorAll('.foot').forEach(function (f) { f.remove(); });
+    return c.textContent.trim();
+  };
+  var fillToc = function () {
+    if (!toc || !toc.hasAttribute('data-auto') || !main) return;
+    var items = [];
+    main.querySelectorAll('section[id]').forEach(function (s) { var t = heading(s); if (t) items.push([s.id, t]); });
+    var key = items.join('|');
+    if (key === tocKey) return;
+    tocKey = key;
+    toc.innerHTML = '';
+    items.forEach(function (it) {
+      var a = document.createElement('a');
+      a.href = '#' + it[0]; a.textContent = it[1];
+      toc.appendChild(a);
+    });
+    spy();
+  };
+  var spy = function () {
+    if (!toc) return;
+    var links = Array.prototype.filter.call(toc.querySelectorAll('a[href^="#"]:not(.band)'), function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+    if (!links.length) return;
+    var line = bar.offsetHeight + 40, on = links[0];
+    links.forEach(function (a) {
+      var el = document.getElementById(a.getAttribute('href').slice(1));
+      if (el.getBoundingClientRect().top <= line) on = a;
+    });
+    if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 2) on = links[links.length - 1];
+    links.forEach(function (a) { a.classList.toggle('on', a === on); });
+    var side = toc.closest('.side');
+    if (side && side.scrollHeight > side.clientHeight) {
+      var top = on.offsetTop - side.offsetTop;
+      if (top < side.scrollTop + 20 || top > side.scrollTop + side.clientHeight - 40) side.scrollTop = top - side.clientHeight / 2;
+    } else if (toc.scrollWidth > toc.clientWidth) toc.scrollLeft = on.offsetLeft - (toc.clientWidth - on.offsetWidth) / 2;
+  };
+  var pending = false;
+  window.addEventListener('scroll', function () {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(function () { pending = false; spy(); });
+  }, { passive: true });
+  window.addEventListener('load', spy);
+
   wrap();
-  new MutationObserver(wrap).observe(document.body, { childList: true, subtree: true });
+  fillToc();
+  new MutationObserver(function () { wrap(); fillToc(); }).observe(document.body, { childList: true, subtree: true });
 
   bar.querySelectorAll('.tabs').forEach(function (row) {
     var on = row.querySelector('a.on, a.parent');
     if (on && row.scrollWidth > row.clientWidth) row.scrollLeft = on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2;
   });
-})();
+});
 </script>
 <header>
-  <h1>Live data — funnel, accounts and connectors</h1>
+  <h1>Live data: funnel, accounts and connectors</h1>
   <p>The same 200 requests after entity resolution · source: <code>golden/</code>, rebuilt from <code>dataset/</code> by <code>python3 build.py</code> · built 2026-09-06</p>
-  <nav style="margin-top:12px"><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a><a href="#cycles">Intros by cycle</a></nav>
 </header>
+<div class="layout">
+<aside class="side"><div class="side-h">On this page</div><nav class="toc"><a href="#funnel">Funnel</a><a href="#accounts">Accounts</a><a href="#connectors">Connectors</a><a href="#cycles">Intros by cycle</a></nav></aside>
 <main>
 
-<p class="lede part-lede">Computed from <code>golden/</code> — <code>golden_requests.csv</code>, <code>golden_companies.csv</code>, <code>supply_reach.csv</code> — after entity resolution, so companies are counted by identity rather than by how the name was typed.</p>
+<p class="lede part-lede">Computed from <code>golden/</code> (<code>golden_requests.csv</code>, <code>golden_companies.csv</code>, <code>supply_reach.csv</code>) after entity resolution, so companies are counted by identity rather than by how the name was typed.</p>
 
 <section id="funnel">
   <h2>Where the requests go</h2>
@@ -282,7 +435,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
   <div class="tscroll plot"><div>                            <div id="sankey-12m" class="plotly-graph-div" style="height:560px; width:100%;"></div>            <script type="text/javascript">                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("sankey-12m")) {                    Plotly.newPlot(                        "sankey-12m",                        [{"arrangement":"snap","link":{"color":["rgba(34,0,255,0.35)","rgba(168,164,159,0.35)","rgba(34,0,255,0.35)","rgba(168,164,159,0.35)","rgba(34,0,255,0.35)","rgba(168,164,159,0.35)","rgba(34,0,255,0.35)","rgba(168,164,159,0.35)","rgba(34,0,255,0.35)","rgba(168,164,159,0.35)"],"source":[0,0,1,1,2,2,3,3,4,4],"target":[1,6,2,7,3,8,4,9,5,10],"value":[80,107,52,28,31,21,13,18,6,7]},"node":{"color":["#2200ff","#2200ff","#2200ff","#2200ff","#2200ff","#2200ff","#a8a49f","#a8a49f","#a8a49f","#a8a49f","#a8a49f"],"label":["\u003cb\u003eRequests\u003c\u002fb\u003e\u003cbr\u003e187","\u003cb\u003eAsked\u003c\u002fb\u003e\u003cbr\u003e80","\u003cb\u003eResponded\u003c\u002fb\u003e\u003cbr\u003e52","\u003cb\u003eIntros\u003c\u002fb\u003e\u003cbr\u003e31","\u003cb\u003eMeetings\u003c\u002fb\u003e\u003cbr\u003e13","\u003cb\u003eOpportunities\u003c\u002fb\u003e\u003cbr\u003e6","Never asked\u003cbr\u003e107","No response\u003cbr\u003e28","No intro\u003cbr\u003e21","No meeting\u003cbr\u003e18","No opportunity\u003cbr\u003e7"],"line":{"width":0},"pad":30,"thickness":22,"x":[0.02,0.17789473684210524,0.3357894736842105,0.4936842105263158,0.651578947368421,0.92,0.11,0.26789473684210524,0.4257894736842105,0.5836842105263158,0.741578947368421],"y":[0.3,0.3,0.3,0.3,0.3,0.3,0.85,0.85,0.85,0.85,0.85]},"type":"sankey"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"}}},"title":{},"margin":{"l":10,"r":10,"t":20,"b":20},"font":{"family":"\"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif","color":"#191919","size":14},"xaxis":{"gridcolor":"rgba(0,0,0,.09)","zerolinecolor":"rgba(0,0,0,.09)","linecolor":"rgba(0,0,0,.09)"},"yaxis":{"gridcolor":"rgba(0,0,0,.09)","zerolinecolor":"rgba(0,0,0,.09)","linecolor":"rgba(0,0,0,.09)"},"legend":{"font":{"color":"#6f6d6a"}},"hoverlabel":{"font":{"family":"\"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif"}},"height":560,"paper_bgcolor":"rgba(0,0,0,0)","plot_bgcolor":"rgba(0,0,0,0)","autosize":true},                        {"displayModeBar": false, "responsive": true}                    )                };            </script>        </div></div>
   <div class="grid2">
     <div>
-      <h3>Stage table — last 12 months</h3>
+      <h3>Stage table, last 12 months</h3>
       <table class=""><thead><tr><th>Stage</th><th>Count</th><th>of requests</th><th>step conversion</th></tr></thead><tbody><tr><td>Requests</td><td>187</td><td>100%</td><td>—</td></tr><tr><td>Asked</td><td>80</td><td>43%</td><td>43%</td></tr><tr><td>Responded</td><td>52</td><td>28%</td><td>65%</td></tr><tr><td>Intros</td><td>31</td><td>17%</td><td>60%</td></tr><tr><td>Meetings</td><td>13</td><td>7%</td><td>42%</td></tr><tr><td>Opportunities</td><td>6</td><td>3%</td><td>46%</td></tr></tbody></table>
     </div>
     <div>
@@ -309,7 +462,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
     </div>
     <div>
       <h3>Reading it</h3>
-      <div class="finding warn"><b>The biggest leak is before anyone is asked.</b>115 of 200 requests (57%) never reach a connector — larger than every downstream drop combined.</div>
+      <div class="finding warn"><b>The biggest leak is before anyone is asked.</b>115 of 200 requests (57%) never reach a connector, a larger drop than every downstream stage combined.</div>
       <div class="finding"><b>Once asked, the funnel is healthy-ish.</b>65% respond, 58% of responders send the intro, 44% of intros book a meeting, 50% of meetings create an opportunity.</div>
       <div class="finding"><b>Status and outcomes disagree.</b>6 of the 7 opportunity requests still show status Open/Stalled/Routed in <code>intro_requests.csv</code> (R1129, R1149, R1150, R1163, R1168, R1176).</div>
       <p class="foot">Standalone chart + code: <code>dashboard/sankey_funnel.py</code>, <code>docs/sankey_funnel.html</code>.</p>
@@ -320,7 +473,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 
 <section id="accounts">
   <h2>Account-level demand</h2>
-  <p class="lede">Asks per company after entity resolution (48 distinct companies behind 180 of 200 requests, from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked. The 20 asks that resolve to no company are grouped by why, not by the name written.</p>
+  <p class="lede">Asks per company after entity resolution (48 distinct companies behind 180 of 200 requests, from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked. The 20 asks that resolve to no company are grouped by why rather than by the name written.</p>
   <div class="kpis">
     <div class="kpi"><div class="v">48</div><div class="l">distinct companies requested</div><div class="s">86% of asks are for a repeat company</div></div>
     <div class="kpi"><div class="v">9</div><div class="l">companies asked exactly once</div><div class="s">39 asked more than once</div></div>
@@ -337,7 +490,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
     </div>
     <div>
       <h3>Reading it</h3>
-      <div class="finding warn"><b>Demand is concentrated and repetitive.</b>86% of all asks are for a company that was already requested at least once — the same 39 companies come back again and again, which is what the duplicate-checking in Slack is reacting to.</div>
+      <div class="finding warn"><b>Demand is concentrated and repetitive.</b>86% of all asks are for a company that was already requested at least once. The same 39 companies come back again and again, which is what the duplicate-checking in Slack is reacting to.</div>
       <div class="finding warn"><b>Some companies are asked repeatedly and never routed.</b>Thistledown Energy, Marrow Point Airways, Northwind Freight, Sablefield Motors, Larchmont Aerospace each have multiple asks and zero connector rows.</div>
       <div class="finding"><b>Unresolvable asks cluster too.</b>20 requests resolve to no company at all: 13 no company named; 7 fund or operating company named. They sit at the bottom of the detail table and are excluded from the company counts above.</div>
     </div>
@@ -369,7 +522,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 </script>
 
 <section id="connectors">
-  <h2>Connectors — the six on the roster</h2>
+  <h2>Connectors: the six on the roster</h2>
   <p class="lede">Funnel per connector from <code>intro_outcomes.csv</code>, with the stated capacity and free-text note from <code>dataset/connector_roster.csv</code>. An ask is "in focus area" when the resolved company's CRM industry is one of the connector's stated focus areas.</p>
   <div class="kpis">
     <div class="kpi"><div class="v">14 / 80</div><div class="l">asks inside the stated focus area</div><div class="s">over 12 months</div></div>
@@ -381,14 +534,14 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
   <div class="grid2">
     <div>
       <h3>Routing ignores the roster notes</h3>
-      <div class="finding warn"><b>Only 14 of 80 asks land in a stated focus area — and those convert at 64% vs 32%.</b>Focus area is the single strongest predictor of an intro in this data, and it is almost never used when choosing who to ask.</div>
+      <div class="finding warn"><b>Only 14 of 80 asks land in a stated focus area, and those convert at 64% vs 32%.</b>Focus area is the single strongest predictor of an intro in this data, and it is almost never used when choosing who to ask.</div>
       <div class="finding warn"><b>The notes predicted the failures.</b>Owen Trask ("tapped no more than twice a month") was asked 3 times in 12 months and sent zero intros; Dana Whitfield ("travels constantly; slow to respond") got 4 asks and booked no meetings.</div>
     </div>
     <div>
       <h3>Where the notes were right</h3>
-      <div class="finding"><b>Elena Duvall — "deep but narrow".</b>6 of her 17 asks were heavy industry, and that is where her intros came from.</div>
-      <div class="finding"><b>Marcus Aldridge — "asked far more than anyone else", capacity 4/month.</b>15 asks with the weakest response rate of the four heavily-used connectors (53%).</div>
-      <div class="finding"><b>Tomás Beckett — "fast responder, broad but shallow".</b>70% response rate but only 50% of those responses became an intro.</div>
+      <div class="finding"><b>Elena Duvall, "deep but narrow".</b>6 of her 17 asks were heavy industry, and that is where her intros came from.</div>
+      <div class="finding"><b>Marcus Aldridge, "asked far more than anyone else", capacity 4/month.</b>15 asks with the weakest response rate of the four heavily-used connectors (53%).</div>
+      <div class="finding"><b>Tomás Beckett, "fast responder, broad but shallow".</b>70% response rate but only 50% of those responses became an intro.</div>
     </div>
   </div>
 </section>
@@ -411,7 +564,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
     <div>
       <h3>Reading it</h3>
       <div class="finding warn"><b>Closed cycles used 24% of roster capacity.</b>That is the average against 26 stated monthly slots; the busiest month used 38%. This cycle's allocation is the first to fill it.</div>
-      <div class="finding"><b>Intros arrive at roughly 2.5 a month.</b>32 intros over 13 closed cycles from 85 asks — about one intro per 2.7 asks. The cumulative line is the honest read; single months swing between 0 and 5.</div>
+      <div class="finding"><b>Intros arrive at roughly 2.5 a month.</b>32 intros over 13 closed cycles from 85 asks, about one intro per 2.7 asks. The cumulative line is the honest read; single months swing between 0 and 5.</div>
       <p class="foot">Asks to people off the roster (Bertrand Vandermolen, Curtis Hartigan, Hana Nakashima, Imani Mkhize, Nadia Okonkwo, Yusuf Petrossian) are counted in asks and intros but not against capacity, as they have none stated.</p>
     </div>
   </div>
@@ -422,4 +575,5 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 
 <p class="foot">Regenerate with <code>python3 build.py dashboard</code>. Everything on this tab is computed from <code>golden/</code> at build time. The <a href="companytrace.html">Company Trace</a> tab has the full history of any one company.</p>
 </main>
+</div>
 </body></html>
