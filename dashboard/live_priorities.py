@@ -729,6 +729,10 @@ class Live:
                 "companies": companies,
             })
 
+        routed_at: dict[str, list[dict]] = defaultdict(list)
+        for a in self.allocation:
+            if a["allocated_to"] and a["company_id"]:
+                routed_at[a["company_id"]].append({"request_id": a["request_id"], "connector": a["allocated_to"]})
         exceptions: dict[str, list[dict]] = defaultdict(list)
         for a in self.allocation:
             if a["exception_reason"]:
@@ -736,6 +740,7 @@ class Live:
                 exceptions[reason].append({
                     "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
                     "detail": detail,
+                    "routed_here": sorted(routed_at.get(a["company_id"], []), key=lambda r: r["request_id"]),
                     "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                     "value_fmt": money(self.dollars(a["company_id"], a["value_usd"])), "urgency": a["urgency_declared"],
                     "status": a["status_as_filed"], "best_path": a["best_path_if_unbudgeted"],

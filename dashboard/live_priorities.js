@@ -788,6 +788,8 @@ const LP = (function () {
     const parked = A.exceptions.find(e => e.reason === 'already introduced');
     sec.exceptions = `<section id="exceptions">${fold(`Unrouted Exceptions <span class="foot">${plural(A.exception_count, 'request')} not allocated in cycle ${esc(A.cycle)}: ${A.exceptions.map(e => `${e.count} ${esc((EXCEPTION_TITLE[e.reason] || e.reason).replace(' to this company in the network', ''))}`).join(', ')} · from <code>golden_allocation.csv</code></span>`)}`
       + (parked ? `<p class="lede">${plural(parked.count, 'request')} · ${esc(parked.value_fmt)} parked behind a live intro → <a href="#introduced">Already Introduced</a>, not repeated here</p>` : '');
+    const routedHere = r => r.routed_here && r.routed_here.length
+      ? `<br><span class="foot" title="another request on this account was routed this cycle: that connector can be asked for this name too">also this cycle: ${r.routed_here.map(x => `${esc(x.request_id)} → ${esc(x.connector)}`).join(', ')}</span>` : '';
     const cover = sc => !sc ? '' : sc.connectors.length
       ? sc.connectors.map(c => `<b>${esc(c.connector)}</b> <span class="foot">${c.asked ? `asked ${esc(c.asked)}` : 'never asked'}</span>`).join('<br>')
       : `<span class="foot">${esc(sc.note)}</span>`;
@@ -795,7 +797,7 @@ const LP = (function () {
       if (e === parked) continue;
       const withStage = !e.reason.startsWith('company'), noPath = e.reason.startsWith('no path'), blocked = e.rows.some(r => r.blocked_reason);
       sec.exceptions += `<h3>${esc(EXCEPTION_TITLE[e.reason] || e.reason)} <span class="foot">${e.count} · ${esc(e.value_fmt)}</span></h3>${EXCEPTION_NOTE[e.reason] ? `<p class="foot">${esc(EXCEPTION_NOTE[e.reason])}</p>` : ''}<table><thead><tr><th>request</th><th>company</th>${withStage ? '<th>CRM stage</th>' : ''}<th>wanted</th><th>who</th><th>value</th><th>urgency</th><th>status</th>${blocked ? '<th>blocked on</th>' : ''}${noPath ? '<th>who covers this sector</th>' : `<th>${e.reason.startsWith('capacity') ? 'best path (no slot)' : e.reason.startsWith('company') ? 'as written' : 'note'}</th>`}</tr></thead><tbody>`
-        + e.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}</td><td>${co(r)}</td>${withStage ? `<td>${esc(r.crm_stage)}</td>` : ''}<td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td><td>${esc(r.value_fmt)}</td><td>${esc(r.urgency)}</td><td>${esc(r.status)}</td>${blocked ? `<td>${esc(r.blocked_reason)}</td>` : ''}${noPath ? `<td>${cover(r.sector_cover)}</td>` : `<td class="foot">${esc(r.detail || r.best_path || (e.reason.startsWith('company') ? r.company_as_written || '(nothing parseable)' : ''))}</td>`}</tr>`).join('')
+        + e.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}</td><td>${co(r)}${routedHere(r)}</td>${withStage ? `<td>${esc(r.crm_stage)}</td>` : ''}<td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td><td>${esc(r.value_fmt)}</td><td>${esc(r.urgency)}</td><td>${esc(r.status)}</td>${blocked ? `<td>${esc(r.blocked_reason)}</td>` : ''}${noPath ? `<td>${cover(r.sector_cover)}</td>` : `<td class="foot">${esc(r.detail || r.best_path || (e.reason.startsWith('company') ? r.company_as_written || '(nothing parseable)' : ''))}</td>`}</tr>`).join('')
         + `</tbody></table>`;
     }
     sec.exceptions += `</details></section>`;
