@@ -428,8 +428,12 @@ class PayloadTest(unittest.TestCase):
                          ["Marcus Aldridge", "Dana Whitfield", "Priya Raghunathan", "Tomás Beckett", "Elena Duvall", "Owen Trask"])
         for c in C:
             self.assertEqual(c["used"], c["asked_this_cycle"] + c["allocated_this_cycle"])
-            self.assertEqual(c["used"] + c["idle"], c["capacity"], c["connector"])
+            # an ask recorded off the allocation may take used past capacity: flagged, not capped
+            self.assertEqual(c["used"] + c["idle"], max(c["capacity"], c["used"]), c["connector"])
+            self.assertEqual(c["over_capacity"], max(0, c["used"] - c["capacity"]), c["connector"])
             self.assertEqual(len(c["queue"]), c["allocated_this_cycle"])
+            for q in c["queue"]:
+                self.assertEqual(q["connector"], c["connector"], "the queue's ask_sent tick carries who was asked")
             self.assertTrue(0 <= c["delivery_rate"] <= 1)
             self.assertEqual(c["quiet_days"], lp.NUDGE_QUIET_DAYS)
             for s in c["sitting_on"]:
@@ -451,8 +455,19 @@ class PayloadTest(unittest.TestCase):
         self.assertNotIn("crmTick", js)
         self.assertNotIn("checkinTick", js)
         self.assertNotIn("checked_in", js)
-        for name in ("askTick", "nudgeTick", "followTick"):
+        for name in ("askTick", "nudgeTick", "followTick", "groupTick", "pickTick", "mirror"):
             self.assertIn(f"const {name} = ", js)
+        # one ask_sent per request, keyed on action + request: the same tick in Top Priorities, a connector's
+        # queue, a no-path exception (connector picked) and Suggested Unrouted (connector pre-filled)
+        self.assertEqual(js.count("pickTick(state, askTick(X, { ...r, connector: '' })"), 1)
+        self.assertEqual(js.count("groupTick(state, g)"), 1)
+        self.assertIn("noPath ? pickTick", js, "only a no-path exception takes an ask; the others point at nudge/chase, Already Introduced or the Route tool")
+        A = self.P["asks"]
+        self.assertEqual(A["roster"], [c["connector"] for c in self.P["connectors"]], "the picker lists the roster")
+        self.assertIn("mirror(state, batchTicks(c, b.connector))", js, "Current Asks is done-state only")
+        self.assertNotIn("tick(state, askTick(X, c))", js.split("sec.asks = ")[1].split("sec.connectors = ")[0], "no box under Current Asks")
+        introduced = js.split("sec.introduced = ")[1].split("sec.exceptions = ")[0]
+        self.assertNotIn("Tick(", introduced, "nothing to tick under Already Introduced")
 
     def test_unrouted_in_focus(self):
         U = self.P["unrouted"]

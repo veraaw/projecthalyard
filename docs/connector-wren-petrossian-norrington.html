@@ -171,11 +171,18 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 @media(max-width:900px){#lp .strip{grid-template-columns:repeat(3,1fr)}}
 #lp table.top td.order{color:var(--mute)}
 #lp table.top td.ev{font-size:18px;font-weight:500;color:var(--blue)}
-#lp table.top tr.done td{color:var(--mute);text-decoration:line-through}
+#lp tr.done td{color:var(--mute);text-decoration:line-through}
 #lp table.top tr.done td.ev{color:var(--mute)}
 #lp table.top tr.quiet td{color:var(--mute)}
 #lp table.top tr.owned td{color:var(--mute)}
-#lp table.top .tick{width:16px;height:16px;accent-color:var(--blue)}
+#lp .tick{width:16px;height:16px;accent-color:var(--blue)}
+#lp .sent{display:none}
+#lp tr.done .sent{display:inline-block;color:var(--blue);font-weight:500}
+#lp td.pick{white-space:nowrap}
+#lp td.pick .tick{vertical-align:middle;margin-right:6px}
+#lp td.pick select{font-family:var(--sans);font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--line);padding:4px 6px;max-width:190px}
+#lp td.pick select.need{border-color:var(--warn)}
+#lp td.pick .pick-note{display:block;margin-top:3px;white-space:normal;max-width:220px}
 #lp .parts .c,#lp table.preview .c{border-bottom:1px dotted var(--mute);cursor:help}
 #lp th .fm{font-weight:400;font-size:11px;text-transform:none;letter-spacing:0}
 #lp .formula{margin-top:14px;padding:12px 16px;background:var(--bg);border-left:2px solid var(--blue)}
@@ -209,7 +216,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 #lp .notify button{font-size:12.5px;padding:4px 10px;margin-top:4px}
 #lp .notify button.copied{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 #lp .stamp a{color:inherit}
-#lp table.top .tick:disabled{opacity:.55}
+#lp .tick:disabled{opacity:.55}
 #lp table.preview tr.flag td{background:rgba(159,45,0,.035)}
 #lp .presets{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 8px;font-family:var(--sans);font-size:12.5px;color:var(--mute);align-items:center}
 #lp .presets button{font-size:12.5px;padding:5px 10px}
@@ -426,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <main>
 
 <div id="lp"></div>
-<script id="lp-data" type="application/json">{"connector": "Wren Petrossian-Norrington", "slug": "wren-petrossian-norrington", "page": "connector-wren-petrossian-norrington.html", "on_roster": false, "role": "", "type": "investor network", "focus": [], "hard_decline": false, "notes": "", "capacity": 0, "asked_this_cycle": 0, "allocated_this_cycle": 1, "used": 1, "idle": 0, "delivery_rate": 0.38, "asks_all_time": 0, "intros_all_time": 0, "prior_rate": 0.38, "intros_this_cycle": 0, "cycles": [{"cycle": "2025-08", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2025-09", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2025-10", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2025-11", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2025-12", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-01", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-02", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-03", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-04", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-05", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-06", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-07", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-08", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-09", "current": true, "asks": 0, "allocated": 1, "allocated_off_roster": 1, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}], "batch_ask": {"cycle": "2026-09", "connector": "Wren Petrossian-Norrington", "slug": "wren-petrossian-norrington", "first_name": "Wren", "batch_id": "2026-09 Wren Petrossian-Norrington", "template": "network", "on_roster": false, "type": "", "notes": "", "capacity": null, "request_ids": ["R1054"], "request_count": 1, "company_count": 1, "over_capacity": false, "requests": [{"request_id": "R1054", "company_id": "C014", "company_name": "Kestrel Airlines", "target_title": "Chief Operating Officer", "requested_by": "Nadia Okonkwo", "path_type": "investor_network", "contact_name": "CEO / exec team", "route_score": "0.215", "value_usd": "1200000", "urgency": "Low", "offer_date": ""}], "companies": [{"company_id": "C014", "company_name": "Kestrel Airlines", "route_score": "0.215", "request_ids": ["R1054"], "contacts": [{"path_type": "investor_network", "contact_name": "CEO / exec team", "offer_date": "", "path": "via your board / exec team relationship", "titles": [{"target_title": "Chief Operating Officer", "requesters": ["Nadia Okonkwo"], "request_ids": ["R1054"], "count": 1}]}], "retry": null, "retry_line": ""}], "offers": [], "message": "Hi Wren,\nthank you for being part of the Halyard network. We have a few doors we are trying to open where you are the closest person we know, and we would be grateful if a warm introduction is possible:\n\nKestrel Airlines — via your board / exec team relationship\n  - Chief Operating Officer (Nadia Okonkwo)\n\nNo pressure if the timing is not right; a quick note either way helps us plan, and we are glad to return the favour. Thank you again for your help and for being part of the Halyard network.\n"}, "sitting_on": [], "quiet_days": 14, "queue": [{"request_id": "R1054", "company_id": "C014", "company_name": "Kestrel Airlines", "href": "companytrace.html#C014", "target_title": "Chief Operating Officer", "requested_by": "Nadia Okonkwo", "path_type": "investor_network", "contact": "CEO / exec team", "route_score": "0.215", "value_fmt": "$120K", "urgency": "Low", "retry": null}], "top": [{"request_id": "R1054", "company_id": "C014", "company_name": "Kestrel Airlines", "href": "companytrace.html#C014", "target_title": "Chief Operating Officer", "requested_by": "Nadia Okonkwo", "connector": "Wren Petrossian-Norrington", "on_roster": false, "path": "investor_network path via CEO / exec team", "value_fmt": "$120K", "crm_stage": "Negotiation", "days_waiting": 239, "reps": ["Nadia Okonkwo"], "capacity_note": "2 of 2 slots left when reached", "components": {"deal_value_musd": 1.2, "stage_weight": 0.9, "age": 1.655, "reps_waiting": 1, "path_strength": 0.9, "focus_fit": 0.7, "delivery_rate": 0.38, "capacity_left": 1.0}, "request_priority": 1.787, "connector_score": 0.239, "expected_value": 0.4279, "allocated": true, "retry": null, "rank": 4, "rank_here": 1}], "rest": [], "ranked_count": 1, "ranked_value_fmt": "$120K", "no_slot": 0, "strongest_elsewhere": [], "formula": {"expected_value": "expected value = request priority × connector score", "request_priority": "request priority = deal value ($M) × stage weight × age × reps waiting", "connector_score": "connector score = path strength × focus fit × delivery rate × capacity left", "stage_weight": {"Negotiation": 0.9, "Pilot": 0.75, "Evaluation": 0.55, "Discovery": 0.35, "Prospect": 0.25, "Closed Lost": 0.1, "no CRM account": 0.25}, "age": "1 + min(days since request, 365) / 365", "reps_waiting": "distinct requesters with a live request on the same company", "path_strength": "supply_reach.csv strength of the path used", "focus_fit": "1.0 in the connector's focus areas, 0.45 outside, 0 if they decline outside, 0.7 when the industry or the connector is unknown", "delivery_rate": "(intros + 0.38 × 6) / (asks + 6): intros / asks shrunk toward the 38% network average, which is all a connector never asked has (supply_reach.csv delivery_rate)", "capacity_left": "share of stated monthly capacity still unspent when the allocator reached this request; 0 when the cycle's slots were gone"}, "completions": {"supabase_url": "", "anon_key": "", "table": "completions", "columns": ["completion_id", "completed_at", "completed_by", "action", "request_id", "company_id", "connector", "note"], "actions": {"top": "ask_sent", "bottlenecks": "nudged", "nudge": "nudged", "chase": "chased"}, "ids": [], "count": 0, "quiet_days": 14, "stamp": "build_stamp.json", "repo_url": "https://github.com/veraaw/projecthalyard", "workflow": "rebuild.yml", "path": "golden/completions.csv"}, "as_of": "2026-09-06"}</script>
+<script id="lp-data" type="application/json">{"connector": "Wren Petrossian-Norrington", "slug": "wren-petrossian-norrington", "page": "connector-wren-petrossian-norrington.html", "on_roster": false, "role": "", "type": "investor network", "focus": [], "hard_decline": false, "notes": "", "capacity": 0, "asked_this_cycle": 0, "allocated_this_cycle": 1, "used": 1, "idle": 0, "over_capacity": 0, "delivery_rate": 0.38, "asks_all_time": 0, "intros_all_time": 0, "prior_rate": 0.38, "intros_this_cycle": 0, "cycles": [{"cycle": "2025-08", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2025-09", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2025-10", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2025-11", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2025-12", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-01", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-02", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-03", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-04", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-05", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-06", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-07", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-08", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}, {"cycle": "2026-09", "current": true, "asks": 0, "allocated": 1, "allocated_off_roster": 1, "used": 0, "capacity": 0, "capacity_pct": null, "intros": 0, "intros_cumulative": 0}], "batch_ask": {"cycle": "2026-09", "connector": "Wren Petrossian-Norrington", "slug": "wren-petrossian-norrington", "first_name": "Wren", "batch_id": "2026-09 Wren Petrossian-Norrington", "template": "network", "on_roster": false, "type": "", "notes": "", "capacity": null, "request_ids": ["R1054"], "request_count": 1, "company_count": 1, "over_capacity": false, "requests": [{"request_id": "R1054", "company_id": "C014", "company_name": "Kestrel Airlines", "target_title": "Chief Operating Officer", "requested_by": "Nadia Okonkwo", "path_type": "investor_network", "contact_name": "CEO / exec team", "route_score": "0.215", "value_usd": "1200000", "urgency": "Low", "offer_date": ""}], "companies": [{"company_id": "C014", "company_name": "Kestrel Airlines", "route_score": "0.215", "request_ids": ["R1054"], "contacts": [{"path_type": "investor_network", "contact_name": "CEO / exec team", "offer_date": "", "path": "via your board / exec team relationship", "titles": [{"target_title": "Chief Operating Officer", "requesters": ["Nadia Okonkwo"], "request_ids": ["R1054"], "count": 1}]}], "retry": null, "retry_line": ""}], "offers": [], "message": "Hi Wren,\nthank you for being part of the Halyard network. We have a few doors we are trying to open where you are the closest person we know, and we would be grateful if a warm introduction is possible:\n\nKestrel Airlines — via your board / exec team relationship\n  - Chief Operating Officer (Nadia Okonkwo)\n\nNo pressure if the timing is not right; a quick note either way helps us plan, and we are glad to return the favour. Thank you again for your help and for being part of the Halyard network.\n"}, "sitting_on": [], "quiet_days": 14, "queue": [{"request_id": "R1054", "company_id": "C014", "company_name": "Kestrel Airlines", "href": "companytrace.html#C014", "connector": "Wren Petrossian-Norrington", "target_title": "Chief Operating Officer", "requested_by": "Nadia Okonkwo", "path_type": "investor_network", "contact": "CEO / exec team", "route_score": "0.215", "value_fmt": "$120K", "urgency": "Low", "retry": null}], "top": [{"request_id": "R1054", "company_id": "C014", "company_name": "Kestrel Airlines", "href": "companytrace.html#C014", "target_title": "Chief Operating Officer", "requested_by": "Nadia Okonkwo", "connector": "Wren Petrossian-Norrington", "on_roster": false, "path": "investor_network path via CEO / exec team", "value_fmt": "$120K", "crm_stage": "Negotiation", "days_waiting": 239, "reps": ["Nadia Okonkwo"], "capacity_note": "2 of 2 slots left when reached", "components": {"deal_value_musd": 1.2, "stage_weight": 0.9, "age": 1.655, "reps_waiting": 1, "path_strength": 0.9, "focus_fit": 0.7, "delivery_rate": 0.38, "capacity_left": 1.0}, "request_priority": 1.787, "connector_score": 0.239, "expected_value": 0.4279, "allocated": true, "retry": null, "rank": 4, "rank_here": 1}], "rest": [], "ranked_count": 1, "ranked_value_fmt": "$120K", "no_slot": 0, "strongest_elsewhere": [], "formula": {"expected_value": "expected value = request priority × connector score", "request_priority": "request priority = deal value ($M) × stage weight × age × reps waiting", "connector_score": "connector score = path strength × focus fit × delivery rate × capacity left", "stage_weight": {"Negotiation": 0.9, "Pilot": 0.75, "Evaluation": 0.55, "Discovery": 0.35, "Prospect": 0.25, "Closed Lost": 0.1, "no CRM account": 0.25}, "age": "1 + min(days since request, 365) / 365", "reps_waiting": "distinct requesters with a live request on the same company", "path_strength": "supply_reach.csv strength of the path used", "focus_fit": "1.0 in the connector's focus areas, 0.45 outside, 0 if they decline outside, 0.7 when the industry or the connector is unknown", "delivery_rate": "(intros + 0.38 × 6) / (asks + 6): intros / asks shrunk toward the 38% network average, which is all a connector never asked has (supply_reach.csv delivery_rate)", "capacity_left": "share of stated monthly capacity still unspent when the allocator reached this request; 0 when the cycle's slots were gone"}, "completions": {"supabase_url": "", "anon_key": "", "table": "completions", "columns": ["completion_id", "completed_at", "completed_by", "action", "request_id", "company_id", "connector", "note"], "actions": {"top": "ask_sent", "bottlenecks": "nudged", "nudge": "nudged", "chase": "chased"}, "ids": [], "count": 0, "quiet_days": 14, "stamp": "build_stamp.json", "repo_url": "https://github.com/veraaw/projecthalyard", "workflow": "rebuild.yml", "path": "golden/completions.csv"}, "as_of": "2026-09-06"}</script>
 <script>
 /* Live Priorities tab. Renders the payload dashboard/live_priorities.py wrote;
    derives nothing. The only input it processes is a dropped .jsonl of Slack
@@ -879,12 +886,51 @@ const LP = (function () {
     return out;
   }
   const SUBMITTED_TITLE = 'recorded; leaves the list when the site rebuilds';
-  // the tick-box cell for one row; the data- attributes are what Submit posts
-  const tick = (state, t) => {
-    const key = tickKey(t), on = state.ticks.has(key), sub = state.submitted.has(key);
-    return `<td><input type="checkbox" class="tick" ${on || sub ? 'checked' : ''} ${sub ? `disabled title="${SUBMITTED_TITLE}"` : ''} aria-label="done" data-key="${esc(key)}" data-action="${esc(t.action)}" data-rid="${esc(t.request_id || '')}" data-cid="${esc(t.company_id || '')}" data-connector="${esc(t.connector || '')}" data-note="${esc(t.note || '')}"></td>`;
+  const isDone = (state, k) => state.ticks.has(k) || state.submitted.has(k);
+  // the tick-box for one row; the data- attributes are what Submit posts. The same key
+  // (action + request) can sit in several sections; they are kept in step by syncTicks
+  const tickInput = (state, t) => {
+    const key = tickKey(t), sub = state.submitted.has(key);
+    return `<input type="checkbox" class="tick" ${isDone(state, key) ? 'checked' : ''} ${sub ? `disabled title="${SUBMITTED_TITLE}"` : ''} aria-label="done" data-key="${esc(key)}" data-action="${esc(t.action)}" data-rid="${esc(t.request_id || '')}" data-cid="${esc(t.company_id || '')}" data-connector="${esc(t.connector || '')}" data-note="${esc(t.note || '')}">`;
   };
-  const doneClass = (state, t) => { const k = tickKey(t); return state.ticks.has(k) || state.submitted.has(k) ? 'done' : ''; };
+  const tick = (state, t) => `<td>${tickInput(state, t)}</td>`;
+  const doneClass = (state, t) => isDone(state, tickKey(t)) ? 'done' : '';
+  // one box for several ticks at once (a company's live requests, all asked of one connector)
+  const groupTick = (state, ticks) => {
+    const keys = ticks.map(tickKey), sub = keys.every(k => state.submitted.has(k));
+    return `<td><input type="checkbox" class="tick" ${keys.every(k => isDone(state, k)) ? 'checked' : ''} ${sub ? `disabled title="${SUBMITTED_TITLE}"` : ''} aria-label="done" data-connector="${esc(ticks[0].connector || '')}" data-group="${esc(JSON.stringify(ticks))}"></td>`;
+  };
+  const groupDone = (state, ticks) => ticks.every(t => isDone(state, tickKey(t))) ? 'done' : '';
+  // a row that is done-state only: lit when every key it mirrors is ticked, nothing to click
+  const mirror = (state, ticks) => `class="${groupDone(state, ticks)}" data-mirror="${esc(ticks.map(tickKey).join(' '))}"`;
+  // an ask with no path on file: the box plus a picker for whoever was actually asked (a roster
+  // connector, or someone off it who offered); picking a name is the tick
+  const OTHER = '__other__';
+  const pickTick = (state, t, names) => {
+    const on = state.ticks.get(tickKey(t)), who = on && on.connector || t.connector || '';
+    const opts = [...new Set([...names, ...(who ? [who] : [])])];
+    return `<td class="pick">${tickInput(state, { ...t, connector: who })}<select class="pick" aria-label="who was asked"><option value="">who was asked…</option>${opts.map(n => `<option value="${esc(n)}"${n === who ? ' selected' : ''}>${esc(n)}</option>`).join('')}<option value="${OTHER}">someone else…</option></select><span class="pick-note foot"></span></td>`;
+  };
+  const ticksOf = cb => cb.dataset.group ? JSON.parse(cb.dataset.group).map(t => ({ ...t, connector: cb.dataset.connector }))
+    : [{ action: cb.dataset.action, request_id: cb.dataset.rid, company_id: cb.dataset.cid, connector: cb.dataset.connector, note: cb.dataset.note }];
+  // every box and mirrored row on the page, re-read from state
+  function syncTicks(root, state) {
+    root.querySelectorAll('.tick').forEach(cb => {
+      const keys = ticksOf(cb).map(tickKey), done = keys.filter(k => isDone(state, k)).length, sub = keys.every(k => state.submitted.has(k));
+      cb.checked = done === keys.length; cb.indeterminate = done > 0 && done < keys.length;
+      cb.disabled = sub;
+      const sel = cb.parentElement.querySelector('select.pick'), picked = sel && state.ticks.get(keys[0]);
+      if (sel) { if (picked && picked.connector) { setPick(sel, picked.connector); cb.dataset.connector = picked.connector; } sel.disabled = sub; }
+      const by = keys.map(k => state.ticks.get(k)).find(t => t && t.connector && t.connector !== cb.dataset.connector);
+      cb.title = sub ? SUBMITTED_TITLE : by ? `ticked as an ask to ${by.connector}` : '';
+      const tr = cb.closest('tr'); if (tr) tr.classList.toggle('done', cb.checked);
+    });
+    root.querySelectorAll('[data-mirror]').forEach(tr => tr.classList.toggle('done', tr.dataset.mirror.split(' ').every(k => isDone(state, k))));
+  }
+  const setPick = (sel, v) => {
+    if (![...sel.options].some(o => o.value === v)) sel.insertBefore(new Option(v, v), sel.querySelector(`option[value="${OTHER}"]`));
+    sel.value = v;
+  };
   const askTick = (X, r) => ({ action: X.actions.top, request_id: r.request_id, company_id: r.company_id, connector: r.connector, note: `${r.company_name} · ${r.target_title}` });
   const nudgeTick = (X, r) => ({ action: X.actions.bottlenecks, request_id: r.request_id, company_id: r.company_id, connector: r.connector, note: `${r.company_name} · agreed ${r.agreed_date || r.asked_date}` });
   // a connector's outstanding ask: `nudge` (they agreed — the same row as Core bottlenecks) or `chase` (never replied)
@@ -894,7 +940,8 @@ const LP = (function () {
 
   const submitBar = X => `<div class="submitbar" id="lp-submit" hidden><span id="lp-submit-n"></span><button id="lp-submit-go">Submit</button><button id="lp-submit-clear" class="secondary">Clear</button><span id="lp-submit-who"></span><span class="foot">${X.supabase_url ? `records your ticks in the <code>${esc(X.table)}</code> table; the site rebuilds from it every 15 minutes and the ticked items leave the queue` : '<b class="warn">this build cannot submit: no Supabase URL / anon key</b>'}</span></div>`;
 
-  function wireCompletions(root, X, state) {
+  // capOf: roster connector → their card (used, capacity), for the picker's over-capacity note
+  function wireCompletions(root, X, state, capOf = {}) {
     const bar = root.querySelector('#lp-submit'), n = root.querySelector('#lp-submit-n'), go = root.querySelector('#lp-submit-go');
     const whoEl = root.querySelector('#lp-submit-who');
     // asked once per browser; after that the name is shown next to Submit, with a link to change it
@@ -913,18 +960,36 @@ const LP = (function () {
       if (rename) rename.onclick = e => { e.preventDefault(); askWho(); show(); };
       go.disabled = !k || !X.supabase_url;
     };
+    const changed = () => { store('lp-ticks', [...state.ticks.values()]); delete bar.dataset.msg; delete bar.dataset.state; syncTicks(root, state); show(); };
     root.querySelectorAll('.tick').forEach(cb => cb.addEventListener('change', () => {
-      const d = cb.dataset, t = { action: d.action, request_id: d.rid, company_id: d.cid, connector: d.connector, note: d.note };
-      cb.checked ? state.ticks.set(d.key, t) : state.ticks.delete(d.key);
-      root.querySelectorAll(`.tick[data-key="${d.key}"]`).forEach(x => { x.checked = cb.checked; x.closest('tr').classList.toggle('done', cb.checked); });
-      store('lp-ticks', [...state.ticks.values()]);
-      delete bar.dataset.msg; delete bar.dataset.state;
-      show();
+      const sel = cb.parentElement.querySelector('select.pick');
+      if (sel && cb.checked && !cb.dataset.connector) { cb.checked = false; sel.classList.add('need'); sel.focus(); return; }
+      for (const t of ticksOf(cb)) cb.checked ? state.ticks.set(tickKey(t), t) : state.ticks.delete(tickKey(t));
+      changed();
     }));
+    const pickNote = (sel, v) => {
+      const n = sel.parentElement.querySelector('.pick-note'), c = capOf[v];
+      const over = c && c.capacity && c.used >= c.capacity;
+      n.classList.toggle('warn', !!over);
+      n.textContent = !v ? '' : !c ? 'off the roster: recorded against them, no capacity to count'
+        : over ? `${c.used + 1} / ${c.capacity} with this ask: over stated capacity` : `${c.used + 1} / ${c.capacity} with this ask`;
+    };
+    root.querySelectorAll('select.pick').forEach(sel => sel.addEventListener('change', () => {
+      let v = sel.value;
+      if (v === OTHER) {
+        v = (window.prompt('Who was asked? (their name, as it should read in the completions table)') || '').trim();
+        if (!v) { sel.value = ''; return; }
+        setPick(sel, v);
+      }
+      const cb = sel.parentElement.querySelector('.tick');
+      cb.dataset.connector = v; sel.classList.remove('need'); pickNote(sel, v);
+      if (!v) return;
+      for (const t of ticksOf(cb)) state.ticks.set(tickKey(t), t);
+      changed();
+    }));
+    root.querySelectorAll('select.pick').forEach(sel => pickNote(sel, sel.value));
     root.querySelector('#lp-submit-clear').onclick = () => {
-      state.ticks.clear(); store('lp-ticks', []); delete bar.dataset.msg; delete bar.dataset.state;
-      root.querySelectorAll('.tick:not(:disabled)').forEach(x => { x.checked = false; x.closest('tr').classList.remove('done'); });
-      show();
+      state.ticks.clear(); changed();
     };
     go.onclick = async () => {
       if (!state.ticks.size) return;
@@ -946,11 +1011,12 @@ const LP = (function () {
       }
       for (const [k, t] of ticks) state.submitted.set(k, completionId(t, at.slice(0, 10)));
       state.ticks.clear(); store('lp-ticks', []); store('lp-submitted', Object.fromEntries(state.submitted));
-      root.querySelectorAll('.tick:checked').forEach(x => { x.disabled = true; x.title = SUBMITTED_TITLE; });
+      syncTicks(root, state);
       const already = got.already.length ? ` ${plural(got.already.length, 'row')} already recorded today (${got.already.map(describe).join('; ')}).` : '';
       bar.dataset.msg = `<b>Recorded ${plural(got.recorded.length, 'row')}</b> as ${esc(who)}${got.recorded.length ? `: ${got.recorded.map(describe).join('; ')}` : ''}.${already} The site rebuilds from the table every 15 minutes; refresh after that and these leave the queue.`;
       show();
     };
+    syncTicks(root, state);
     show();
   }
 
@@ -993,6 +1059,10 @@ const LP = (function () {
   const rateKpi = c => c.asks_all_time
     ? `<div class="kpi"><div class="v">${Math.round(c.delivery_rate * 100)}%</div><div class="l">delivery rate</div><div class="s">${c.intros_all_time} intros / ${c.asks_all_time} asks, shrunk toward the ${Math.round(c.prior_rate * 100)}% network average</div></div>`
     : `<div class="kpi"><div class="v words">no track record</div><div class="l">delivery rate</div><div class="s">never asked; scoring assumes the ${Math.round(c.prior_rate * 100)}% network average</div></div>`;
+  // capacity used against stated: an ask recorded outside the allocation can take a connector past it, flagged rather than capped
+  const capKpi = c => c.capacity
+    ? `<div class="kpi ${c.over_capacity ? 'warn' : ''}"><div class="v">${c.used} / ${c.capacity}</div><div class="l">capacity used this cycle</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated · ${c.over_capacity ? `<b class="warn">${c.over_capacity} over stated capacity</b>` : `${c.idle} idle`}</div></div>`
+    : `<div class="kpi"><div class="v">${c.used}</div><div class="l">asks this cycle</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated</div></div>`;
   const comp = (r, k, fmt) => `<span class="c" title="${esc(k.replace(/_/g, ' '))}">${fmt(r.components[k])}</span>`;
   const FM_HEAD = '<th class="num">expected value</th><th>request priority<br><span class="fm">deal $M × stage × age × reps</span></th><th>connector score<br><span class="fm">path × fit × rate × capacity</span></th>';
   const fmCells = r => `<td class="num ev">${r.expected_value.toFixed(3)}</td><td class="parts"><b>${r.request_priority.toFixed(3)}</b> = ${comp(r, 'deal_value_musd', v => v.toFixed(2))} × ${comp(r, 'stage_weight', v => v.toFixed(2))} × ${comp(r, 'age', v => v.toFixed(2))} × ${comp(r, 'reps_waiting', v => v)}<br><span class="foot">${r.days_waiting} days waiting</span></td><td class="parts"><b>${r.connector_score.toFixed(3)}</b> = ${comp(r, 'path_strength', v => v.toFixed(2))} × ${comp(r, 'focus_fit', v => v.toFixed(2))} × ${comp(r, 'delivery_rate', v => v.toFixed(2))} × ${comp(r, 'capacity_left', v => v.toFixed(2))}<br><span class="foot">${esc(r.capacity_note)}</span></td>`;
@@ -1087,12 +1157,11 @@ const LP = (function () {
   // one connector's page (docs/connector-<slug>.html): the drafted ask, top 5, then the longer list
   function bootConnector(c, root) {
     const X = c.completions, state = loadTicks(X);
-    const cap = c.capacity ? `${c.used} / ${c.capacity}` : `${c.used}`;
     const now = c.cycles[c.cycles.length - 1];
     let out = c.batch_ask ? `<section id="ask"><h2>This cycle's ask <span class="foot">the batch drafted as one message: copy it, send it, then tick the rows below as the asks go out</span></h2>${composeBlock(c.batch_ask, `ask-${c.slug}`)}</section>` : '';
     out += `<section id="top"><h2>Top ${c.top.length} for ${esc(c.connector)} <span class="foot">do these next: ${esc(c.connector)}'s share of the ${c.ranked_count} live requests routed to them this cycle, sorted by expected value${c.no_slot ? `; ${c.no_slot} have no slot until capacity frees up` : ''}</span></h2>
       <p class="lede">${c.on_roster ? `${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''}` : `<b>not on the roster</b> · ${esc(c.type)} · no stated capacity or focus areas`}${c.notes ? `<br><span class="foot">${esc(c.notes)}</span>` : ''}</p>
-      <div class="kpis"><div class="kpi"><div class="v">${cap}</div><div class="l">${c.capacity ? 'capacity used this cycle' : 'asks this cycle'}</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated${c.capacity ? ` · ${c.idle} idle` : ''}</div></div>
+      <div class="kpis">${capKpi(c)}
         <div class="kpi"><div class="v">${c.intros_this_cycle}</div><div class="l">intros made this cycle</div><div class="s">${esc(now.cycle)} · ${c.capacity ? `${pctOf(now.capacity_pct)} of capacity used` : 'no stated capacity'}</div></div>
         <div class="kpi"><div class="v">${c.intros_all_time}</div><div class="l">cumulative intros</div><div class="s">since ${esc(c.cycles[0].cycle)}, over ${c.asks_all_time} asks</div></div>
         ${rateKpi(c)}
@@ -1151,8 +1220,11 @@ const LP = (function () {
       + formulaNote(T.formula) + `</section>`;
 
     // ---- band 4 · current cycle: decisions the allocator already made — read-only
-    // what is going out
+    // what is going out. No box here: a company row is done-state only, lit once every request in it
+    // has its ask_sent tick (Top Priorities, the connector's queue or page)
     const A = D.asks;
+    const batchTicks = (c, connector) => c.request_ids.map(rid => askTick(X, { request_id: rid, company_id: c.company_id, company_name: c.company_name, connector, target_title: c.wanted.join(', ') }));
+    const sent = '<span class="sent foot">ask sent</span>';
     // notify owner: the account owner(s) owed a heads-up (golden_allocation.notify_owner), one drafted
     // message per flagged request with a copy button. A flag only: the row is routed regardless
     const notifyCell = (c, tab) => c.notify.length ? c.notify.map(n => { const id = `notify-${tab}-${n.request_id}`; return `<div class="notify" id="${esc(id)}"><b>${n.owners.map(esc).join('<br>')}</b><br><span class="foot">${esc(n.request_id)} · ${esc(n.stage)} · not ${esc(n.requester)}'s account</span><br><button type="button" class="copy secondary" data-copy="${esc(id)}" title="${esc(n.message)}">Copy heads-up</button><pre class="msg" hidden>${esc(n.message)}</pre></div>`; }).join('') : '';
@@ -1160,11 +1232,11 @@ const LP = (function () {
       + tabs('asks', [...A.batches.map(b => ({ label: b.connector, n: b.size, b })), { label: 'Aggregate', n: A.allocated, cls: 'agg' }], ({ b }, i) => b
         ? `<p class="foot">${esc(b.connector_type)} · ${plural(b.size, 'request')} · ${esc(b.value_fmt)} · one consolidated ask, batch <code>${esc(b.batch_id)}</code> · <a href="${esc(D.batch_page)}#${esc(b.slug)}">the message</a></p>
         <table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>why this connector</th><th>notify owner</th></tr></thead><tbody>`
-        + b.companies.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td class="foot">${esc(c.why)}</td><td>${notifyCell(c, i)}</td></tr>`).join('')
+        + b.companies.map(c => `<tr ${mirror(state, batchTicks(c, b.connector))}><td>${co(c)} ${sent}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td class="foot">${esc(c.why)}</td><td>${notifyCell(c, i)}</td></tr>`).join('')
         + `</tbody></table>`
         : `<p class="foot">everything going out this cycle · ${plural(A.allocated, 'request')} across ${plural(A.batches.length, 'connector')} · ${esc(A.value_fmt)} · biggest first; a company listed twice is being asked of two connectors</p>
         <table><thead><tr><th>company</th><th>connector</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>notify owner</th></tr></thead><tbody>`
-        + A.all.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td><b>${esc(c.connector)}</b><br><a class="foot" href="${esc(D.batch_page)}#${esc(c.slug)}">the message</a></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td>${notifyCell(c, 'all')}</td></tr>`).join('')
+        + A.all.map(c => `<tr ${mirror(state, batchTicks(c, c.connector))}><td>${co(c)} ${sent}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td><b>${esc(c.connector)}</b><br><a class="foot" href="${esc(D.batch_page)}#${esc(c.slug)}">the message</a></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td>${notifyCell(c, 'all')}</td></tr>`).join('')
         + `</tbody></table>`);
     sec.asks += `</details></section>`;
 
@@ -1173,13 +1245,13 @@ const LP = (function () {
     sec.connectors = `<section id="connectors">${fold(`Roster Connector Capacity <span class="foot">one panel each: queue this cycle, capacity used against stated capacity, delivery rate, what they are already sitting on. The coloured tabs at the top open each connector's own page</span>`)}`
       + tabs('connectors', D.connectors.map(c => ({ label: c.connector, n: `${c.used}/${c.capacity}`, c })), ({ c }) => `
         <p class="lede">${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''} · <a href="${esc(c.page)}">their top 5</a><br><span class="foot">${esc(c.notes)}</span></p>
-        <div class="kpis"><div class="kpi"><div class="v">${c.used} / ${c.capacity}</div><div class="l">capacity used this cycle</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated · ${c.idle} idle</div></div>
+        <div class="kpis">${capKpi(c)}
           ${rateKpi(c)}
           <div class="kpi ${c.sitting_on.length ? 'warn' : ''}"><div class="v">${c.sitting_on.length}</div><div class="l">already sitting on</div><div class="s">asked, live, no intro yet</div></div>
           <div class="kpi"><div class="v">${c.queue.length}</div><div class="l">in this cycle's ask</div><div class="s">${c.queue.length ? 'one consolidated batch' : 'nothing allocated'}</div></div></div>`
-        + composeBlock(c.batch_ask, `ask-${c.slug}`, `tick <i>ask sent</i> under <a href="#top">Top Priorities</a> or on <a href="${esc(c.page)}">their page</a> once it has gone out`)
-        + `<h3>queue this cycle</h3>` + (c.queue.length ? `<table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>for</th><th>path</th><th class="num">score</th><th>value</th><th>urgency</th></tr></thead><tbody>`
-          + c.queue.map(q => `<tr><td class="rid">${esc(q.request_id)}</td><td>${co(q)}${retryTag(q)}</td><td>${esc(q.target_title)}</td><td>${esc(q.requested_by)}</td><td>${esc(q.path_type)}${q.contact ? ` <span class="foot">via ${esc(q.contact)}</span>` : ''}</td><td class="num">${esc(q.route_score)}</td><td>${esc(q.value_fmt)}</td><td>${esc(q.urgency)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing allocated to ${esc(c.connector)} this cycle</p>`)
+        + composeBlock(c.batch_ask, `ask-${c.slug}`)
+        + `<h3>queue this cycle <span class="foot">tick a row once the ask has gone out: the same tick as <a href="#top">Top Priorities</a> and <a href="${esc(c.page)}">their page</a></span></h3>` + (c.queue.length ? `<table><thead><tr><th></th><th>request</th><th>company</th><th>wanted</th><th>for</th><th>path</th><th class="num">score</th><th>value</th><th>urgency</th></tr></thead><tbody>`
+          + c.queue.map(q => { const t = askTick(X, q); return `<tr class="${doneClass(state, t)}">${tick(state, t)}<td class="rid">${esc(q.request_id)}</td><td>${co(q)}${retryTag(q)}</td><td>${esc(q.target_title)}</td><td>${esc(q.requested_by)}</td><td>${esc(q.path_type)}${q.contact ? ` <span class="foot">via ${esc(q.contact)}</span>` : ''}</td><td class="num">${esc(q.route_score)}</td><td>${esc(q.value_fmt)}</td><td>${esc(q.urgency)}</td></tr>`; }).join('') + `</tbody></table>` : `<p class="empty">nothing allocated to ${esc(c.connector)} this cycle</p>`)
         + `<h3>already sitting on</h3>` + sittingTable(c, X, state))
       + `</details></section>`;
 
@@ -1199,7 +1271,7 @@ const LP = (function () {
     // requests the allocator could not place this cycle, by reason
     const EXCEPTION_TITLE = { 'no path to this company in the network': 'no direct path to this company in the network', 'already introduced': 'already introduced — extend the intro',
                               'unresolved ask on every path': 'unresolved ask on every path — nudge or chase, don’t ask afresh' };
-    const EXCEPTION_NOTE = { 'no path to this company in the network': 'Not routable this cycle (sourcing issue vs. allocation)',
+    const EXCEPTION_NOTE = { 'no path to this company in the network': 'Not routable this cycle (sourcing issue vs. allocation). If someone got asked anyway — a roster connector whose path is not on file, or someone off the roster who offered — pick who and the row is ticked as an ask sent to them: after the next rebuild it leaves here, sits under that name as an outstanding ask, and counts against a roster connector’s capacity even past their stated number (flagged on their panel). Nobody’s path is added to the network by it.',
                              'unresolved ask on every path': 'Everyone who reaches the company is sitting on an ask there: agreed and sent no intro (Core bottlenecks, nudge), or not yet answered (chase). Nobody is asked again until it resolves or, unanswered, ages past the window.' };
     const parked = A.exceptions.find(e => e.reason === 'already introduced');
     sec.exceptions = `<section id="exceptions">${fold(`Unrouted Exceptions <span class="foot">${plural(A.exception_count, 'request')} not allocated in cycle ${esc(A.cycle)}: ${A.exceptions.map(e => `${e.count} ${esc((EXCEPTION_TITLE[e.reason] || e.reason).replace(' to this company in the network', ''))}`).join(', ')} · from <code>golden_allocation.csv</code></span>`)}`
@@ -1212,20 +1284,22 @@ const LP = (function () {
     for (const e of A.exceptions) {
       if (e === parked) continue;
       const withStage = !e.reason.startsWith('company'), noPath = e.reason.startsWith('no path'), blocked = e.rows.some(r => r.blocked_reason);
-      sec.exceptions += `<h3>${esc(EXCEPTION_TITLE[e.reason] || e.reason)} <span class="foot">${e.count} · ${esc(e.value_fmt)}</span></h3>${EXCEPTION_NOTE[e.reason] ? `<p class="foot">${esc(EXCEPTION_NOTE[e.reason])}</p>` : ''}<table><thead><tr><th>request</th><th>company</th>${withStage ? '<th>CRM stage</th>' : ''}<th>wanted</th><th>who</th><th>value</th><th>urgency</th><th>status</th>${blocked ? '<th>blocked on</th>' : ''}${noPath ? '<th>who covers this sector</th>' : `<th>${e.reason.startsWith('capacity') ? 'best path (no slot)' : e.reason.startsWith('company') ? 'as written' : 'note'}</th>`}</tr></thead><tbody>`
-        + e.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}</td><td>${co(r)}${routedHere(r)}</td>${withStage ? `<td>${esc(r.crm_stage)}</td>` : ''}<td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td><td>${esc(r.value_fmt)}</td><td>${esc(r.urgency)}</td><td>${esc(r.status)}</td>${blocked ? `<td>${esc(r.blocked_reason)}</td>` : ''}${noPath ? `<td>${cover(r.sector_cover)}</td>` : `<td class="foot">${esc(r.detail || r.best_path || (e.reason.startsWith('company') ? r.company_as_written || '(nothing parseable)' : ''))}</td>`}</tr>`).join('')
+      const names = r => [...new Set([...(r.routed_here || []).map(x => x.connector), ...(r.sector_cover && r.sector_cover.connectors || []).map(x => x.connector), ...A.roster])];
+      sec.exceptions += `<h3>${esc(EXCEPTION_TITLE[e.reason] || e.reason)} <span class="foot">${e.count} · ${esc(e.value_fmt)}</span></h3>${EXCEPTION_NOTE[e.reason] ? `<p class="foot">${esc(EXCEPTION_NOTE[e.reason])}</p>` : ''}<table><thead><tr>${noPath ? '<th>asked anyway · by whom</th>' : ''}<th>request</th><th>company</th>${withStage ? '<th>CRM stage</th>' : ''}<th>wanted</th><th>who</th><th>value</th><th>urgency</th><th>status</th>${blocked ? '<th>blocked on</th>' : ''}${noPath ? '<th>who covers this sector</th>' : `<th>${e.reason.startsWith('capacity') ? 'best path (no slot)' : e.reason.startsWith('company') ? 'as written' : 'note'}</th>`}</tr></thead><tbody>`
+        + e.rows.map(r => `<tr${noPath ? ` class="${doneClass(state, askTick(X, r))}"` : ''}>${noPath ? pickTick(state, askTick(X, { ...r, connector: '' }), names(r)) : ''}<td class="rid">${esc(r.request_id)}</td><td>${co(r)}${routedHere(r)}</td>${withStage ? `<td>${esc(r.crm_stage)}</td>` : ''}<td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td><td>${esc(r.value_fmt)}</td><td>${esc(r.urgency)}</td><td>${esc(r.status)}</td>${blocked ? `<td>${esc(r.blocked_reason)}</td>` : ''}${noPath ? `<td>${cover(r.sector_cover)}</td>` : `<td class="foot">${esc(r.detail || r.best_path || (e.reason.startsWith('company') ? r.company_as_written || '(nothing parseable)' : ''))}</td>`}</tr>`).join('')
         + `</tbody></table>`;
     }
     sec.exceptions += `</details></section>`;
 
-    // still in the cycle band: nothing here is a decision to make on this page, each row says where its action lives
+    // still in the cycle band: suggestions, not decisions. The box is the same ask_sent tick as an unrouted
+    // exception's, connector pre-filled: one box per company covers its live requests
     const U = D.unrouted, F = U.finding;
     sec.unrouted = `<section id="unrouted">${fold(`Suggested Unrouted Company Connectors <span class="foot">${U.unrouted_companies} companies with live requests nobody is allocated to, matched to each connector's stated focus areas</span>`)}
-      <p class="lede">In-focus asks convert at <b>${esc(F.in_focus_pct)}</b> versus ${esc(F.out_focus_pct)} outside, yet only ${F.in_focus_asks} of ${F.total_asks} asks landed in focus. These are the names that finding points at. Nothing here is ticked. A company with a path moves on the connector's page; one without moves in sourcing, from its trace.</p>`;
+      <p class="lede">In-focus asks convert at <b>${esc(F.in_focus_pct)}</b> versus ${esc(F.out_focus_pct)} outside, yet only ${F.in_focus_asks} of ${F.total_asks} asks landed in focus. These are the names that finding points at. Tick a row if you did ask that connector for the company: it records one <i>ask sent</i> per live request there, the same tick as under <a href="#exceptions">Unrouted Exceptions</a>, and counts against their capacity even past the stated number. A company with a path also moves on the connector's page; one without moves in sourcing, from its trace.</p>`;
     for (const c of U.per_connector) {
       sec.unrouted += `<h3>${esc(c.connector)} <span class="foot">${c.focus.map(esc).join(', ')} · ${plural(c.count, 'company')} · ${esc(c.value_fmt)} · ${c.idle} idle slots · <a href="${esc(c.page)}">their page</a></span></h3>`;
-      sec.unrouted += c.companies.length ? `<table><thead><tr><th>company</th><th>industry</th><th>wanted</th><th>waiting</th><th>value</th><th>why unrouted</th><th>their way in</th><th>action lives</th></tr></thead><tbody>`
-        + c.companies.map(x => `<tr><td>${co(x)}<br><span class="foot">${x.request_ids.map(esc).join(', ')}</span></td><td>${esc(x.industry)}</td><td>${x.wanted.map(esc).join('<br>')}</td><td>${x.waiting.map(esc).join('<br>')}</td><td>${esc(x.value_fmt)}</td><td class="foot">${x.reasons.map(esc).join('; ')}</td><td class="${x.has_path ? '' : 'foot'}">${esc(x.path)}</td><td class="foot">${x.has_path ? `<a href="${esc(c.page)}">${esc(c.connector)}'s page</a>` : x.href ? `sourcing · <a href="${esc(x.href)}">trace</a>` : 'sourcing'}</td></tr>`).join('') + `</tbody></table>`
+      sec.unrouted += c.companies.length ? `<table><thead><tr><th></th><th>company</th><th>industry</th><th>wanted</th><th>waiting</th><th>value</th><th>why unrouted</th><th>their way in</th><th>action lives</th></tr></thead><tbody>`
+        + c.companies.map(x => { const g = batchTicks(x, c.connector); return `<tr class="${groupDone(state, g)}">${groupTick(state, g)}<td>${co(x)}<br><span class="foot">${x.request_ids.map(esc).join(', ')}</span></td><td>${esc(x.industry)}</td><td>${x.wanted.map(esc).join('<br>')}</td><td>${x.waiting.map(esc).join('<br>')}</td><td>${esc(x.value_fmt)}</td><td class="foot">${x.reasons.map(esc).join('; ')}</td><td class="${x.has_path ? '' : 'foot'}">${esc(x.path)}</td><td class="foot">${x.has_path ? `<a href="${esc(c.page)}">${esc(c.connector)}'s page</a>` : x.href ? `sourcing · <a href="${esc(x.href)}">trace</a>` : 'sourcing'}</td></tr>`; }).join('') + `</tbody></table>`
         : `<p class="empty">no unrouted company in ${esc(c.connector)}'s focus areas</p>`;
     }
     sec.unrouted += `</details></section>`;
@@ -1267,7 +1341,7 @@ const LP = (function () {
     window.addEventListener('hashchange', () => openFoldAt(root));
 
     // wiring: ticks + Submit, build stamp, connector tabs, downloads, upload
-    wireCompletions(root, X, state);
+    wireCompletions(root, X, state, Object.fromEntries(D.connectors.map(c => [c.connector, c])));
     wireCopy(root);
     buildStamp(D, root.querySelector('#lp-stamp'));
     wireTabs(root);
