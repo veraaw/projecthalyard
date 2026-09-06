@@ -694,6 +694,7 @@ class Live:
                     "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                     "value_fmt": money(self.dollars(a["company_id"], a["value_usd"])), "urgency": a["urgency_declared"],
                     "status": a["status_as_filed"], "best_path": a["best_path_if_unbudgeted"],
+                    "blocked_reason": self.by_rid[a["request_id"]]["blocked_reason"],
                     "crm_stage": self.crm_stage(a["company_id"]) if a["company_id"] else "",
                     "sector_cover": self.sector_cover(a["company_id"]) if a["company_id"] else None,
                     "company_as_written": self.by_rid[a["request_id"]]["company_as_written"],
