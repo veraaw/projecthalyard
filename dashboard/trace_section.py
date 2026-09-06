@@ -93,7 +93,7 @@ def fragment() -> str:
     }}
 
     const nEv = t.chronology.reduce((a, b) => a + b.length, 0);
-    out += `<h3>4. Chronology: ${{plural(nEv, 'event')}}, ${{plural(h.requests, 'request')}}, oldest first, as of ${{esc(t.as_of)}}</h3>`;
+    out += `<h3>4. Chronology: ${{plural(nEv, 'event')}}, ${{plural(h.requests, 'request')}}, newest first, as of ${{esc(t.as_of)}}</h3>`;
     out += `<p class="legend">markers <b class="missed">&lt;-</b>missed <b class="worked">++</b>worked <b class="offer">**</b>offer <b class="warning">!!</b>warning${{nEv > 12 ? ' · the table scrolls' : ''}}</p>`;
     out += `<table class="tall nopage"><thead><tr><th></th><th>date</th><th>source</th><th>who</th><th>what happened</th></tr></thead><tbody>`;
     t.chronology.forEach((block, i) => {{

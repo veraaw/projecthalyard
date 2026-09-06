@@ -20,24 +20,24 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 strongest path, not where it went: Priya Raghunathan, direct 0.285, at capacity 3/3; R1018 unrouted (capacity exhausted this cycle), R1195 unrouted (capacity exhausted this cycle)
 
-## 4. Chronology (14 events, 3 requests, as of 2026-09-06)
+## 4. Chronology (14 events, 3 requests, newest first, as of 2026-09-06)
 
 ```
-   2025-10-01  intro_requests.csv   Hana Nakashima       R1156 raised by Hana Nakashima (AE, Healthcare): wants Head of Developer Productivity, $1,200,000, High urgency, filed "Routed"
-   2025-10-01  slack_threads.jsonl  Hana Nakashima       R1156 slack: "long shot — Wrenfield Robotics. Astrid Vandermolen-Petrossian (Head of Developer Productivity). Anyone?"
-   2025-10-01  intro_outcomes.csv   Priya Raghunathan    R1156 asked
-++ 2025-10-09  intro_outcomes.csv   Priya Raghunathan    R1156 replied (8 days after the ask)
-++ 2025-10-18  intro_outcomes.csv   Priya Raghunathan    R1156 intro sent
-
-   2026-04-27  intro_requests.csv   Nadia Okonkwo        R1195 raised by Nadia Okonkwo (AE, Industrials): wants SVP Digital, $1,200,000, Low urgency, filed "Open"
-   2026-04-27  slack_threads.jsonl  Nadia Okonkwo        R1195 slack: "trying to reach SVP Digital at Wrenfield Robotics. I know we sell into Copperline Water and Harrowgate Health — could either of those relationships get us there?"
-   2026-04-27  slack_threads.jsonl  Nadia Okonkwo        R1195 slack: "no idea sorry"
-   2026-04-27  slack_threads.jsonl  Hana Nakashima       R1195 slack: "what's the deal size here?"
-   2026-04-29  slack_threads.jsonl  Hana Nakashima       R1195 slack: "did we not already lose this one?"
-
-   2026-05-31  intro_requests.csv   Yusuf Petrossian     R1018 raised by Yusuf Petrossian (SDR Lead): wants Chief Technology Officer, $1,200,000, High urgency, filed "Open"
-   2026-05-31  slack_threads.jsonl  Yusuf Petrossian     R1018 slack: "who do we know at Wrenfield Robotics? Chief Technology Officer would be ideal but I'll take anyone senior"
    2026-06-03  slack_threads.jsonl  Sloane Fairweather   R1018 slack: "is this the same as the one from last month?"
+   2026-05-31  slack_threads.jsonl  Yusuf Petrossian     R1018 slack: "who do we know at Wrenfield Robotics? Chief Technology Officer would be ideal but I'll take anyone senior"
+   2026-05-31  intro_requests.csv   Yusuf Petrossian     R1018 raised by Yusuf Petrossian (SDR Lead): wants Chief Technology Officer, $1,200,000, High urgency, filed "Open"
+
+   2026-04-29  slack_threads.jsonl  Hana Nakashima       R1195 slack: "did we not already lose this one?"
+   2026-04-27  slack_threads.jsonl  Hana Nakashima       R1195 slack: "what's the deal size here?"
+   2026-04-27  slack_threads.jsonl  Nadia Okonkwo        R1195 slack: "no idea sorry"
+   2026-04-27  slack_threads.jsonl  Nadia Okonkwo        R1195 slack: "trying to reach SVP Digital at Wrenfield Robotics. I know we sell into Copperline Water and Harrowgate Health — could either of those relationships get us there?"
+   2026-04-27  intro_requests.csv   Nadia Okonkwo        R1195 raised by Nadia Okonkwo (AE, Industrials): wants SVP Digital, $1,200,000, Low urgency, filed "Open"
+
+++ 2025-10-18  intro_outcomes.csv   Priya Raghunathan    R1156 intro sent
+++ 2025-10-09  intro_outcomes.csv   Priya Raghunathan    R1156 replied (8 days after the ask)
+   2025-10-01  intro_outcomes.csv   Priya Raghunathan    R1156 asked
+   2025-10-01  slack_threads.jsonl  Hana Nakashima       R1156 slack: "long shot — Wrenfield Robotics. Astrid Vandermolen-Petrossian (Head of Developer Productivity). Anyone?"
+   2025-10-01  intro_requests.csv   Hana Nakashima       R1156 raised by Hana Nakashima (AE, Healthcare): wants Head of Developer Productivity, $1,200,000, High urgency, filed "Routed"
 
 !! 2025-10-15  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1036  [326 days ago, nothing since]
 ```
