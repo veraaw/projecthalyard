@@ -2,9 +2,10 @@
 #
 # Every 15 minutes: pull the Supabase `completions` table into
 # golden/completions.csv (what the Live Priorities tab's Submit recorded),
-# rebuild, test, and commit — only when something actually changed. Also on a
-# push to main that touches the raw exports or the completions file, and by
-# hand from the Actions tab.
+# rebuild, test, and commit — only when something actually changed. Also on
+# every push to main by anyone other than the bot (a merged PR usually carries a
+# docs/ built locally without the Supabase secrets, so the page would say "this
+# build cannot submit" until the next cron run), and by hand from the Actions tab.
 #
 # Secrets (Settings -> Secrets and variables -> Actions):
 #   SUPABASE_URL          https://<project>.supabase.co  (with or without /rest/v1)
@@ -24,9 +25,6 @@ on:
     - cron: "*/15 * * * *"
   push:
     branches: [main]
-    paths:
-      - "dataset/**"
-      - "golden/completions.csv"
   workflow_dispatch:
 
 permissions:
