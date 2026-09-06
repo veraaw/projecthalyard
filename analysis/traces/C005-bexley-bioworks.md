@@ -22,21 +22,13 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3; R1048 routed to Tomás Beckett
 
-## 4. Chronology (5 events, 1 request, as of 2026-09-06)
+## 4. Chronology (5 events, 1 request, newest first, as of 2026-09-06)
 
 ```
-   2026-04-14  intro_requests.csv   Bertrand Vandermolen R1048 raised by Bertrand Vandermolen (AE, EMEA): wants Chief Data Officer, $750,000, High urgency, filed "Stalled"
-   2026-04-14  slack_threads.jsonl  Bertrand Vandermolen R1048 slack: "any connections into Bexley Bioworks? we're up against a renewal window and I need an intro to Chief Data Officer"
-   2026-04-15  slack_threads.jsonl  Yusuf Petrossian     R1048 slack: "I think their procurement is frozen until Q1"
    2026-04-18  slack_threads.jsonl  Hana Nakashima       R1048 slack: "adding Curtis Hartigan who might know"
+   2026-04-15  slack_threads.jsonl  Yusuf Petrossian     R1048 slack: "I think their procurement is frozen until Q1"
+   2026-04-14  slack_threads.jsonl  Bertrand Vandermolen R1048 slack: "any connections into Bexley Bioworks? we're up against a renewal window and I need an intro to Chief Data Officer"
+   2026-04-14  intro_requests.csv   Bertrand Vandermolen R1048 raised by Bertrand Vandermolen (AE, EMEA): wants Chief Data Officer, $750,000, High urgency, filed "Stalled"
 
 !! 2026-03-01  crm_accounts.csv     Sloane Fairweather   last CRM touch on A1045  [189 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Tomás Beckett | VP Partnerships (internal connector) | send the ask (batch 2026-09 Tomás Beckett) | allocated in golden_allocation.csv via direct path to Yusuf Wolstenholme, score 0.096 | R1048 |
-| 2 | Sloane Fairweather | CRM owner (A1045) | check in on the account | last touch 2026-03-01, 189 days ago | — |
-| 3 | Bertrand Vandermolen (145 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 145 days | R1048 |

@@ -7,8 +7,8 @@
 
 ## 2. Where the files disagree
 
-- R1198: filed "Closed - no path" but supply_reach.csv has 12 paths into Quillon Pharma
 - R1178: filed "Closed - no path" but supply_reach.csv has 12 paths into Quillon Pharma
+- R1198: filed "Closed - no path" but supply_reach.csv has 12 paths into Quillon Pharma
 
 ## 3. Who can reach them
 
@@ -29,26 +29,19 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.000 | 0.269 | Elena Duvall (Advisor) | direct | Kian Merriweather — VP Engineering | connections_duvall.csv: Kian Merriweather, VP Engineering at Quillon Pharma, connected 2017-10-15 |
 | 0.000 | 0.202 | Elena Duvall (Advisor) | alumni | Kian Merriweather — ex-Quillon Pharma (2012-2018), now VP Engineering at Quillon Pharma | investor_network.csv: Kian Merriweather prior_employer=Quillon Pharma (2012-2018); connections_duvall.csv: connection of Elena Duvall since 2017-10-15 |
 
-## 4. Chronology (10 events, 2 requests, as of 2026-09-06)
+## 4. Chronology (10 events, 2 requests, newest first, as of 2026-09-06)
 
 ```
-!! 2025-10-07  intro_requests.csv   Sloane Fairweather   R1198 raised by Sloane Fairweather (Strategic AE): wants Chief Operating Officer, $750,000, Critical urgency, filed "Closed - no path"  [12 paths in supply_reach.csv]
-   2025-10-07  slack_threads.jsonl  Sloane Fairweather   R1198 slack: "who do we know at Quillon Pharma? Chief Operating Officer would be ideal but I'll take anyone senior"
-   2025-10-09  slack_threads.jsonl  Sloane Fairweather   R1198 slack: "no idea sorry"
-   2025-10-10  slack_threads.jsonl  Curtis Hartigan      R1198 slack: "did we not already lose this one?"
-   2025-10-11  slack_threads.jsonl  Yusuf Petrossian     R1198 slack: "no idea sorry"
-
-!! 2026-05-16  intro_requests.csv   Bertrand Vandermolen R1178 raised by Bertrand Vandermolen (AE, EMEA): wants SVP Digital, $750,000, High urgency, filed "Closed - no path"  [12 paths in supply_reach.csv]
-   2026-05-16  slack_threads.jsonl  Bertrand Vandermolen R1178 slack: "need help getting to Quillon Pharma. Tanvi Eastcott-Lindqvist is the SVP Digital there, cold outbound is going nowhere"
-   2026-05-16  slack_threads.jsonl  Nadia Okonkwo        R1178 slack: "did we not already lose this one?"
    2026-05-17  slack_threads.jsonl  Yusuf Petrossian     R1178 slack: "what's the deal size here?"
+   2026-05-16  slack_threads.jsonl  Nadia Okonkwo        R1178 slack: "did we not already lose this one?"
+   2026-05-16  slack_threads.jsonl  Bertrand Vandermolen R1178 slack: "need help getting to Quillon Pharma. Tanvi Eastcott-Lindqvist is the SVP Digital there, cold outbound is going nowhere"
+!! 2026-05-16  intro_requests.csv   Bertrand Vandermolen R1178 raised by Bertrand Vandermolen (AE, EMEA): wants SVP Digital, $750,000, High urgency, filed "Closed - no path"  [12 paths in supply_reach.csv]
+
+   2025-10-11  slack_threads.jsonl  Yusuf Petrossian     R1198 slack: "no idea sorry"
+   2025-10-10  slack_threads.jsonl  Curtis Hartigan      R1198 slack: "did we not already lose this one?"
+   2025-10-09  slack_threads.jsonl  Sloane Fairweather   R1198 slack: "no idea sorry"
+   2025-10-07  slack_threads.jsonl  Sloane Fairweather   R1198 slack: "who do we know at Quillon Pharma? Chief Operating Officer would be ideal but I'll take anyone senior"
+!! 2025-10-07  intro_requests.csv   Sloane Fairweather   R1198 raised by Sloane Fairweather (Strategic AE): wants Chief Operating Officer, $750,000, Critical urgency, filed "Closed - no path"  [12 paths in supply_reach.csv]
 
 !! 2025-07-07  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1019  [426 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Rafael Salcedo | CRM owner (A1019) | check in on the account | last touch 2025-07-07, 426 days ago | — |
-| 2 | Sloane Fairweather (334 days), Bertrand Vandermolen (113 days) | 2 reps still waiting, longest first | tell them it's with Tomás Beckett | 2 reps raised this and have heard nothing; the oldest has been waiting 334 days | R1198, R1178 |

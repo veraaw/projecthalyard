@@ -23,38 +23,29 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3, holds R1084, R1159; R1065 routed to Dana Whitfield
 
-## 4. Chronology (18 events, 4 requests, as of 2026-09-06)
+## 4. Chronology (18 events, 4 requests, newest first, as of 2026-09-06)
 
 ```
-   2025-11-10  intro_requests.csv   Yusuf Petrossian     R1124 raised by Yusuf Petrossian (SDR Lead): wants VP Engineering, $1,200,000, High urgency, filed "Open"
-   2025-11-10  slack_threads.jsonl  Yusuf Petrossian     R1124 slack: "need help getting to Hollowbrook Grocers. Anouk Halloran-Lindqvist is the VP Engineering there, cold outbound is going nowhere"
-** 2025-11-10  slack_threads.jsonl  Priya Raghunathan    R1124 slack: "I met their Chief Operating Officer at a conference last spring, happy to reach out"
-   2025-11-13  intro_outcomes.csv   Priya Raghunathan    R1124 asked
 <- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1124 never replied (asked 2025-11-13, 297 days ago)
+   2025-11-13  intro_outcomes.csv   Priya Raghunathan    R1124 asked
+** 2025-11-10  slack_threads.jsonl  Priya Raghunathan    R1124 slack: "I met their Chief Operating Officer at a conference last spring, happy to reach out"
+   2025-11-10  slack_threads.jsonl  Yusuf Petrossian     R1124 slack: "need help getting to Hollowbrook Grocers. Anouk Halloran-Lindqvist is the VP Engineering there, cold outbound is going nowhere"
+   2025-11-10  intro_requests.csv   Yusuf Petrossian     R1124 raised by Yusuf Petrossian (SDR Lead): wants VP Engineering, $1,200,000, High urgency, filed "Open"
 
-   2025-12-11  intro_requests.csv   Bertrand Vandermolen R1159 raised by Bertrand Vandermolen (AE, EMEA): wants VP Enterprise Architecture, $1,200,000, Critical urgency, filed "Open"
-   2025-12-11  slack_threads.jsonl  Bertrand Vandermolen R1159 slack: "Glasspoint Health introduced us to Pelham Beverage, but the account I actually need is Hollowbrook Grocers (VP Enterprise Architecture)."
-   2025-12-11  slack_threads.jsonl  Sloane Fairweather   R1159 slack: "I think their procurement is frozen until Q1"
-   2025-12-13  slack_threads.jsonl  Yusuf Petrossian     R1159 slack: "did we not already lose this one?"
-
-   2026-04-08  intro_requests.csv   Bertrand Vandermolen R1065 raised by Bertrand Vandermolen (AE, EMEA): wants Director of Software Engineering, $80,000, High urgency, filed "Stalled"
-   2026-04-08  slack_threads.jsonl  Bertrand Vandermolen R1065 slack: "Volney Industrial Systems introduced us to Halcyon Grid, but the account I actually need is Hollowbrook Grocers (Director of Software Engineering)."
-   2026-04-11  slack_threads.jsonl  Hana Nakashima       R1065 slack: "no idea sorry"
-
-!! 2026-07-13  intro_requests.csv   Bertrand Vandermolen R1084 raised by Bertrand Vandermolen (AE, EMEA): wants VP Engineering, $2,000,000, Critical urgency, filed "Open"  [same title as R1124, 245 days earlier]
-   2026-07-13  slack_threads.jsonl  Bertrand Vandermolen R1084 slack: "need help getting to Hollowbrook Grocers. Dev Prendergast-Jarrold is the VP Engineering there, cold outbound is going nowhere"
-   2026-07-13  slack_threads.jsonl  Nadia Okonkwo        R1084 slack: "adding Hana Nakashima who might know"
-   2026-07-16  slack_threads.jsonl  Nadia Okonkwo        R1084 slack: "is this the same as the one from last month?"
    2026-07-17  slack_threads.jsonl  Curtis Hartigan      R1084 slack: "no idea sorry"
+   2026-07-16  slack_threads.jsonl  Nadia Okonkwo        R1084 slack: "is this the same as the one from last month?"
+   2026-07-13  slack_threads.jsonl  Nadia Okonkwo        R1084 slack: "adding Hana Nakashima who might know"
+   2026-07-13  slack_threads.jsonl  Bertrand Vandermolen R1084 slack: "need help getting to Hollowbrook Grocers. Dev Prendergast-Jarrold is the VP Engineering there, cold outbound is going nowhere"
+!! 2026-07-13  intro_requests.csv   Bertrand Vandermolen R1084 raised by Bertrand Vandermolen (AE, EMEA): wants VP Engineering, $2,000,000, Critical urgency, filed "Open"  [same title as R1124, 245 days earlier]
+
+   2026-04-11  slack_threads.jsonl  Hana Nakashima       R1065 slack: "no idea sorry"
+   2026-04-08  slack_threads.jsonl  Bertrand Vandermolen R1065 slack: "Volney Industrial Systems introduced us to Halcyon Grid, but the account I actually need is Hollowbrook Grocers (Director of Software Engineering)."
+   2026-04-08  intro_requests.csv   Bertrand Vandermolen R1065 raised by Bertrand Vandermolen (AE, EMEA): wants Director of Software Engineering, $80,000, High urgency, filed "Stalled"
+
+   2025-12-13  slack_threads.jsonl  Yusuf Petrossian     R1159 slack: "did we not already lose this one?"
+   2025-12-11  slack_threads.jsonl  Sloane Fairweather   R1159 slack: "I think their procurement is frozen until Q1"
+   2025-12-11  slack_threads.jsonl  Bertrand Vandermolen R1159 slack: "Glasspoint Health introduced us to Pelham Beverage, but the account I actually need is Hollowbrook Grocers (VP Enterprise Architecture)."
+   2025-12-11  intro_requests.csv   Bertrand Vandermolen R1159 raised by Bertrand Vandermolen (AE, EMEA): wants VP Enterprise Architecture, $1,200,000, Critical urgency, filed "Open"
 
 !! 2026-05-16  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1024  [113 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Dana Whitfield | Chief Revenue Officer (internal connector) | send the ask (batch 2026-09 Dana Whitfield) | allocated in golden_allocation.csv via direct path to Freya Havercamp, score 0.128 | R1065 |
-| 2 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | send the ask (batch 2026-09 Priya Raghunathan) | allocated in golden_allocation.csv via investor path to CEO / exec team, score 0.184; allocated in golden_allocation.csv via investor path to CEO / exec team, score 0.184 | R1084, R1159 |
-| 3 | Nadia Okonkwo | CRM owner (A1024) | check in on the account | last touch 2026-05-16, 113 days ago | — |
-| 4 | Yusuf Petrossian (300 days), Bertrand Vandermolen (269 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 300 days | R1124, R1159, R1065, R1084 |

@@ -2,7 +2,7 @@
 
     from dashboard.trace_section import fragment, sidebar
     aside = sidebar()          # search box + the company list, for the page's left rail
-    html = fragment()          # the five trace sections, rendered client-side
+    html = fragment()          # the four trace sections, rendered client-side
 
 Every company trace (analysis/trace.py, `Trace.as_dict()`) is embedded as JSON;
 the search box filters the company list on id, name, alias, or CRM account id and
@@ -40,7 +40,6 @@ def fragment() -> str:
 #trace .legend{{color:var(--mute);font-size:13px;font-family:var(--sans);margin:0 0 8px}}
 #trace .legend b{{font-family:var(--mono);font-weight:600;margin:0 4px 0 12px}}
 #trace .legend b.missed{{color:var(--warn)}} #trace .legend b.worked{{color:#1d6b2a}} #trace .legend b.offer{{color:var(--blue)}} #trace .legend b.warning{{color:var(--warn)}}
-#trace td.order{{font-family:var(--mono);color:var(--mute)}}
 #trace .empty{{color:var(--mute);font-style:italic}}
 #trace .bar.raw{{background:var(--mute);opacity:.55}}
 #trace td.score,#trace td.raw{{white-space:nowrap;font-variant-numeric:tabular-nums}}
@@ -94,7 +93,7 @@ def fragment() -> str:
     }}
 
     const nEv = t.chronology.reduce((a, b) => a + b.length, 0);
-    out += `<h3>4. Chronology: ${{plural(nEv, 'event')}}, ${{plural(h.requests, 'request')}}, oldest first, as of ${{esc(t.as_of)}}</h3>`;
+    out += `<h3>4. Chronology: ${{plural(nEv, 'event')}}, ${{plural(h.requests, 'request')}}, newest first, as of ${{esc(t.as_of)}}</h3>`;
     out += `<p class="legend">markers <b class="missed">&lt;-</b>missed <b class="worked">++</b>worked <b class="offer">**</b>offer <b class="warning">!!</b>warning${{nEv > 12 ? ' · the table scrolls' : ''}}</p>`;
     out += `<table class="tall nopage"><thead><tr><th></th><th>date</th><th>source</th><th>who</th><th>what happened</th></tr></thead><tbody>`;
     t.chronology.forEach((block, i) => {{
@@ -105,12 +104,6 @@ def fragment() -> str:
       }});
     }});
     out += `</tbody></table>`;
-
-    out += `<h3>5. Next steps, by person, cheapest first</h3>`;
-    if (!t.next_steps.length) out += `<p class="empty">nobody needs to do anything</p>`;
-    else out += `<table><thead><tr><th>#</th><th>who</th><th>role</th><th>action</th><th>why</th><th>requests</th></tr></thead><tbody>` +
-      t.next_steps.map((s, i) => `<tr><td class="order">${{i + 1}}</td><td>${{esc(s.who)}}</td><td class="foot">${{esc(s.role)}}</td><td><b>${{esc(s.action)}}</b></td><td>${{esc(s.why)}}</td><td class="rid">${{esc(s.request_ids.join(', ') || 'none')}}</td></tr>`).join('') +
-      `</tbody></table>`;
     body.innerHTML = out;
     mark();
   }}

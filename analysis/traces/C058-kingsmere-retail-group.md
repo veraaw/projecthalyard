@@ -7,9 +7,9 @@
 
 ## 2. Where the files disagree
 
-- R1171: filed "Open" but intro_outcomes.csv says Dana Whitfield sent the intro on 2026-02-04
-- R1147: filed "Closed - no path" but supply_reach.csv has 7 paths into Kingsmere Retail Group
 - R1066: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 7 paths
+- R1147: filed "Closed - no path" but supply_reach.csv has 7 paths into Kingsmere Retail Group
+- R1171: filed "Open" but intro_outcomes.csv says Dana Whitfield sent the intro on 2026-02-04
 
 ## 3. Who can reach them
 
@@ -27,57 +27,49 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 strongest path, not where it went: Yusuf Petrossian, offer 0.800, at capacity 2/2, holds R1006, R1128; R1070 routed to Dana Whitfield, R1193 routed to Dana Whitfield
 
-## 4. Chronology (35 events, 8 requests, as of 2026-09-06)
+## 4. Chronology (35 events, 8 requests, newest first, as of 2026-09-06)
 
 ```
-   2025-12-26  intro_requests.csv   Nadia Okonkwo        R1128 raised by Nadia Okonkwo (AE, Industrials): wants VP Enterprise Architecture, $80,000, Critical urgency, filed "Routed"
-   2025-12-26  slack_threads.jsonl  Nadia Okonkwo        R1128 slack: "who do we know at Kingsmere Retail Group? VP Enterprise Architecture would be ideal but I'll take anyone senior"
-   2025-12-28  slack_threads.jsonl  Hana Nakashima       R1128 slack: "bumping this"
-
-!! 2026-01-12  intro_requests.csv   Curtis Hartigan      R1171 raised by Curtis Hartigan (AE, Financial Services): wants VP Enterprise Architecture, $1,200,000, Medium urgency, filed "Open"  [same title as R1128, 17 days earlier]
-   2026-01-12  slack_threads.jsonl  Curtis Hartigan      R1171 slack: "need help getting to Kingsmere Retail Group. Tanvi Prendergast-Falkenrath is the VP Enterprise Architecture there, cold outbound is going nowhere"
-   2026-01-13  slack_threads.jsonl  Imani Mkhize         R1171 slack: "I think their procurement is frozen until Q1"
-   2026-01-15  intro_outcomes.csv   Dana Whitfield       R1171 asked
-++ 2026-01-27  intro_outcomes.csv   Dana Whitfield       R1171 replied (12 days after the ask)
-++ 2026-02-04  intro_outcomes.csv   Dana Whitfield       R1171 intro sent
-
-   2026-02-01  intro_requests.csv   Imani Mkhize         R1113 raised by Imani Mkhize (Enterprise AE, West): wants Chief Digital Officer, $150,000, Medium urgency, filed "Open"
-   2026-02-01  slack_threads.jsonl  Imani Mkhize         R1113 slack: "who do we know at Kingsmere Retail Group? Chief Digital Officer would be ideal but I'll take anyone senior"
-   2026-02-03  intro_outcomes.csv   Dana Whitfield       R1113 asked
-++ 2026-02-04  intro_outcomes.csv   Dana Whitfield       R1113 replied (1 days after the ask)
-   2026-02-05  slack_threads.jsonl  Hana Nakashima       R1113 slack: "adding Nadia Okonkwo who might know"
-<- 2026-09-06  intro_outcomes.csv   Dana Whitfield       R1113 said yes 214 days ago and never forwarded
-
-!! 2026-02-11  intro_requests.csv   Hana Nakashima       R1147 raised by Hana Nakashima (AE, Healthcare): wants VP Enterprise Architecture, $1,200,000, Medium urgency, filed "Closed - no path"  [7 paths in supply_reach.csv; same title as R1128, 47 days earlier]
-   2026-02-11  slack_threads.jsonl  Hana Nakashima       R1147 slack: "does anyone know anyone at Kingsmere Retail Group? looking for VP Enterprise Architecture, ideally warm"
-   2026-02-16  intro_outcomes.csv   Dana Whitfield       R1147 asked
 <- 2026-09-06  intro_outcomes.csv   Dana Whitfield       R1147 never replied (asked 2026-02-16, 202 days ago)
+   2026-02-16  intro_outcomes.csv   Dana Whitfield       R1147 asked
+   2026-02-11  slack_threads.jsonl  Hana Nakashima       R1147 slack: "does anyone know anyone at Kingsmere Retail Group? looking for VP Enterprise Architecture, ideally warm"
+!! 2026-02-11  intro_requests.csv   Hana Nakashima       R1147 raised by Hana Nakashima (AE, Healthcare): wants VP Enterprise Architecture, $1,200,000, Medium urgency, filed "Closed - no path"  [7 paths in supply_reach.csv; same title as R1128, 47 days earlier]
 
-   2026-05-07  intro_requests.csv   Imani Mkhize         R1070 raised by Imani Mkhize (Enterprise AE, West): wants SVP Digital, $400,000, High urgency, filed "Open"
-   2026-05-07  slack_threads.jsonl  Imani Mkhize         R1070 slack: "trying to reach SVP Digital at Kingsmere Retail Group. I know we sell into Pelham Beverage and Larchmont Aerospace — could either of those relationships get us there?"
-   2026-05-09  slack_threads.jsonl  Imani Mkhize         R1070 slack: "what's the deal size here?"
-   2026-05-10  slack_threads.jsonl  Sloane Fairweather   R1070 slack: "what's the deal size here?"
+<- 2026-09-06  intro_outcomes.csv   Dana Whitfield       R1113 said yes 214 days ago and never forwarded
+   2026-02-05  slack_threads.jsonl  Hana Nakashima       R1113 slack: "adding Nadia Okonkwo who might know"
+++ 2026-02-04  intro_outcomes.csv   Dana Whitfield       R1113 replied (1 days after the ask)
+   2026-02-03  intro_outcomes.csv   Dana Whitfield       R1113 asked
+   2026-02-01  slack_threads.jsonl  Imani Mkhize         R1113 slack: "who do we know at Kingsmere Retail Group? Chief Digital Officer would be ideal but I'll take anyone senior"
+   2026-02-01  intro_requests.csv   Imani Mkhize         R1113 raised by Imani Mkhize (Enterprise AE, West): wants Chief Digital Officer, $150,000, Medium urgency, filed "Open"
 
-   2026-06-05  intro_requests.csv   Rafael Salcedo       R1193 raised by Rafael Salcedo (AE, Transport & Logistics): wants Chief Operating Officer, $250,000, Low urgency, filed "Stalled"
-   2026-06-05  slack_threads.jsonl  Rafael Salcedo       R1193 slack: "trying to reach Chief Operating Officer at Kingsmere Retail Group — anyone have a path?"
-   2026-06-06  slack_threads.jsonl  Rafael Salcedo       R1193 slack: "adding Yusuf Petrossian who might know"
-   2026-06-06  slack_threads.jsonl  Rafael Salcedo       R1193 slack: "did we not already lose this one?"
-
-   2026-06-07  intro_requests.csv   Rafael Salcedo       R1006 raised by Rafael Salcedo (AE, Transport & Logistics): wants VP Engineering, $750,000, High urgency, filed "Open"
-   2026-06-07  slack_threads.jsonl  Rafael Salcedo       R1006 slack: "trying to reach VP Engineering at Kingsmere Retail Group — anyone have a path?"
-
-!! 2026-06-25  intro_requests.csv   Curtis Hartigan      R1066 raised by Curtis Hartigan (AE, Financial Services): wants Chief Digital Officer, $750,000, Medium urgency, filed "Open"  [same title as R1113, 144 days earlier]
-   2026-06-25  slack_threads.jsonl  Curtis Hartigan      R1066 slack: "any connections into Kingsmere Retail Group? we're up against a renewal window and I need an intro to Chief Digital Officer"
-** 2026-06-27  slack_threads.jsonl  Yusuf Petrossian     R1066 slack: "I'll take this one — I've got a direct line to their exec team"
-   2026-07-01  intro_outcomes.csv   Yusuf Petrossian     R1066 asked
-++ 2026-07-06  intro_outcomes.csv   Yusuf Petrossian     R1066 replied (5 days after the ask)
 <- 2026-09-06  intro_outcomes.csv   Yusuf Petrossian     R1066 said yes 62 days ago and never forwarded
+++ 2026-07-06  intro_outcomes.csv   Yusuf Petrossian     R1066 replied (5 days after the ask)
+   2026-07-01  intro_outcomes.csv   Yusuf Petrossian     R1066 asked
+** 2026-06-27  slack_threads.jsonl  Yusuf Petrossian     R1066 slack: "I'll take this one — I've got a direct line to their exec team"
+   2026-06-25  slack_threads.jsonl  Curtis Hartigan      R1066 slack: "any connections into Kingsmere Retail Group? we're up against a renewal window and I need an intro to Chief Digital Officer"
+!! 2026-06-25  intro_requests.csv   Curtis Hartigan      R1066 raised by Curtis Hartigan (AE, Financial Services): wants Chief Digital Officer, $750,000, Medium urgency, filed "Open"  [same title as R1113, 144 days earlier]
+
+   2026-06-07  slack_threads.jsonl  Rafael Salcedo       R1006 slack: "trying to reach VP Engineering at Kingsmere Retail Group — anyone have a path?"
+   2026-06-07  intro_requests.csv   Rafael Salcedo       R1006 raised by Rafael Salcedo (AE, Transport & Logistics): wants VP Engineering, $750,000, High urgency, filed "Open"
+
+   2026-06-06  slack_threads.jsonl  Rafael Salcedo       R1193 slack: "did we not already lose this one?"
+   2026-06-06  slack_threads.jsonl  Rafael Salcedo       R1193 slack: "adding Yusuf Petrossian who might know"
+   2026-06-05  slack_threads.jsonl  Rafael Salcedo       R1193 slack: "trying to reach Chief Operating Officer at Kingsmere Retail Group — anyone have a path?"
+   2026-06-05  intro_requests.csv   Rafael Salcedo       R1193 raised by Rafael Salcedo (AE, Transport & Logistics): wants Chief Operating Officer, $250,000, Low urgency, filed "Stalled"
+
+   2026-05-10  slack_threads.jsonl  Sloane Fairweather   R1070 slack: "what's the deal size here?"
+   2026-05-09  slack_threads.jsonl  Imani Mkhize         R1070 slack: "what's the deal size here?"
+   2026-05-07  slack_threads.jsonl  Imani Mkhize         R1070 slack: "trying to reach SVP Digital at Kingsmere Retail Group. I know we sell into Pelham Beverage and Larchmont Aerospace — could either of those relationships get us there?"
+   2026-05-07  intro_requests.csv   Imani Mkhize         R1070 raised by Imani Mkhize (Enterprise AE, West): wants SVP Digital, $400,000, High urgency, filed "Open"
+
+++ 2026-02-04  intro_outcomes.csv   Dana Whitfield       R1171 intro sent
+++ 2026-01-27  intro_outcomes.csv   Dana Whitfield       R1171 replied (12 days after the ask)
+   2026-01-15  intro_outcomes.csv   Dana Whitfield       R1171 asked
+   2026-01-13  slack_threads.jsonl  Imani Mkhize         R1171 slack: "I think their procurement is frozen until Q1"
+   2026-01-12  slack_threads.jsonl  Curtis Hartigan      R1171 slack: "need help getting to Kingsmere Retail Group. Tanvi Prendergast-Falkenrath is the VP Enterprise Architecture there, cold outbound is going nowhere"
+!! 2026-01-12  intro_requests.csv   Curtis Hartigan      R1171 raised by Curtis Hartigan (AE, Financial Services): wants VP Enterprise Architecture, $1,200,000, Medium urgency, filed "Open"  [same title as R1128, 17 days earlier]
+
+   2025-12-28  slack_threads.jsonl  Hana Nakashima       R1128 slack: "bumping this"
+   2025-12-26  slack_threads.jsonl  Nadia Okonkwo        R1128 slack: "who do we know at Kingsmere Retail Group? VP Enterprise Architecture would be ideal but I'll take anyone senior"
+   2025-12-26  intro_requests.csv   Nadia Okonkwo        R1128 raised by Nadia Okonkwo (AE, Industrials): wants VP Enterprise Architecture, $80,000, Critical urgency, filed "Routed"
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Dana Whitfield | Chief Revenue Officer (internal connector) | nudge, don't re-ask; send the ask (batch 2026-09 Dana Whitfield) | said yes on 2026-02-04 and never forwarded; allocated in golden_allocation.csv via direct path to Saoirse Quillane, score 0.145; allocated in golden_allocation.csv via direct path to Saoirse Quillane, score 0.145 | R1113, R1070, R1193 |
-| 2 | Yusuf Petrossian | off-roster connector | nudge, don't re-ask; send the ask (batch 2026-09 Yusuf Petrossian) | said yes on 2026-07-06 and never forwarded; allocated in golden_allocation.csv via offer path, score 0.182; allocated in golden_allocation.csv via offer path, score 0.182 | R1066, R1006, R1128 |
-| 3 | Nadia Okonkwo (254 days), Imani Mkhize (217 days), Hana Nakashima (207 days), Rafael Salcedo (93 days), Curtis Hartigan (73 days) | 5 reps still waiting, longest first | tell them it's with Dana Whitfield / Yusuf Petrossian | 5 reps raised this and have heard nothing; the oldest has been waiting 254 days | R1128, R1113, R1070, R1147, R1193, R1006, R1066 |

@@ -30,6 +30,7 @@ _CO = r"[A-Z][A-Za-z0-9&'-]*(?:[ \t]+[A-Z][A-Za-z0-9&'-]*)*"
 _LIST = rf"{_CO}(?:(?:,[ \t]*|,?[ \t]+and[ \t]+){_CO})*"
 _SPLIT = re.compile(r",[ \t]*and[ \t]+|,[ \t]*|[ \t]+and[ \t]+")
 _NOT = r"(?:\b[Nn]ot[ \t]+)?"   # keeps a leading "Not" out of a span-first cue's company
+_NOT_AT = r"(?![A-Za-z0-9&'-])(?![^.?!,;—]*\bat\b)"   # "reach Head of Platform Engineering at X": the title is not the company
 
 # (cue label, regex with a <co> group, score). A mention keeps the first cue
 # that fires on it, in this order.
@@ -46,7 +47,17 @@ CUES: list[tuple[str, re.Pattern, int]] = [
     ("trying to reach ... at", rf"trying to reach (?:the )?[^.?!,;—]*? at (?P<co>{_CO})", 2),
     ("asking again:", rf"asking again:[ \t]*(?P<co>{_CO})", 2),
     ("long shot —", rf"long shot[ \t]*[—–-][ \t]*(?P<co>{_CO})", 2),
+    ("intro to", rf"intro(?:duction)?s? (?:at|to|into|with) (?P<co>{_CO})", 2),
+    ("introduce us to", rf"introduce (?:me|us) to (?P<co>{_CO})", 2),
+    ("connect with", rf"connect (?:me |us )?(?:with|to) (?P<co>{_CO})", 2),
+    ("get in front of", rf"get(?:ting)? (?:me |us )?(?:in front of|into|in at|in with) (?P<co>{_CO})", 2),
+    ("an in at", rf"\ban in (?:at|with|into) (?P<co>{_CO})", 2),
+    ("anyone at", rf"(?:anyone|someone|anybody|somebody|contacts?) (?:at|inside) (?P<co>{_CO})", 2),
+    ("help with", rf"help (?:me |us )?(?:with|at|into|reach|reaching) (?P<co>{_CO})", 2),
+    ("reach", rf"reach(?:ing)? (?:out to )?(?P<co>{_CO}){_NOT_AT}", 2),
+    ("meeting with", rf"(?:meeting|talk|speak|conversation) (?:with|at) (?P<co>{_CO})", 2),
     ("path to", rf"path (?:in)?to (?P<co>{_CO})", 1),
+    ("way into", rf"(?:way|route|door|line|entry) (?:in)?to (?P<co>{_CO})", 1),
     ("not X", rf"\b[Nn]ot (?P<co>{_CO})", -3),
     ("that's a different entity", rf"{_NOT}(?P<co>{_CO})[ \t]*[—–-]+[ \t]*that's a different entity", -3),
     ("spoke to", rf"spoke (?:to|with) (?P<co>{_CO})", -1),

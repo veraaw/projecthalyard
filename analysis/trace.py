@@ -6,12 +6,11 @@
     python3 analysis/trace.py                            # every company with a
                                                          # request -> analysis/traces/
 
-Five sections: the header (identity, request counts and the routing stage), where the files
+Four sections: the header (identity, request counts and the routing stage), where the files
 disagree (skipped when they don't), who can reach them (supply_reach.csv ranked
 by route score = strength x focus fit x delivery rate, the allocator's own sort
-key, with the reason the top row did not take every live request), the chronology (every event from intro_requests.csv,
-slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, oldest first)
-and next steps, one row per person, cheapest action first.
+key, with the reason the top row did not take every live request) and the chronology (every event from intro_requests.csv,
+slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, newest first).
 
 Chronology markers:  <- missed   ++ worked   ** offer   !! warning
 
@@ -28,7 +27,7 @@ import json
 import re
 import sys
 from collections import Counter, defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
@@ -76,6 +75,12 @@ def money(s: str) -> str:
 
 def days_ago(d: date | None, today: date) -> str:
     return f"{(today - d).days} days ago" if d else "undated"
+
+
+def request_number(rid: str) -> tuple[int, str]:
+    """R1178 -> (1178, 'R1178'), so ids sort numerically."""
+    m = re.search(r"\d+", rid)
+    return (int(m.group()) if m else sys.maxsize, rid)
 
 
 @dataclass
@@ -172,16 +177,6 @@ class Event:
         return f"{self.mark} {self.when.isoformat()}  {self.source:<20} {self.who:<20} {self.what}"
 
 
-@dataclass
-class Step:
-    order: int
-    who: str
-    role: str
-    action: str
-    why: str
-    request_ids: list[str] = field(default_factory=list)
-
-
 class Trace:
     def __init__(self, data: Data, company: dict, today: date):
         self.d = data
@@ -196,7 +191,6 @@ class Trace:
                             key=lambda p: (-self.route_score(p), -float(p["strength"])))
         self.accounts = [data.accounts[a] for a in split_bar(company["crm_account_ids"]) if a in data.accounts]
         self.live = [a for a in data.allocation if a["company_id"] == self.cid]
-        self.allocated = {a["request_id"]: a for a in self.live if a["allocated_to"]}
 
     # -- helpers --------------------------------------------------------------
     def spellings(self) -> list[str]:
@@ -221,18 +215,6 @@ class Trace:
 
     def asked(self, rid: str, person: str) -> bool:
         return any(o["connector_asked"] == person for o in self.d.outcomes.get(rid, []))
-
-    def role_of(self, person: str) -> str:
-        r = self.d.roster.get(person)
-        if r:
-            return f"{r['role']} ({r['type'].lower()} connector)"
-        for rq in self.requests:
-            f = self.d.filed.get(rq["request_id"])
-            if rq["requested_by"] == person:
-                return f["requester_role"] if f else "requester"
-        if person in split_bar(self.c["owner"]):
-            return "CRM owner"
-        return "off-roster connector"
 
     def stage_of(self, r: dict) -> str:
         rid = r["request_id"]
@@ -354,7 +336,7 @@ class Trace:
             out.append(f"- golden_companies.csv: owners disagree: {self.c['owner']}")
 
         n_paths = len(self.paths)
-        for r in self.requests:
+        for r in sorted(self.requests, key=lambda r: request_number(r["request_id"])):
             rid, status = r["request_id"], r["status_as_filed"]
             f = self.d.filed.get(rid)
             logged = self.intro_logged(rid)
@@ -480,96 +462,26 @@ class Trace:
                              WARN if stale >= STALE_TOUCH_DAYS else PLAIN, "", 4))
         return evs
 
+    def blocks(self) -> list[list[Event]]:
+        """Events grouped by request, newest first: blocks by their latest event,
+        lines within a block newest first; the CRM touch (no request) goes last."""
+        by_rid: dict[str, list[Event]] = defaultdict(list)
+        for e in self.events():
+            by_rid[e.request_id].append(e)
+        ordered = sorted(by_rid.items(), key=lambda kv: (kv[0] != "", max(e.when for e in kv[1]), kv[0]), reverse=True)
+        # ascending then reversed, so same-day events keep their thread order, latest on top
+        return [sorted(es, key=lambda e: (e.when, e.order))[::-1] for _, es in ordered]
+
     def chronology(self) -> list[str]:
-        evs = self.events()
-        if not evs:
+        blocks = self.blocks()
+        if not blocks:
             return ["nothing on record"]
-        blocks: dict[str, list[Event]] = defaultdict(list)
-        for e in evs:
-            blocks[e.request_id].append(e)
-        # blocks ordered by their first event; the CRM touch (no request) goes last
-        ordered = sorted(blocks.items(), key=lambda kv: (kv[0] == "", min(e.when for e in kv[1]), kv[0]))
         out = ["```"]
-        for i, (_, es) in enumerate(ordered):
+        for i, es in enumerate(blocks):
             if i:
                 out.append("")
-            out.extend(e.line() for e in sorted(es, key=lambda e: (e.when, e.order)))
+            out.extend(e.line() for e in es)
         out.append("```")
-        return out
-
-    # -- section 5 --------------------------------------------------------------
-    def next_steps(self) -> list[Step]:
-        steps: dict[str, Step] = {}
-
-        def add(order: int, who: str, action: str, why: str, rids: list[str], role: str = "") -> None:
-            s = steps.get(who)
-            if s is None:
-                steps[who] = Step(order, who, role or self.role_of(who), action, why, list(rids))
-                return
-            if order < s.order:
-                s.order = order
-            if action not in s.action.split("; "):
-                s.action += f"; {action}"
-            s.why += f"; {why}"
-            s.request_ids += [r for r in rids if r not in s.request_ids]
-
-        for r in self.requests:
-            rid = r["request_id"]
-            for m in self.offers(rid):
-                if not self.asked(rid, m["user"]):
-                    add(1, m["user"], "take them up on it",
-                        f"offered on {m['ts'][:10]} (\"{m['text']}\") and was never asked — free, they already said yes", [rid])
-        for r in self.requests:
-            rid = r["request_id"]
-            for o in self.d.outcomes.get(rid, []):
-                if o["responded"] == "Y" and o["intro_sent"] != "Y":
-                    add(2, o["connector_asked"], "nudge, don't re-ask",
-                        f"said yes on {o['response_date']} and never forwarded", [rid])
-        for rid, a in self.allocated.items():
-            add(3, a["allocated_to"], f"send the ask (batch {a['batch_id']})",
-                f"allocated in golden_allocation.csv via {a['path_type']} path"
-                + (f" to {a['contact_name']}" if a["contact_name"] else "") + f", score {a['route_score']}", [rid])
-        touch, acct = self.last_touch()
-        if acct and acct["owner"] and touch and (self.today - touch).days >= STALE_TOUCH_DAYS:
-            add(4, acct["owner"], "check in on the account",
-                f"last touch {touch.isoformat()}, {(self.today - touch).days} days ago", [], role=f"CRM owner ({acct['account_id']})")
-
-        waiting: dict[str, list[dict]] = defaultdict(list)
-        for r in self.requests:
-            rid = r["request_id"]
-            closed_for_real = r["status_as_filed"] == "Closed - no path" and not self.paths
-            if not closed_for_real and not self.intro_logged(rid):
-                waiting[r["requested_by"]].append(r)
-        if waiting:
-            def waited(r: dict) -> int:
-                return (self.today - (parse_date(r["request_date"]) or self.today)).days
-
-            longest = {rep: max(waited(r) for r in rs) for rep, rs in waiting.items()}
-            reps = sorted(waiting, key=lambda rep: (-longest[rep], rep))
-            rids = [r["request_id"] for rep in reps for r in sorted(waiting[rep], key=waited, reverse=True)]
-            holders = []
-            for rep in reps:
-                for r in waiting[rep]:
-                    alloc = self.allocated.get(r["request_id"])
-                    h = r["routed_to"] or (alloc["allocated_to"] if alloc else "")
-                    if h and h not in holders:
-                        holders.append(h)
-            n = len(reps)
-            steps["\u0000reps"] = Step(
-                5, ", ".join(f"{rep} ({longest[rep]} days)" for rep in reps),
-                f"{n} rep{'s' if n != 1 else ''} still waiting, longest first",
-                f"tell them it's with {' / '.join(holders)}" if holders else "tell them nobody has it",
-                f"{n} rep{'s' if n != 1 else ''} raised this and {'have' if n != 1 else 'has'} heard nothing; "
-                f"the oldest has been waiting {max(longest.values())} days", rids)
-        return sorted(steps.values(), key=lambda s: (s.order, s.who))
-
-    def next_steps_table(self) -> list[str]:
-        steps = self.next_steps()
-        if not steps:
-            return ["nobody needs to do anything"]
-        out = ["| # | who | role | action | why | requests |", "|---|---|---|---|---|---|"]
-        for i, s in enumerate(steps, 1):
-            out.append(f"| {i} | {s.who} | {s.role} | {s.action} | {s.why} | {', '.join(s.request_ids) or '—'} |")
         return out
 
     # -- all --------------------------------------------------------------------
@@ -581,19 +493,13 @@ class Trace:
             sections.append(["## 2. Where the files disagree", "", *dis])
         sections.append(["## 3. Who can reach them", "", *self.reach()])
         sections.append([f"## 4. Chronology ({len(self.events())} events, {n_req} request{'s' if n_req != 1 else ''},"
-                         f" as of {self.today.isoformat()})", "",
+                         f" newest first, as of {self.today.isoformat()})", "",
                          *self.chronology()])
-        sections.append(["## 5. Next steps, by person, cheapest first", "", *self.next_steps_table()])
         return "\n\n".join("\n".join(s) for s in sections) + "\n"
 
     def as_dict(self) -> dict:
-        """The same five sections as data, for the dashboard."""
+        """The same four sections as data, for the dashboard."""
         c = self.c
-        evs = self.events()
-        blocks: dict[str, list[Event]] = defaultdict(list)
-        for e in evs:
-            blocks[e.request_id].append(e)
-        ordered = sorted(blocks.items(), key=lambda kv: (kv[0] == "", min(e.when for e in kv[1]), kv[0]))
         return {
             "company_id": c["company_id"],
             "company_name": c["company_name"],
@@ -618,10 +524,8 @@ class Trace:
                       for p in self.paths],
             "as_of": self.today.isoformat(),
             "chronology": [[{"mark": e.mark, "date": e.when.isoformat(), "source": e.source, "who": e.who, "what": e.what,
-                             "request_id": e.request_id} for e in sorted(es, key=lambda e: (e.when, e.order))]
-                           for _, es in ordered],
-            "next_steps": [{"order": s.order, "who": s.who, "role": s.role, "action": s.action, "why": s.why,
-                            "request_ids": s.request_ids} for s in self.next_steps()],
+                             "request_id": e.request_id} for e in es]
+                           for es in self.blocks()],
         }
 
 

@@ -90,31 +90,17 @@ class HarrowgateTest(unittest.TestCase):
         self.assertEqual(sum(e.source == "slack_threads.jsonl" for e in events), n_slack)
         marks = {e.mark for e in events}
         self.assertTrue({MISSED, WORKED, OFFER, WARN} <= marks)
-        # within a request block the lines are oldest first
-        for line_block in "\n".join(self.trace.chronology()).split("\n\n"):
+        # within a request block the lines are newest first, and so are the blocks
+        line_blocks = "\n".join(self.trace.chronology()).split("\n\n")
+        newest = []
+        for line_block in line_blocks:
             dates = [ln[3:13] for ln in line_block.splitlines() if ln[3:7].isdigit()]
-            self.assertEqual(dates, sorted(dates))
-
-    def test_next_steps(self):
-        steps = self.trace.next_steps()
-        self.assertEqual(len(steps), 4)
-        self.assertEqual([s.order for s in steps], [1, 2, 4, 5])
-        elena, tomas = steps[0], steps[1]
-        self.assertEqual(elena.who, "Elena Duvall")
-        self.assertEqual(elena.request_ids, ["R1136"])
-        self.assertEqual(tomas.who, "Tomás Beckett")
-        self.assertEqual(tomas.why.count("said yes"), 2)
-        # the cycle's fresh asks on Harrowgate all land with Tomás: once requests behind
-        # a live intro elsewhere stop consuming his slots, the strongest path gets R1136 too
-        self.assertEqual(set(tomas.request_ids) >= {"R1057", "R1157", "R1136", "R1153"}, True)
-        self.assertIn("send the ask", tomas.action)
-        self.assertEqual(steps[2].who, "Imani Mkhize")
-        reps = steps[3]
-        self.assertIn("7 reps", reps.role)
-        self.assertTrue(reps.who.startswith("Imani Mkhize (355 days)"), reps.who)
-        self.assertTrue(reps.who.endswith("Curtis Hartigan (81 days)"), reps.who)
-        self.assertEqual(reps.action, "tell them it's with Tomás Beckett")
-        self.assertIn("the oldest has been waiting 355 days", reps.why)
+            self.assertEqual(dates, sorted(dates, reverse=True))
+            newest.append(dates[0])
+        request_blocks = newest[:-1]  # the CRM touch is its own block, last
+        self.assertEqual(request_blocks, sorted(request_blocks, reverse=True))
+        self.assertIn("newest first", self.text)
+        self.assertNotIn("## 5.", self.text)
 
 
 class RoutingStageTest(unittest.TestCase):
