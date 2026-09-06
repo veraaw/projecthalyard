@@ -247,8 +247,16 @@ class PayloadTest(unittest.TestCase):
         self.assertTrue(all(list(r.keys()) == lp.wb.IMPORT_COLUMNS for r in rows))
         self.assertEqual(C["review"]["filename"], "crm_review.csv")
         review = list(csv.DictReader(C["review"]["csv"].splitlines()))
-        self.assertTrue(all(r["status"] == lp.wb.STATUS and r["executed_on"] == "" for r in review),
+        self.assertTrue(all(r["status"] == lp.wb.STATUS and r["executed_on"] == "" for r in review if r["group"] != "create"),
                         "merges and owner changes are recommended, never executed")
+        # a create ticked off on the tab (completions.csv) is reported as executed, off the import and the count
+        created = set(lp.bg.completions_of(lp.bg.load_completions(), lp.bg.CRM_CREATED))
+        for r in review:
+            if r["group"] == "create":
+                self.assertEqual(r["status"], lp.wb.EXECUTED if r["company_id"] in created else lp.wb.STATUS, r)
+        create = C["groups"][0]
+        self.assertEqual({r["company_id"] for r in create["executed"]}, created & {r["company_id"] for r in review})
+        self.assertEqual(create["count"] + len(create["executed"]), sum(r["group"] == "create" for r in review))
         self.assertEqual([g["group"] for g in C["groups"]], ["create", "merge", "owners", "reopen"])
 
     def test_connector_pages_top_five_then_the_rest(self):

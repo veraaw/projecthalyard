@@ -366,15 +366,25 @@ const LP = (function () {
   const actionLabel = { ask_sent: 'ask sent', nudged: 'nudged', account_created: 'account created' };
   const describe = r => `${actionLabel[r.action] || r.action} ${esc(r.request_id || r.company_id)}${r.connector ? ` → ${esc(r.connector)}` : ''}`;
 
-  const submitBar = X => `<div class="submitbar" id="lp-submit" hidden><span id="lp-submit-n"></span><button id="lp-submit-go">Submit</button><button id="lp-submit-clear" class="secondary">Clear</button><span class="foot">${X.supabase_url ? `records your ticks in the <code>${esc(X.table)}</code> table; the site rebuilds from it every 15 minutes and the ticked items leave the queue` : '<b class="warn">this build cannot submit: no Supabase URL / anon key</b>'}</span></div>`;
+  const submitBar = X => `<div class="submitbar" id="lp-submit" hidden><span id="lp-submit-n"></span><button id="lp-submit-go">Submit</button><button id="lp-submit-clear" class="secondary">Clear</button><span id="lp-submit-who"></span><span class="foot">${X.supabase_url ? `records your ticks in the <code>${esc(X.table)}</code> table; the site rebuilds from it every 15 minutes and the ticked items leave the queue` : '<b class="warn">this build cannot submit: no Supabase URL / anon key</b>'}</span></div>`;
 
   function wireCompletions(root, X, state) {
     const bar = root.querySelector('#lp-submit'), n = root.querySelector('#lp-submit-n'), go = root.querySelector('#lp-submit-go');
+    const whoEl = root.querySelector('#lp-submit-who');
+    // asked once per browser; after that the name is shown next to Submit, with a link to change it
+    const askWho = () => {
+      const who = (window.prompt('Who are you? (goes in completed_by, remembered in this browser)', load('lp-who', '') || '') || '').trim();
+      if (who) store('lp-who', who);
+      return who;
+    };
     const show = () => {
-      const k = state.ticks.size;
+      const k = state.ticks.size, who = load('lp-who', '');
       bar.hidden = !k && !bar.dataset.msg;
       bar.classList.toggle('failed', bar.dataset.state === 'failed');
       n.innerHTML = bar.dataset.msg || `<b>${plural(k, 'tick')}</b>`;
+      whoEl.innerHTML = who ? `as <b>${esc(who)}</b> · <a href="#" id="lp-submit-rename">change</a>` : '';
+      const rename = whoEl.querySelector('#lp-submit-rename');
+      if (rename) rename.onclick = e => { e.preventDefault(); askWho(); show(); };
       go.disabled = !k || !X.supabase_url;
     };
     root.querySelectorAll('.tick').forEach(cb => cb.addEventListener('change', () => {
@@ -392,9 +402,8 @@ const LP = (function () {
     };
     go.onclick = async () => {
       if (!state.ticks.size) return;
-      const who = (window.prompt('Who are you? (goes in completed_by, remembered in this browser)', load('lp-who', '') || '') || '').trim();
+      const who = load('lp-who', '') || askWho();
       if (!who) return;
-      store('lp-who', who);
       const ticks = [...state.ticks.entries()], at = new Date().toISOString();
       const rows = completionRows(X, ticks.map(([, t]) => t), who, at);
       go.disabled = true; delete bar.dataset.state;

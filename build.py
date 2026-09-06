@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Regenerate every report and the dashboard, in dependency order.
 
-    python3 build.py            # everything
-    python3 build.py dashboard  # one step (any prefix of the names below)
+    python3 build.py               # everything
+    python3 build.py dashboard     # one step (any prefix of the names below)
+    python3 build.py --skip-tests  # everything but the tests, for a caller that
+                                   # runs them itself against the regenerated docs/
 
 The trace step writes one company history per company with a request to
 analysis/traces/ (`python3 analysis/trace.py "Harrowgate Health"` prints one).
@@ -48,8 +50,11 @@ STEPS = [
 
 
 def main(argv):
+    skip_tests = "--skip-tests" in argv
+    argv = [a for a in argv if a != "--skip-tests"]
     wanted = argv or [name for name, _ in STEPS]
-    steps = [(name, mod) for name, mod in STEPS if any(name.startswith(w) for w in wanted)]
+    steps = [(name, mod) for name, mod in STEPS
+             if any(name.startswith(w) for w in wanted) and not (skip_tests and name == "tests")]
     if not steps:
         sys.exit(f"no step matches {wanted}; known steps: {', '.join(n for n, _ in STEPS)}")
     for name, step in steps:

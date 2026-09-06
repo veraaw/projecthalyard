@@ -91,8 +91,10 @@ class ScratchRootTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
         shutil.copytree(ROOT / "dataset", self.root / "dataset")
         (self.root / "golden").mkdir()
+        # completions.csv is left out: these tests state what one completion
+        # does, from a queue nobody has ticked anything off yet
         for p in (ROOT / "golden").iterdir():
-            if p.suffix in (".py", ".csv"):
+            if p.suffix in (".py", ".csv") and p.name != "completions.csv":
                 shutil.copy(p, self.root / "golden" / p.name)
         self.requests = self.root / "golden" / "golden_requests.csv"
         self.companies = self.root / "golden" / "golden_companies.csv"

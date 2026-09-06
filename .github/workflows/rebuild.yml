@@ -59,14 +59,19 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python3 golden/build_golden.py --completions supabase
 
-      - name: Tests (a bad completion fails here, before anything is published)
-        run: python3 -m unittest discover tests
-
+      # docs/ is regenerated before the tests run: several tests compare the
+      # built pages with what golden/ now says, so on the old pages they would
+      # fail every time a completion changed the queue. Nothing is committed
+      # until the tests pass, and a malformed completion has already stopped the
+      # step above before completions.csv was touched.
       - name: Rebuild analysis/ and docs/
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: python3 build.py
+        run: python3 build.py --skip-tests
+
+      - name: Tests (a failure here means nothing below is committed)
+        run: python3 -m unittest discover tests
 
       - name: Commit only if something changed
         run: |
