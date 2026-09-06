@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from golden.build_golden import (  # noqa: E402
     ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, INTRO_LIVE_DAYS, OPEN_STATUSES, STALE_ASK, cycle_budget, history_signals,
-    introductions, latest_cycle, load_roster, parse_date, retriable,
+    intro_of, introductions, latest_cycle, load_roster, meeting_stalled, parse_date, retriable,
 )
 
 G = ROOT / "golden"
@@ -189,7 +189,7 @@ class AllocationTest(unittest.TestCase):
     def test_two_reps_wanting_the_same_title_are_both_present(self):
         # Two reps asking for the same title at the same company are two asks,
         # not one: the file must list both request_ids rather than collapsing
-        # them, and a batch may therefore repeat a (company, title).
+        # them, each allocated on its own row.
         wanted = defaultdict(set)
         for rid in self.live:
             r = self.requests[rid]
@@ -201,9 +201,9 @@ class AllocationTest(unittest.TestCase):
             present[(a["company_id"], a["target_title"])].add(a["request_id"])
         collapsed = {k: sorted(v - present[k]) for k, v in contested.items() if v - present[k]}
         self.assertEqual(collapsed, {}, "request_ids dropped for a contested title")
-        repeated = Counter((a["batch_id"], a["company_id"], a["target_title"]) for a in self.allocated)
-        self.assertTrue(any(n > 1 for n in repeated.values()),
-                        "no batch lists the same title twice")
+        routed = Counter((a["company_id"], a["target_title"]) for a in self.allocated)
+        self.assertTrue(any(routed[k] > 1 for k in contested),
+                        "no contested title has both requests allocated")
 
     # ── 7. exception reasons ───────────────────────────────────────────
     def test_exception_reason_is_one_of_the_known_set(self):
@@ -248,7 +248,11 @@ class AllocationTest(unittest.TestCase):
         is routed like any other. The parking is per company, not per request."""
         decided = parse_date(self.alloc[0]["decided_at"])
         company_of = {rid: r["company_id"] for rid, r in self.requests.items()}
-        intro_of = introductions(self.outcomes, company_of, decided)
+        open_since = defaultdict(list)
+        for r in self.requests.values():
+            if r["company_id"] and r["status_as_filed"] in OPEN_STATUSES:
+                open_since[r["company_id"]].append(r["request_date"])
+        intro_of = introductions(self.outcomes, company_of, decided, open_since)
         parked = [a for a in self.alloc if a["exception_reason"].startswith(ALREADY_INTRODUCED)]
         self.assertTrue(parked, "the golden allocation parks at least one request behind a live intro")
         for a in parked:
@@ -273,8 +277,48 @@ class AllocationTest(unittest.TestCase):
         for a in retried:
             intro = intro_of[a["company_id"]]
             self.assertFalse(intro["live"])
-            self.assertFalse(intro["meeting_booked"])
+            self.assertFalse(intro["opportunity"])
             self.assertGreater((decided - parse_date(intro["intro_date"])).days, INTRO_LIVE_DAYS, a["request_id"])
+            if intro["meeting_booked"]:
+                self.assertTrue(meeting_stalled(intro, open_since[a["company_id"]]), a["request_id"])
+
+    # ── 9. a meeting that went nowhere stops holding the company ──────────────
+    def test_a_stalled_meeting_releases_the_requests_filed_after_it(self):
+        """A booked meeting parks the company only until it has gone INTRO_LIVE_DAYS
+        without an opportunity while open requests filed after the intro wait on
+        it; then those requests are routed (as retries). A meeting that created an
+        opportunity, or one nobody has asked about since, keeps parking."""
+        decided = parse_date(self.alloc[0]["decided_at"])
+        by_rid = {a["request_id"]: a for a in self.alloc}
+        meetings = [(o, intro_of(o, decided)) for o in self.outcomes if o["meeting_booked"] == "Y"]
+        stalled, held = [], []
+        for o, i in meetings:
+            cid = self.requests[o["request_id"]]["company_id"]
+            after = [r for r in self.requests.values() if r["company_id"] == cid
+                     and r["status_as_filed"] in OPEN_STATUSES and r["request_date"] > o["intro_date"]]
+            (stalled if meeting_stalled(i, [r["request_date"] for r in after]) else held).append((o, i, cid, after))
+        self.assertTrue(stalled, "the dataset has a meeting that stalled with newer requests waiting")
+        self.assertTrue(held)
+        for o, i, cid, after in stalled:
+            with self.subTest(request_id=o["request_id"]):
+                self.assertEqual(o["opportunity_created"], "N")
+                self.assertGreater(i["days"], INTRO_LIVE_DAYS)
+                self.assertTrue(after)
+                self.assertIn("no opportunity", i["outcome"])
+                self.assertNotIn(o["request_id"], by_rid, "the request that got the meeting is not itself re-asked")
+                # nothing is parked behind this meeting; only a later, live intro on the company may still park
+                for r in after:
+                    if r["request_id"] in by_rid:
+                        self.assertNotIn(f"({o['request_id']}", by_rid[r["request_id"]]["exception_reason"], r["request_id"])
+        for o, i, cid, after in held:
+            self.assertTrue(o["opportunity_created"] == "Y" or i["days"] is None or i["days"] <= INTRO_LIVE_DAYS or not after,
+                            o["request_id"])
+        # Apex Logistics: Elena's meeting on R1038 produced no opportunity, R1024 was filed after it
+        r1038 = next(o for o in self.outcomes if o["request_id"] == "R1038")
+        self.assertEqual((r1038["meeting_booked"], r1038["opportunity_created"]), ("Y", "N"))
+        self.assertIn("R1038", [o["request_id"] for o, *_ in stalled])
+        self.assertEqual(by_rid["R1024"]["company_id"], "C002")
+        self.assertTrue(by_rid["R1024"]["allocated_to"], by_rid["R1024"]["exception_reason"])
 
 
 if __name__ == "__main__":

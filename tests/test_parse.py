@@ -247,7 +247,8 @@ class ExportedRulesTest(unittest.TestCase):
             for p in e["paths"]:
                 for k in ("connector", "contact", "title", "evidence", "strength", "fit", "rate", "score", "reason"):
                     self.assertIn(k, p)
-            self.assertEqual([p["score"] for p in e["paths"]], sorted((p["score"] for p in e["paths"]), reverse=True))
+            keys = [(p["reach_type"] == bg.INVESTOR_NETWORK, -p["score"]) for p in e["paths"]]
+            self.assertEqual(keys, sorted(keys), f"{cid}: roster paths first, then by route score")
 
     def test_same_target_as_the_python_parser(self):
         for name, text in CASES.items():

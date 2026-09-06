@@ -9,11 +9,11 @@
 
 - R1022: filed "Open" but intro_outcomes.csv says Elena Duvall sent the intro on 2026-06-20
 - R1091: filed "Stalled" but intro_outcomes.csv says Elena Duvall sent the intro on 2026-05-02
-- R1130: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 8 paths
+- R1130: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 9 paths
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
@@ -25,8 +25,9 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.041 | 0.357 | Owen Trask (Investor) | direct | Marcus Højgaard — Chief Technology Officer | connections_trask.csv: Marcus Højgaard, Chief Technology Officer at Blackwood Industrial, connected 2017-04-20 |
 | 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Marcus Højgaard — ex-Blackwood Industrial (2014-2017), now Chief Technology Officer at Blackwood Industrial | investor_network.csv: Marcus Højgaard prior_employer=Blackwood Industrial (2014-2017); connections_beckett.csv: connection of Tomás Beckett since 2015-01-02 |
 | 0.023 | 0.202 | Owen Trask (Investor) | alumni | Marcus Højgaard — ex-Blackwood Industrial (2014-2017), now Chief Technology Officer at Blackwood Industrial | investor_network.csv: Marcus Højgaard prior_employer=Blackwood Industrial (2014-2017); connections_trask.csv: connection of Owen Trask since 2017-04-20 |
+| 0.215 | 0.900 | Otto Cathcart-Brenneman (investor network) | investor_network (board seat) | CEO / exec team — Ashgrove Capital board seat | investor_network.csv: Otto Cathcart-Brenneman (Venture capital investor), portfolio_company=Blackwood Industrial, board_seat=True |
 
-strongest path, not where it went: Tomás Beckett, offer 0.800, at capacity 8/8; R1022 routed to Elena Duvall, R1091 routed to Marcus Aldridge, R1179 routed to Marcus Aldridge
+strongest path, not where it went: Otto Cathcart-Brenneman, investor_network 0.900, 1/2 used this cycle, holds R1091; R1022 routed to Marcus Aldridge, R1179 routed to Tomás Beckett
 
 ## 4. Chronology (25 events, 4 requests, newest first, as of 2026-09-06)
 
@@ -61,3 +62,12 @@ strongest path, not where it went: Tomás Beckett, offer 0.800, at capacity 8/8;
 
 !! 2025-09-26  crm_accounts.csv     Imani Mkhize         last CRM touch on A1010  [345 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+2 people from investor_network.csv, 1 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Otto Cathcart-Brenneman | Venture capital investor | Ashgrove Capital | yes | portfolio_company | investor_network path (section 3, 10% haircut) |
+| Marcus Højgaard | Operator (work history) |  | no | prior_employer | via Beckett, Trask |

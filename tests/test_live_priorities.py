@@ -189,10 +189,10 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(values, sorted(values, reverse=True), "biggest first")
         self.assertEqual(sum(len(c["request_ids"]) for c in A["all"]), A["allocated"])
         self.assertTrue(all(c["connector"] and c["slug"] and c["batch_id"] for c in A["all"]))
-        self.assertEqual(A["exception_count"], len(alloc) - len(allocated), 67)
+        self.assertEqual(A["exception_count"], len(alloc) - len(allocated), 56)
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
-                         {"no path to this company in the network": 32, "already introduced": 14,
-                          "company unresolved": 9, "capacity exhausted this cycle": 12})
+                         {"no path to this company in the network": 28, "already introduced": 10,
+                          "company unresolved": 9, "capacity exhausted this cycle": 9})
         parked = next(e for e in A["exceptions"] if e["reason"] == "already introduced")
         for r in parked["rows"]:
             self.assertRegex(r["detail"], r"^.+ on \d{4}-\d{2}-\d{2} \(R1\d{3}(, meeting booked)?\)$", "the reason names the intro")
@@ -308,6 +308,37 @@ class PayloadTest(unittest.TestCase):
         self.assertIn("Marcus's 2026-03-11 intro to Yusuf Petrossian went nowhere", s["retry"]["note"])
         self.assertEqual(card["asked_this_cycle"], marcus["asked_this_cycle"] + 1, "the retry spends a slot this cycle")
         self.assertEqual([c["asks"] for c in card["cycles"]][-1], [c["asks"] for c in marcus["cycles"]][-1] + 1)
+
+    def test_a_meeting_with_no_opportunity_in_60_days_releases_the_company_once_newer_requests_wait(self):
+        """Apex Logistics (C002): Elena's 2026-06-10 intro for R1038 booked a meeting
+        but no opportunity followed, and R1024 was filed after it, so the company is
+        no longer parked: R1024 is routed (to Marcus) as a retry whose note says
+        why, and the retry table reads the same intro."""
+        P, L = self.P, lp.Live(AS_OF)
+        i = L.intro_state["C002"]
+        self.assertEqual((i["request_id"], i["connector"], i["intro_date"], i["meeting_booked"], i["opportunity"], i["live"]),
+                         ("R1038", "Elena Duvall", "2026-06-10", True, False, False))
+        self.assertTrue(bg.meeting_stalled(i, ["2026-07-04"]))
+        self.assertFalse(bg.meeting_stalled(i, ["2026-06-01"]), "nothing filed since the meeting: still parked")
+        self.assertFalse(bg.meeting_stalled({**i, "opportunity": True}, ["2026-07-04"]))
+        self.assertFalse(bg.meeting_stalled({**i, "days": bg.INTRO_LIVE_DAYS}, ["2026-07-04"]), "the meeting is still fresh")
+        self.assertEqual(i["outcome"], f"meeting booked, no opportunity in {i['days']} days")
+        self.assertGreater(i["days"], bg.INTRO_LIVE_DAYS)
+        r1024 = next(r for r in L.ranked() if r["request_id"] == "R1024")
+        self.assertEqual(r1024["retry"]["request_id"], "R1038")
+        self.assertIn("Elena's 2026-06-10 intro to Nadia Okonkwo went nowhere: meeting booked, no opportunity", r1024["retry"]["note"])
+        marcus = next(c for c in P["connectors"] if c["connector"] == "Marcus Aldridge")
+        self.assertIn("R1024", [q["request_id"] for q in marcus["queue"]])
+        self.assertIn("C002", {x["company_id"] for x in P["introduced"]["retries"]})
+        self.assertNotIn("C002", {r["company_id"] for e in P["asks"]["exceptions"] for r in e["rows"]
+                                  if e["reason"] == "already introduced"})
+        # a meeting nobody has asked about since keeps parking its company
+        held = [cid for cid, i in L.intro_state.items() if i["live"] and i["meeting_booked"] and not i["opportunity"]]
+        self.assertTrue(held)
+        for cid in held:
+            since = [r["request_date"] for r in L.requests if r["company_id"] == cid
+                     and r["status_as_filed"] in bg.OPEN_STATUSES and r["request_date"] > L.intro_state[cid]["intro_date"]]
+            self.assertTrue(L.intro_state[cid]["days"] <= bg.INTRO_LIVE_DAYS or not since, cid)
 
     def test_offer_gaps(self):
         O = self.P["offer_gaps"]
@@ -469,7 +500,8 @@ class PayloadTest(unittest.TestCase):
         rows = elena["strongest_elsewhere"]
         row = next(r for r in rows if r["company_id"] == "C018")
         self.assertEqual((row["reach_type"], row["strength"], row["route_score"], row["outside_focus"]), ("offer", 0.8, 0.0, True))
-        self.assertEqual((row["used"], row["capacity"]), (3, 3))
+        used = sum(a["allocated_to"] == "Elena Duvall" for a in live.allocation)
+        self.assertEqual((row["used"], row["capacity"]), (used, 3))
         self.assertEqual(row["routed_to"], ["Tomás Beckett"])
         self.assertEqual(row["requests"], ["R1136", "R1140", "R1153"])
         self.assertEqual(row["href"], f"{lp.TRACE_PAGE}#C018")

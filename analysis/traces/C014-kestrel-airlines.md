@@ -7,7 +7,12 @@
 
 ## 3. Who can reach them
 
-nobody in the network reaches this company
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.215 | 0.900 | Espen Rushworth-Oyelaran (investor network) | investor_network (board seat) | CEO / exec team — Silverbrook Capital board seat | investor_network.csv: Espen Rushworth-Oyelaran (Venture capital investor), portfolio_company=Kestrel Airlines, board_seat=True |
+| 0.215 | 0.900 | Wren Petrossian-Norrington (investor network) | investor_network (board seat) | CEO / exec team — Silverbrook Capital board seat | investor_network.csv: Wren Petrossian-Norrington (Venture capital investor), portfolio_company=Kestrel Airlines, board_seat=True |
 
 ## 4. Chronology (5 events, 1 request, newest first, as of 2026-09-06)
 
@@ -19,3 +24,12 @@ nobody in the network reaches this company
 
 !! 2025-10-14  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1012  [327 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+2 people from investor_network.csv, 2 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Espen Rushworth-Oyelaran | Venture capital investor | Silverbrook Capital | yes | portfolio_company | investor_network path (section 3, 10% haircut) |
+| Wren Petrossian-Norrington | Venture capital investor | Silverbrook Capital | yes | portfolio_company | investor_network path (section 3, 10% haircut) |

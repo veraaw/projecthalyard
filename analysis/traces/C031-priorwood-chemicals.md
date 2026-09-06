@@ -7,13 +7,13 @@
 
 ## 2. Where the files disagree
 
-- R1033: filed "Closed - no path" but supply_reach.csv has 8 paths into Priorwood Chemicals
+- R1033: filed "Closed - no path" but supply_reach.csv has 9 paths into Priorwood Chemicals
 - R1150: filed "Stalled" but intro_outcomes.csv says Tomás Beckett sent the intro on 2026-03-16
 - R1196: filed "Stalled" but intro_outcomes.csv says Tomás Beckett sent the intro on 2026-02-20
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
@@ -25,8 +25,9 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Curtis Marchetti — ex-Priorwood Chemicals (2010-2017), now VP Enterprise Architecture at Priorwood Chemicals | investor_network.csv: Curtis Marchetti prior_employer=Priorwood Chemicals (2010-2017); connections_beckett.csv: connection of Tomás Beckett since 2014-07-13 |
 | 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Margot Havercamp — ex-Priorwood Chemicals (2011-2017), now Director of Software Engineering at Priorwood Chemicals | investor_network.csv: Margot Havercamp prior_employer=Priorwood Chemicals (2011-2017); connections_beckett.csv: connection of Tomás Beckett since 2015-01-12 |
 | 0.029 | 0.187 | Marcus Aldridge (Advisor) | alumni | Margot Havercamp — ex-Priorwood Chemicals (2011-2017), now Director of Software Engineering at Priorwood Chemicals | investor_network.csv: Margot Havercamp prior_employer=Priorwood Chemicals (2011-2017); connections_aldridge.csv: connection of Marcus Aldridge since 2014-03-11 |
+| 0.215 | 0.900 | Otto Cathcart-Brenneman (investor network) | investor_network (board seat) | CEO / exec team — Ashgrove Capital board seat | investor_network.csv: Otto Cathcart-Brenneman (Venture capital investor), portfolio_company=Priorwood Chemicals, board_seat=True |
 
-strongest path, not where it went: Elena Duvall, direct 0.300, at capacity 3/3; R1092 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked)), R1174 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked))
+strongest path, not where it went: Otto Cathcart-Brenneman, investor_network 0.900, 1/2 used this cycle; R1092 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked)), R1174 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked))
 
 ## 4. Chronology (56 events, 9 requests, newest first, as of 2026-09-06)
 
@@ -58,7 +59,7 @@ strongest path, not where it went: Elena Duvall, direct 0.300, at capacity 3/3; 
    2026-06-07  intro_outcomes.csv   Tomás Beckett        R1033 asked
    2026-06-06  slack_threads.jsonl  Imani Mkhize         R1033 slack: "adding Nadia Okonkwo who might know"
    2026-06-02  slack_threads.jsonl  Curtis Hartigan      R1033 slack: "long shot — Priorwood Chemicals. Astrid Thackeray-Grimsby (Head of Developer Productivity). Anyone?"
-!! 2026-06-02  intro_requests.csv   Curtis Hartigan      R1033 raised by Curtis Hartigan (AE, Financial Services): wants Head of Developer Productivity, $750,000, High urgency, filed "Closed - no path"  [8 paths in supply_reach.csv]
+!! 2026-06-02  intro_requests.csv   Curtis Hartigan      R1033 raised by Curtis Hartigan (AE, Financial Services): wants Head of Developer Productivity, $750,000, High urgency, filed "Closed - no path"  [9 paths in supply_reach.csv]
 
    2026-05-31  slack_threads.jsonl  Nadia Okonkwo        R1174 slack: "what's the deal size here?"
    2026-05-29  slack_threads.jsonl  Sloane Fairweather   R1174 slack: "did we not already lose this one?"
@@ -97,3 +98,13 @@ strongest path, not where it went: Elena Duvall, direct 0.300, at capacity 3/3; 
 
 !! 2025-10-17  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1030  [324 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+3 people from investor_network.csv, 1 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Otto Cathcart-Brenneman | Venture capital investor | Ashgrove Capital | yes | portfolio_company | investor_network path (section 3, 10% haircut) |
+| Curtis Marchetti | Operator (work history) |  | no | prior_employer | via Beckett, Duvall |
+| Margot Havercamp | Operator (work history) |  | no | prior_employer | via Aldridge, Beckett |

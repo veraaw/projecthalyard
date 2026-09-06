@@ -7,19 +7,20 @@
 
 ## 2. Where the files disagree
 
-- R1069: filed "Closed - no path" but supply_reach.csv has 1 path into Apex Holdings
+- R1069: filed "Closed - no path" but supply_reach.csv has 2 paths into Apex Holdings
 - R1154: filed "Stalled" but intro_outcomes.csv says Marcus Aldridge sent the intro on 2026-03-11
 - R1186: filed "Open" but intro_outcomes.csv says Marcus Aldridge sent the intro on 2026-01-05
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
 | 0.168 | 0.484 | Marcus Aldridge (Advisor) | direct | Astrid Salcedo — VP Data & Analytics | connections_aldridge.csv: Astrid Salcedo, VP Data & Analytics at Apex Logistics Group, connected 2023-11-25 |
+| 0.172 | 0.720 | Espen Rushworth-Oyelaran (investor network) | investor_network | CEO / exec team — Silverbrook Capital portfolio company | investor_network.csv: Espen Rushworth-Oyelaran (Venture capital investor), portfolio_company=Apex Logistics Group, board_seat=False |
 
-strongest path, not where it went: Marcus Aldridge, direct 0.484, at capacity 4/4, holds R1154; R1186 unrouted (capacity exhausted this cycle)
+strongest path, not where it went: Espen Rushworth-Oyelaran, investor_network 0.720, at capacity 2/2, holds R1186; R1154 routed to Marcus Aldridge
 
 ## 4. Chronology (17 events, 3 requests, newest first, as of 2026-09-06)
 
@@ -27,7 +28,7 @@ strongest path, not where it went: Marcus Aldridge, direct 0.484, at capacity 4/
 <- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1069 never replied (asked 2025-11-01, 309 days ago)
    2025-11-01  intro_outcomes.csv   Marcus Aldridge      R1069 asked
    2025-10-30  slack_threads.jsonl  Sloane Fairweather   R1069 slack: "any connections into Apex Logistics Group? we're up against a renewal window and I need an intro to SVP Digital"
-!! 2025-10-30  intro_requests.csv   Sloane Fairweather   R1069 raised by Sloane Fairweather (Strategic AE): wants SVP Digital, $1,200,000, Medium urgency, filed "Closed - no path"  [1 paths in supply_reach.csv]
+!! 2025-10-30  intro_requests.csv   Sloane Fairweather   R1069 raised by Sloane Fairweather (Strategic AE): wants SVP Digital, $1,200,000, Medium urgency, filed "Closed - no path"  [2 paths in supply_reach.csv]
 
 ++ 2026-03-11  intro_outcomes.csv   Marcus Aldridge      R1154 intro sent
 ++ 2026-03-06  intro_outcomes.csv   Marcus Aldridge      R1154 replied (1 days after the ask)
@@ -45,3 +46,11 @@ strongest path, not where it went: Marcus Aldridge, direct 0.484, at capacity 4/
 
 !! 2025-08-03  crm_accounts.csv     Imani Mkhize         last CRM touch on A1002  [399 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 1 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Espen Rushworth-Oyelaran | Venture capital investor | Silverbrook Capital | no | portfolio_company | investor_network path (section 3, 10% haircut) |

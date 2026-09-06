@@ -46,7 +46,7 @@ OUTCOMES = DATASET / "intro_outcomes.csv"
 
 ROSTER_TEMPLATE, OFFERER_TEMPLATE = "roster", "offerer"
 OFFER = "offer"
-INDIRECT = {"investor", "board"}
+INDIRECT = {"investor", "board", bg.INVESTOR_NETWORK}
 
 
 def load_templates(path: Path = TEMPLATES) -> dict:

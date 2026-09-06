@@ -25,7 +25,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.044 | 0.248 | Owen Trask (Investor) | direct | Kofi Mkhize — VP Engineering | connections_trask.csv: Kofi Mkhize, VP Engineering at Kingsmere Retail Group, connected 2016-05-20 |
 | 0.033 | 0.187 | Owen Trask (Investor) | alumni | Kofi Mkhize — ex-Kingsmere Retail Group (2012-2019), now VP Engineering at Kingsmere Retail Group | investor_network.csv: Kofi Mkhize prior_employer=Kingsmere Retail Group (2012-2019); connections_trask.csv: connection of Owen Trask since 2016-05-20 |
 
-strongest path, not where it went: Yusuf Petrossian, offer 0.800, at capacity 2/2, holds R1006, R1128; R1070 routed to Dana Whitfield, R1171 routed to Dana Whitfield, R1193 routed to Tomás Beckett
+strongest path, not where it went: Yusuf Petrossian, offer 0.800, at capacity 2/2, holds R1006, R1128; R1070 routed to Dana Whitfield, R1171 routed to Dana Whitfield, R1193 unrouted (capacity exhausted this cycle)
 
 ## 4. Chronology (35 events, 8 requests, newest first, as of 2026-09-06)
 
@@ -73,3 +73,11 @@ strongest path, not where it went: Yusuf Petrossian, offer 0.800, at capacity 2/
    2025-12-26  slack_threads.jsonl  Nadia Okonkwo        R1128 slack: "who do we know at Kingsmere Retail Group? VP Enterprise Architecture would be ideal but I'll take anyone senior"
    2025-12-26  intro_requests.csv   Nadia Okonkwo        R1128 raised by Nadia Okonkwo (AE, Industrials): wants VP Enterprise Architecture, $80,000, Critical urgency, filed "Routed"
 ```
+
+## 5. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 0 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Kofi Mkhize | Operator (work history) |  | no | prior_employer | via Beckett, Trask |
