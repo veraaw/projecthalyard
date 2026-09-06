@@ -7,12 +7,12 @@
 
 ## 2. Where the files disagree
 
+- R1005: filed "Closed - no path" but supply_reach.csv has 1 path into Ravensmoor Defense
+- R1005: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 1 paths
+- R1039: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 1 paths
 - R1109: filed "Closed - no path" but supply_reach.csv has 1 path into Ravensmoor Defense
 - R1109: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 1 paths
 - R1109: Owen Trask offered in slack_threads.jsonl on 2025-10-26 ("their Head of Platform reports to someone I've known for a decade, leave it with me") but intro_outcomes.csv never asked them
-- R1039: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 1 paths
-- R1005: filed "Closed - no path" but supply_reach.csv has 1 path into Ravensmoor Defense
-- R1005: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 1 paths
 
 ## 3. Who can reach them
 

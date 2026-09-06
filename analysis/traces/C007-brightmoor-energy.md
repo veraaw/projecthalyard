@@ -7,9 +7,9 @@
 
 ## 2. Where the files disagree
 
-- R1139: filed "Closed - no path" but supply_reach.csv has 2 paths into Brightmoor Energy
-- R1123: filed "Routed" but intro_outcomes.csv says Elena Duvall sent the intro on 2026-04-29
 - R1042: filed "Stalled" but intro_outcomes.csv says Elena Duvall sent the intro on 2026-06-17
+- R1123: filed "Routed" but intro_outcomes.csv says Elena Duvall sent the intro on 2026-04-29
+- R1139: filed "Closed - no path" but supply_reach.csv has 2 paths into Brightmoor Energy
 
 ## 3. Who can reach them
 

@@ -7,11 +7,11 @@
 
 ## 2. Where the files disagree
 
-- R1170: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 2 paths
-- R1167: filed "Stalled" but intro_outcomes.csv says Priya Raghunathan sent the intro on 2026-01-31
-- R1167: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 2 paths
 - R1163: filed "Open" but intro_outcomes.csv says Elena Duvall sent the intro on 2026-04-02
 - R1163: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 2 paths
+- R1167: filed "Stalled" but intro_outcomes.csv says Priya Raghunathan sent the intro on 2026-01-31
+- R1167: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 2 paths
+- R1170: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 2 paths
 
 ## 3. Who can reach them
 

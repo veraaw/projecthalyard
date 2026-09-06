@@ -7,11 +7,11 @@
 
 ## 2. Where the files disagree
 
-- R1140: filed "Open" but intro_outcomes.csv says Tomás Beckett sent the intro on 2025-10-08
-- R1173: filed "Intro sent" but intro_outcomes.csv has no row at all
 - R1090: filed "Closed - no path" but supply_reach.csv has 11 paths into Harrowgate Health
 - R1136: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 11 paths
 - R1136: Elena Duvall offered in slack_threads.jsonl on 2026-03-16 ("their Head of Platform reports to someone I've known for a decade, leave it with me") but intro_outcomes.csv never asked them
+- R1140: filed "Open" but intro_outcomes.csv says Tomás Beckett sent the intro on 2025-10-08
+- R1173: filed "Intro sent" but intro_outcomes.csv has no row at all
 
 ## 3. Who can reach them
 

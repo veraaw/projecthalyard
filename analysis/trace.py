@@ -77,6 +77,12 @@ def days_ago(d: date | None, today: date) -> str:
     return f"{(today - d).days} days ago" if d else "undated"
 
 
+def request_number(rid: str) -> tuple[int, str]:
+    """R1178 -> (1178, 'R1178'), so ids sort numerically."""
+    m = re.search(r"\d+", rid)
+    return (int(m.group()) if m else sys.maxsize, rid)
+
+
 @dataclass
 class Data:
     companies: list[dict]
@@ -324,7 +330,7 @@ class Trace:
             out.append(f"- golden_companies.csv: owners disagree: {self.c['owner']}")
 
         n_paths = len(self.paths)
-        for r in self.requests:
+        for r in sorted(self.requests, key=lambda r: request_number(r["request_id"])):
             rid, status = r["request_id"], r["status_as_filed"]
             f = self.d.filed.get(rid)
             logged = self.intro_logged(rid)

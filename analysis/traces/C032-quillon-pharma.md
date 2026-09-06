@@ -7,8 +7,8 @@
 
 ## 2. Where the files disagree
 
-- R1198: filed "Closed - no path" but supply_reach.csv has 12 paths into Quillon Pharma
 - R1178: filed "Closed - no path" but supply_reach.csv has 12 paths into Quillon Pharma
+- R1198: filed "Closed - no path" but supply_reach.csv has 12 paths into Quillon Pharma
 
 ## 3. Who can reach them
 

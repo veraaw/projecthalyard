@@ -8,13 +8,13 @@
 ## 2. Where the files disagree
 
 - R1108: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 8 paths
-- R1185: filed "Stalled" but intro_outcomes.csv says Priya Raghunathan sent the intro on 2026-02-22
 - R1115: filed "Intro sent" but intro_outcomes.csv has no row at all
 - R1115: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 8 paths
 - R1115: Priya Raghunathan offered in slack_threads.jsonl on 2026-02-20 ("their Head of Platform reports to someone I've known for a decade, leave it with me") but intro_outcomes.csv never asked them
+- R1122: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 8 paths
 - R1149: filed "Routed" but intro_outcomes.csv says Priya Raghunathan sent the intro on 2026-05-23
 - R1160: filed "Closed - no path" but supply_reach.csv has 8 paths into Gravenhurst Motors
-- R1122: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 8 paths
+- R1185: filed "Stalled" but intro_outcomes.csv says Priya Raghunathan sent the intro on 2026-02-22
 
 ## 3. Who can reach them
 

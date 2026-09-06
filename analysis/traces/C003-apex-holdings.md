@@ -8,8 +8,8 @@
 ## 2. Where the files disagree
 
 - R1069: filed "Closed - no path" but supply_reach.csv has 1 path into Apex Holdings
-- R1186: filed "Open" but intro_outcomes.csv says Marcus Aldridge sent the intro on 2026-01-05
 - R1154: filed "Stalled" but intro_outcomes.csv says Marcus Aldridge sent the intro on 2026-03-11
+- R1186: filed "Open" but intro_outcomes.csv says Marcus Aldridge sent the intro on 2026-01-05
 
 ## 3. Who can reach them
 

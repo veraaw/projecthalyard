@@ -7,9 +7,9 @@
 
 ## 2. Where the files disagree
 
-- R1130: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 8 paths
-- R1091: filed "Stalled" but intro_outcomes.csv says Elena Duvall sent the intro on 2026-05-02
 - R1022: filed "Open" but intro_outcomes.csv says Elena Duvall sent the intro on 2026-06-20
+- R1091: filed "Stalled" but intro_outcomes.csv says Elena Duvall sent the intro on 2026-05-02
+- R1130: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 8 paths
 
 ## 3. Who can reach them
 

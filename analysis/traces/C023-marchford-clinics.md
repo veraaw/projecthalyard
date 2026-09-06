@@ -7,8 +7,8 @@
 
 ## 2. Where the files disagree
 
-- R1121: filed "Stalled" but intro_outcomes.csv says Marcus Aldridge sent the intro on 2025-09-26
 - R1009: filed "Intro sent" but intro_outcomes.csv has no row at all
+- R1121: filed "Stalled" but intro_outcomes.csv says Marcus Aldridge sent the intro on 2025-09-26
 
 ## 3. Who can reach them
 

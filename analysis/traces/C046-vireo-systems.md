@@ -7,10 +7,10 @@
 
 ## 2. Where the files disagree
 
-- R1107: filed "Intro sent" but intro_outcomes.csv has no intro (asked Elena Duvall, intro_sent=N)
 - R1017: filed "Closed - no path" but supply_reach.csv has 3 paths into Vireo Systems
-- R1166: filed "Closed - no path" but supply_reach.csv has 3 paths into Vireo Systems
+- R1107: filed "Intro sent" but intro_outcomes.csv has no intro (asked Elena Duvall, intro_sent=N)
 - R1155: filed "Intro sent" but intro_outcomes.csv has no intro (asked Elena Duvall, intro_sent=N)
+- R1166: filed "Closed - no path" but supply_reach.csv has 3 paths into Vireo Systems
 
 ## 3. Who can reach them
 

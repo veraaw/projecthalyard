@@ -7,9 +7,9 @@
 
 ## 2. Where the files disagree
 
-- R1171: filed "Open" but intro_outcomes.csv says Dana Whitfield sent the intro on 2026-02-04
-- R1147: filed "Closed - no path" but supply_reach.csv has 7 paths into Kingsmere Retail Group
 - R1066: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 7 paths
+- R1147: filed "Closed - no path" but supply_reach.csv has 7 paths into Kingsmere Retail Group
+- R1171: filed "Open" but intro_outcomes.csv says Dana Whitfield sent the intro on 2026-02-04
 
 ## 3. Who can reach them
 

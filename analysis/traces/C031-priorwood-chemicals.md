@@ -7,9 +7,9 @@
 
 ## 2. Where the files disagree
 
-- R1196: filed "Stalled" but intro_outcomes.csv says Tomás Beckett sent the intro on 2026-02-20
-- R1150: filed "Stalled" but intro_outcomes.csv says Tomás Beckett sent the intro on 2026-03-16
 - R1033: filed "Closed - no path" but supply_reach.csv has 8 paths into Priorwood Chemicals
+- R1150: filed "Stalled" but intro_outcomes.csv says Tomás Beckett sent the intro on 2026-03-16
+- R1196: filed "Stalled" but intro_outcomes.csv says Tomás Beckett sent the intro on 2026-02-20
 
 ## 3. Who can reach them
 

@@ -7,8 +7,8 @@
 
 ## 2. Where the files disagree
 
-- R1089: filed "Closed - no path" but supply_reach.csv has 6 paths into Ironvale Steel
 - R1040: filed "Intro sent" but intro_outcomes.csv has no row at all
+- R1089: filed "Closed - no path" but supply_reach.csv has 6 paths into Ironvale Steel
 
 ## 3. Who can reach them
 

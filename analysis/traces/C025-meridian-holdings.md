@@ -7,8 +7,8 @@
 
 ## 2. Where the files disagree
 
-- R1172: filed "Intro sent" but intro_outcomes.csv has no intro (asked Priya Raghunathan, intro_sent=N)
 - R1168: filed "Open" but intro_outcomes.csv says Priya Raghunathan sent the intro on 2026-08-04
+- R1172: filed "Intro sent" but intro_outcomes.csv has no intro (asked Priya Raghunathan, intro_sent=N)
 
 ## 3. Who can reach them
 
