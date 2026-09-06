@@ -64,6 +64,6 @@
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | nudge, don't re-ask | said yes on 2026-02-24 and never forwarded | R1114 |
+| 1 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | nudge, don't re-ask; send the ask (batch 2026-09 Marcus Aldridge) | said yes on 2026-02-24 and never forwarded; allocated in golden_allocation.csv via direct path to Kofi Jarrold, score 0.081 | R1114, R1004 |
 | 2 | Curtis Hartigan | CRM owner (A1018) | check in on the account | last touch 2025-07-15, 418 days ago | — |
 | 3 | Rafael Salcedo (345 days), Yusuf Petrossian (201 days), Curtis Hartigan (96 days), Imani Mkhize (62 days) | 4 reps still waiting, longest first | tell them it's with Marcus Aldridge | 4 reps raised this and have heard nothing; the oldest has been waiting 345 days | R1142, R1114, R1009, R1162, R1004 |

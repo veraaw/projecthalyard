@@ -203,6 +203,9 @@ OFF_ROSTER_CAPACITY = 2  # monthly asks assumed for anyone askable who is not on
 FATIGUE_DAYS = 60  # asks proposed to a connector in this trailing window count against their capacity
 CAPACITY_EXHAUSTED = "capacity exhausted this cycle"
 STALE_ASK = "already proposed, no outcome logged"  # exception_reason prefix: '<STALE_ASK>: <connector> in <cycle>'
+INTRO_LIVE_DAYS = 60  # an intro this recent (or one that booked a meeting) is still in play: nobody is asked afresh
+# exception_reason prefix: '<ALREADY_INTRODUCED>: <connector> on <intro_date> (<request_id>[, meeting booked])'
+ALREADY_INTRODUCED = "already introduced"
 # contradicts_log: status_as_filed vs intro_outcomes.csv
 INTRO_CLAIMED_NOT_LOGGED = "intro claimed, none logged"
 INTRO_LOGGED_FILED_STALLED = "intro logged, filed as stalled"
@@ -772,6 +775,36 @@ def history_signals(history: list[dict], outcomes: list[dict], today: date) -> H
     return HistorySignals(fatigue, stale, proposed)
 
 
+def introductions(outcomes: list[dict], company_of: dict[str, str], today: date) -> dict[str, dict]:
+    """company_id -> the intro that governs new asks on the company. An intro is
+    `live` while it booked a meeting or went out within INTRO_LIVE_DAYS: the rep
+    who received it extends it, nobody is asked afresh. With no live intro the
+    newest one has fizzled and is named so the next ask reads as a retry.
+    Companies with no intro sent are absent."""
+    by_company: dict[str, list[dict]] = defaultdict(list)
+    for o in outcomes:
+        cid = company_of.get(o["request_id"], "")
+        if cid and o["intro_sent"].strip() == "Y":
+            d = parse_date(o["intro_date"] or "")
+            days = (today - d).days if d else None
+            booked = o["meeting_booked"].strip() == "Y"
+            by_company[cid].append({
+                "request_id": o["request_id"], "connector": o["connector_asked"], "intro_date": o["intro_date"],
+                "days": days, "meeting_booked": booked,
+                "live": booked or (days is not None and days <= INTRO_LIVE_DAYS),
+            })
+    out = {}
+    for cid, intros in by_company.items():
+        live = [i for i in intros if i["live"]]
+        out[cid] = max(live or intros, key=lambda i: (i["meeting_booked"], i["intro_date"], i["request_id"]))
+    return out
+
+
+def introduced_reason(intro: dict) -> str:
+    return (f"{ALREADY_INTRODUCED}: {intro['connector']} on {intro['intro_date']} ({intro['request_id']}"
+            + (", meeting booked)" if intro["meeting_booked"] else ")"))
+
+
 def cycle_budget(roster: dict, fatigue: Counter, name: str) -> int:
     """Asks a connector can take this cycle: stated_monthly_capacity, less the
     asks in the trailing FATIGUE_DAYS beyond one month's capacity. A connector
@@ -986,9 +1019,11 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     a request allocated in a prior cycle, or a connector already proposed this
     company in a prior cycle, is flagged (STALE_ASK, naming that connector and
     cycle) instead of being allocated or falling through to the next
-    connector. Once every connector with a path is spent the request becomes
-    an exception. Requests allocated to the same connector share a batch_id:
-    one consolidated ask."""
+    connector. A request on a company whose intro is still live
+    (introductions) is parked (ALREADY_INTRODUCED, naming the intro) rather
+    than asked afresh: the rep who received the intro extends it. Once every
+    connector with a path is spent the request becomes an exception. Requests
+    allocated to the same connector share a batch_id: one consolidated ask."""
     cycle = today.strftime("%Y-%m")
     fatigue, stale, proposed = signals
     budget: dict[str, int] = defaultdict(int)
@@ -996,6 +1031,7 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
         budget[n] = cycle_budget(roster, fatigue, n)
 
     asked = {o["request_id"] for o in outcomes}
+    introduced = introductions(outcomes, {rid: rq["company"].company_id for rid, rq in resolved.items() if rq["company"]}, today)
     live = [(rid, rq) for rid, rq in resolved.items()
             if rq["facts"]["status_as_filed"] in OPEN_STATUSES and rid not in asked]
     live.sort(key=lambda t: (URGENCY_RANK.get(t[1]["facts"]["urgency_declared"], 9),
@@ -1028,11 +1064,16 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
         scored = sorted(((path_score(p, roster, rates, industry), p) for p in paths),
                         key=lambda t: -t[0])
         scored = [(sc, p) for sc, p in scored if sc > 0]
+        if scored:
+            best_sc, best = scored[0]
+            row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {best_sc:.2f})"
+        intro = introduced.get(company.company_id)
+        if intro and intro["live"]:
+            row["exception_reason"] = introduced_reason(intro)
+            continue
         if not scored:
             row["exception_reason"] = "no path to this company in the network"
             continue
-        best_sc, best = scored[0]
-        row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {best_sc:.2f})"
         for sc, p in scored:
             n = p["connector"]
             prior = proposed.get(rid) or stale.get((n, company.company_id))
@@ -1210,6 +1251,8 @@ def blocked_reason(company: Company | None, paths: list[dict], roster: dict, all
         return CAPACITY_EXHAUSTED
     if alloc and alloc["exception_reason"].startswith(STALE_ASK):
         return STALE_ASK
+    if alloc and alloc["exception_reason"].startswith(ALREADY_INTRODUCED):
+        return ALREADY_INTRODUCED
     if not any(p["connector"] in roster for p in paths):
         return BLOCK_NO_ROSTER_PATH
     return BLOCK_NEVER_ROUTED

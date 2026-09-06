@@ -3,10 +3,12 @@
     python3 -m dashboard.batch_ask            # print every message
     python3 -m dashboard.batch_ask 2026-09    # one cycle
 
-Reads three files and nothing else: golden/golden_allocation.csv (who each
+Reads four files and nothing else: golden/golden_allocation.csv (who each
 request routes to, in which batch, over which path), golden/golden_requests.csv
-(who asked, and the thread date of any offer made on the company) and
-dataset/connector_roster.csv (stated capacity, notes, type). `compose()` returns
+(who asked, and the thread date of any offer made on the company),
+dataset/connector_roster.csv (stated capacity, notes, type) and
+dataset/intro_outcomes.csv (the intro a company already had, when the ask is a
+retry after it fizzled). `compose()` returns
 one record per (cycle, connector) holding an allocation, with the message text
 under `message` and everything the message may not say — dollar values, route
 scores, request ids, urgency — kept in the structured fields for the page.
@@ -14,7 +16,9 @@ scores, request ids, urgency — kept in the structured fields for the page.
 The message groups the batch by company, then by contact within the company,
 one block per company ordered by the batch's highest route score. Two requests
 for the same company and title render once with ", asked twice" (or "Nx"); both
-request ids stay on the record. The wording lives in
+request ids stay on the record. A company whose earlier intro went nowhere
+(the allocator only routes such a company afresh once that intro has fizzled)
+carries a retry line naming who introduced whom and when. The wording lives in
 config/batch_ask_templates.json — the roster template for connectors on the
 roster, the offerer template for someone off the roster who is being asked
 because they offered in a thread — so no names and no copy live in this file.
@@ -38,6 +42,7 @@ TEMPLATES = CONFIG / "batch_ask_templates.json"
 ALLOCATION = GOLDEN / "golden_allocation.csv"
 REQUESTS = GOLDEN / "golden_requests.csv"
 ROSTER = DATASET / "connector_roster.csv"
+OUTCOMES = DATASET / "intro_outcomes.csv"
 
 ROSTER_TEMPLATE, OFFERER_TEMPLATE = "roster", "offerer"
 OFFER = "offer"
@@ -84,6 +89,34 @@ def offer_date(offers: dict[str, list[tuple[str, str]]], company_id: str, connec
     return fallback[:10]
 
 
+def prior_intros(outcomes: list[dict], requests: list[dict]) -> dict[str, dict]:
+    """company_id -> the newest intro sent on the company: who sent it, to which
+    rep, on what date. Which of these count as fizzled is the allocator's call
+    (build_golden.introductions); anything it allocated afresh is by construction
+    a retry, so the composer only has to name the intro."""
+    by_rid = {r["request_id"]: r for r in requests}
+    out: dict[str, dict] = {}
+    for o in outcomes:
+        r = by_rid.get(o["request_id"])
+        if not r or not r["company_id"] or o["intro_sent"].strip() != "Y":
+            continue
+        intro = {"connector": o["connector_asked"], "date": o["intro_date"][:10], "requester": r["requested_by"],
+                 "request_id": o["request_id"], "meeting_booked": o["meeting_booked"].strip() == "Y"}
+        cur = out.get(r["company_id"])
+        if cur is None or (intro["date"], intro["request_id"]) > (cur["date"], cur["request_id"]):
+            out[r["company_id"]] = intro
+    return out
+
+
+def retry_text(t: dict, intro: dict | None, who: str) -> str:
+    if not intro:
+        return ""
+    b = t["block"]
+    tpl = b["retry_own"] if intro["connector"] == who else b["retry"]
+    return tpl.format(connector=intro["connector"], requester=intro["requester"] or b["requester_unknown"],
+                      date=intro["date"] or b["retry_undated"])
+
+
 def path_text(t: dict, path_type: str, contact: str, date: str) -> str:
     p = t["path"]
     if path_type == "direct":
@@ -102,24 +135,27 @@ def repeat_suffix(t: dict, n: int) -> str:
 
 
 def compose(allocation: list[dict] | None = None, requests: list[dict] | None = None,
-            roster: dict[str, dict] | None = None, templates: dict | None = None) -> list[dict]:
+            roster: dict[str, dict] | None = None, templates: dict | None = None,
+            outcomes: list[dict] | None = None) -> list[dict]:
     """One record per (cycle, connector) with at least one allocated row, ordered
     by cycle then connector. Deterministic for a given input."""
     allocation = bg.read_allocation(ALLOCATION) if allocation is None else allocation
     requests = bg.read_csv(REQUESTS) if requests is None else requests
     roster = bg.load_roster() if roster is None else roster
     t = load_templates() if templates is None else templates
+    outcomes = bg.read_csv(OUTCOMES) if outcomes is None else outcomes
     by_rid = {r["request_id"]: r for r in requests}
     offers = offer_dates(requests)
+    intros = prior_intros(outcomes, requests)
 
     batches: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for a in allocation:
         if a.get("allocated_to"):
             batches[(a["cycle"], a["allocated_to"])].append(a)
-    return [_record(cycle, who, rows, by_rid, offers, roster, t) for (cycle, who), rows in sorted(batches.items())]
+    return [_record(cycle, who, rows, by_rid, offers, intros, roster, t) for (cycle, who), rows in sorted(batches.items())]
 
 
-def _record(cycle: str, who: str, rows: list[dict], by_rid: dict, offers: dict, roster: dict, t: dict) -> dict:
+def _record(cycle: str, who: str, rows: list[dict], by_rid: dict, offers: dict, intros: dict, roster: dict, t: dict) -> dict:
     r = roster.get(who)
     rows = sorted(rows, key=lambda a: (-score(a["route_score"]), a["company_id"], a["target_title"], a["request_id"]))
     reqs = []
@@ -137,8 +173,11 @@ def _record(cycle: str, who: str, rows: list[dict], by_rid: dict, offers: dict, 
     for q in reqs:  # rows arrive best-score-first, so first sight of a company fixes block order
         c = next((c for c in companies if c["company_id"] == q["company_id"]), None)
         if c is None:
+            intro = intros.get(q["company_id"])
+            if intro and intro["date"][:7] >= cycle:  # sent after this cycle's asks went out
+                intro = None
             c = {"company_id": q["company_id"], "company_name": q["company_name"], "route_score": q["route_score"],
-                 "request_ids": [], "contacts": []}
+                 "request_ids": [], "contacts": [], "retry": intro, "retry_line": retry_text(t, intro, who)}
             companies.append(c)
         c["request_ids"].append(q["request_id"])
         key = (q["path_type"], q["contact_name"])
@@ -187,6 +226,8 @@ def render(rec: dict, t: dict) -> str:
     for c in rec["companies"]:
         nested = len(c["contacts"]) > 1
         lines.append((b["company_many_paths"] if nested else b["company"]).format(company=c["company_name"], path=c["contacts"][0]["path"]))
+        if c["retry_line"]:
+            lines.append(c["retry_line"])
         for g in c["contacts"]:
             if nested:
                 lines.append(b["path_line"].format(path=g["path"]))

@@ -29,6 +29,9 @@
     "requester_join": ", ",
     "requester_unknown": "unattributed",
     "asked_twice": ", asked twice",
-    "asked_n": ", asked {n}x"
+    "asked_n": ", asked {n}x",
+    "retry": "  retry: {connector} introduced {requester} there on {date} and it went quiet, so a fresh name would help",
+    "retry_own": "  retry: you introduced {requester} there on {date} and it went quiet, so a fresh name (or a nudge to the first) would help",
+    "retry_undated": "an earlier date"
   }
 }

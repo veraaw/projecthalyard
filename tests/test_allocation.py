@@ -20,8 +20,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from golden.build_golden import (  # noqa: E402
-    CAPACITY_EXHAUSTED, OPEN_STATUSES, STALE_ASK, cycle_budget, history_signals, latest_cycle, load_roster,
-    parse_date,
+    ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, INTRO_LIVE_DAYS, OPEN_STATUSES, STALE_ASK, cycle_budget, history_signals,
+    introductions, latest_cycle, load_roster, parse_date,
 )
 
 G = ROOT / "golden"
@@ -30,7 +30,8 @@ D = ROOT / "dataset"
 NO_PATH = "no path to this company in the network"
 UNRESOLVED = "company unresolved"
 ALWAYS_PRESENT = {NO_PATH, CAPACITY_EXHAUSTED, UNRESOLVED}
-KNOWN_EXCEPTIONS = ALWAYS_PRESENT | {STALE_ASK}  # STALE_ASK needs a prior cycle, so it may be absent
+# STALE_ASK needs a prior cycle and ALREADY_INTRODUCED a live intro, so either may be absent
+KNOWN_EXCEPTIONS = ALWAYS_PRESENT | {STALE_ASK, ALREADY_INTRODUCED}
 BATCH_COLUMNS = ("batch_id", "batch_size", "path_type", "route_score")
 
 
@@ -207,12 +208,49 @@ class AllocationTest(unittest.TestCase):
                 elif a["exception_reason"] == NO_PATH:
                     self.assertEqual(self.companies[a["company_id"]]["paths_available"], "0")
                     self.assertEqual(a["best_path_if_unbudgeted"], "")
+                elif a["exception_reason"].startswith(ALREADY_INTRODUCED):
+                    self.assertTrue(a["company_id"])  # parked on the company's intro, path or no path
                 else:  # capacity exhausted, or already proposed: a path exists and is named
                     self.assertNotEqual(self.companies[a["company_id"]]["paths_available"], "0")
                     self.assertTrue(a["best_path_if_unbudgeted"])
         no_company = [a["request_id"] for a in self.alloc
                       if not a["company_id"] and a["exception_reason"] != UNRESOLVED]
         self.assertEqual(no_company, [], "no company_id yet not flagged as unresolved")
+
+    # ── 8. a company already introduced is not asked afresh ─────────────
+    def test_live_intro_parks_the_company_and_a_fizzled_one_is_retried(self):
+        """Every request on a company whose intro is live (meeting booked, or sent
+        within INTRO_LIVE_DAYS of the decision) is parked as ALREADY_INTRODUCED,
+        naming that intro; none is allocated. A company whose newest intro fizzled
+        is routed like any other. The parking is per company, not per request."""
+        decided = parse_date(self.alloc[0]["decided_at"])
+        company_of = {rid: r["company_id"] for rid, r in self.requests.items()}
+        intro_of = introductions(self.outcomes, company_of, decided)
+        parked = [a for a in self.alloc if a["exception_reason"].startswith(ALREADY_INTRODUCED)]
+        self.assertTrue(parked, "the golden allocation parks at least one request behind a live intro")
+        for a in parked:
+            with self.subTest(request_id=a["request_id"]):
+                intro = intro_of[a["company_id"]]
+                self.assertTrue(intro["live"])
+                self.assertNotIn(a["request_id"], self.asked, "parked rows are requests never asked themselves")
+                self.assertEqual(a["allocated_to"], "")
+                self.assertIn(intro["connector"], a["exception_reason"])
+                self.assertIn(intro["intro_date"], a["exception_reason"])
+                self.assertIn(intro["request_id"], a["exception_reason"])
+                self.assertEqual("meeting booked" in a["exception_reason"], intro["meeting_booked"])
+                if not intro["meeting_booked"]:
+                    self.assertLessEqual((decided - parse_date(intro["intro_date"])).days, INTRO_LIVE_DAYS)
+        live_companies = {cid for cid, i in intro_of.items() if i["live"]}
+        for a in self.alloc:
+            if a["company_id"] in live_companies:
+                self.assertTrue(a["exception_reason"].startswith(ALREADY_INTRODUCED), f"{a['request_id']} asked afresh behind a live intro")
+        retried = [a for a in self.allocated if a["company_id"] in intro_of]
+        self.assertTrue(retried, "a company whose intro fizzled is back in the queue")
+        for a in retried:
+            intro = intro_of[a["company_id"]]
+            self.assertFalse(intro["live"])
+            self.assertFalse(intro["meeting_booked"])
+            self.assertGreater((decided - parse_date(intro["intro_date"])).days, INTRO_LIVE_DAYS, a["request_id"])
 
 
 if __name__ == "__main__":

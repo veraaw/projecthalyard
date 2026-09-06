@@ -81,7 +81,7 @@ BANDS = [
      [("top", "Top priorities"), ("offers", "Already offered"), ("bottlenecks", "Core bottlenecks"), ("crm", "CRM Updates")]),
     ("cycle", "Current Cycle Overview",
      "does it describe a decision the allocator already made?",
-     [("asks", "Current asks"), ("connectors", "Roster Connectors")]),
+     [("asks", "Current asks"), ("introduced", "Already introduced"), ("connectors", "Roster Connectors")]),
     ("stuck", "Not Moving",
      "does the action belong to someone who isn't reading this page?",
      [("unrouted", "Unrouted"), ("checkins", "Check-ins")]),
@@ -188,7 +188,8 @@ class Live:
         self.rates = bg.delivery_rates(self.roster, self.outcomes, self.threads)
         self.cycle = self.allocation[0]["cycle"] if self.allocation else today.strftime("%Y-%m")
         self.fatigue = bg.history_signals(self.history, self.outcomes, today).fatigue
-        self.batch_asks = batch_ask.compose(self.history, self.requests, self.roster)
+        self.intro_state = bg.introductions(self.outcomes, {r["request_id"]: r["company_id"] for r in self.requests}, today)
+        self.batch_asks = batch_ask.compose(self.history, self.requests, self.roster, outcomes=self.outcomes)
         self.traceable = {t["company_id"] for t in all_traces(today)}
         self._ranked: list[dict] | None = None
 
@@ -326,6 +327,25 @@ class Live:
                 seen.add(label)
                 out.append(label)
         return out
+
+    def prior_intro(self, cid: str) -> dict | None:
+        """The intro that governs new asks on the company (build_golden.introductions),
+        with who it reached: the rep who filed that request owns any follow-up on it."""
+        i = self.intro_state.get(cid)
+        if not i:
+            return None
+        r = self.by_rid.get(i["request_id"], {})
+        return {**i, "requested_by": r.get("requested_by", ""), "target_title": r.get("target_title", "")}
+
+    def retry_of(self, cid: str) -> dict | None:
+        """Set when the company's last intro fizzled (no meeting, older than
+        INTRO_LIVE_DAYS): a fresh ask on it is a retry and is labelled as one."""
+        i = self.prior_intro(cid)
+        if not i or i["live"]:
+            return None
+        when = i["intro_date"] or "an undated"
+        age = f"{i['days']} days" if i["days"] is not None else "since"
+        return {**i, "note": f"{i['connector'].split()[0]}'s {when} intro to {i['requested_by'] or 'the requester'} went nowhere: no meeting in {age}"}
 
     def live_requesters(self, cid: str) -> list[str]:
         return sorted({r["requested_by"] for r in self.by_company.get(cid, [])
@@ -466,7 +486,7 @@ class Live:
         rows = []
         for a in self.allocation:
             cid = a["company_id"]
-            if not cid:
+            if not cid or a["exception_reason"].startswith(bg.ALREADY_INTRODUCED):
                 continue
             if a["allocated_to"]:
                 connector, p = a["allocated_to"], self.path_for(a)
@@ -516,6 +536,7 @@ class Live:
                 "connector_score": round(connector_score, 3),
                 "expected_value": round(request_priority * connector_score, 4),
                 "allocated": bool(a["allocated_to"]),
+                "retry": self.retry_of(cid),
             })
         rows.sort(key=lambda r: (-r["expected_value"], r["request_id"]))
         for i, r in enumerate(rows, 1):
@@ -577,6 +598,7 @@ class Live:
                     "why": "; ".join(why),
                     "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
                     "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
+                    "retry": self.retry_of(cid),
                 })
             out.append({
                 "batch_id": batch_id, "connector": connector, "slug": slug(connector),
@@ -588,8 +610,10 @@ class Live:
         exceptions: dict[str, list[dict]] = defaultdict(list)
         for a in self.allocation:
             if a["exception_reason"]:
-                exceptions[a["exception_reason"]].append({
+                reason, _, detail = a["exception_reason"].partition(": ")
+                exceptions[reason].append({
                     "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
+                    "detail": detail,
                     "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                     "value_fmt": money(a["value_usd"]), "urgency": a["urgency_declared"],
                     "status": a["status_as_filed"], "best_path": a["best_path_if_unbudgeted"],
@@ -603,6 +627,65 @@ class Live:
             "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(sum(usd(self.by_rid[r["request_id"]]["value_usd"]) for r in v)),
                             "rows": v} for k, v in sorted(exceptions.items(), key=lambda kv: -len(kv[1]))],
             "exception_count": n_exc,
+        }
+
+    # -- 3b. already introduced: extend the intro, don't ask afresh -------------
+    def introduced(self) -> dict:
+        """Live requests the allocator parked because the company already has a live
+        intro (build_golden.ALREADY_INTRODUCED: a meeting booked, or sent within
+        INTRO_LIVE_DAYS). One row per company; the action is the rep who received
+        that intro asking their contact for the other names, not a connector ask.
+        `retries` are the companies whose last intro fizzled and are back in the
+        queue this cycle, labelled so the ask reads as a second attempt."""
+        by_co: dict[str, list[dict]] = defaultdict(list)
+        for a in self.allocation:
+            if a["company_id"] and a["exception_reason"].startswith(bg.ALREADY_INTRODUCED):
+                by_co[a["company_id"]].append(a)
+        rows = []
+        for cid, group in by_co.items():
+            intro = self.prior_intro(cid)
+            who = intro["requested_by"] or "the rep introduced"
+            wanted = self.wanted([self.by_rid[g["request_id"]] for g in group])
+            rows.append({
+                **self.company_ref(cid, group[0]["company_name"]),
+                "request_ids": sorted(g["request_id"] for g in group),
+                "wanted": wanted,
+                "waiting": sorted({self.by_rid[g["request_id"]]["requested_by"] for g in group}),
+                "value_usd": sum(usd(g["value_usd"]) for g in group),
+                "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
+                "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
+                "crm_stage": self.crm_stage(cid),
+                "intro": intro,
+                "owner": intro["requested_by"],
+                "action": f"{who.split()[0]} asks the {intro['target_title'] or 'contact'} {intro['connector'].split()[0]} introduced"
+                          f" {'(meeting booked) ' if intro['meeting_booked'] else ''}for {', '.join(wanted)}",
+                "best_path": group[0]["best_path_if_unbudgeted"],
+            })
+        rows.sort(key=lambda r: (-r["value_usd"], r["company_name"]))
+
+        retries = []
+        seen: set[str] = set()
+        for a in self.allocation:
+            cid = a["company_id"]
+            if not a["allocated_to"] or cid in seen or not self.retry_of(cid):
+                continue
+            seen.add(cid)
+            group = [g for g in self.allocation if g["company_id"] == cid and g["allocated_to"]]
+            retries.append({
+                **self.company_ref(cid, a["company_name"]),
+                "request_ids": sorted(g["request_id"] for g in group),
+                "wanted": self.wanted([self.by_rid[g["request_id"]] for g in group]),
+                "connectors": sorted({g["allocated_to"] for g in group}),
+                "value_usd": sum(usd(g["value_usd"]) for g in group),
+                "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
+                "retry": self.retry_of(cid),
+            })
+        retries.sort(key=lambda r: (-r["value_usd"], r["company_name"]))
+        return {
+            "days": bg.INTRO_LIVE_DAYS, "rows": rows, "count": len(rows),
+            "requests": sum(len(r["request_ids"]) for r in rows),
+            "value_fmt": money(sum(r["value_usd"] for r in rows)),
+            "retries": retries, "retry_requests": sum(len(r["request_ids"]) for r in retries),
         }
 
     # -- 4. already offered, needs response -----------------------------------
@@ -713,6 +796,7 @@ class Live:
                 "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                 "path_type": a["path_type"], "contact": a["contact_name"], "route_score": a["route_score"],
                 "value_fmt": money(a["value_usd"]), "urgency": a["urgency_declared"],
+                "retry": self.retry_of(a["company_id"]),
             } for a in queue],
         }
 
@@ -772,6 +856,7 @@ class Live:
         listed = {
             "top": [r["company_id"] for r in self.priorities()["top"]],
             "asks": [c["company_id"] for b in self.asks()["batches"] for c in b["companies"]],
+            "introduced": [r["company_id"] for r in self.introduced()["rows"]],
             "offers": [r["company_id"] for r in self.offer_gaps()["rows"]],
             "bottlenecks": [r["company_id"] for r in self.bottlenecks()["rows"]],
             "connectors": [s["company_id"] for c in self.connectors() for s in c["sitting_on"]],
@@ -836,7 +921,8 @@ class Live:
                 asks_out += 1
                 intros_out += o["intro_sent"] == "Y"
 
-        unrouted = [a for a in self.allocation if a["exception_reason"] and a["company_id"]]
+        unrouted = [a for a in self.allocation if a["exception_reason"] and a["company_id"]
+                    and not a["exception_reason"].startswith(bg.ALREADY_INTRODUCED)]
         per = []
         for name, r in self.roster.items():
             by_co: dict[str, list[dict]] = defaultdict(list)
@@ -1012,7 +1098,7 @@ class Live:
             "as_of": self.today.isoformat(), "cycle": self.cycle, "trace_page": TRACE_PAGE, "batch_page": BATCH_PAGE,
             "bands": [{"id": bid, "title": title, "test": test, "sections": [sid for sid, _ in sections]}
                       for bid, title, test, sections in BANDS],
-            "stages": self.stages(), "priorities": self.priorities(), "asks": self.asks(),
+            "stages": self.stages(), "priorities": self.priorities(), "asks": self.asks(), "introduced": self.introduced(),
             "offer_gaps": self.offer_gaps(), "bottlenecks": self.bottlenecks(), "connectors": self.connectors(),
             "checkins": self.checkins(), "unrouted": self.unrouted(), "crm": self.crm(), "parser": self.parser(),
             "completions": self.completion_export(),
