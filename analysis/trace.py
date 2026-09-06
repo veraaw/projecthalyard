@@ -40,9 +40,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.build_golden import (INVESTOR_NETWORK, NETWORK_HAIRCUT, NETWORK_OUT, OFFER_RE, OPEN_STATUSES, PRIOR_RATE,  # noqa: E402
-                                 REACHABLE_AS_CONNECTOR, STAGES, capacity, delivery_rates, fit, latest_cycle, load_completions,
-                                 load_roster, load_threads, path_rank, path_score, stage_of, with_completions)
+from golden.build_golden import (ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, HOLD_LAST, INVESTOR_NETWORK, NETWORK_HAIRCUT,  # noqa: E402
+                                 NETWORK_OUT, NO_PATH, OFFER_RE, OPEN_STATUSES, PRIOR_RATE, REACHABLE_AS_CONNECTOR, STAGES,
+                                 STALE_ASK, UNRESOLVED_ASK, best_route, capacity, delivery_rates, fit, hold_paths, hold_reason,
+                                 latest_cycle, load_completions, load_roster, load_threads, path_rank, path_score, stage_of,
+                                 unresolved_asks, with_completions)
+from golden.clock import as_of  # noqa: E402
 from golden.resolver import normalize, normalize_strict  # noqa: E402
 from paths import ANALYSIS, DATASET, GOLDEN  # noqa: E402
 
@@ -51,6 +54,7 @@ STALE_TOUCH_DAYS = 90
 NO_WARM_PATH = "no warm path"  # the orbit table's label for a person no connector knows
 
 MISSED, WORKED, OFFER, WARN, PLAIN = "<-", "++", "**", "!!", "  "
+BYPASS_LABEL = "why not #1"
 
 SOURCES = {
     "requests": "intro_requests.csv",
@@ -92,6 +96,30 @@ def request_number(rid: str) -> tuple[int, str]:
     return (int(m.group()) if m else sys.maxsize, rid)
 
 
+def rids(rows: list[dict]) -> str:
+    return ", ".join(sorted((a["request_id"] for a in rows), key=request_number))
+
+
+def short_reason(reason: str) -> str:
+    """An allocator exception_reason in as few words as it takes:
+    'already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)'
+      -> 'parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting booked)'
+    'capacity exhausted this cycle' -> 'capacity exhausted'
+    'already proposed, no outcome logged: X in 2026-08' -> 'already proposed to X in 2026-08'"""
+    if reason.startswith(ALREADY_INTRODUCED):
+        m = re.match(rf"{ALREADY_INTRODUCED}: (.+) on (\S+) \((R\d+)(, meeting booked)?\)", reason)
+        if m:
+            who, on, rid, booked = m.groups()
+            return f"parked on live intro ({rid}, {who}, {on}{booked or ''})"
+    if reason == CAPACITY_EXHAUSTED:
+        return "capacity exhausted"
+    if reason.startswith(STALE_ASK):
+        return "already proposed to " + reason[len(STALE_ASK) + 2:]
+    if reason.startswith(UNRESOLVED_ASK):
+        return UNRESOLVED_ASK
+    return reason
+
+
 @dataclass
 class Data:
     companies: list[dict]
@@ -103,7 +131,8 @@ class Data:
     supply: list[dict]
     allocation: list[dict]
     roster: dict[str, dict]
-    outcome_by_rid: dict[str, dict]  # the ask log as the build reads it (completions applied), one row per request
+    asks: list[dict]                 # the ask log as the build reads it (completions applied)
+    outcome_by_rid: dict[str, dict]  # asks by request_id, one row per request
     alloc_by_rid: dict[str, dict]    # the current cycle's allocation by request_id
     rates: dict[str, float]          # delivery rate per connector, as the allocator scores them
     orbit: list[dict]                # network_orbit.csv: investors and operators around each company
@@ -133,6 +162,7 @@ class Data:
             supply=read_csv(GOLDEN / "supply_reach.csv"),
             allocation=allocation,
             roster=roster,
+            asks=as_read,
             outcome_by_rid={o["request_id"]: o for o in as_read},
             alloc_by_rid={a["request_id"]: a for a in allocation},
             rates=delivery_rates(roster, as_read, load_threads()),
@@ -198,9 +228,13 @@ class Trace:
                                key=lambda r: (r["request_date"], r["request_id"]))
         self.request_ids = [r["request_id"] for r in self.requests]
         # ranked as the allocator ranks them: roster before investor_network, then
-        # route score, raw strength breaks ties
-        self.paths = sorted((p for p in data.supply if p["company_id"] == self.cid and p["reach_type"] != "none"),
-                            key=lambda p: (*self.rank(p), -float(p["strength"])))
+        # route score, raw strength breaks ties; then anyone sitting on an
+        # unresolved ask here steps behind (past the window) or out (nudge, chase)
+        self.held = unresolved_asks(data.asks, {r["request_id"]: r["company_id"] for r in data.requests}, today)
+        ranked = sorted((p for p in data.supply if p["company_id"] == self.cid and p["reach_type"] != "none"),
+                        key=lambda p: (*self.rank(p), -float(p["strength"])))
+        askable, _ = hold_paths(ranked, self.held, self.cid)
+        self.paths = askable + [p for p in ranked if p not in askable]
         self.accounts = [data.accounts[a] for a in split_bar(company["crm_account_ids"]) if a in data.accounts]
         self.live = [a for a in data.allocation if a["company_id"] == self.cid]
         # board seats first, then anyone a connector knows, then the cold rows
@@ -250,15 +284,81 @@ class Trace:
         """strength x focus fit x delivery rate: what build_golden.allocate sorts on."""
         return path_score(p, self.d.roster, self.d.rates, self.c["industry"])
 
+    def hold_of(self, connector: str) -> dict | None:
+        """The unresolved ask holding this connector's paths into the company."""
+        return self.held.get((connector, self.cid))
+
+    def askable(self, p: dict) -> bool:
+        u = self.hold_of(p["connector"])
+        return u is None or u["hold"] == HOLD_LAST
+
+    def current_route(self) -> dict:
+        """Who this company's requests are routed to now. `connector` is where this
+        cycle's live requests went (golden_allocation.csv; the one with most of them
+        when they split), else the allocator's first askable path - `top`, best_route
+        with the unresolved asks held, capacity aside - which is where the next
+        request goes. Empty when nobody is askable, and `why` says so: no path, or
+        an unresolved ask on every one. `not_asked` names the connectors stepped
+        over and why; `live` is this cycle's rows, where capacity has had its say."""
+        p, score = best_route(self.paths, self.d.roster, self.d.rates, self.c["industry"], held=self.held, company_id=self.cid)
+        _, skipped = hold_paths(self.paths, self.held, self.cid)
+        live = sorted(self.live, key=lambda a: request_number(a["request_id"]))
+        routed = Counter(a["allocated_to"] for a in live if a["allocated_to"])
+        top = None
+        if p:
+            u = self.hold_of(p["connector"])
+            cap = capacity(self.d.roster, p["connector"])
+            top = {"connector": p["connector"], "reach_type": p["reach_type"], "contact_name": p["contact_name"],
+                   "route_score": round(score, 3), "ranked_last": hold_reason(u) if u else "",
+                   "capacity": f"{cap - int(p['idle_capacity'] or 0)}/{cap}" if cap else ""}
+        return {
+            "connector": routed.most_common(1)[0][0] if routed else (p["connector"] if p else ""),
+            "this_cycle": [who for who, _ in routed.most_common()],
+            "top": top,
+            "why": "" if p or routed else (UNRESOLVED_ASK if skipped else NO_PATH),
+            "not_asked": [hold_reason(s) for s in skipped],
+            "live": [{"request_id": a["request_id"], "allocated_to": a["allocated_to"], "exception_reason": a["exception_reason"]}
+                     for a in live],
+        }
+
+    def route_lines(self) -> list[str]:
+        """current_route() as the markdown reads it."""
+        rt = self.current_route()
+        out = [f"## Currently routing to: {rt['connector'] or 'nobody (' + rt['why'] + ')'}", ""]
+        if rt["live"]:
+            by_who = defaultdict(list)
+            for a in rt["live"]:
+                by_who[a["allocated_to"] or f"unrouted ({a['exception_reason'].partition(': ')[0]})"].append(a["request_id"])
+            out.append("- this cycle: " + "; ".join(f"{', '.join(rids)} -> {who}" if not who.startswith("unrouted") else f"{', '.join(rids)} {who}"
+                                                   for who, rids in by_who.items()))
+        top = rt["top"]
+        if top:
+            out.append(f"- {'top askable path' if rt['this_cycle'] else 'the next request goes to the top askable path'}: "
+                       f"{top['connector']}, {top['reach_type']} via {top['contact_name'] or '?'}, route score {top['route_score']:.3f}"
+                       + (f", {top['capacity']} capacity used this cycle" if top["capacity"] else "")
+                       + (f"; ranked last: {top['ranked_last']}" if top["ranked_last"] else ""))
+        elif rt["why"] == NO_PATH:
+            out.append("- nobody in the network reaches this company")
+        elif rt["why"]:
+            out.append("- everyone who reaches the company is sitting on an ask there")
+        if rt["not_asked"]:
+            out.append("- not asked again here: " + "; ".join(rt["not_asked"]))
+        return out
+
     def strongest(self) -> dict | None:
         """The path with the highest raw strength: the row that reads as #1 when
         the table is sorted by strength alone."""
         return max(self.paths, key=lambda p: float(p["strength"])) if self.paths else None
 
     def bypass(self) -> str:
-        """Why the strongest path did not take every live request this cycle:
-        'Elena Duvall, offer 0.800, at capacity 3/3, Healthcare is outside her
-        focus (route score 0.000); R1136 routed to Dana Whitfield, R1153 to Tomás Beckett'.
+        """Why the strongest path did not take every live request this cycle, in
+        one line: the blocker, then where the requests went, grouped:
+          'Elena Duvall at capacity 3/3, outside focus (Healthcare) -> R1136, R1140 unrouted (capacity exhausted); R1153 to Tomás Beckett'
+          'Yusuf Petrossian at capacity 2/2 (holds R1006, R1128) -> R1070, R1171 to Dana Whitfield'
+          'Otto Cathcart-Brenneman investor network, roster asked first -> R1022 to Marcus Aldridge'
+        When the company is parked on a live intro nobody is asked afresh, so the
+        strongest path is beside the point and the line is just the intro:
+          'parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting booked): R1143, R1158, R1185'
         Read off the roster, supply_reach.csv and this cycle's golden_allocation.csv
         rows for the company (never best_path_if_unbudgeted, which is sparse).
         Empty when there is no path, nothing is live this cycle, or the strongest
@@ -270,21 +370,29 @@ class Trace:
         elsewhere = [a for a in self.live if a["allocated_to"] != who]
         if not elsewhere:
             return ""
+        if all(a["exception_reason"].startswith(ALREADY_INTRODUCED) for a in elsewhere):
+            return f"{short_reason(elsewhere[0]['exception_reason'])}: {rids(elsewhere)}"
         cap = capacity(self.d.roster, who)
         used = cap - int(top["idle_capacity"] or 0)
+        holds = [a for a in self.live if a["allocated_to"] == who]
         why = []
         if cap and used >= cap:
-            why.append(f"at capacity {used}/{cap}")
-        elif cap:
-            why.append(f"{used}/{cap} used this cycle")
+            why.append(f"at capacity {used}/{cap}" + (f" (holds {rids(holds)})" if holds else ""))
         if self.fit_of(who) <= 0:
-            why.append(f"{self.c['industry']} is outside their focus (route score {self.route_score(top):.3f})")
-        went = [f"{a['request_id']} routed to {a['allocated_to']}" if a["allocated_to"]
-                else f"{a['request_id']} unrouted" + (f" ({a['exception_reason']})" if a["exception_reason"] else "")
-                for a in sorted(elsewhere, key=lambda a: a["request_id"])]
-        holds = sorted(a["request_id"] for a in self.live if a["allocated_to"] == who)
-        return (f"{who}, {top['reach_type']} {float(top['strength']):.3f}, " + ", ".join(why)
-                + (f", holds {', '.join(holds)}" if holds else "") + "; " + ", ".join(went))
+            why.append(f"outside focus ({self.c['industry']})")
+        u = self.hold_of(who)
+        if u:
+            why.append(("ranked last: " if u["hold"] == HOLD_LAST else "not asked again here: ") + hold_reason(u))
+        if not why and top["reach_type"] == INVESTOR_NETWORK and any(a["allocated_to"] in self.d.roster for a in elsewhere):
+            why.append("investor network, roster asked first")
+        if not why:
+            why.append(f"outranked on route score ({self.route_score(top):.3f})")
+        went: dict[str, list[dict]] = defaultdict(list)
+        for a in elsewhere:
+            went[f"to {a['allocated_to']}" if a["allocated_to"]
+                 else "unrouted" + (f" ({short_reason(a['exception_reason'])})" if a["exception_reason"] else "")].append(a)
+        groups = sorted(went.items(), key=lambda kv: min(request_number(a["request_id"]) for a in kv[1]))
+        return f"{who} {', '.join(why)} -> " + "; ".join(f"{rids(rows)} {dest}" for dest, rows in groups)
 
     def request_rows(self) -> list[dict]:
         """One line per request, newest first, with the dates it picked up along the
@@ -429,16 +537,20 @@ class Trace:
         note = (f"; {INVESTOR_NETWORK} rows rank below every roster path and take a "
                 f"{round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score"
                 if any(p["reach_type"] == INVESTOR_NETWORK for p in self.paths) else "")
+        note += ("; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again "
+                 "(agreed with no intro: nudge; unanswered inside the window: chase)"
+                 if any(self.hold_of(p["connector"]) for p in self.paths) else "")
         out = [f"ranked by route score = strength x focus fit x delivery rate, the allocator's sort key{note}", "",
-               "| route score | strength | connector | reach | contact | evidence |", "|---|---|---|---|---|---|"]
+               "| route score | strength | connector | reach | contact | evidence | unresolved ask |", "|---|---|---|---|---|---|---|"]
         for p in self.paths:
             contact = " — ".join(x for x in (p["contact_name"], p["contact_title"]) if x) or "?"
             reach = p["reach_type"] + (" (board seat)" if p["board_seat"] == "yes" else "")
+            u = self.hold_of(p["connector"])
             out.append(f"| {self.route_score(p):.3f} | {float(p['strength']):.3f} | {p['connector']} ({p['connector_type']}) "
-                       f"| {reach} | {contact} | {p['evidence']} |")
+                       f"| {reach} | {contact} | {p['evidence']} | {hold_reason(u) if u else ''} |")
         why = self.bypass()
         if why:
-            out += ["", f"strongest path, not where it went: {why}"]
+            out += ["", f"{BYPASS_LABEL}: {why}"]
         return out
 
     # -- section 4 --------------------------------------------------------------
@@ -572,6 +684,7 @@ class Trace:
         dis = self.disagreements()
         if dis:
             sections.append(["## 2. Where the files disagree", "", *dis])
+        sections.append(self.route_lines())
         sections.append(["## 3. Who can reach them", "", *self.reach()])
         sections.append([f"## 4. Chronology ({len(self.events())} events, {n_req} request{'s' if n_req != 1 else ''},"
                          f" newest first, as of {self.today.isoformat()})", "",
@@ -599,11 +712,14 @@ class Trace:
                 "titles": sorted({r["target_title"] for r in self.requests if r["target_title"]}),
             },
             "disagreements": [d[2:] for d in self.disagreements()],
+            "route": self.current_route(),
             "reach": [{"route_score": round(self.route_score(p), 3), "strength": float(p["strength"]),
                        "fit": round(self.fit_of(p["connector"]), 2), "rate": round(self.rate_of(p["connector"]), 3),
                        "connector": p["connector"], "connector_type": p["connector_type"],
                        "reach_type": p["reach_type"] + (" (board seat)" if p["board_seat"] == "yes" else ""),
                        "contact_name": p["contact_name"], "contact_title": p["contact_title"], "evidence": p["evidence"],
+                       "hold": (self.hold_of(p["connector"]) or {}).get("hold", ""), "askable": self.askable(p),
+                       "unresolved_ask": hold_reason(self.hold_of(p["connector"])) if self.hold_of(p["connector"]) else "",
                        "bypass": self.bypass() if p is self.strongest() else ""}
                       for p in self.paths],
             "as_of": self.today.isoformat(),
@@ -619,7 +735,7 @@ class Trace:
 def all_traces(today: date | None = None) -> list[dict]:
     """as_dict() for every company with a request, most-requested first."""
     data = Data.load()
-    today = today or date.today()
+    today = today or as_of()
     companies = [c for c in data.companies if int(c["total_requests"] or 0)]
     companies.sort(key=lambda c: (-int(c["total_requests"]), c["company_name"]))
     return [Trace(data, c, today).as_dict() for c in companies]
@@ -635,7 +751,7 @@ def slug(name: str) -> str:
 def write_all(today: date | None = None) -> list[Path]:
     """One trace per company with at least one request -> analysis/traces/."""
     data = Data.load()
-    today = today or date.today()
+    today = today or as_of()
     TRACES.mkdir(exist_ok=True)
     written = []
     for c in data.companies:
@@ -651,9 +767,9 @@ def write_all(today: date | None = None) -> list[Path]:
 def main(argv: list[str]) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("company", nargs="?", help="name, alias, id (C018) or CRM account id (A1050)")
-    ap.add_argument("--as-of", default=date.today().isoformat())
+    ap.add_argument("--as-of", default=as_of().isoformat())
     args = ap.parse_args(argv)
-    today = parse_date(args.as_of) or date.today()
+    today = parse_date(args.as_of) or as_of()
     if not args.company:
         write_all(today)
         return

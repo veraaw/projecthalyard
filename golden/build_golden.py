@@ -54,7 +54,11 @@ Writes five CSVs (UTF-8, no BOM, CRLF):
                                resolved_by, target_title, needs_review, ...)
                                are recomputed from the facts on every run, so a
                                better resolver or a new CRM account corrects
-                               every historical row. Routing, outcome and
+                               every historical row. ROUTING_COLUMNS (routed_to,
+                               route_score, route_reason, ...) are provisional
+                               until an ask is logged: they follow this run's
+                               allocation and paths while asked_date is empty,
+                               then are filed with the ask and kept. Outcome and
                                thread columns are filed once and kept, except
                                that OUTCOME_COLUMNS still empty on a filed row
                                are filled in when an ask is first logged for
@@ -101,7 +105,13 @@ Writes five CSVs (UTF-8, no BOM, CRLF):
                                the connector it was allocated to, or an
                                exception (capacity exhausted this cycle / no
                                path / company unresolved / already proposed
-                               with no outcome logged). APPEND-ONLY by cycle:
+                               with no outcome logged / already introduced /
+                               unresolved ask on every path). A connector who
+                               agreed to an ask at a company and never sent
+                               the intro is not asked there again (nudge
+                               them); one who never replied is left alone for
+                               UNANSWERED_ASK_DAYS (chase them), then askable
+                               again behind every other path. APPEND-ONLY by cycle:
                                a run appends its cycle; a rerun in the same
                                cycle replaces only that cycle's rows; earlier
                                cycles are never touched. decided_at is the
@@ -161,6 +171,7 @@ from typing import NamedTuple
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+from golden.clock import as_of  # noqa: E402
 from golden.parse import extract as extract_target  # noqa: E402
 from golden.resolver import Resolver, domain_stem, names_regex, normalize, normalize_strict  # noqa: E402
 
@@ -181,10 +192,12 @@ REQUEST_COLUMNS = [
     "opportunity_usd", "offer_in_thread", "thread_replies", "thread_all_noise", "resolved_by",
     "needs_review", "contradicts_log", "blocked_reason", "nudged_on",
 ]
+# where the request stands with connectors: this run's allocation or best path until an
+# ask is logged, then what the ask log says, kept
+ROUTING_COLUMNS = ["routed_to", "routed_on", "route_score", "route_reason"]
 # what the ask log says about a request: filed the first time an ask is logged, then kept
 OUTCOME_COLUMNS = [
-    "routed_to", "routed_on", "route_score", "route_reason", "asked_date", "responded", "intro_sent",
-    "meeting_booked", "opportunity_usd",
+    *ROUTING_COLUMNS, "asked_date", "responded", "intro_sent", "meeting_booked", "opportunity_usd",
 ]
 # what someone said or filed: written once, never rewritten
 FACT_COLUMNS = [
@@ -241,6 +254,16 @@ INTRO_LIVE_DAYS = 60  # an intro this recent is still in play, as is a meeting u
                       # while newer requests wait on the company: nobody is asked afresh
 # exception_reason prefix: '<ALREADY_INTRODUCED>: <connector> on <intro_date> (<request_id>[, meeting booked])'
 ALREADY_INTRODUCED = "already introduced"
+NO_PATH = "no path to this company in the network"
+UNANSWERED_ASK_DAYS = 60  # a connector who never replied to an ask at a company is not asked there again this long;
+                          # after that they are askable again, ranked behind every path with no unresolved ask
+# exception_reason prefix: '<UNRESOLVED_ASK>: <connector> agreed on <date> (<request_id>), no intro; <connector> asked on ...'
+UNRESOLVED_ASK = "unresolved ask on every path"
+# what an unresolved ask at a company does to its connector's other paths in there
+HOLD_NUDGE = "nudge"    # they agreed and never delivered: never asked again, the nudge queue owns it
+HOLD_WINDOW = "window"  # no reply yet, within UNANSWERED_ASK_DAYS: not asked again yet, the chase queue owns it
+HOLD_LAST = "last"      # no reply after UNANSWERED_ASK_DAYS: askable, behind every other path
+HOLD_ORDER = (HOLD_NUDGE, HOLD_WINDOW, HOLD_LAST)
 # contradicts_log: status_as_filed vs intro_outcomes.csv
 INTRO_CLAIMED_NOT_LOGGED = "intro claimed, none logged"
 INTRO_LOGGED_FILED_STALLED = "intro logged, filed as stalled"
@@ -249,9 +272,10 @@ CLOSED_NO_PATH_BUT_PATH = "closed as no-path, path exists"
 BLOCK_NO_COMPANY = "no company named in the ask"
 BLOCK_NO_CRM = "company has no CRM record"
 BLOCK_FUND_OR_OPCO = "fund or operating company \u2014 ask the requester"
-BLOCK_NO_ROSTER_PATH = "no path on the roster"
+BLOCK_NO_PATH = "no path in the roster or investor network"
+BLOCK_NO_ROSTER_PATH = "no path on the roster"  # only off-roster (investor network / offer) paths reach the company
 BLOCK_CLOSED_LOST = "account is Closed Lost"
-BLOCK_NEVER_ROUTED = "path exists, never routed"  # filed with no routed_to before the path was known
+BLOCK_NEVER_ROUTED = "path exists, never routed"  # a path exists but the request is not live, so nobody is allocated
 # a bare name shared by a fund and a customer (Thornbury, Silverbrook, Cobalt Lane,
 # Meridian Peak): golden/resolver.py refuses it; the request gets no company_id
 FUND_COLLISION = "fund-collision"
@@ -585,8 +609,9 @@ class Company:
 
 
 class Registry:
-    def __init__(self, accounts: list[dict], funds: list[str] = ()):
+    def __init__(self, accounts: list[dict], funds: list[str] = (), network_names: list[str] = ()):
         self._canon = Resolver(accounts, funds)  # the fund-collision guard lives there
+        self.network_names = list(network_names)  # companies the network reaches; not in scope until requested
         self.by_domain: dict[str, Company] = {}
         self._strict: dict[str, Company] = {}
         self._loose: dict[str, Company] = {}
@@ -648,9 +673,11 @@ class Registry:
         return None, "unmatched"
 
     def known_names(self) -> list[str]:
-        """Every spelling on file: CRM names, funds, and companies known only from requests."""
+        """Every spelling on file: CRM names, funds, companies known only from requests,
+        and every company someone in the network reaches (network_company_names)."""
         return [*(n for e in self._canon.entities for n in e.names),
-                *(n for c in self.by_domain.values() for n in c.names)]
+                *(n for c in self.by_domain.values() for n in c.names),
+                *self.network_names]
 
     def known_regex(self) -> re.Pattern:
         if self._known_re is None:
@@ -859,6 +886,72 @@ def retriable(o: dict, today: date) -> bool:
     return i is not None and not i["live"] and not o.get("reasked_date", "")
 
 
+def unresolved_ask(o: dict, today: date) -> dict | None:
+    """The ask an outcome row leaves open on its connector, or None. Open while
+    no intro has followed it: the connector agreed (responded Y) and never
+    delivered, or never replied; a retry (reasked_date) is a fresh ask nobody
+    has answered, whatever the first one drew. `hold` says what it does to the
+    connector's other paths into the company: HOLD_NUDGE when they agreed (they
+    are never asked there again; the nudge queue owns it), HOLD_WINDOW while an
+    unanswered ask is younger than UNANSWERED_ASK_DAYS (or undated), HOLD_LAST
+    once it is older: askable again, ranked behind every clean path."""
+    reasked = o.get("reasked_date", "")
+    if o["intro_sent"].strip() == "Y" and not reasked:
+        return None
+    agreed = o["responded"].strip() == "Y" and not reasked
+    asked_on = reasked or o["asked_date"]
+    d = parse_date(asked_on or "")
+    days = (today - d).days if d else None
+    if agreed:
+        hold = HOLD_NUDGE
+    elif days is None or days <= UNANSWERED_ASK_DAYS:
+        hold = HOLD_WINDOW
+    else:
+        hold = HOLD_LAST
+    return {
+        "request_id": o["request_id"], "connector": o["connector_asked"], "asked_date": asked_on,
+        "agreed_date": o["response_date"] if agreed else "", "agreed": agreed, "days": days, "hold": hold,
+    }
+
+
+def unresolved_asks(outcomes: list[dict], company_of: dict[str, str], today: date) -> dict[tuple[str, str], dict]:
+    """(connector, company_id) -> the ask that holds the connector's paths into
+    the company (unresolved_ask), one per pair: the most binding when there are
+    several - an agreed ask over an unanswered one, a younger unanswered one
+    over an older - so a connector with an open agreement at a company is on
+    nudge however many times they were asked there."""
+    held: dict[tuple[str, str], dict] = {}
+    for o in outcomes:
+        cid = company_of.get(o["request_id"], "")
+        u = unresolved_ask(o, today) if cid else None
+        if u is None:
+            continue
+        key = (u["connector"], cid)
+        if key not in held or hold_rank(u) < hold_rank(held[key]):
+            held[key] = u
+    return held
+
+
+def hold_rank(u: dict) -> tuple[int, int]:
+    """Sort key for unresolved asks on one (connector, company): the one that
+    binds hardest first."""
+    return HOLD_ORDER.index(u["hold"]), u["days"] if u["days"] is not None else -1
+
+
+def hold_reason(u: dict) -> str:
+    """An unresolved ask in words, for exception_reason and the dashboards:
+    'Dana Whitfield agreed on 2026-02-05 (R1113), no intro - nudge' /
+    'Owen Trask asked on 2026-08-20 (R1015), no reply - day 17 of 60' /
+    'Priya Raghunathan asked on 2025-11-13 (R1084), no reply for 297 days - askable, ranked last'."""
+    who, rid = u["connector"], u["request_id"]
+    if u["hold"] == HOLD_NUDGE:
+        return f"{who} agreed on {u['agreed_date'] or u['asked_date']} ({rid}), no intro - nudge"
+    if u["hold"] == HOLD_WINDOW:
+        when = f"day {u['days']} of {UNANSWERED_ASK_DAYS}" if u["days"] is not None else "undated"
+        return f"{who} asked on {u['asked_date'] or '?'} ({rid}), no reply - {when}"
+    return f"{who} asked on {u['asked_date']} ({rid}), no reply for {u['days']} days - askable, ranked last"
+
+
 def meeting_stalled(i: dict, requested_after: list[str]) -> bool:
     """A meeting that has not become an opportunity within INTRO_LIVE_DAYS while
     requests filed after the intro wait on the company: the intro no longer
@@ -929,51 +1022,43 @@ def connector_type(roster: dict, network: set[str], name: str) -> str:
     return NETWORK_TYPE if name in network else "not on roster"
 
 
-def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
-                 request_company: dict[str, Company | None], threads: dict[str, dict]) -> list[dict]:
-    """One row per way into an in-scope company. Sources that name a company
-    outside the CRM + requested set produce no row."""
-    rows: list[dict] = []
-    person_to_connectors: dict[str, list[tuple[str, dict]]] = defaultdict(list)
-    network = network_people(roster)
+def network_company_names(roster: dict) -> list[str]:
+    """Every company spelling the network reaches, as written in the roster's
+    connections_*.csv and in investor_network.csv (portfolio_company,
+    prior_employer); one entry per spelling, in file order."""
+    names: dict[str, None] = {}
+    for r in roster.values():
+        for c in read_csv(DATASET / r["connections_file"]):
+            if c["company"].strip():
+                names.setdefault(c["company"].strip())
+    for inv in read_csv(DATASET / "investor_network.csv"):
+        for col in NETWORK_SOURCES:
+            if inv[col].strip():
+                names.setdefault(inv[col].strip())
+    return list(names)
 
-    def emit(connector: str, company: Company, kind: str, contact: str, title: str,
-             observed: str, strength: float, evidence: str, offer_age: int | None = None,
-             board_seat: str = ""):
-        r = roster.get(connector)
-        s = company.survivor
-        industry = s["industry"] if s else ""
-        if r:
-            focus = "yes" if industry and industry in r["focus"] else ("unknown" if not industry else "no")
-        else:
-            focus = "unknown"
-        rows.append({
-            "connector": connector,
-            "connector_type": connector_type(roster, network, connector),
-            "company_id": company.company_id,
-            "company_name": company.name,
-            "reach_type": kind,
-            "board_seat": board_seat,
-            "contact_name": contact,
-            "contact_title": title,
-            "observed_date": observed,
-            "offer_age_days": "" if offer_age is None else offer_age,
-            "strength": f"{strength:.3f}",
-            "in_focus_area": focus,
-            "monthly_capacity": capacity(roster, connector),
-            "delivery_rate": f"{rates.get(connector, PRIOR_RATE):.3f}",
-            "evidence": evidence,
-        })
+
+def network_reach(roster: dict, today: date) -> list[dict]:
+    """Every path the network offers, before scope: one dict per (connector,
+    company as written in the source) for direct (connections_*.csv), investor /
+    investor_network (a fund's portfolio company) and alumni (a connection's prior
+    employer) paths. build_supply keeps the ones into an in-scope company; the
+    Live Priorities parser uses the rest to show what a company nobody has
+    requested yet would get."""
+    out: list[dict] = []
+    person_to_connectors: dict[str, list[tuple[str, dict]]] = defaultdict(list)
+
+    def path(connector: str, company: str, kind: str, contact: str, title: str,
+             observed: str, strength: float, evidence: str, board_seat: str = "") -> None:
+        out.append({"connector": connector, "company": company, "kind": kind, "contact": contact, "title": title,
+                    "observed": observed, "strength": strength, "evidence": evidence, "board_seat": board_seat})
 
     # direct: first-degree connections of a roster connector
     for name, r in roster.items():
         for c in read_csv(DATASET / r["connections_file"]):
             person_to_connectors[c["name"]].append((name, c))
-            company, _ = reg.resolve_in_scope(c["company"])
-            if company is None:
-                continue
             s = PATH_BASE["direct"] * (0.55 + 0.45 * seniority(c["title"])) * freshness(c["connected_on"], today)
-            emit(name, company, "direct", c["name"], c["title"], c["connected_on"], s,
+            path(name, c["company"], "direct", c["name"], c["title"], c["connected_on"], s,
                  f"{r['connections_file']}: {c['name']}, {c['title']} at {c['company']}, connected {c['connected_on']}")
 
     # investor: a roster investor's fund holds a position (board seat strengthens it);
@@ -983,26 +1068,73 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
     for inv in read_csv(DATASET / "investor_network.csv"):
         person = inv["person"].strip()
         if inv["portfolio_company"]:
-            company, _ = reg.resolve_in_scope(inv["portfolio_company"])
-            if company is not None:
-                seat = inv["board_seat"].lower() == "true"
-                emit(person, company, "investor" if person in roster else INVESTOR_NETWORK, "CEO / exec team",
-                     f"{inv['fund']} {'board seat' if seat else 'portfolio company'}", "",
-                     BOARD_SEAT_STRENGTH if seat else PATH_BASE["investor"],
-                     f"investor_network.csv: {person} ({inv['role']}), portfolio_company={inv['portfolio_company']}, board_seat={inv['board_seat']}",
-                     board_seat="yes" if seat else "no")
+            seat = inv["board_seat"].lower() == "true"
+            path(person, inv["portfolio_company"], "investor" if person in roster else INVESTOR_NETWORK, "CEO / exec team",
+                 f"{inv['fund']} {'board seat' if seat else 'portfolio company'}", "",
+                 BOARD_SEAT_STRENGTH if seat else PATH_BASE["investor"],
+                 f"investor_network.csv: {person} ({inv['role']}), portfolio_company={inv['portfolio_company']}, board_seat={inv['board_seat']}",
+                 board_seat="yes" if seat else "no")
         if inv["prior_employer"]:
-            company, _ = reg.resolve_in_scope(inv["prior_employer"])
-            if company is None:
-                continue
             tenure = f"{inv['prior_employer_start']}-{inv['prior_employer_end']}"
             for connector, conn in person_to_connectors.get(person, []):
                 s = PATH_BASE["alumni"] * freshness(conn["connected_on"], today)
-                emit(connector, company, "alumni", person,
+                path(connector, inv["prior_employer"], "alumni", person,
                      f"ex-{inv['prior_employer']} ({tenure}), now {conn['title']} at {conn['company']}",
                      conn["connected_on"], s,
                      f"investor_network.csv: {person} prior_employer={inv['prior_employer']} ({tenure}); "
                      f"{roster[connector]['connections_file']}: connection of {connector} since {conn['connected_on']}")
+    return out
+
+
+def supply_row(roster: dict, rates: dict, network: set[str], connector: str, company_id: str, company_name: str,
+               industry: str, kind: str, contact: str, title: str, observed: str, strength: float, evidence: str,
+               offer_age: int | None = None, board_seat: str = "") -> dict:
+    """One supply_reach.csv row (before finish_supply stamps idle_capacity)."""
+    r = roster.get(connector)
+    if r:
+        focus = "yes" if industry and industry in r["focus"] else ("unknown" if not industry else "no")
+    else:
+        focus = "unknown"
+    return {
+        "connector": connector,
+        "connector_type": connector_type(roster, network, connector),
+        "company_id": company_id,
+        "company_name": company_name,
+        "reach_type": kind,
+        "board_seat": board_seat,
+        "contact_name": contact,
+        "contact_title": title,
+        "observed_date": observed,
+        "offer_age_days": "" if offer_age is None else offer_age,
+        "strength": f"{strength:.3f}",
+        "in_focus_area": focus,
+        "monthly_capacity": capacity(roster, connector),
+        "delivery_rate": f"{rates.get(connector, PRIOR_RATE):.3f}",
+        "evidence": evidence,
+    }
+
+
+def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
+                 request_company: dict[str, Company | None], threads: dict[str, dict]) -> list[dict]:
+    """One row per way into an in-scope company. Sources that name a company
+    outside the CRM + requested set produce no row."""
+    rows: list[dict] = []
+    network = network_people(roster)
+
+    def emit(connector: str, company: Company, kind: str, contact: str, title: str,
+             observed: str, strength: float, evidence: str, offer_age: int | None = None,
+             board_seat: str = ""):
+        s = company.survivor
+        rows.append(supply_row(roster, rates, network, connector, company.company_id, company.name,
+                               s["industry"] if s else "", kind, contact, title, observed, strength, evidence,
+                               offer_age, board_seat))
+
+    for p in network_reach(roster, today):
+        company, _ = reg.resolve_in_scope(p["company"])
+        if company is None:
+            continue
+        emit(p["connector"], company, p["kind"], p["contact"], p["title"], p["observed"], p["strength"], p["evidence"],
+             board_seat=p["board_seat"])
 
     # offer: someone volunteered a path in the request's Slack thread
     for rid, th in threads.items():
@@ -1143,15 +1275,19 @@ def load_threads(extra: Path | None = None) -> dict[str, dict]:
     return out
 
 
-def best_route(paths: list[dict], roster: dict, rates: dict, industry: str, exclude_connector: str = "") -> tuple[dict | None, float]:
-    best, best_rank, best_score = None, None, 0.0
-    for p in paths:
-        if p["connector"] == exclude_connector:
-            continue
-        rank = path_rank(p, roster, rates, industry)
-        if rank[1] < 0 and (best_rank is None or rank < best_rank):
-            best, best_rank, best_score = p, rank, -rank[1]
-    return best, best_score
+def best_route(paths: list[dict], roster: dict, rates: dict, industry: str, exclude_connector: str = "",
+               held: dict[tuple[str, str], dict] | None = None, company_id: str = "") -> tuple[dict | None, float]:
+    """The path the allocator would try first, with its route score: allocator
+    order (path_rank), and with `held` (unresolved_asks) the connectors sitting
+    on an unresolved ask at the company stepped over or behind (hold_paths).
+    (None, 0.0) when no path scores."""
+    ordered = [p for rank, p in sorted(((path_rank(p, roster, rates, industry), p) for p in paths
+                                        if p["connector"] != exclude_connector), key=lambda t: t[0]) if rank[1] < 0]
+    if held is not None:
+        ordered, _ = hold_paths(ordered, held, company_id)
+    if not ordered:
+        return None, 0.0
+    return ordered[0], path_score(ordered[0], roster, rates, industry)
 
 
 def path_score(p: dict, roster: dict, rates: dict, industry: str) -> float:
@@ -1168,6 +1304,25 @@ def path_rank(p: dict, roster: dict, rates: dict, industry: str) -> tuple[int, f
     ones, then by route score. The roster is asked first; our wider network fills
     in only when no roster path exists or every one is out of capacity."""
     return (int(p["reach_type"] == INVESTOR_NETWORK), -path_score(p, roster, rates, industry))
+
+
+def hold_paths(paths: list[dict], held: dict[tuple[str, str], dict], company_id: str) -> tuple[list[dict], list[dict]]:
+    """Split a company's paths, already in allocator order, by the unresolved
+    asks (unresolved_asks) their connectors hold there: (askable, skipped).
+    Askable keeps the order except that every path of a connector on HOLD_LAST
+    goes behind the rest; skipped is one unresolved ask per connector on
+    HOLD_NUDGE or HOLD_WINDOW, the hardest-bound first, for the exception and
+    the page to say who is being left alone and why."""
+    clean, last, skipped = [], [], {}
+    for p in paths:
+        u = held.get((p["connector"], company_id))
+        if u is None:
+            clean.append(p)
+        elif u["hold"] == HOLD_LAST:
+            last.append(p)
+        else:
+            skipped[p["connector"]] = u
+    return clean + last, sorted(skipped.values(), key=hold_rank)
 
 
 def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company: dict[str, list[dict]],
@@ -1193,6 +1348,13 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     that has gone INTRO_LIVE_DAYS without an opportunity stops parking the
     company once requests are filed after it (meeting_stalled): its open
     requests are routed again, as retries.
+    A connector with an unresolved ask at the company (unresolved_asks) is
+    left alone there: skipped for good while they have agreed and not
+    delivered (the nudge queue owns it), skipped for UNANSWERED_ASK_DAYS while
+    they have not replied (the chase queue owns it), and after that askable
+    again but behind every clean path (hold_paths). When every path is held the
+    request is an exception (UNRESOLVED_ASK, naming each ask) rather than a
+    fresh ask to someone already sitting on one.
     Roster paths are tried before investor_network ones whatever their scores
     (path_rank). Once every connector with a path is spent the request becomes
     an exception. Requests
@@ -1209,8 +1371,9 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     for rq in resolved.values():
         if rq["company"] and rq["facts"]["status_as_filed"] in OPEN_STATUSES:
             open_since[rq["company"].company_id].append(rq["facts"]["request_date"])
-    introduced = introductions(outcomes, {rid: rq["company"].company_id for rid, rq in resolved.items() if rq["company"]},
-                               today, open_since)
+    company_of = {rid: rq["company"].company_id for rid, rq in resolved.items() if rq["company"]}
+    introduced = introductions(outcomes, company_of, today, open_since)
+    held = unresolved_asks(outcomes, company_of, today)
     live = [(rid, rq) for rid, rq in resolved.items()
             if rq["facts"]["status_as_filed"] in OPEN_STATUSES and (rid not in asked or rid in retry)]
     live.sort(key=lambda t: (URGENCY_RANK.get(t[1]["facts"]["urgency_declared"], 9),
@@ -1240,17 +1403,22 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
         if company is None:
             row["exception_reason"] = "company unresolved"
             continue
-        scored = [(-rank[1], p) for rank, p in sorted(((path_rank(p, roster, rates, industry), p) for p in paths),
-                                                       key=lambda t: t[0]) if rank[1] < 0]
-        if scored:
-            best_sc, best = scored[0]
-            row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {best_sc:.2f})"
+        ordered = [p for rank, p in sorted(((path_rank(p, roster, rates, industry), p) for p in paths),
+                                           key=lambda t: t[0]) if rank[1] < 0]
+        askable, skipped = hold_paths(ordered, held, company.company_id)
+        scored = [(path_score(p, roster, rates, industry), p) for p in askable]
+        if ordered:
+            best = askable[0] if askable else ordered[0]
+            row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {path_score(best, roster, rates, industry):.2f})"
         intro = introduced.get(company.company_id)
         if intro and intro["live"]:
             row["exception_reason"] = introduced_reason(intro)
             continue
+        if not ordered:
+            row["exception_reason"] = NO_PATH
+            continue
         if not scored:
-            row["exception_reason"] = "no path to this company in the network"
+            row["exception_reason"] = f"{UNRESOLVED_ASK}: " + "; ".join(hold_reason(u) for u in skipped)
             continue
         for sc, p in scored:
             n = p["connector"]
@@ -1419,7 +1587,8 @@ def blocked_reason(company: Company | None, paths: list[dict], roster: dict, all
     """For a request nobody is routed to: the first thing an operator would
     have to fix, in the order they would fix it. Identity first (no company,
     no CRM record), then whether the account is worth a connector (Closed
-    Lost), then supply. Fund collisions are decided before this is called."""
+    Lost), then supply: nobody at all, or only people off the roster. Fund
+    collisions are decided before this is called."""
     if company is None:
         return BLOCK_NO_COMPANY
     if not company.accounts:
@@ -1432,6 +1601,10 @@ def blocked_reason(company: Company | None, paths: list[dict], roster: dict, all
         return STALE_ASK
     if alloc and alloc["exception_reason"].startswith(ALREADY_INTRODUCED):
         return ALREADY_INTRODUCED
+    if alloc and alloc["exception_reason"].startswith(UNRESOLVED_ASK):
+        return UNRESOLVED_ASK
+    if not paths:
+        return BLOCK_NO_PATH
     if not any(p["connector"] in roster for p in paths):
         return BLOCK_NO_ROSTER_PATH
     return BLOCK_NEVER_ROUTED
@@ -1501,8 +1674,9 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
             else:
                 route_reason = "not asked; company unresolved"
 
-        # a filed row keeps its filed routing, so judge its block against that
-        effective_routed_to = filed_by[rid]["routed_to"] if rid in filed_by else routed_to
+        # an asked row keeps its filed routing, so judge its block against that
+        filed_row = filed_by.get(rid)
+        effective_routed_to = filed_row["routed_to"] if filed_row and filed_row["asked_date"] else routed_to
         if method == FUND_COLLISION:
             blocked = BLOCK_FUND_OR_OPCO
         elif effective_routed_to:
@@ -1546,8 +1720,11 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
 def merge_write(rows: list[dict], source: dict[str, dict | None]) -> tuple[int, int, int, list[str], list[str]]:
     """Merge the recomputed rows into golden_requests.csv. Every filed row is
     kept. Rows whose request_id is new are appended. On a filed row,
-    RECOMPUTED_COLUMNS take the recomputed value; OUTCOME_COLUMNS are filled in
-    once, when the row has no asked_date yet and the ask log now has one;
+    RECOMPUTED_COLUMNS take the recomputed value; ROUTING_COLUMNS take it too
+    while the row has no asked_date (the allocation they describe is redone
+    every run); OUTCOME_COLUMNS are filled in once, when the row has no
+    asked_date yet and the ask log now has one, and from then on the routing
+    is kept as filed with the ask;
     nudged_on advances to the latest nudge; every other column keeps its filed
     value. source is FACT_COLUMNS as the raw export states them now (None
     when it no longer has the request): a fact it states differently from the
@@ -1583,9 +1760,12 @@ def merge_write(rows: list[dict], source: dict[str, dict | None]) -> tuple[int, 
         if diff:
             warnings.append(f"{old['request_id']}: recomputed "
                             + "; ".join(f"{c} {old[c]!r} -> {r[c]!r}" for c in diff))
-        if not old["asked_date"] and r["asked_date"]:
-            diff += [c for c in OUTCOME_COLUMNS if str(old[c]) != str(r[c])]
-            warnings.append(f"{old['request_id']}: ask logged, {r['routed_to']} on {r['asked_date']}")
+        if not old["asked_date"]:
+            if r["asked_date"]:
+                diff += [c for c in OUTCOME_COLUMNS if str(old[c]) != str(r[c])]
+                warnings.append(f"{old['request_id']}: ask logged, {r['routed_to']} on {r['asked_date']}")
+            else:
+                diff += [c for c in ROUTING_COLUMNS if str(old[c]) != str(r[c])]
         if r["nudged_on"] > old["nudged_on"]:
             diff.append("nudged_on")
         if diff:
@@ -1728,13 +1908,13 @@ def write_derived(supply: list[dict], allocation: list[dict], companies: list[di
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--as-of", default=date.today().isoformat())
+    ap.add_argument("--as-of", default=as_of().isoformat(), help="the build clock (default: HALYARD_AS_OF, else today, UTC)")
     ap.add_argument("--threads", type=Path, help="a Slack export (.jsonl) to ingest alongside dataset/slack_threads.jsonl")
     ap.add_argument("--completions", choices=["supabase"], help="pull the Supabase completions table into golden/completions.csv first")
     ap.add_argument("--apply", type=Path, metavar="FILE", help="merge a CSV of completions into golden/completions.csv first")
     args = ap.parse_args()
     pull_completions(args.completions, args.apply)
-    today = parse_date(args.as_of) or date.today()
+    today = parse_date(args.as_of) or as_of()
     cycle = today.strftime("%Y-%m")
     # the build clock: the as-of date, at the wall-clock time the run started
     decided_at = datetime.combine(today, datetime.now(timezone.utc).time()).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1743,13 +1923,14 @@ def main() -> None:
     # already filed, plus raw requests about to be appended). IDs are pinned to
     # the existing golden files before any supply-side source is read.
     filed = read_csv(REQUESTS_OUT) if REQUESTS_OUT.exists() else []
+    roster = load_roster()
     reg = Registry(read_csv(DATASET / "crm_accounts.csv"),
-                   [inv["fund"] for inv in read_csv(DATASET / "investor_network.csv")])
+                   [inv["fund"] for inv in read_csv(DATASET / "investor_network.csv")],
+                   network_company_names(roster))
     threads = load_threads(args.threads)
     resolved = resolve_requests(reg, filed, {rid: th for rid, th in threads.items() if th["ingested"]})
     reg.assign_ids()
 
-    roster = load_roster()
     completions = load_completions()
     outcomes = with_completions(read_csv(DATASET / "intro_outcomes.csv"), completions)
     rates = delivery_rates(roster, outcomes, threads)

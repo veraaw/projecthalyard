@@ -43,6 +43,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
 from golden.build_golden import MULTI, OPEN_STATUSES, parse_date, read_csv, write_csv  # noqa: E402
+from golden.clock import as_of  # noqa: E402
 from paths import CRM, DATASET, GOLDEN  # noqa: E402
 
 IMPORT_OUT = CRM / "crm_import.csv"
@@ -273,7 +274,7 @@ def counts(rows: list[Row]) -> list[str]:
 
 def write_all(today: date | None = None) -> tuple[list[dict], list[Row]]:
     """crm_import.csv (account creation only) and crm_review.csv (every recommendation) -> analysis/crm/."""
-    wb = Writeback(today or date.today())
+    wb = Writeback(today or as_of())
     review = wb.review_rows()
     imports = wb.import_rows()
     CRM.mkdir(exist_ok=True)
@@ -287,9 +288,9 @@ def write_all(today: date | None = None) -> tuple[list[dict], list[Row]]:
 
 def main(argv: list[str]) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--as-of", default=date.today().isoformat())
+    ap.add_argument("--as-of", default=as_of().isoformat())
     args = ap.parse_args(argv)
-    write_all(parse_date(args.as_of) or date.today())
+    write_all(parse_date(args.as_of) or as_of())
 
 
 if __name__ == "__main__":

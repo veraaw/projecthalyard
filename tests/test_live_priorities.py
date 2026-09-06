@@ -55,6 +55,8 @@ NEW_THREADS = [
         {"ts": "2026-09-04T09:00:00Z", "user": "Bea Marsh",
          "text": "we need Kingsmere Retail Group. email domain is kingsmereretail.com"},
         {"ts": "2026-09-04T09:10:00Z", "user": "Bea Marsh", "text": "+1"}]},
+    {"request_id": "R2004", "messages": [
+        {"ts": "2026-09-04T10:00:00Z", "user": "Bea Marsh", "text": "how about Xanthe Labs"}]},
     {"request_id": "R1034", "messages": [
         {"ts": "2026-05-01T09:00:00Z", "user": "x", "text": "a thread for a request already on file"}]},
 ]
@@ -221,13 +223,18 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(A["exception_count"], len(alloc) - len(allocated), 56)
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
                          {"no path to this company in the network": 28, "already introduced": 10,
-                          "company unresolved": 9, "capacity exhausted this cycle": 9})
+                          "company unresolved": 9, "capacity exhausted this cycle": 10, bg.UNRESOLVED_ASK: 1})
+        held = next(e for e in A["exceptions"] if e["reason"] == bg.UNRESOLVED_ASK)
+        for r in held["rows"]:
+            self.assertRegex(r["detail"], r"agreed on \d{4}-\d{2}-\d{2} \(R1\d{3}\), no intro - nudge|no reply - day \d+ of \d+")
         parked = next(e for e in A["exceptions"] if e["reason"] == "already introduced")
         for r in parked["rows"]:
             self.assertRegex(r["detail"], r"^.+ on \d{4}-\d{2}-\d{2} \(R1\d{3}(, meeting booked)?\)$", "the reason names the intro")
         companies = {c["company_id"]: c for c in read_csv(ROOT / "golden" / "golden_companies.csv")}
+        blocked_by_rid = {r["request_id"]: r["blocked_reason"] for r in read_csv(ROOT / "golden" / "golden_requests.csv")}
         for e in A["exceptions"]:
             for r in e["rows"]:
+                self.assertEqual(r["blocked_reason"], blocked_by_rid[r["request_id"]], "golden_requests.blocked_reason, rendered as one column")
                 if e["reason"] == "company unresolved":
                     self.assertEqual(r["crm_stage"], "")
                 else:
@@ -320,18 +327,25 @@ class PayloadTest(unittest.TestCase):
 
     def test_an_asked_request_whose_own_intro_fizzled_is_back_on_the_connectors_page(self):
         """Apex Holdings (C003): Marcus's 2026-03-11 intro for R1154 never booked a
-        meeting, so R1154 is back in his queue as a retry (not parked behind his
-        own ask), and `sitting on` once the retry ask is logged as sent."""
+        meeting, so R1154 is back in the queue as a retry (not parked behind his
+        own ask). Marcus never answered R1069 there (2025-11-01, past the window),
+        so his path ranks last and the retry goes to Espen, labelled with Marcus's
+        intro; `sitting on` once the retry ask is logged as sent."""
         P = self.P
         marcus = next(c for c in P["connectors"] if c["connector"] == "Marcus Aldridge")
-        q = next(q for q in marcus["queue"] if q["request_id"] == "R1154")
-        self.assertEqual((q["company_id"], q["retry"]["connector"], q["retry"]["intro_date"], q["retry"]["request_id"]),
-                         ("C003", "Marcus Aldridge", "2026-03-11", "R1154"))
-        page = next(c for c in lp.Live(AS_OF).connector_pages() if c["connector"] == "Marcus Aldridge")
-        self.assertIn("R1154", [r["request_id"] for r in page["top"] + page["rest"]])
-        self.assertIn("retry: you introduced Yusuf Petrossian there on 2026-03-11", marcus["batch_ask"]["message"])
+        self.assertNotIn("R1154", [q["request_id"] for q in marcus["queue"]])
+        espen = next(a for a in lp.Live(AS_OF).allocation if a["request_id"] == "R1154")
+        self.assertEqual(espen["allocated_to"], "Espen Rushworth-Oyelaran")
+        q = next(r for r in lp.Live(AS_OF).ranked() if r["request_id"] == "R1154")
+        self.assertEqual((q["company_id"], q["connector"], q["retry"]["connector"], q["retry"]["intro_date"], q["retry"]["request_id"]),
+                         ("C003", "Espen Rushworth-Oyelaran", "Marcus Aldridge", "2026-03-11", "R1154"))
         self.assertNotIn("R1154", [s["request_id"] for s in marcus["sitting_on"]], "not sent yet: queue, not sitting on")
         self.assertNotIn("R1154", [r["request_id"] for r in P["bottlenecks"]["rows"]], "the old reply is not a nudge")
+        paths = lp.Live(AS_OF).ranked_paths("C003")
+        self.assertEqual([(p["connector"], p["hold"], p["askable"]) for p in paths],
+                         [("Espen Rushworth-Oyelaran", "", True), ("Marcus Aldridge", bg.HOLD_LAST, True)],
+                         "the roster path ranks behind the network one: its connector sat on an ask here")
+        self.assertIn("no reply for", paths[1]["reason"])
         # the retry goes out: an ask_sent completion after the intro files reasked_date
         # and the request moves from the queue to what Marcus is sitting on
         reask = {"completion_id": "R1154:ask_sent:2026-09-05", "completed_at": "2026-09-05T10:15:00+00:00", "completed_by": "vera",
@@ -496,7 +510,8 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual((row["reach_type"], row["strength"], row["route_score"], row["outside_focus"]), ("offer", 0.8, 0.0, True))
         used = sum(a["allocated_to"] == "Elena Duvall" for a in live.allocation)
         self.assertEqual((row["used"], row["capacity"]), (used, 3))
-        self.assertEqual(row["routed_to"], ["Tomás Beckett"])
+        self.assertEqual(row["routed_to"], ["Priya Raghunathan"], "Tomás agreed to R1057 there and sent no intro: nudged, not asked again")
+        self.assertEqual(live.held[("Tomás Beckett", "C018")]["hold"], bg.HOLD_NUDGE)
         self.assertEqual(row["requests"], ["R1136", "R1140", "R1153"])
         self.assertEqual(row["href"], f"{lp.TRACE_PAGE}#C018")
         self.assertTrue({"action", "asked_date", "nudged_on"}.isdisjoint(row), "nothing to tick, chase or nudge")
@@ -697,7 +712,7 @@ class ParserParityTest(unittest.TestCase):
         texts += ["how about harrowgate health", "Harrowgate Health?", "how about thornbury financial",
                   "harrowgate health or quillon pharma, whichever is easier",
                   "can we connect with Quillon Pharma? harrowgate health is already a customer", "Not Harrowgate Health",
-                  "how about kingsmere retail group"]
+                  "how about kingsmere retail group", "how about xanthe labs", "Looking for a warm path into Zenner Foods"]
         js = run_node(self.parser, texts, [])["extracted"]
         self.assertEqual(len(js), len(texts))
         known = self.live.known_regex()
@@ -714,6 +729,42 @@ class ParserParityTest(unittest.TestCase):
             if want != got:
                 bad.append((text, want, got))
         self.assertEqual(bad, [], f"{len(bad)} of {len(texts)} texts parse differently in the browser")
+
+    def test_preview_steps_over_a_connector_with_an_unresolved_ask_as_the_allocator_does(self):
+        """Brightmoor Energy (C007): Elena agreed to R1190 and sent no intro, and she
+        is the only path, so a new request there is an exception unless someone
+        else offers. Kingsmere (C058): Yusuf offered once and is on nudge, so a new
+        offer of his is not a route. Apex (C003): Marcus never answered R1069, long
+        past the window, so he is askable but ranks behind Espen even offering."""
+        held = self.live.held
+        self.assertEqual((held[("Elena Duvall", "C007")]["hold"], held[("Yusuf Petrossian", "C058")]["hold"], held[("Marcus Aldridge", "C003")]["hold"]),
+                         (bg.HOLD_NUDGE, bg.HOLD_NUDGE, bg.HOLD_LAST))
+        ask = lambda rid, text, *replies: {"request_id": rid, "messages": [
+            {"ts": "2026-09-05T10:00:00Z", "user": "Bea Marsh", "text": text},
+            *({"ts": "2026-09-05T10:05:00Z", "user": who, "text": "happy to intro — I know their exec team"} for who in replies)]}
+        threads = [ask("R3001", "who do we know at Brightmoor Energy?"),
+                   ask("R3002", "who do we know at Brightmoor Energy?", "Dana Whitfield"),
+                   ask("R3003", "we need Kingsmere Retail Group", "Yusuf Petrossian"),
+                   ask("R3004", "we need Apex Holdings", "Marcus Aldridge")]
+        pv = {r["request_id"]: r for r in run_node(self.parser, [], threads)["preview"]}
+        P = self.parser
+        self.assertEqual(pv["R3001"]["company_id"], "C007")
+        self.assertEqual((pv["R3001"]["route_to"], pv["R3001"]["path"]), ("", bg.UNRESOLVED_ASK))
+        self.assertEqual(pv["R3001"]["held"], [P["companies"]["C007"]["holds"]["Elena Duvall"]["reason"]])
+        self.assertTrue(any(f.startswith(bg.UNRESOLVED_ASK) and "Elena Duvall agreed on 2026-07-06 (R1190)" in f for f in pv["R3001"]["flags"]))
+        self.assertIsNone(P["companies"]["C007"]["best"])
+        self.assertEqual([p["askable"] for p in P["companies"]["C007"]["paths"]], [False, False])
+        self.assertEqual((pv["R3002"]["route_to"], pv["R3002"]["path"]), ("Dana Whitfield", f"offered in Slack ({P['companies']['C007']['offer_score']['Dana Whitfield']:.2f})"))
+        self.assertEqual((pv["R3003"]["route_to"], pv["R3003"]["offer_by"]), (P["companies"]["C058"]["best"]["connector"], "Yusuf Petrossian"))
+        self.assertNotIn("Yusuf Petrossian", [c["who"] for c in pv["R3003"]["cands"]])
+        self.assertTrue(any(f.startswith("Yusuf Petrossian offers, but") and f.endswith("nudge them instead of asking afresh") for f in pv["R3003"]["flags"]))
+        self.assertEqual(pv["R3004"]["route_to"], "Espen Rushworth-Oyelaran")
+        self.assertEqual([(c["who"], c["hold"]) for c in pv["R3004"]["cands"]],
+                         [("Espen Rushworth-Oyelaran", ""), ("Marcus Aldridge", bg.HOLD_LAST)])
+        self.assertGreater(P["companies"]["C003"]["offer_score"]["Marcus Aldridge"], P["companies"]["C003"]["best"]["score"],
+                           "his offer would outscore the network path; the hold, not the score, ranks him last")
+        for rid in ("R3002", "R3003", "R3004"):
+            self.assertNotIn(bg.UNRESOLVED_ASK, pv[rid]["path"])
 
 
 @unittest.skipUnless(NODE, "node is not installed")
@@ -740,16 +791,24 @@ class ThreadsIngestTest(unittest.TestCase):
         return proc.stdout
 
     def test_threads_land_as_the_preview_showed(self):
-        preview = {r["request_id"]: r for r in run_node(lp.Live(AS_OF).parser(), [], NEW_THREADS)["preview"]}
+        live = lp.Live(AS_OF)
+        preview = {r["request_id"]: r for r in run_node(live.parser(), [], NEW_THREADS)["preview"]}
         out = self.build("--threads", str(self.upload))
-        self.assertIn("3 appended", out)
+        self.assertIn("4 appended", out)
         rows = {r["request_id"]: r for r in read_csv(self.requests)}
-        self.assertEqual(len(rows), len(self.before) + 3)
-        self.assertEqual(rows["R1034"], self.before["R1034"], "a thread for a filed request changes no filed fact")
+        self.assertEqual(len(rows), len(self.before) + 4)
+        # routing and blocked_reason are conclusions and follow the allocation the new requests reshuffle
+        conclusions = set(bg.ROUTING_COLUMNS) | {"blocked_reason"}
+        self.assertEqual({k: v for k, v in rows["R1034"].items() if k not in conclusions},
+                         {k: v for k, v in self.before["R1034"].items() if k not in conclusions},
+                         "a thread for a filed request changes no filed fact")
+        self.assertEqual(rows["R1034"]["blocked_reason"], bg.BLOCK_NO_PATH,
+                         "the uploaded thread replaces the one carrying the only (off-roster) offer, so the recomputed block widens")
 
-        for rid, first in (("R2001", NEW_THREADS[0]), ("R2002", NEW_THREADS[1]), ("R2003", NEW_THREADS[2])):
+        for rid, first in (("R2001", NEW_THREADS[0]), ("R2002", NEW_THREADS[1]), ("R2003", NEW_THREADS[2]), ("R2004", NEW_THREADS[3])):
             r = rows[rid]
-            self.assertEqual(r["company_id"], preview[rid]["company_id"], rid)
+            if rid != "R2004":   # the build mints the network-only company's id; the preview has none to show
+                self.assertEqual(r["company_id"], preview[rid]["company_id"], rid)
             self.assertEqual(r["requested_by"], first["messages"][0]["user"])
             self.assertEqual(r["request_date"], first["messages"][0]["ts"][:10])
             self.assertEqual(r["raw_ask"], first["messages"][0]["text"])
@@ -767,12 +826,32 @@ class ThreadsIngestTest(unittest.TestCase):
         for s in reach:
             self.assertNotIn("new.jsonl R1034", s["evidence"])
 
+        # a bare network-only name: the preview showed the company the network reaches, with
+        # no id and no CRM account, and the paths it would get; the build creates it and files them
+        pv = preview["R2004"]
+        self.assertEqual((pv["company_id"], pv["network"], pv["company_name"]), ("", "network:xanthelabs", "Xanthe Labs"))
+        self.assertIn("no CRM account, create one (see CRM Updates)", pv["flags"])
+        xanthe = rows["R2004"]
+        self.assertTrue(xanthe["company_id"])
+        companies = {c["company_id"]: c for c in read_csv(self.root / "golden" / "golden_companies.csv")}
+        self.assertEqual((companies[xanthe["company_id"]]["company_name"], companies[xanthe["company_id"]]["crm_account_ids"]),
+                         ("Xanthe Labs", ""))
+        filed = [s for s in reach if s["company_id"] == xanthe["company_id"]]
+        shown = live.network_only["network:xanthelabs"]["paths"]
+        self.assertEqual(len(filed), len(shown))
+        self.assertEqual({(s["connector"], s["reach_type"], s["contact_name"], s["strength"]) for s in filed},
+                         {(s["connector"], s["reach_type"], s["contact_name"], s["strength"]) for s in shown})
+        best, _ = bg.best_route(filed, live.roster, live.rates, "")
+        self.assertEqual(pv["route_to"], best["connector"])
+
         again = self.build()
-        self.assertIn("3 not in dataset/intro_requests.csv and carried forward", again)
+        self.assertIn("4 not in dataset/intro_requests.csv and carried forward", again)
         self.assertIn("0 appended", again)
         after = {r["request_id"]: r for r in read_csv(self.requests)}
-        for rid in ("R2001", "R2002", "R2003"):
-            self.assertEqual(after[rid], rows[rid], f"{rid} survives a rebuild without --threads")
+        for rid in ("R2001", "R2002", "R2003", "R2004"):
+            self.assertEqual({k: v for k, v in after[rid].items() if k not in conclusions},
+                             {k: v for k, v in rows[rid].items() if k not in conclusions},
+                             f"{rid} survives a rebuild without --threads")
 
 
 if __name__ == "__main__":

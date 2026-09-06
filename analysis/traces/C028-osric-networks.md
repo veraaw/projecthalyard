@@ -13,19 +13,24 @@
 - R1167: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 5 paths
 - R1170: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 5 paths
 
+## Currently routing to: Priya Raghunathan
+
+- this cycle: R1028, R1170 unrouted (already introduced)
+- the next request goes to the top askable path: Priya Raghunathan, offer via ?, route score 0.164, 3/3 capacity used this cycle
+
 ## 3. Who can reach them
 
 ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | exec team | slack_threads.jsonl R1167 2026-01-16 Priya Raghunathan: "I'll take this one — I've got a direct line to their exec team" |
-| 0.000 | 0.800 | Elena Duvall (Advisor) | offer | Chief Data Officer | slack_threads.jsonl R1163 2026-03-27 Elena Duvall: "I met their Chief Data Officer at a conference last spring, happy to reach out" |
-| 0.215 | 0.900 | Malik Thackeray-Okonkwo (investor network) | investor_network (board seat) | CEO / exec team — Meridian Peak Partners board seat | investor_network.csv: Malik Thackeray-Okonkwo (Private equity investor), portfolio_company=Osric Networks, board_seat=True |
-| 0.172 | 0.720 | Freya Oldfield-Ibarra (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Freya Oldfield-Ibarra (Venture capital investor), portfolio_company=Osric Networks, board_seat=False |
-| 0.172 | 0.720 | Perrine Brenneman-Wexford (investor network) | investor_network | CEO / exec team — Meridian Peak Partners portfolio company | investor_network.csv: Perrine Brenneman-Wexford (Private equity investor), portfolio_company=Osric Networks, board_seat=False |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | exec team | slack_threads.jsonl R1167 2026-01-16 Priya Raghunathan: "I'll take this one — I've got a direct line to their exec team" |  |
+| 0.000 | 0.800 | Elena Duvall (Advisor) | offer | Chief Data Officer | slack_threads.jsonl R1163 2026-03-27 Elena Duvall: "I met their Chief Data Officer at a conference last spring, happy to reach out" |  |
+| 0.215 | 0.900 | Malik Thackeray-Okonkwo (investor network) | investor_network (board seat) | CEO / exec team — Meridian Peak Partners board seat | investor_network.csv: Malik Thackeray-Okonkwo (Private equity investor), portfolio_company=Osric Networks, board_seat=True |  |
+| 0.172 | 0.720 | Freya Oldfield-Ibarra (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Freya Oldfield-Ibarra (Venture capital investor), portfolio_company=Osric Networks, board_seat=False |  |
+| 0.172 | 0.720 | Perrine Brenneman-Wexford (investor network) | investor_network | CEO / exec team — Meridian Peak Partners portfolio company | investor_network.csv: Perrine Brenneman-Wexford (Private equity investor), portfolio_company=Osric Networks, board_seat=False |  |
 
-strongest path, not where it went: Malik Thackeray-Okonkwo, investor_network 0.900, 0/2 used this cycle; R1028 unrouted (already introduced: Elena Duvall on 2026-04-02 (R1163, meeting booked)), R1170 unrouted (already introduced: Elena Duvall on 2026-04-02 (R1163, meeting booked))
+why not #1: parked on live intro (R1163, Elena Duvall, 2026-04-02, meeting booked): R1028, R1170
 
 ## 4. Chronology (24 events, 4 requests, newest first, as of 2026-09-06)
 

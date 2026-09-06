@@ -13,25 +13,31 @@
 - R1140: filed "Open" but intro_outcomes.csv says Tomás Beckett sent the intro on 2025-10-08
 - R1173: filed "Intro sent" but intro_outcomes.csv has no row at all
 
+## Currently routing to: Priya Raghunathan
+
+- this cycle: R1136, R1140 unrouted (capacity exhausted this cycle); R1153 -> Priya Raghunathan
+- top askable path: Priya Raghunathan, direct via Amara Thackeray, route score 0.079, 3/3 capacity used this cycle
+- not asked again here: Tomás Beckett agreed on 2026-07-03 (R1057), no intro - nudge
+
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.079 | 0.492 | Tomás Beckett (Internal) | direct | Marcus Salcedo — Director of Software Engineering | connections_beckett.csv: Marcus Salcedo, Director of Software Engineering at Harrowgate Health, connected 2026-03-16 |
-| 0.079 | 0.384 | Priya Raghunathan (Investor) | direct | Amara Thackeray — Chief Operating Officer | connections_raghunathan.csv: Amara Thackeray, Chief Operating Officer at Harrowgate Health, connected 2018-10-25 |
-| 0.070 | 0.448 | Marcus Aldridge (Advisor) | direct | Marcus Salcedo — Director of Software Engineering | connections_aldridge.csv: Marcus Salcedo, Director of Software Engineering at Harrowgate Health, connected 2024-04-17 |
-| 0.064 | 0.330 | Dana Whitfield (Internal) | direct | Amara Thackeray — Chief Operating Officer | connections_whitfield.csv: Amara Thackeray, Chief Operating Officer at Harrowgate Health, connected 2016-11-21 |
-| 0.060 | 0.309 | Dana Whitfield (Internal) | direct | Ingrid Marchetti — Head of Developer Productivity | connections_whitfield.csv: Ingrid Marchetti, Head of Developer Productivity at Harrowgate Health, connected 2017-10-05 |
-| 0.045 | 0.218 | Priya Raghunathan (Investor) | alumni | Amara Thackeray — ex-Harrowgate Health (2012-2019), now Chief Operating Officer at Harrowgate Health | investor_network.csv: Amara Thackeray prior_employer=Harrowgate Health (2012-2019); connections_raghunathan.csv: connection of Priya Raghunathan since 2018-10-25 |
-| 0.039 | 0.202 | Dana Whitfield (Internal) | alumni | Ingrid Marchetti — ex-Harrowgate Health (2015-2018), now Head of Developer Productivity at Harrowgate Health | investor_network.csv: Ingrid Marchetti prior_employer=Harrowgate Health (2015-2018); connections_whitfield.csv: connection of Dana Whitfield since 2017-10-05 |
-| 0.036 | 0.187 | Dana Whitfield (Internal) | alumni | Amara Thackeray — ex-Harrowgate Health (2012-2019), now Chief Operating Officer at Harrowgate Health | investor_network.csv: Amara Thackeray prior_employer=Harrowgate Health (2012-2019); connections_whitfield.csv: connection of Dana Whitfield since 2016-11-21 |
-| 0.032 | 0.285 | Owen Trask (Investor) | direct | Ingrid Marchetti — Head of Developer Productivity | connections_trask.csv: Ingrid Marchetti, Head of Developer Productivity at Harrowgate Health, connected 2016-01-02 |
-| 0.021 | 0.187 | Owen Trask (Investor) | alumni | Ingrid Marchetti — ex-Harrowgate Health (2015-2018), now Head of Developer Productivity at Harrowgate Health | investor_network.csv: Ingrid Marchetti prior_employer=Harrowgate Health (2015-2018); connections_trask.csv: connection of Owen Trask since 2016-01-02 |
-| 0.000 | 0.800 | Elena Duvall (Advisor) | offer | Head of Platform | slack_threads.jsonl R1136 2026-03-16 Elena Duvall: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.079 | 0.384 | Priya Raghunathan (Investor) | direct | Amara Thackeray — Chief Operating Officer | connections_raghunathan.csv: Amara Thackeray, Chief Operating Officer at Harrowgate Health, connected 2018-10-25 |  |
+| 0.070 | 0.448 | Marcus Aldridge (Advisor) | direct | Marcus Salcedo — Director of Software Engineering | connections_aldridge.csv: Marcus Salcedo, Director of Software Engineering at Harrowgate Health, connected 2024-04-17 |  |
+| 0.064 | 0.330 | Dana Whitfield (Internal) | direct | Amara Thackeray — Chief Operating Officer | connections_whitfield.csv: Amara Thackeray, Chief Operating Officer at Harrowgate Health, connected 2016-11-21 |  |
+| 0.060 | 0.309 | Dana Whitfield (Internal) | direct | Ingrid Marchetti — Head of Developer Productivity | connections_whitfield.csv: Ingrid Marchetti, Head of Developer Productivity at Harrowgate Health, connected 2017-10-05 |  |
+| 0.045 | 0.218 | Priya Raghunathan (Investor) | alumni | Amara Thackeray — ex-Harrowgate Health (2012-2019), now Chief Operating Officer at Harrowgate Health | investor_network.csv: Amara Thackeray prior_employer=Harrowgate Health (2012-2019); connections_raghunathan.csv: connection of Priya Raghunathan since 2018-10-25 |  |
+| 0.039 | 0.202 | Dana Whitfield (Internal) | alumni | Ingrid Marchetti — ex-Harrowgate Health (2015-2018), now Head of Developer Productivity at Harrowgate Health | investor_network.csv: Ingrid Marchetti prior_employer=Harrowgate Health (2015-2018); connections_whitfield.csv: connection of Dana Whitfield since 2017-10-05 |  |
+| 0.036 | 0.187 | Dana Whitfield (Internal) | alumni | Amara Thackeray — ex-Harrowgate Health (2012-2019), now Chief Operating Officer at Harrowgate Health | investor_network.csv: Amara Thackeray prior_employer=Harrowgate Health (2012-2019); connections_whitfield.csv: connection of Dana Whitfield since 2016-11-21 |  |
+| 0.032 | 0.285 | Owen Trask (Investor) | direct | Ingrid Marchetti — Head of Developer Productivity | connections_trask.csv: Ingrid Marchetti, Head of Developer Productivity at Harrowgate Health, connected 2016-01-02 |  |
+| 0.021 | 0.187 | Owen Trask (Investor) | alumni | Ingrid Marchetti — ex-Harrowgate Health (2015-2018), now Head of Developer Productivity at Harrowgate Health | investor_network.csv: Ingrid Marchetti prior_employer=Harrowgate Health (2015-2018); connections_trask.csv: connection of Owen Trask since 2016-01-02 |  |
+| 0.000 | 0.800 | Elena Duvall (Advisor) | offer | Head of Platform | slack_threads.jsonl R1136 2026-03-16 Elena Duvall: "their Head of Platform reports to someone I've known for a decade, leave it with me" |  |
+| 0.079 | 0.492 | Tomás Beckett (Internal) | direct | Marcus Salcedo — Director of Software Engineering | connections_beckett.csv: Marcus Salcedo, Director of Software Engineering at Harrowgate Health, connected 2026-03-16 | Tomás Beckett agreed on 2026-07-03 (R1057), no intro - nudge |
 
-strongest path, not where it went: Elena Duvall, offer 0.800, at capacity 3/3, Healthcare is outside their focus (route score 0.000); R1136 unrouted (capacity exhausted this cycle), R1140 unrouted (capacity exhausted this cycle), R1153 routed to Tomás Beckett
+why not #1: Elena Duvall at capacity 3/3, outside focus (Healthcare) -> R1136, R1140 unrouted (capacity exhausted); R1153 to Priya Raghunathan
 
 ## 4. Chronology (51 events, 9 requests, newest first, as of 2026-09-06)
 

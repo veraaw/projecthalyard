@@ -10,20 +10,25 @@
 - crm_accounts.csv: two accounts, two owners: A1024 -> Nadia Okonkwo; A91024 -> Imani Mkhize
 - R1124: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 6 paths
 
+## Currently routing to: Dana Whitfield
+
+- this cycle: R1065, R1084, R1159 -> Dana Whitfield
+- top askable path: Dana Whitfield, direct via Freya Havercamp, route score 0.128, 6/6 capacity used this cycle
+
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.184 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Hollowbrook Grocers, board_seat=True |
-| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Chief Operating Officer | slack_threads.jsonl R1124 2025-11-10 Priya Raghunathan: "I met their Chief Operating Officer at a conference last spring, happy to reach out" |
-| 0.128 | 0.300 | Dana Whitfield (Internal) | direct | Freya Havercamp — Staff Engineer | connections_whitfield.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2020-12-25 |
-| 0.069 | 0.337 | Priya Raghunathan (Investor) | direct | Freya Havercamp — Staff Engineer | connections_raghunathan.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2022-05-16 |
-| 0.172 | 0.720 | Arjun Fairweather-Brenneman (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Arjun Fairweather-Brenneman (Growth equity investor), portfolio_company=Hollowbrook Grocers, board_seat=False |
-| 0.172 | 0.720 | Priya Dobrescu-Prendergast (investor network) | investor_network | CEO / exec team — Thornbury Equity portfolio company | investor_network.csv: Priya Dobrescu-Prendergast (Private equity investor), portfolio_company=Hollowbrook Grocers, board_seat=False |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.128 | 0.300 | Dana Whitfield (Internal) | direct | Freya Havercamp — Staff Engineer | connections_whitfield.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2020-12-25 |  |
+| 0.172 | 0.720 | Arjun Fairweather-Brenneman (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Arjun Fairweather-Brenneman (Growth equity investor), portfolio_company=Hollowbrook Grocers, board_seat=False |  |
+| 0.172 | 0.720 | Priya Dobrescu-Prendergast (investor network) | investor_network | CEO / exec team — Thornbury Equity portfolio company | investor_network.csv: Priya Dobrescu-Prendergast (Private equity investor), portfolio_company=Hollowbrook Grocers, board_seat=False |  |
+| 0.184 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Hollowbrook Grocers, board_seat=True | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last |
+| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Chief Operating Officer | slack_threads.jsonl R1124 2025-11-10 Priya Raghunathan: "I met their Chief Operating Officer at a conference last spring, happy to reach out" | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last |
+| 0.069 | 0.337 | Priya Raghunathan (Investor) | direct | Freya Havercamp — Staff Engineer | connections_raghunathan.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2022-05-16 | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last |
 
-strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3, holds R1084, R1159; R1065 routed to Dana Whitfield
+why not #1: Priya Raghunathan at capacity 3/3, ranked last: Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last -> R1065, R1084, R1159 to Dana Whitfield
 
 ## 4. Chronology (18 events, 4 requests, newest first, as of 2026-09-06)
 

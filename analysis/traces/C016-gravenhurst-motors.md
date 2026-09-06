@@ -16,23 +16,29 @@
 - R1160: filed "Closed - no path" but supply_reach.csv has 9 paths into Gravenhurst Motors
 - R1185: filed "Stalled" but intro_outcomes.csv says Priya Raghunathan sent the intro on 2026-02-22
 
+## Currently routing to: Curtis Hartigan
+
+- this cycle: R1143, R1158, R1185 unrouted (already introduced)
+- the next request goes to the top askable path: Curtis Hartigan, offer via ?, route score 0.262, 0/2 capacity used this cycle
+- not asked again here: Hana Nakashima agreed on 2025-10-23 (R1108), no intro - nudge
+
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.262 | 0.800 | Curtis Hartigan (not on roster) | offer | Chief Data Officer | slack_threads.jsonl R1122 2026-07-20 Curtis Hartigan: "I met their Chief Data Officer at a conference last spring, happy to reach out" |
-| 0.182 | 0.800 | Hana Nakashima (not on roster) | offer | Chief Digital Officer | slack_threads.jsonl R1108 2025-10-09 Hana Nakashima: "I met their Chief Digital Officer at a conference last spring, happy to reach out" |
-| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Head of Platform | slack_threads.jsonl R1115 2026-02-20 Priya Raghunathan: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
-| 0.147 | 0.720 | Priya Raghunathan (Investor) | investor | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Gravenhurst Motors, board_seat=False |
-| 0.058 | 0.285 | Priya Raghunathan (Investor) | direct | Priya Fairweather — Head of Platform Engineering | connections_raghunathan.csv: Priya Fairweather, Head of Platform Engineering at Gravenhurst Motors, connected 2016-11-20 |
-| 0.038 | 0.187 | Priya Raghunathan (Investor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_raghunathan.csv: connection of Priya Raghunathan since 2016-11-20 |
-| 0.000 | 0.332 | Elena Duvall (Advisor) | direct | Priya Fairweather — Head of Platform Engineering | connections_duvall.csv: Priya Fairweather, Head of Platform Engineering at Gravenhurst Motors, connected 2018-07-13 |
-| 0.000 | 0.218 | Elena Duvall (Advisor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_duvall.csv: connection of Elena Duvall since 2018-07-13 |
-| 0.172 | 0.720 | Amara Brenneman-Fairweather (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Amara Brenneman-Fairweather (Growth equity investor), portfolio_company=Gravenhurst Motors, board_seat=False |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.262 | 0.800 | Curtis Hartigan (not on roster) | offer | Chief Data Officer | slack_threads.jsonl R1122 2026-07-20 Curtis Hartigan: "I met their Chief Data Officer at a conference last spring, happy to reach out" |  |
+| 0.000 | 0.332 | Elena Duvall (Advisor) | direct | Priya Fairweather — Head of Platform Engineering | connections_duvall.csv: Priya Fairweather, Head of Platform Engineering at Gravenhurst Motors, connected 2018-07-13 |  |
+| 0.000 | 0.218 | Elena Duvall (Advisor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_duvall.csv: connection of Elena Duvall since 2018-07-13 |  |
+| 0.172 | 0.720 | Amara Brenneman-Fairweather (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Amara Brenneman-Fairweather (Growth equity investor), portfolio_company=Gravenhurst Motors, board_seat=False |  |
+| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Head of Platform | slack_threads.jsonl R1115 2026-02-20 Priya Raghunathan: "their Head of Platform reports to someone I've known for a decade, leave it with me" | Priya Raghunathan asked on 2026-01-02 (R1058), no reply for 247 days - askable, ranked last |
+| 0.147 | 0.720 | Priya Raghunathan (Investor) | investor | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Gravenhurst Motors, board_seat=False | Priya Raghunathan asked on 2026-01-02 (R1058), no reply for 247 days - askable, ranked last |
+| 0.058 | 0.285 | Priya Raghunathan (Investor) | direct | Priya Fairweather — Head of Platform Engineering | connections_raghunathan.csv: Priya Fairweather, Head of Platform Engineering at Gravenhurst Motors, connected 2016-11-20 | Priya Raghunathan asked on 2026-01-02 (R1058), no reply for 247 days - askable, ranked last |
+| 0.038 | 0.187 | Priya Raghunathan (Investor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_raghunathan.csv: connection of Priya Raghunathan since 2016-11-20 | Priya Raghunathan asked on 2026-01-02 (R1058), no reply for 247 days - askable, ranked last |
+| 0.182 | 0.800 | Hana Nakashima (not on roster) | offer | Chief Digital Officer | slack_threads.jsonl R1108 2025-10-09 Hana Nakashima: "I met their Chief Digital Officer at a conference last spring, happy to reach out" | Hana Nakashima agreed on 2025-10-23 (R1108), no intro - nudge |
 
-strongest path, not where it went: Curtis Hartigan, offer 0.800, 0/2 used this cycle; R1143 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)), R1158 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)), R1185 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked))
+why not #1: parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting booked): R1143, R1158, R1185
 
 ## 4. Chronology (56 events, 9 requests, newest first, as of 2026-09-06)
 

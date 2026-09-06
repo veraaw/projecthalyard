@@ -9,6 +9,10 @@
 
 - R1043: filed "Intro sent" but intro_outcomes.csv has no row at all
 
+## Currently routing to: nobody (no path to this company in the network)
+
+- nobody in the network reaches this company
+
 ## 3. Who can reach them
 
 nobody in the network reaches this company

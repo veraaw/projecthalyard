@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import re
 import sys
 import unittest
 from collections import Counter
@@ -12,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from analysis.trace import MISSED, OFFER, WARN, WORKED, Data, Trace, find_company, money  # noqa: E402
+from analysis.trace import BYPASS_LABEL, MISSED, OFFER, WARN, WORKED, Data, Trace, find_company, money, short_reason  # noqa: E402
 from dashboard import live_priorities as lp  # noqa: E402
 from golden import build_golden as bg  # noqa: E402
 
@@ -78,16 +79,67 @@ class HarrowgateTest(unittest.TestCase):
     def test_reach_sorted_by_route_score_not_strength(self):
         """Elena's Slack offer is the strongest raw path (0.800) but Healthcare is
         outside her focus, so the allocator scores it 0 and it ranks last; the
-        table sorts the way the allocator does and shows both numbers."""
-        scores = [self.trace.route_score(p) for p in self.trace.paths]
+        table sorts the way the allocator does and shows both numbers. Tomás has
+        the best-scoring path but agreed to R1057 and sent no intro: he is not
+        asked here again, so his rows sit behind everyone askable, Elena's included."""
+        paths = self.trace.paths
+        askable = [p for p in paths if self.trace.askable(p)]
+        held = paths[len(askable):]
+        self.assertEqual(askable, paths[:len(askable)], "askable paths first")
+        self.assertTrue(held and all(not self.trace.askable(p) for p in held))
+        self.assertEqual({p["connector"] for p in held}, {"Tomás Beckett"})
+        self.assertEqual(self.trace.hold_of("Tomás Beckett")["hold"], bg.HOLD_NUDGE)
+        scores = [self.trace.route_score(p) for p in askable]
         self.assertEqual(scores, sorted(scores, reverse=True))
+        self.assertGreater(self.trace.route_score(held[0]), scores[0], "the held path would have ranked first")
         self.assertEqual(self.trace.strongest()["connector"], "Elena Duvall")
-        self.assertEqual(self.trace.paths[-1]["connector"], "Elena Duvall")
-        self.assertNotEqual(self.trace.paths[0]["connector"], "Elena Duvall")
+        self.assertEqual(askable[-1]["connector"], "Elena Duvall")
+        self.assertNotEqual(paths[0]["connector"], "Elena Duvall")
         reach = self.trace.as_dict()["reach"]
-        self.assertEqual([r["route_score"] for r in reach], sorted((r["route_score"] for r in reach), reverse=True))
-        self.assertEqual((reach[-1]["strength"], reach[-1]["route_score"], reach[-1]["fit"]), (0.8, 0.0, 0.0))
-        self.assertIn("| route score | strength | connector |", self.text)
+        live = [r for r in reach if r["askable"]]
+        self.assertEqual([r["route_score"] for r in live], sorted((r["route_score"] for r in live), reverse=True))
+        self.assertEqual((live[-1]["strength"], live[-1]["route_score"], live[-1]["fit"], live[-1]["hold"]), (0.8, 0.0, 0.0, ""))
+        for r in reach[len(live):]:
+            self.assertEqual((r["connector"], r["hold"], r["askable"]), ("Tomás Beckett", bg.HOLD_NUDGE, False))
+            self.assertIn("Tomás Beckett agreed on", r["unresolved_ask"])
+            self.assertIn("(R1057), no intro - nudge", r["unresolved_ask"])
+        self.assertIn("| route score | strength | connector | reach | contact | evidence | unresolved ask |", self.text)
+
+    def test_currently_routing_to(self):
+        """The header above section 3: where this cycle's requests went, else the
+        allocator's first askable path; the connectors stepped over and why."""
+        rt = self.trace.current_route()
+        rows = [a for a in self.data.allocation if a["company_id"] == "C018" and a["allocated_to"]]
+        self.assertTrue(rows)
+        self.assertIn(rt["connector"], {a["allocated_to"] for a in rows})
+        self.assertEqual(rt["connector"], rt["this_cycle"][0])
+        self.assertNotEqual(rt["connector"], "Tomás Beckett")
+        self.assertEqual(rt["top"]["connector"], self.trace.paths[0]["connector"])
+        self.assertTrue(self.trace.askable(self.trace.paths[0]))
+        self.assertEqual(rt["why"], "")
+        self.assertEqual(len(rt["not_asked"]), 1)
+        self.assertIn("Tomás Beckett agreed on", rt["not_asked"][0])
+        self.assertEqual([a["request_id"] for a in rt["live"]],
+                         sorted(a["request_id"] for a in self.data.allocation if a["company_id"] == "C018"))
+        self.assertEqual(rt, self.trace.as_dict()["route"])
+        head = self.text.index(f"## Currently routing to: {rt['connector']}")
+        self.assertLess(head, self.text.index("## 3. Who can reach them"))
+        self.assertGreater(head, self.text.index("## 2. Where the files disagree"))
+        self.assertIn("- not asked again here: Tomás Beckett agreed on", self.text)
+
+    def test_currently_routing_to_nobody_when_every_path_is_held(self):
+        """Brightmoor Energy (C007): Elena is the only connector in and agreed to
+        R1190 without sending the intro, so nobody is routed there."""
+        company = next(c for c in self.data.companies if c["company_id"] == "C007")
+        t = Trace(self.data, company, AS_OF)
+        rt = t.current_route()
+        self.assertEqual((rt["connector"], rt["top"], rt["this_cycle"], rt["why"]), ("", None, [], bg.UNRESOLVED_ASK))
+        self.assertEqual(len(rt["not_asked"]), 1)
+        self.assertIn("Elena Duvall agreed on 2026-07-06 (R1190), no intro - nudge", rt["not_asked"][0])
+        self.assertTrue(all(not r["askable"] for r in t.as_dict()["reach"]))
+        text = t.render()
+        self.assertIn(f"## Currently routing to: nobody ({bg.UNRESOLVED_ASK})", text)
+        self.assertIn("- everyone who reaches the company is sitting on an ask there", text)
 
     def test_bypass_reason_sits_on_the_strongest_row(self):
         """Read off the roster, supply_reach.csv and this cycle's allocation rows,
@@ -95,17 +147,43 @@ class HarrowgateTest(unittest.TestCase):
         why = self.trace.bypass()
         used = sum(a["allocated_to"] == "Elena Duvall" for a in self.data.allocation)
         cap = bg.capacity(self.data.roster, "Elena Duvall")
-        load = f"at capacity {used}/{cap}" if used >= cap else f"{used}/{cap} used this cycle"
-        self.assertTrue(why.startswith(f"Elena Duvall, offer 0.800, {load}, Healthcare is outside their focus (route score 0.000); "), why)
+        self.assertGreaterEqual(used, cap)
+        head, went = why.split(" -> ")
+        self.assertEqual(head, f"Elena Duvall at capacity {used}/{cap}, outside focus (Healthcare)", why)
+        self.assertNotIn("0.800", why, "the strength is on the row above, not repeated")
         rows = [a for a in self.data.allocation if a["company_id"] == "C018"]
         self.assertIn("R1153", [a["request_id"] for a in rows])
+        groups = dict(re.fullmatch(r"((?:R\d+, )*R\d+) (.+)", g).groups()[::-1] for g in went.split("; "))  # destination -> 'R1136, R1140'
         for a in rows:
-            self.assertIn(f"{a['request_id']} routed to {a['allocated_to']}" if a["allocated_to"]
-                          else f"{a['request_id']} unrouted ({a['exception_reason']})", why)
+            dest = f"to {a['allocated_to']}" if a["allocated_to"] else f"unrouted ({short_reason(a['exception_reason'])})"
+            self.assertIn(a["request_id"], groups[dest].split(", "), why)
+        self.assertEqual(went.count("capacity exhausted"), 1, "one group per destination, requests listed once each")
         reach = self.trace.as_dict()["reach"]
         self.assertEqual([r["connector"] for r in reach if r["bypass"]], ["Elena Duvall"])
-        self.assertEqual(reach[-1]["bypass"], why)
-        self.assertIn(f"strongest path, not where it went: {why}", self.text)
+        self.assertEqual(next(r for r in reach if r["bypass"])["bypass"], why)
+        self.assertIn(f"{BYPASS_LABEL}: {why}", self.text)
+
+    def test_bypass_parked_on_live_intro_names_only_the_intro(self):
+        """Gravenhurst Motors: every live request is parked on Curtis Hartigan's
+        intro, so nobody is asked afresh and the strongest path is beside the
+        point; the line is the intro once, then the parked requests."""
+        t = Trace(self.data, find_company(self.data, "Gravenhurst Motors"), AS_OF)
+        parked = sorted((a for a in self.data.allocation if a["company_id"] == "C016" and a["exception_reason"].startswith(bg.ALREADY_INTRODUCED)),
+                        key=lambda a: a["request_id"])
+        self.assertTrue(parked)
+        self.assertEqual(t.bypass(), "parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting booked): "
+                         + ", ".join(a["request_id"] for a in parked))
+        self.assertEqual(t.bypass().count("Curtis Hartigan"), 1)
+
+    def test_short_reason(self):
+        self.assertEqual(short_reason(bg.introduced_reason({"connector": "Curtis Hartigan", "intro_date": "2026-08-10", "request_id": "R1122", "meeting_booked": True})),
+                         "parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting booked)")
+        self.assertEqual(short_reason(bg.introduced_reason({"connector": "Curtis Hartigan", "intro_date": "2026-08-10", "request_id": "R1122", "meeting_booked": False})),
+                         "parked on live intro (R1122, Curtis Hartigan, 2026-08-10)")
+        self.assertEqual(short_reason(bg.CAPACITY_EXHAUSTED), "capacity exhausted")
+        self.assertEqual(short_reason(f"{bg.STALE_ASK}: Owen Trask in 2026-08"), "already proposed to Owen Trask in 2026-08")
+        self.assertEqual(short_reason("company unresolved"), "company unresolved")
+        self.assertEqual(short_reason(f"{bg.UNRESOLVED_ASK}: Elena Duvall agreed on 2026-07-06 (R1190), no intro - nudge"), bg.UNRESOLVED_ASK)
 
     def test_chronology(self):
         events = self.trace.events()
