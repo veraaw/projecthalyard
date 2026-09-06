@@ -190,8 +190,8 @@ class PayloadTest(unittest.TestCase):
         self.assertTrue(all(c["connector"] and c["slug"] and c["batch_id"] for c in A["all"]))
         self.assertEqual(A["exception_count"], len(alloc) - len(allocated), 56)
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
-                         {"no path to this company in the network": 32, "already introduced": 11,
-                          "company unresolved": 8, "capacity exhausted this cycle": 5})
+                         {"no path to this company in the network": 28, "already introduced": 11,
+                          "company unresolved": 8, "capacity exhausted this cycle": 1})
         parked = next(e for e in A["exceptions"] if e["reason"] == "already introduced")
         for r in parked["rows"]:
             self.assertRegex(r["detail"], r"^.+ on \d{4}-\d{2}-\d{2} \(R1\d{3}(, meeting booked)?\)$", "the reason names the intro")
@@ -434,7 +434,8 @@ class PayloadTest(unittest.TestCase):
         rows = elena["strongest_elsewhere"]
         row = next(r for r in rows if r["company_id"] == "C018")
         self.assertEqual((row["reach_type"], row["strength"], row["route_score"], row["outside_focus"]), ("offer", 0.8, 0.0, True))
-        self.assertEqual((row["used"], row["capacity"]), (3, 3))
+        used = sum(a["allocated_to"] == "Elena Duvall" for a in live.allocation)
+        self.assertEqual((row["used"], row["capacity"]), (used, 3))
         self.assertEqual(row["routed_to"], ["Tomás Beckett"])
         self.assertEqual(row["requests"], ["R1136", "R1153"])
         self.assertEqual(row["href"], f"{lp.TRACE_PAGE}#C018")

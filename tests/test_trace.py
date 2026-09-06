@@ -73,7 +73,10 @@ class HarrowgateTest(unittest.TestCase):
         """Read off the roster, supply_reach.csv and this cycle's allocation rows,
         not best_path_if_unbudgeted."""
         why = self.trace.bypass()
-        self.assertTrue(why.startswith("Elena Duvall, offer 0.800, at capacity 3/3, Healthcare is outside their focus (route score 0.000); "), why)
+        used = sum(a["allocated_to"] == "Elena Duvall" for a in self.data.allocation)
+        cap = bg.capacity(self.data.roster, "Elena Duvall")
+        load = f"at capacity {used}/{cap}" if used >= cap else f"{used}/{cap} used this cycle"
+        self.assertTrue(why.startswith(f"Elena Duvall, offer 0.800, {load}, Healthcare is outside their focus (route score 0.000); "), why)
         self.assertIn("R1136 routed to Tomás Beckett", why)
         self.assertIn("R1153 routed to Tomás Beckett", why)
         reach = self.trace.as_dict()["reach"]

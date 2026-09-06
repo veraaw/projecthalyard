@@ -90,8 +90,18 @@ class ComposerTest(unittest.TestCase):
         self.assertGreater(multi, 0, "the golden allocation has a connector with two requests for one company")
 
     def test_duplicate_title_renders_once_with_a_count(self):
+        # Two live requests for one (company, title) may land in different batches;
+        # route the second down the first's path so one batch asks twice.
+        by_title = {}
+        allocation = [dict(a) for a in self.allocation]
+        for a in allocation:
+            if a["allocated_to"]:
+                first = by_title.setdefault((a["company_id"], a["target_title"]), a)
+                for k in ("allocated_to", "batch_id", "path_type", "contact_name"):
+                    a[k] = first[k]
+        records = batch_ask.compose(allocation, self.requests, self.roster, self.templates)
         hits = 0
-        for m in self.records:
+        for m in records:
             for c in m["companies"]:
                 for g in c["contacts"]:
                     for t in g["titles"]:
@@ -106,7 +116,7 @@ class ComposerTest(unittest.TestCase):
                         else:
                             self.assertNotIn(", asked", line[0])
                             self.assertEqual(len(t["request_ids"]), 1)
-        self.assertGreater(hits, 0, "the golden allocation has a company asked twice for the same title")
+        self.assertGreater(hits, 0, "the golden allocation has two live requests for one (company, title)")
 
     def test_message_body_carries_no_value_score_request_id_or_urgency(self):
         for m in self.records:

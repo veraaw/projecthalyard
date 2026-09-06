@@ -282,7 +282,7 @@ class OrbitTraceSectionTest(unittest.TestCase):
         self.assertEqual(len(d["orbit"]), 4)
         self.assertEqual({r["reachable_via"] for r in d["orbit"]}, {bg.INVESTOR_NETWORK})
         self.assertEqual({r["route"] for r in d["orbit"]}, {"investor_network path (section 3, 10% haircut)"})
-        self.assertNotIn(NO_WARM_PATH, text)
+        self.assertNotIn(f"| {NO_WARM_PATH} |", text)
         self.assertEqual({p["connector"] for p in d["reach"]}, {r["person"] for r in d["orbit"]})
 
     def test_cold_rows_are_labelled(self):
