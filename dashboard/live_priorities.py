@@ -49,7 +49,7 @@ from paths import DASHBOARD, DATASET, DOCS, GOLDEN, ROOT
 # ---------------------------------------------------------------------------
 # constants the ranking uses; every one is shown on the tab
 # ---------------------------------------------------------------------------
-STAGES = ["needs data", "to be routed", "routed", "asked", "introduced", "won"]
+STAGES = bg.STAGES  # routing stages, in order; stage_of() lives in build_golden
 # CRM stage -> probability weight on the deal value (pipeline weighting)
 STAGE_WEIGHT = {
     "Negotiation": 0.9, "Pilot": 0.75, "Evaluation": 0.55, "Discovery": 0.35, "Prospect": 0.25,
@@ -380,21 +380,7 @@ class Live:
     # -- 1. stages ------------------------------------------------------------
     def stage_of(self, r: dict) -> str:
         """Point in time: each request sits in exactly one stage; 'closed' is excluded from the strip."""
-        o = self.outcome_by_rid.get(r["request_id"])
-        a = self.alloc_by_rid.get(r["request_id"])
-        if (o and o["meeting_booked"] == "Y") or r["meeting_booked"] == "Y":
-            return "won"
-        if (o and o["intro_sent"] == "Y") or r["intro_sent"] == "Y" or r["status_as_filed"] == "Intro sent":
-            return "introduced"
-        if r["status_as_filed"] == "Closed - no path":
-            return "closed"
-        if o or r["asked_date"]:
-            return "asked"
-        if r["routed_to"] or (a and a["allocated_to"]):
-            return "routed"
-        if not r["company_id"] or not r["value_usd"]:
-            return "needs data"
-        return "to be routed"
+        return bg.stage_of(r, self.outcome_by_rid.get(r["request_id"]), self.alloc_by_rid.get(r["request_id"]))
 
     def company_value(self, cid: str) -> tuple[int, str]:
         """One $ per company: CRM ARR potential (golden_companies.value_usd, the max

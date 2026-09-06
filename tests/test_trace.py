@@ -12,6 +12,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from analysis.trace import MISSED, OFFER, WARN, WORKED, Data, Trace, find_company  # noqa: E402
+from dashboard import live_priorities as lp  # noqa: E402
+from golden import build_golden as bg  # noqa: E402
 
 AS_OF = date(2026, 9, 5)
 
@@ -35,6 +37,17 @@ class HarrowgateTest(unittest.TestCase):
         self.assertEqual(len({r["requested_by"] for r in reqs}), 7)
         self.assertEqual(len({r["target_title"] for r in reqs}), 6)
         self.assertIn("9 requests from 7 people wanting 6 different titles", self.text)
+
+    def test_routing_furthest_and_latest_differ(self):
+        """Two intros landed, but the latest request (R1057, Stalled) is still with the connector asked."""
+        rt = self.trace.as_dict()["header"]["routing"]
+        self.assertEqual(rt["furthest"], "introduced")
+        self.assertEqual(rt["latest"], "asked")
+        self.assertEqual(rt["latest"], self.trace.stage_of(next(r for r in self.trace.requests
+                                                                  if r["request_id"] == self.company["latest_request_id"])))
+        self.assertEqual(list(rt["counts"]), [s for s in [*bg.STAGES, "closed"] if s in rt["counts"]], "STAGES order")
+        self.assertEqual(rt["counts"]["asked"], rt["awaiting_intro"]["agreed"] + rt["awaiting_intro"]["silent"])
+        self.assertEqual(rt["awaiting_intro"], {"agreed": 2, "silent": 2})
 
     def test_disagreements(self):
         dis = "\n".join(self.trace.disagreements())
@@ -79,6 +92,46 @@ class HarrowgateTest(unittest.TestCase):
         self.assertTrue(reps.who.endswith("Curtis Hartigan (81 days)"), reps.who)
         self.assertEqual(reps.action, "tell them it's with Tomás Beckett")
         self.assertIn("the oldest has been waiting 355 days", reps.why)
+
+
+class RoutingStageTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.data = Data.load()
+        cls.traced = [c for c in cls.data.companies if int(c["total_requests"] or 0)]
+
+    def test_every_request_closed(self):
+        c = find_company(self.data, "Quillon Pharma")
+        t = Trace(self.data, c, AS_OF)
+        self.assertTrue(all(r["status_as_filed"] == "Closed - no path" for r in t.requests))
+        rt = t.as_dict()["header"]["routing"]
+        self.assertEqual(rt["furthest"], "closed")
+        self.assertEqual(rt["latest"], "closed")
+        self.assertEqual(rt["counts"], {"closed": len(t.requests)})
+        self.assertEqual(rt["awaiting_intro"], {"agreed": 0, "silent": 0})
+
+    def test_counts_sum_to_total_requests(self):
+        for c in self.traced:
+            d = Trace(self.data, c, AS_OF).as_dict()
+            rt = d["header"]["routing"]
+            self.assertEqual(sum(rt["counts"].values()), int(c["total_requests"]), c["company_id"])
+            self.assertEqual(sum(rt["counts"].values()), d["header"]["requests"], c["company_id"])
+            self.assertIn(rt["furthest"], [*bg.STAGES, "closed"])
+            self.assertIn(rt["latest"], [*bg.STAGES, "closed"], c["company_id"])
+            if rt["furthest"] == "closed":
+                self.assertEqual(set(rt["counts"]), {"closed"}, c["company_id"])
+
+    def test_stage_of_agrees_with_live_priorities(self):
+        """build_golden.stage_of is the one taxonomy: Live Priorities' stage_of is a
+        delegate to it, and the trace's furthest stage is Live Priorities' company stage."""
+        L = lp.Live(AS_OF)
+        for r in bg.read_csv(ROOT / "golden" / "golden_requests.csv"):
+            rid = r["request_id"]
+            self.assertEqual(bg.stage_of(r, L.outcome_by_rid.get(rid), L.alloc_by_rid.get(rid)), L.stage_of(r), rid)
+            self.assertEqual(bg.stage_of(r, self.data.outcome_by_rid.get(rid), self.data.alloc_by_rid.get(rid)),
+                             L.stage_of(r), rid)
+        for c in self.traced:
+            self.assertEqual(Trace(self.data, c, AS_OF).routing()["furthest"], L.company_stage(c["company_id"]), c["company_id"])
 
 
 class NoDisagreementTest(unittest.TestCase):
