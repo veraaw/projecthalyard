@@ -585,8 +585,9 @@ class Company:
 
 
 class Registry:
-    def __init__(self, accounts: list[dict], funds: list[str] = ()):
+    def __init__(self, accounts: list[dict], funds: list[str] = (), network_names: list[str] = ()):
         self._canon = Resolver(accounts, funds)  # the fund-collision guard lives there
+        self.network_names = list(network_names)  # companies the network reaches; not in scope until requested
         self.by_domain: dict[str, Company] = {}
         self._strict: dict[str, Company] = {}
         self._loose: dict[str, Company] = {}
@@ -646,9 +647,11 @@ class Registry:
         return None, "unmatched"
 
     def known_names(self) -> list[str]:
-        """Every spelling on file: CRM names, funds, and companies known only from requests."""
+        """Every spelling on file: CRM names, funds, companies known only from requests,
+        and every company someone in the network reaches (network_company_names)."""
         return [*(n for e in self._canon.entities for n in e.names),
-                *(n for c in self.by_domain.values() for n in c.names)]
+                *(n for c in self.by_domain.values() for n in c.names),
+                *self.network_names]
 
     def target_from_message(self, text: str) -> tuple[str, str]:
         """(company_as_written, domain_hint) named by a Slack message, via golden/parse.py."""
@@ -946,51 +949,43 @@ def connector_type(roster: dict, network: set[str], name: str) -> str:
     return NETWORK_TYPE if name in network else "not on roster"
 
 
-def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
-                 request_company: dict[str, Company | None], threads: dict[str, dict]) -> list[dict]:
-    """One row per way into an in-scope company. Sources that name a company
-    outside the CRM + requested set produce no row."""
-    rows: list[dict] = []
-    person_to_connectors: dict[str, list[tuple[str, dict]]] = defaultdict(list)
-    network = network_people(roster)
+def network_company_names(roster: dict) -> list[str]:
+    """Every company spelling the network reaches, as written in the roster's
+    connections_*.csv and in investor_network.csv (portfolio_company,
+    prior_employer); one entry per spelling, in file order."""
+    names: dict[str, None] = {}
+    for r in roster.values():
+        for c in read_csv(DATASET / r["connections_file"]):
+            if c["company"].strip():
+                names.setdefault(c["company"].strip())
+    for inv in read_csv(DATASET / "investor_network.csv"):
+        for col in NETWORK_SOURCES:
+            if inv[col].strip():
+                names.setdefault(inv[col].strip())
+    return list(names)
 
-    def emit(connector: str, company: Company, kind: str, contact: str, title: str,
-             observed: str, strength: float, evidence: str, offer_age: int | None = None,
-             board_seat: str = ""):
-        r = roster.get(connector)
-        s = company.survivor
-        industry = s["industry"] if s else ""
-        if r:
-            focus = "yes" if industry and industry in r["focus"] else ("unknown" if not industry else "no")
-        else:
-            focus = "unknown"
-        rows.append({
-            "connector": connector,
-            "connector_type": connector_type(roster, network, connector),
-            "company_id": company.company_id,
-            "company_name": company.name,
-            "reach_type": kind,
-            "board_seat": board_seat,
-            "contact_name": contact,
-            "contact_title": title,
-            "observed_date": observed,
-            "offer_age_days": "" if offer_age is None else offer_age,
-            "strength": f"{strength:.3f}",
-            "in_focus_area": focus,
-            "monthly_capacity": capacity(roster, connector),
-            "delivery_rate": f"{rates.get(connector, PRIOR_RATE):.3f}",
-            "evidence": evidence,
-        })
+
+def network_reach(roster: dict, today: date) -> list[dict]:
+    """Every path the network offers, before scope: one dict per (connector,
+    company as written in the source) for direct (connections_*.csv), investor /
+    investor_network (a fund's portfolio company) and alumni (a connection's prior
+    employer) paths. build_supply keeps the ones into an in-scope company; the
+    Live Priorities parser uses the rest to show what a company nobody has
+    requested yet would get."""
+    out: list[dict] = []
+    person_to_connectors: dict[str, list[tuple[str, dict]]] = defaultdict(list)
+
+    def path(connector: str, company: str, kind: str, contact: str, title: str,
+             observed: str, strength: float, evidence: str, board_seat: str = "") -> None:
+        out.append({"connector": connector, "company": company, "kind": kind, "contact": contact, "title": title,
+                    "observed": observed, "strength": strength, "evidence": evidence, "board_seat": board_seat})
 
     # direct: first-degree connections of a roster connector
     for name, r in roster.items():
         for c in read_csv(DATASET / r["connections_file"]):
             person_to_connectors[c["name"]].append((name, c))
-            company, _ = reg.resolve_in_scope(c["company"])
-            if company is None:
-                continue
             s = PATH_BASE["direct"] * (0.55 + 0.45 * seniority(c["title"])) * freshness(c["connected_on"], today)
-            emit(name, company, "direct", c["name"], c["title"], c["connected_on"], s,
+            path(name, c["company"], "direct", c["name"], c["title"], c["connected_on"], s,
                  f"{r['connections_file']}: {c['name']}, {c['title']} at {c['company']}, connected {c['connected_on']}")
 
     # investor: a roster investor's fund holds a position (board seat strengthens it);
@@ -1000,26 +995,73 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
     for inv in read_csv(DATASET / "investor_network.csv"):
         person = inv["person"].strip()
         if inv["portfolio_company"]:
-            company, _ = reg.resolve_in_scope(inv["portfolio_company"])
-            if company is not None:
-                seat = inv["board_seat"].lower() == "true"
-                emit(person, company, "investor" if person in roster else INVESTOR_NETWORK, "CEO / exec team",
-                     f"{inv['fund']} {'board seat' if seat else 'portfolio company'}", "",
-                     BOARD_SEAT_STRENGTH if seat else PATH_BASE["investor"],
-                     f"investor_network.csv: {person} ({inv['role']}), portfolio_company={inv['portfolio_company']}, board_seat={inv['board_seat']}",
-                     board_seat="yes" if seat else "no")
+            seat = inv["board_seat"].lower() == "true"
+            path(person, inv["portfolio_company"], "investor" if person in roster else INVESTOR_NETWORK, "CEO / exec team",
+                 f"{inv['fund']} {'board seat' if seat else 'portfolio company'}", "",
+                 BOARD_SEAT_STRENGTH if seat else PATH_BASE["investor"],
+                 f"investor_network.csv: {person} ({inv['role']}), portfolio_company={inv['portfolio_company']}, board_seat={inv['board_seat']}",
+                 board_seat="yes" if seat else "no")
         if inv["prior_employer"]:
-            company, _ = reg.resolve_in_scope(inv["prior_employer"])
-            if company is None:
-                continue
             tenure = f"{inv['prior_employer_start']}-{inv['prior_employer_end']}"
             for connector, conn in person_to_connectors.get(person, []):
                 s = PATH_BASE["alumni"] * freshness(conn["connected_on"], today)
-                emit(connector, company, "alumni", person,
+                path(connector, inv["prior_employer"], "alumni", person,
                      f"ex-{inv['prior_employer']} ({tenure}), now {conn['title']} at {conn['company']}",
                      conn["connected_on"], s,
                      f"investor_network.csv: {person} prior_employer={inv['prior_employer']} ({tenure}); "
                      f"{roster[connector]['connections_file']}: connection of {connector} since {conn['connected_on']}")
+    return out
+
+
+def supply_row(roster: dict, rates: dict, network: set[str], connector: str, company_id: str, company_name: str,
+               industry: str, kind: str, contact: str, title: str, observed: str, strength: float, evidence: str,
+               offer_age: int | None = None, board_seat: str = "") -> dict:
+    """One supply_reach.csv row (before finish_supply stamps idle_capacity)."""
+    r = roster.get(connector)
+    if r:
+        focus = "yes" if industry and industry in r["focus"] else ("unknown" if not industry else "no")
+    else:
+        focus = "unknown"
+    return {
+        "connector": connector,
+        "connector_type": connector_type(roster, network, connector),
+        "company_id": company_id,
+        "company_name": company_name,
+        "reach_type": kind,
+        "board_seat": board_seat,
+        "contact_name": contact,
+        "contact_title": title,
+        "observed_date": observed,
+        "offer_age_days": "" if offer_age is None else offer_age,
+        "strength": f"{strength:.3f}",
+        "in_focus_area": focus,
+        "monthly_capacity": capacity(roster, connector),
+        "delivery_rate": f"{rates.get(connector, PRIOR_RATE):.3f}",
+        "evidence": evidence,
+    }
+
+
+def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
+                 request_company: dict[str, Company | None], threads: dict[str, dict]) -> list[dict]:
+    """One row per way into an in-scope company. Sources that name a company
+    outside the CRM + requested set produce no row."""
+    rows: list[dict] = []
+    network = network_people(roster)
+
+    def emit(connector: str, company: Company, kind: str, contact: str, title: str,
+             observed: str, strength: float, evidence: str, offer_age: int | None = None,
+             board_seat: str = ""):
+        s = company.survivor
+        rows.append(supply_row(roster, rates, network, connector, company.company_id, company.name,
+                               s["industry"] if s else "", kind, contact, title, observed, strength, evidence,
+                               offer_age, board_seat))
+
+    for p in network_reach(roster, today):
+        company, _ = reg.resolve_in_scope(p["company"])
+        if company is None:
+            continue
+        emit(p["connector"], company, p["kind"], p["contact"], p["title"], p["observed"], p["strength"], p["evidence"],
+             board_seat=p["board_seat"])
 
     # offer: someone volunteered a path in the request's Slack thread
     for rid, th in threads.items():
@@ -1759,13 +1801,14 @@ def main() -> None:
     # already filed, plus raw requests about to be appended). IDs are pinned to
     # the existing golden files before any supply-side source is read.
     filed = read_csv(REQUESTS_OUT) if REQUESTS_OUT.exists() else []
+    roster = load_roster()
     reg = Registry(read_csv(DATASET / "crm_accounts.csv"),
-                   [inv["fund"] for inv in read_csv(DATASET / "investor_network.csv")])
+                   [inv["fund"] for inv in read_csv(DATASET / "investor_network.csv")],
+                   network_company_names(roster))
     threads = load_threads(args.threads)
     resolved = resolve_requests(reg, filed, {rid: th for rid, th in threads.items() if th["ingested"]})
     reg.assign_ids()
 
-    roster = load_roster()
     completions = load_completions()
     outcomes = with_completions(read_csv(DATASET / "intro_outcomes.csv"), completions)
     rates = delivery_rates(roster, outcomes, threads)

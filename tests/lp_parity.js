@@ -28,13 +28,15 @@ process.stdin.on('end', () => {
     return {
       status: x.status, title: x.title, target: x.target ? x.target.text : null,
       company_id: x.company ? x.company.company_id : '', company_name: x.company ? x.company.company_name : '',
-      crm: x.crm, candidates: x.candidates.map(c => c.id), others: x.others.map(o => o.text),
+      crm: x.crm, network: !!x.network, path_count: x.company ? x.company.path_count : 0,
+      candidates: x.candidates.map(c => c.id), others: x.others.map(o => o.text),
       top: x.top ? { connector: x.top.connector, reach_type: x.top.reach_type, contact: x.top.contact, score: x.top.score } : null,
       paths: x.paths.map(p => p.connector), expected_value: x.priority ? x.priority.expected_value : null,
     };
   });
   const preview = threads ? LP.previewThreads(threads, parser).rows.map(r => ({
-    request_id: r.request_id, company_id: r.company_id, offer_by: r.offer_by, route_to: r.route_to, flags: r.flags,
+    request_id: r.request_id, company_id: r.company_id, network: r.network, company_name: r.company_name,
+    offer_by: r.offer_by, route_to: r.route_to, path: r.path, flags: r.flags,
   })) : [];
   process.stdout.write(JSON.stringify({ extracted, routed, preview }));
 });

@@ -167,6 +167,18 @@ const LP = (function () {
     return { threads, errors };
   }
 
+  // a target the canonical resolver does not know: a company on file with no CRM
+  // account (P.known_no_crm -> its company_id), else one only the network reaches
+  // (P.known_network -> its 'network:...' key in P.companies), else nothing
+  function offFile(tg, P, resolver) {
+    const name = tg.is_domain ? domainStem(tg.text) : tg.text;
+    const look = table => get(table, resolver.normStrict(name), '') || get(table, resolver.normLoose(name), '');
+    const cid = look(P.known_no_crm);
+    if (cid) return { cid, network: false };
+    const key = look(P.known_network || {});
+    return { cid: key, network: !!key };
+  }
+
   function previewThreads(jsonlText, P) {
     const resolver = makeResolver(P.resolver);
     const offerRe = new RegExp(P.offer.source, P.offer.flags);
@@ -176,7 +188,7 @@ const LP = (function () {
       const offers = replies.filter(m => offerRe.test(m.text || '')).map(m => ({ who: m.user, text: m.text, date: (m.ts || '').slice(0, 10) }));
       const human = [];
       const row = { request_id: t.request_id, posted: (first.ts || '').slice(0, 10), requested_by: first.user || '', raw_ask: first.text || '',
-                    company_as_written: '', company_id: '', company_name: '', resolved_by: '', href: '', offers, offer_by: '', offer_text: '',
+                    company_as_written: '', company_id: '', network: '', company_name: '', resolved_by: '', href: '', offers, offer_by: '', offer_text: '',
                     route_to: '', path: '', expected_value: '', needs_human: '', flags: human, filed: false, mentions: [], cands: [], priority: null };
       const filed = get(P.filed, t.request_id, null);
       if (filed) {
@@ -204,13 +216,13 @@ const LP = (function () {
             row.resolved_by = `${r.method}: ${r.candidates.map(c => `${c.id} ${c.name} (${c.kind})`).join(' | ')}`;
             human.push(r.method === 'fund-or-customer' ? 'bare name is both a fund and a customer, ask the requester which' : 'ambiguous between two companies, pick one');
           } else {
-            const name = tg.is_domain ? domainStem(tg.text) : tg.text;
-            const known = get(P.known_no_crm, resolver.normStrict(name), '') || get(P.known_no_crm, resolver.normLoose(name), '');
-            if (known) { row.company_id = known; row.resolved_by = 'matches a company on file that has no CRM account'; human.push('no CRM account, create one (see CRM Updates)'); }
+            const known = offFile(tg, P, resolver);
+            if (known.network) { row.network = known.cid; row.resolved_by = 'a company the network reaches but nobody has filed: the build creates it with no domain and no CRM account'; human.push('no CRM account, create one (see CRM Updates)'); }
+            else if (known.cid) { row.company_id = known.cid; row.resolved_by = 'matches a company on file that has no CRM account'; human.push('no CRM account, create one (see CRM Updates)'); }
             else { row.resolved_by = 'new company, so the build creates it with no domain and no CRM account'; human.push('new company with no CRM account and no domain, confirm the spelling'); }
           }
         }
-        const C = get(P.companies, row.company_id, null);
+        const C = get(P.companies, row.company_id || row.network || '', null);
         if (C) { row.company_name = C.company_name; row.href = C.href; if (C.stage === 'Closed Lost') human.push('CRM account is Closed Lost, reopen it or close the request'); }
         else if (row.company_as_written) row.company_name = row.company_as_written;
         human.push('thread carries no deal value, urgency or target title, add them to the request file');
@@ -218,7 +230,7 @@ const LP = (function () {
       // who it would route to: the best existing path vs any offer in the thread, scored as the build scores them
       // (path strength x focus fit x delivery rate); expected value then multiplies by the request priority
       // and the slots left, as the allocator does. Every factor comes from the payload.
-      const C = get(P.companies, row.company_id, null);
+      const C = get(P.companies, row.company_id || row.network || '', null);
       const priority = C ? C.priority : { request_priority: 0, deal_source: 'no deal value on file',
                                           components: { deal_value_musd: 0, stage_weight: P.no_crm_weight, age: 1, reps_waiting: 1 } };
       const cand = (who, score, label, strength, fit, rate, capacity_left) => ({
@@ -248,7 +260,7 @@ const LP = (function () {
         if (!conn) human.push(`${best.who} is unknown to the roster and the outcome log`);
       } else {
         row.path = 'no path';
-        if (row.company_id) human.push('no path to this company in the network, an exception unless someone offers');
+        if (row.company_id || row.network) human.push('no path to this company in the network, an exception unless someone offers');
       }
       row.flags = human.filter(Boolean);
       row.needs_human = row.flags.join('; ');
@@ -301,18 +313,14 @@ const LP = (function () {
       out.note = `“${tg.text}” resolves to ${r.name}, which is an investor fund rather than a customer. The build would file a new company under that name.`;
       return out;
     }
-    let cid = r.entity_id;
-    if (!cid) {
-      const name = tg.is_domain ? domainStem(tg.text) : tg.text;
-      cid = get(P.known_no_crm, resolver.normStrict(name), '') || get(P.known_no_crm, resolver.normLoose(name), '');
-    }
+    const cid = r.entity_id || offFile(tg, P, resolver).cid;
     const C = get(P.companies, cid, null);
     if (!C) {
       out.status = 'unknown';
-      out.note = `“${tg.text}” is a company the build has not seen: no CRM record, no path on the roster. It would be filed as a new company.`;
+      out.note = `“${tg.text}” is a company the build has not seen: no CRM record, nobody in the network reaches it. It would be filed as a new company.`;
       return out;
     }
-    out.company = C; out.crm = C.crm;
+    out.company = C; out.crm = C.crm; out.network = !!C.network;
     out.paths = C.paths;
     out.top = C.paths.find(p => p.score > 0) || null;
     out.priority = out.top ? {
@@ -322,6 +330,7 @@ const LP = (function () {
     } : { ...C.priority, connector_score: 0, expected_value: 0, connector_components: null };
     out.status = out.top ? 'routed' : 'no-path';
     out.note = out.top ? '' : `no path on the roster: nobody in the network reaches ${C.company_name}. It would be an exception this cycle unless someone offers.`;
+    if (C.network) out.note = `${C.company_name} is not on file: no CRM account, never requested. The network reaches it${C.path_count ? ` (${plural(C.path_count, 'path')})` : ''}; filing this request creates the company and the next rebuild routes it as ranked below. Create the CRM account (see CRM Updates).${out.note ? ' ' + out.note : ''}`;
     return out;
   }
 
@@ -631,7 +640,7 @@ const LP = (function () {
     // ---- band 1 · intake: input the build does not have yet
     // route one message — the common case and the demo case, so it comes first
     sec.route = `<section id="route"><h2>Route a Live Request <span class="foot">paste a Slack message and see what the router would do with it</span></h2>
-      <p class="lede">The browser applies the build's own rules, exported as data: the ${P.cues.length} cues from <code>golden/parse.py</code> score every company named, the highest positive score is the target, <code>golden/resolver.py</code>'s tables look the name up, and the company's paths from <code>supply_reach.csv</code> are ranked as the build ranks them. Nothing is written anywhere.</p>
+      <p class="lede">The browser applies the build's own rules, exported as data: the ${P.cues.length} cues from <code>golden/parse.py</code> score every company named, the highest positive score is the target, <code>golden/resolver.py</code>'s tables look the name up, and the company's paths from <code>supply_reach.csv</code> are ranked as the build ranks them. A company nobody has filed yet but someone in the network reaches shows the paths the next rebuild would file for it. Nothing is written anywhere.</p>
       <div class="presets">try a real shape:${P.route_presets.map((p, i) => `<button class="secondary" data-i="${i}">${esc(p.label)}</button>`).join('')}</div>
       <div class="ask"><textarea id="lp-route-text" rows="3" placeholder="who do we know at …" aria-label="Slack message"></textarea><button id="lp-route-go">Route it</button></div>
       <div id="lp-route-out"></div></section>`;
@@ -801,8 +810,10 @@ const LP = (function () {
     else if (x.status === 'refused') target = `<i>refused</i>: “${esc(T.text)}” ${cue(T)}<br><span class="foot">${x.candidates.map(c => c.kind === 'company' && c.ref ? `${co(c.ref)} <span class="foot">(customer, ${esc(c.id)})</span>` : `${esc(c.name)} <span class="foot">(${esc(c.kind)}, ${esc(c.id)})</span>`).join(' · or · ')}</span>`;
     else if (x.status === 'fund') target = `${esc(T.name)} <span class="foot">(an investor fund rather than a customer)</span> ${cue(T)}`;
     else if (!C) target = `${esc(T.text)} <span class="foot">(new to the build)</span> ${cue(T)}`;
+    else if (C.network) target = `${esc(C.company_name)} <span class="foot">not on file, known to the network${T.is_domain || T.text !== C.company_name ? ` from “${esc(T.text)}”` : ''}</span> ${cue(T)}`;
     else target = `${co(C)} <span class="foot">${esc(C.company_id)} · ${C.crm ? `${esc(T.method)} ${T.confidence.toFixed(2)}` : 'on file, no CRM account'}${T.is_domain || T.text !== C.company_name ? ` from “${esc(T.text)}”` : ''}</span> ${cue(T)}`;
     if (!C) account = x.status === 'refused' ? `<i>${x.candidates.filter(c => c.kind === 'company').length ? 'two records answer to this name' : 'none'}</i>` : `<b class="warn">no CRM record</b>`;
+    else if (C.network) account = `<b class="warn">no CRM record</b> <span class="foot">the company is in the network's connections but on nobody's file; create the account (see CRM Updates)</span>`;
     else if (!C.crm) account = `<b class="warn">no CRM record</b> <span class="foot">the company is on file from earlier asks; create the account (see CRM Updates)</span>`;
     else account = `${esc(C.stage)} · ${esc(C.industry || 'no industry')} · ${esc(C.owner || 'nobody')} · ${C.arr_fmt ? esc(C.arr_fmt) + ' ARR potential' : 'no ARR potential on file'}${C.stage === 'Closed Lost' ? ' · <b class="warn">Closed Lost: reopen it or close the request</b>' : ''}`;
     const others = x.others.length
@@ -817,7 +828,8 @@ const LP = (function () {
     let out = `<dl class="route parts">${row('target', target, 'key')}${row('account', account)}${row('title', x.title ? esc(x.title) : '<span class="foot">none named</span>')}${row('not the target', others)}${row('priority', priority)}</dl>`;
     if (x.note) out += `<div class="route-note${x.status === 'routed' ? ' ok' : ''}">${esc(x.note)}</div>`;
     if (x.paths.length) {
-      out += `<h3>Ranked connectors <span class="foot">best first: path strength × focus fit × delivery rate, as <code>build_golden.py</code> scores them</span></h3>
+      const shown = C && C.path_count > x.paths.length ? ` · the best ${x.paths.length} of ${C.path_count}` : '';
+      out += `<h3>Ranked connectors <span class="foot">best first: path strength × focus fit × delivery rate, as <code>build_golden.py</code> scores them${shown}</span></h3>
         <table><thead><tr><th>#</th><th>connector</th><th>path</th><th class="num">score</th><th>why</th></tr></thead><tbody>`
         + x.paths.map((p, i) => `<tr class="${p.score > 0 ? '' : 'foot'}"><td class="order">${i + 1}</td><td><b>${esc(p.connector)}</b>${p.on_roster ? '' : '<br><span class="foot">not on the roster</span>'}</td><td class="path">${esc(p.reach_type)}${p.contact ? `<br><span class="foot">${esc(p.contact)}</span>` : ''}</td><td class="num"><span class="c" title="${p.strength} strength × ${p.fit} fit × ${p.rate} delivery rate">${p.score.toFixed(3)}</span></td><td class="foot">${esc(p.reason)}${p.score > 0 ? '' : '; <b>would not be routed</b>'}</td></tr>`).join('')
         + `</tbody></table>`;
