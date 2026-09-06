@@ -7,7 +7,7 @@
 
 Every company mention is scored by the phrase that introduces it, never by
 where it sits in the message: "the account I actually need is" scores +3,
-"we need" +2, "introduced us to" -1, "we sell into" -2, and an explicit
+"we need" / "I need" +2, "introduced us to" -1, "we sell into" -2, and an explicit
 negation ("Not X", "X — that's a different entity") -3. The target is the best-scoring
 mention with a positive score; when nothing positive is said the message has
 no target (a person with no company, "a large logistics business").
@@ -45,7 +45,7 @@ CUES: list[tuple[str, re.Pattern, int]] = [
     ("the account I actually need is", rf"the account I actually need is (?P<co>{_CO})", 3),
     ("is the target", rf"{_NOT}(?P<co>{_CO}) is the target", 3),
     ("is the account", rf"{_NOT}(?P<co>{_CO}) is the account", 2),
-    ("we need", rf"we need (?P<co>{_CO})", 2),
+    ("we need", rf"(?:we|I) need (?P<co>{_CO})", 2),
     ("need help getting to", rf"need help getting to (?P<co>{_CO})", 2),
     ("need an intro at", rf"need an intro (?:at|to|into) (?P<co>{_CO})", 2),
     ("any connections into", rf"connections? into (?P<co>{_CO})", 2),
