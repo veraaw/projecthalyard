@@ -183,6 +183,21 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
                          {"no path to this company in the network": 32, "capacity exhausted this cycle": 10,
                           "company unresolved": 8})
+        companies = {c["company_id"]: c for c in read_csv(ROOT / "golden" / "golden_companies.csv")}
+        for e in A["exceptions"]:
+            for r in e["rows"]:
+                if e["reason"] == "company unresolved":
+                    self.assertEqual(r["crm_stage"], "")
+                else:
+                    self.assertEqual(r["crm_stage"], companies[r["company_id"]]["stage"] or "no CRM account")
+        # no path: who on the roster covers the sector, so the blank cell becomes a named person
+        no_path = next(e for e in A["exceptions"] if e["reason"] == "no path to this company in the network")
+        by_name = {r["company_name"]: r["sector_cover"] for r in no_path["rows"]}
+        self.assertEqual([c["connector"] for c in by_name["Halcyon Grid"]["connectors"]], ["Marcus Aldridge"])
+        self.assertEqual([c["connector"] for c in by_name["Pemberton Retail"]["connectors"]], ["Dana Whitfield"])
+        self.assertEqual(by_name["Halcyon Grid"]["connectors"][0]["asked"], "", "never asked")
+        self.assertEqual(by_name["Sablefield Motors"]["connectors"], [])
+        self.assertEqual(by_name["Sablefield Motors"]["note"], "nobody on the roster covers Automotive")
 
     def test_offer_gaps(self):
         O = self.P["offer_gaps"]
