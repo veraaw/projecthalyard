@@ -591,7 +591,8 @@ class Live:
             "reps_waiting": "distinct requesters with a live request on the same company",
             "path_strength": "supply_reach.csv strength of the path used",
             "focus_fit": "1.0 in the connector's focus areas, 0.45 outside, 0 if they decline outside, 0.7 when the industry or the connector is unknown",
-            "delivery_rate": "intros / asks, shrunk toward the prior (supply_reach.csv delivery_rate)",
+            "delivery_rate": f"(intros + {bg.PRIOR_RATE} × {bg.PRIOR_WEIGHT:g}) / (asks + {bg.PRIOR_WEIGHT:g}): intros / asks shrunk toward the {round(100 * bg.PRIOR_RATE)}% network average, "
+                             f"which is all a connector never asked has (supply_reach.csv delivery_rate)",
             "capacity_left": "share of stated monthly capacity still unspent when the allocator reached this request; 0 when the cycle's slots were gone",
         }
 
@@ -810,6 +811,7 @@ class Live:
             "capacity": cap, "asked_this_cycle": asked_cycle, "allocated_this_cycle": len(queue),
             "used": asked_cycle + len(queue), "idle": max(0, cap - asked_cycle - len(queue)),
             "delivery_rate": round(self.rate(name), 3), "asks_all_time": len(asks), "intros_all_time": len(intros),
+            "prior_rate": bg.PRIOR_RATE,
             "intros_this_cycle": cycles[-1]["intros"], "cycles": cycles,
             "batch_ask": self.batch_ask(name),
             # actionable rows first (oldest ask first), then the ones followed up recently
