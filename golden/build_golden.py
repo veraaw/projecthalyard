@@ -162,7 +162,7 @@ from typing import NamedTuple
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from golden.parse import extract as extract_target  # noqa: E402
-from golden.resolver import Resolver, domain_stem, normalize, normalize_strict  # noqa: E402
+from golden.resolver import Resolver, domain_stem, names_regex, normalize, normalize_strict  # noqa: E402
 
 DATASET = ROOT / "dataset"
 OUT = ROOT / "golden"
@@ -645,9 +645,14 @@ class Registry:
                 return None, "ambiguous"
         return None, "unmatched"
 
+    def known_names(self) -> list[str]:
+        """Every spelling on file: CRM names, funds, and companies known only from requests."""
+        return [*(n for e in self._canon.entities for n in e.names),
+                *(n for c in self.by_domain.values() for n in c.names)]
+
     def target_from_message(self, text: str) -> tuple[str, str]:
         """(company_as_written, domain_hint) named by a Slack message, via golden/parse.py."""
-        t = extract_target(text, self._canon).target
+        t = extract_target(text, self._canon, names_regex(self.known_names())).target
         if t is None:
             return "", ""
         return ("", t.text) if t.is_domain else (t.text, "")
