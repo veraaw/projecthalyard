@@ -7,7 +7,8 @@ company resolves, whether or not the person is on the roster. The file itself
 feeds nothing. What it points at does: an off-roster person's own portfolio
 company is an investor_network path in supply_reach.csv (connector_type
 "investor network", OFF_ROSTER_CAPACITY, prior delivery rate, NETWORK_HAIRCUT
-on route score), ranked and allocated like any other path.
+on route score), allocated roster-first: asked only for requests where the
+roster has no path or every roster path is out of capacity this cycle.
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ import csv
 import hashlib
 import sys
 import unittest
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import date
 from pathlib import Path
 
@@ -213,8 +214,25 @@ class NetworkOrbitTest(unittest.TestCase):
                 self.assertAlmostEqual(bg.path_score({**p, "reach_type": "investor"}, self.roster, rates, industry), bare)
         self.assertEqual(bg.NETWORK_HAIRCUT, 0.90)
 
-    def test_the_network_is_allocated_like_any_other_path(self):
-        """C042 and C014 route now; nobody in the network is allocated past
+    def test_roster_paths_rank_before_the_network_whatever_the_score(self):
+        rates = {}
+        for p in self.network_paths():
+            industry = self.companies[p["company_id"]]["industry"]
+            for reach in ("direct", "alumni", "investor", "offer"):
+                weak = {**p, "reach_type": reach, "strength": "0.05"}
+                with self.subTest(connector=p["connector"], company=p["company_id"], reach=reach):
+                    self.assertLess(bg.path_score(weak, self.roster, rates, industry),
+                                    bg.path_score(p, self.roster, rates, industry))
+                    self.assertLess(bg.path_rank(weak, self.roster, rates, industry),
+                                    bg.path_rank(p, self.roster, rates, industry))
+            self.assertEqual(bg.path_rank(p, self.roster, rates, industry),
+                             (1, -bg.path_score(p, self.roster, rates, industry)))
+
+    def test_the_network_fills_only_when_the_roster_cannot(self):
+        """Roster-first: every request allocated to the network had no roster path or
+        every roster connector with one was out of capacity by then; every request
+        with a roster connector still in budget went to the roster (so C042 and
+        C014, roster-unreachable, route now); nobody in the network is allocated past
         OFF_ROSTER_CAPACITY; an allocation's route_score is the haircut score;
         Nadia Okonkwo's Slack offer (the off-roster precedent) is untouched."""
         cycle = bg.latest_cycle(self.allocation)
@@ -224,6 +242,11 @@ class NetworkOrbitTest(unittest.TestCase):
         for a in cycle:
             if a["company_id"] in ("C042", "C014"):
                 self.assertEqual(a["path_type"], bg.INVESTOR_NETWORK, a["request_id"])
+        roster_paths = defaultdict(set)
+        for p in self.reach:
+            if p["reach_type"] != bg.INVESTOR_NETWORK:
+                roster_paths[p["company_id"]].add(p["connector"])
+        used = Counter(a["allocated_to"] for a in cycle if a["allocated_to"])
         by_path = {(p["connector"], p["company_id"]): p for p in self.network_paths()}
         for a in network:
             with self.subTest(request=a["request_id"]):
@@ -231,6 +254,12 @@ class NetworkOrbitTest(unittest.TestCase):
                 self.assertNotIn(a["allocated_to"], self.roster)
                 self.assertEqual(float(a["route_score"]),
                                  round(bg.path_score(p, self.roster, {}, self.companies[a["company_id"]]["industry"]), 3))
+                for n in roster_paths[a["company_id"]]:
+                    self.assertGreaterEqual(used[n], bg.capacity(self.roster, n),
+                                            f"{n} still had capacity for {a['company_id']}")
+        for a in cycle:
+            if a["allocated_to"] and a["path_type"] != bg.INVESTOR_NETWORK:
+                self.assertIn(a["allocated_to"], roster_paths[a["company_id"]], a["request_id"])
         load = Counter(a["allocated_to"] for a in network)
         self.assertLessEqual(max(load.values()), bg.OFF_ROSTER_CAPACITY)
         nadia = next(a for a in cycle if a["request_id"] == "R1034")
@@ -276,7 +305,7 @@ class OrbitTraceSectionTest(unittest.TestCase):
         text = t.render()
         self.assertIn("## 5. Additional Investor and Operator Network", text)
         self.assertNotIn("nobody in the network reaches this company", text)
-        self.assertIn("investor_network rows take a 10% haircut on route score", text)
+        self.assertIn("investor_network rows rank below every roster path and take a 10% haircut on route score", text)
         self.assertIn("4 askable as investor_network paths, 0 with no warm path", text)
         d = t.as_dict()
         self.assertEqual(len(d["orbit"]), 4)

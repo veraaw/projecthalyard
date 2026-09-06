@@ -7,11 +7,10 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows take a 10% haircut on route score
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
-| 0.172 | 0.720 | Camille Merriweather-Balogun (investor network) | investor_network | CEO / exec team — Silverbrook Capital portfolio company | investor_network.csv: Camille Merriweather-Balogun (Venture capital investor), portfolio_company=Cindermill Mining, board_seat=False |
 | 0.119 | 0.330 | Elena Duvall (Advisor) | direct | Bertrand Glückstein — Chief Data Officer | connections_duvall.csv: Bertrand Glückstein, Chief Data Officer at Cindermill Mining, connected 2015-08-26 |
 | 0.067 | 0.187 | Elena Duvall (Advisor) | alumni | Bertrand Glückstein — ex-Cindermill Mining (2011-2016), now Chief Data Officer at Cindermill Mining | investor_network.csv: Bertrand Glückstein prior_employer=Cindermill Mining (2011-2016); connections_duvall.csv: connection of Elena Duvall since 2015-08-26 |
 | 0.061 | 0.381 | Tomás Beckett (Internal) | direct | Bo Marchetti — Platform Lead | connections_beckett.csv: Bo Marchetti, Platform Lead at Cindermill Mining, connected 2022-02-02 |
@@ -20,8 +19,9 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.049 | 0.426 | Owen Trask (Investor) | direct | Leandro Brenneman — Director of Software Engineering | connections_trask.csv: Leandro Brenneman, Director of Software Engineering at Cindermill Mining, connected 2023-10-26 |
 | 0.038 | 0.330 | Owen Trask (Investor) | direct | Bertrand Glückstein — Chief Data Officer | connections_trask.csv: Bertrand Glückstein, Chief Data Officer at Cindermill Mining, connected 2015-05-17 |
 | 0.021 | 0.187 | Owen Trask (Investor) | alumni | Bertrand Glückstein — ex-Cindermill Mining (2011-2016), now Chief Data Officer at Cindermill Mining | investor_network.csv: Bertrand Glückstein prior_employer=Cindermill Mining (2011-2016); connections_trask.csv: connection of Owen Trask since 2015-05-17 |
+| 0.172 | 0.720 | Camille Merriweather-Balogun (investor network) | investor_network | CEO / exec team — Silverbrook Capital portfolio company | investor_network.csv: Camille Merriweather-Balogun (Venture capital investor), portfolio_company=Cindermill Mining, board_seat=False |
 
-strongest path, not where it went: Camille Merriweather-Balogun, investor_network 0.720, at capacity 2/2, holds R1144, R1184; R1059 routed to Elena Duvall
+strongest path, not where it went: Camille Merriweather-Balogun, investor_network 0.720, 0/2 used this cycle; R1059 routed to Elena Duvall, R1144 routed to Elena Duvall, R1184 routed to Elena Duvall
 
 ## 4. Chronology (17 events, 4 requests, newest first, as of 2026-09-06)
 

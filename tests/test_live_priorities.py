@@ -191,7 +191,7 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(A["exception_count"], len(alloc) - len(allocated), 56)
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
                          {"no path to this company in the network": 28, "already introduced": 11,
-                          "company unresolved": 8, "capacity exhausted this cycle": 1})
+                          "company unresolved": 8, "capacity exhausted this cycle": 2})
         parked = next(e for e in A["exceptions"] if e["reason"] == "already introduced")
         for r in parked["rows"]:
             self.assertRegex(r["detail"], r"^.+ on \d{4}-\d{2}-\d{2} \(R1\d{3}(, meeting booked)?\)$", "the reason names the intro")

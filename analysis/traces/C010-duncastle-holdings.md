@@ -12,15 +12,17 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows take a 10% haircut on route score
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
+| 0.184 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Duncastle Hotels, board_seat=True |
 | 0.215 | 0.900 | Amara Brenneman-Fairweather (investor network) | investor_network (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Amara Brenneman-Fairweather (Growth equity investor), portfolio_company=Duncastle Hotels, board_seat=True |
 | 0.215 | 0.900 | Matteo Falkenrath-Merriweather (investor network) | investor_network (board seat) | CEO / exec team — Cobalt Lane Ventures board seat | investor_network.csv: Matteo Falkenrath-Merriweather (Venture capital investor), portfolio_company=Duncastle Hotels, board_seat=True |
 | 0.215 | 0.900 | Renata Halloran-Quillane (investor network) | investor_network (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Renata Halloran-Quillane (Growth equity investor), portfolio_company=Duncastle Hotels, board_seat=True |
-| 0.184 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Duncastle Hotels, board_seat=True |
 | 0.172 | 0.720 | Matteo Ferreira-Yarrow (investor network) | investor_network | CEO / exec team — Ironvale Partners portfolio company | investor_network.csv: Matteo Ferreira-Yarrow (Private equity investor), portfolio_company=Duncastle Hotels, board_seat=False |
+
+strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3; R1183 routed to Amara Brenneman-Fairweather
 
 ## 4. Chronology (27 events, 5 requests, newest first, as of 2026-09-06)
 

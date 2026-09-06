@@ -75,7 +75,9 @@ Writes five CSVs (UTF-8, no BOM, CRLF):
                                investor_network.csv but not on the roster: in
                                our circle, so askable (OFF_ROSTER_CAPACITY,
                                connector_type "investor network"), but scored
-                               with a NETWORK_HAIRCUT on route_score.
+                               with a NETWORK_HAIRCUT on route_score and
+                               ranked behind every roster path: asked only
+                               when the roster has no path or no capacity.
                                Every askable person (roster, off-roster people
                                asked in intro_outcomes.csv, Slack volunteers,
                                investor_network.csv people with a portfolio
@@ -1081,13 +1083,13 @@ def load_threads(extra: Path | None = None) -> dict[str, dict]:
 
 
 def best_route(paths: list[dict], roster: dict, rates: dict, industry: str, exclude_connector: str = "") -> tuple[dict | None, float]:
-    best, best_score = None, 0.0
+    best, best_rank, best_score = None, None, 0.0
     for p in paths:
         if p["connector"] == exclude_connector:
             continue
-        score = path_score(p, roster, rates, industry)
-        if score > best_score:
-            best, best_score = p, score
+        rank = path_rank(p, roster, rates, industry)
+        if rank[1] < 0 and (best_rank is None or rank < best_rank):
+            best, best_rank, best_score = p, rank, -rank[1]
     return best, best_score
 
 
@@ -1098,6 +1100,13 @@ def path_score(p: dict, roster: dict, rates: dict, industry: str) -> float:
     f = fit(r, industry) if r else 0.7
     score = float(p["strength"]) * f * rates.get(p["connector"], PRIOR_RATE)
     return score * NETWORK_HAIRCUT if p["reach_type"] == INVESTOR_NETWORK else score
+
+
+def path_rank(p: dict, roster: dict, rates: dict, industry: str) -> tuple[int, float]:
+    """The allocator's sort key, ascending: roster paths before investor_network
+    ones, then by route score. The roster is asked first; our wider network fills
+    in only when no roster path exists or every one is out of capacity."""
+    return (int(p["reach_type"] == INVESTOR_NETWORK), -path_score(p, roster, rates, industry))
 
 
 def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company: dict[str, list[dict]],
@@ -1116,8 +1125,9 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     cycle) instead of being allocated or falling through to the next
     connector. A request on a company whose intro is still live
     (introductions) is parked (ALREADY_INTRODUCED, naming the intro) rather
-    than asked afresh: the rep who received the intro extends it. Once every
-    connector with a path is spent the request becomes an exception. Requests
+    than asked afresh: the rep who received the intro extends it. Roster paths
+    are tried before investor_network ones whatever their scores (path_rank).
+    Once every connector with a path is spent the request becomes an exception. Requests
     allocated to the same connector share a batch_id: one consolidated ask."""
     cycle = today.strftime("%Y-%m")
     fatigue, stale, proposed = signals
@@ -1156,9 +1166,8 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
         if company is None:
             row["exception_reason"] = "company unresolved"
             continue
-        scored = sorted(((path_score(p, roster, rates, industry), p) for p in paths),
-                        key=lambda t: -t[0])
-        scored = [(sc, p) for sc, p in scored if sc > 0]
+        scored = [(-rank[1], p) for rank, p in sorted(((path_rank(p, roster, rates, industry), p) for p in paths),
+                                                       key=lambda t: t[0]) if rank[1] < 0]
         if scored:
             best_sc, best = scored[0]
             row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {best_sc:.2f})"
@@ -1394,7 +1403,7 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
                     route_reason = "asked; no known path from this connector to the company"
                     review.append("asked with no known path")
                 alt, alt_sc = best_route(paths, roster, rates, industry, exclude_connector=routed_to)
-                if alt and alt_sc > (sc or 0):
+                if alt and (bp is None or path_rank(alt, roster, rates, industry) < path_rank(bp, roster, rates, industry)):
                     route_reason += f"; stronger path existed via {alt['connector']} ({alt['reach_type']}, {alt_sc:.2f})"
         elif rid in allocation:
             a = allocation[rid]

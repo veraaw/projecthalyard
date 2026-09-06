@@ -88,8 +88,8 @@ def fragment() -> str:
     out += `<h3>3. Who can reach them</h3>`;
     if (!t.reach.length) out += `<p class="empty">nobody in the network reaches this company</p>`;
     else {{
-      const maxScore = t.reach[0].route_score || 1, maxRaw = Math.max(...t.reach.map(p => p.strength)) || 1;
-      const haircut = t.reach.some(p => p.reach_type.startsWith('{INVESTOR_NETWORK}')) ? `; {INVESTOR_NETWORK} rows (our network, not our roster) take a {round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score` : '';
+      const maxScore = Math.max(...t.reach.map(p => p.route_score)) || 1, maxRaw = Math.max(...t.reach.map(p => p.strength)) || 1;
+      const haircut = t.reach.some(p => p.reach_type.startsWith('{INVESTOR_NETWORK}')) ? `; {INVESTOR_NETWORK} rows (our network, not our roster) rank below every roster path and take a {round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score` : '';
       out += `<p class="foot">ranked by route score = strength × focus fit × delivery rate, the allocator's sort key${{haircut}}; strength is the raw path alone</p>`;
       out += `<table><thead><tr><th>route score</th><th>strength</th><th>connector</th><th>reach</th><th>contact</th><th>evidence</th></tr></thead><tbody>` +
         t.reach.map(p => `<tr><td class="score"><span class="bar" style="width:${{Math.round(90 * p.route_score / maxScore)}}px"></span>${{p.route_score.toFixed(3)}}</td><td class="raw" title="fit ${{p.fit}} × delivery rate ${{p.rate}}"><span class="bar raw" style="width:${{Math.round(90 * p.strength / maxRaw)}}px"></span>${{p.strength.toFixed(3)}}</td><td>${{esc(p.connector)}} <span class="foot">${{esc(p.connector_type)}}</span></td><td>${{esc(p.reach_type)}}</td><td>${{esc([p.contact_name, p.contact_title].filter(Boolean).join(', ') || '?')}}</td><td class="foot">${{esc(p.evidence)}}</td></tr>`

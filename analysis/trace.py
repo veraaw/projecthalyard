@@ -8,15 +8,16 @@
 
 Five sections: the header (identity, request counts and the routing stage), where the files
 disagree (skipped when they don't), who can reach them (supply_reach.csv ranked
-by route score = strength x focus fit x delivery rate, the allocator's own sort
-key, with the reason the top row did not take every live request), the chronology (every event from intro_requests.csv,
+as the allocator ranks them: roster paths before investor_network ones, then by
+route score = strength x focus fit x delivery rate, with the reason the top row did not take every live request), the chronology (every event from intro_requests.csv,
 slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, newest first)
 and the additional investor and operator network (network_orbit.csv: everyone
 investor_network.csv puts around the company, board seats first, then those a
 connector knows, then those nobody has a warm path to; skipped when the file
 has no row for the company). That last section is a view, not supply: an
 off-roster investor's own portfolio company is already an investor_network row
-in section 3 (scored with the haircut); nothing else in it is scored or allocated.
+in section 3 (scored with the haircut, asked only once the roster has no path
+or no capacity); nothing else in it is scored or allocated.
 
 Chronology markers:  <- missed   ++ worked   ** offer   !! warning
 
@@ -41,7 +42,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from golden.build_golden import (INVESTOR_NETWORK, NETWORK_HAIRCUT, NETWORK_OUT, OFFER_RE, OPEN_STATUSES, PRIOR_RATE,  # noqa: E402
                                  REACHABLE_AS_CONNECTOR, STAGES, capacity, delivery_rates, fit, latest_cycle, load_completions,
-                                 load_roster, load_threads, path_score, stage_of, with_completions)
+                                 load_roster, load_threads, path_rank, path_score, stage_of, with_completions)
 from golden.resolver import normalize, normalize_strict  # noqa: E402
 from paths import ANALYSIS, DATASET, GOLDEN  # noqa: E402
 
@@ -196,9 +197,10 @@ class Trace:
         self.requests = sorted((r for r in data.requests if r["company_id"] == self.cid),
                                key=lambda r: (r["request_date"], r["request_id"]))
         self.request_ids = [r["request_id"] for r in self.requests]
-        # ranked as the allocator ranks them: route score first, raw strength breaks ties
+        # ranked as the allocator ranks them: roster before investor_network, then
+        # route score, raw strength breaks ties
         self.paths = sorted((p for p in data.supply if p["company_id"] == self.cid and p["reach_type"] != "none"),
-                            key=lambda p: (-self.route_score(p), -float(p["strength"])))
+                            key=lambda p: (*self.rank(p), -float(p["strength"])))
         self.accounts = [data.accounts[a] for a in split_bar(company["crm_account_ids"]) if a in data.accounts]
         self.live = [a for a in data.allocation if a["company_id"] == self.cid]
         # board seats first, then anyone a connector knows, then the cold rows
@@ -239,6 +241,10 @@ class Trace:
 
     def rate_of(self, connector: str) -> float:
         return self.d.rates.get(connector, PRIOR_RATE)
+
+    def rank(self, p: dict) -> tuple[int, float]:
+        """The allocator's sort key: (0 roster / 1 investor_network, -route score)."""
+        return path_rank(p, self.d.roster, self.d.rates, self.c["industry"])
 
     def route_score(self, p: dict) -> float:
         """strength x focus fit x delivery rate: what build_golden.allocate sorts on."""
@@ -379,7 +385,8 @@ class Trace:
     def reach(self) -> list[str]:
         if not self.paths:
             return ["nobody in the network reaches this company"]
-        note = (f"; {INVESTOR_NETWORK} rows take a {round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score"
+        note = (f"; {INVESTOR_NETWORK} rows rank below every roster path and take a "
+                f"{round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score"
                 if any(p["reach_type"] == INVESTOR_NETWORK for p in self.paths) else "")
         out = [f"ranked by route score = strength x focus fit x delivery rate, the allocator's sort key{note}", "",
                "| route score | strength | connector | reach | contact | evidence |", "|---|---|---|---|---|---|"]

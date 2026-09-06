@@ -11,22 +11,22 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows take a 10% haircut on route score
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
-| 0.215 | 0.900 | Amara Brenneman-Fairweather (investor network) | investor_network (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Amara Brenneman-Fairweather (Growth equity investor), portfolio_company=Nortonbury Logistics, board_seat=True |
 | 0.180 | 0.519 | Marcus Aldridge (Advisor) | direct | Anouk Kirkbride — Head of Developer Productivity | connections_aldridge.csv: Anouk Kirkbride, Head of Developer Productivity at Nortonbury Logistics, connected 2026-07-07 |
-| 0.172 | 0.720 | Perrine Brenneman-Wexford (investor network) | investor_network | CEO / exec team — Meridian Peak Partners portfolio company | investor_network.csv: Perrine Brenneman-Wexford (Private equity investor), portfolio_company=Nortonbury Logistics, board_seat=False |
-| 0.172 | 0.720 | Renata Halloran-Quillane (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Renata Halloran-Quillane (Growth equity investor), portfolio_company=Nortonbury Logistics, board_seat=False |
 | 0.147 | 0.720 | Priya Raghunathan (Investor) | investor | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Nortonbury Logistics, board_seat=False |
 | 0.116 | 0.600 | Dana Whitfield (Internal) | direct | Zaid Fontaine — Chief Operating Officer | connections_whitfield.csv: Zaid Fontaine, Chief Operating Officer at Nortonbury Logistics, connected 2026-10-19 |
 | 0.112 | 0.546 | Priya Raghunathan (Investor) | direct | Zaid Fontaine — Chief Operating Officer | connections_raghunathan.csv: Zaid Fontaine, Chief Operating Officer at Nortonbury Logistics, connected 2024-11-24 |
 | 0.059 | 0.519 | Owen Trask (Investor) | direct | Anouk Kirkbride — Head of Developer Productivity | connections_trask.csv: Anouk Kirkbride, Head of Developer Productivity at Nortonbury Logistics, connected 2026-09-17 |
 | 0.044 | 0.386 | Owen Trask (Investor) | direct | Nadia Ferreira — Program Manager | connections_trask.csv: Nadia Ferreira, Program Manager at Nortonbury Logistics, connected 2024-03-25 |
 | 0.000 | 0.405 | Elena Duvall (Advisor) | direct | Nadia Ferreira — Program Manager | connections_duvall.csv: Nadia Ferreira, Program Manager at Nortonbury Logistics, connected 2025-07-30 |
+| 0.215 | 0.900 | Amara Brenneman-Fairweather (investor network) | investor_network (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Amara Brenneman-Fairweather (Growth equity investor), portfolio_company=Nortonbury Logistics, board_seat=True |
+| 0.172 | 0.720 | Perrine Brenneman-Wexford (investor network) | investor_network | CEO / exec team — Meridian Peak Partners portfolio company | investor_network.csv: Perrine Brenneman-Wexford (Private equity investor), portfolio_company=Nortonbury Logistics, board_seat=False |
+| 0.172 | 0.720 | Renata Halloran-Quillane (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Renata Halloran-Quillane (Growth equity investor), portfolio_company=Nortonbury Logistics, board_seat=False |
 
-strongest path, not where it went: Amara Brenneman-Fairweather, investor_network 0.900, at capacity 2/2; R1013 routed to Marcus Aldridge
+strongest path, not where it went: Amara Brenneman-Fairweather, investor_network 0.900, 1/2 used this cycle; R1013 routed to Dana Whitfield
 
 ## 4. Chronology (13 events, 3 requests, newest first, as of 2026-09-06)
 

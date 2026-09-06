@@ -7,14 +7,14 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows take a 10% haircut on route score
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
-| 0.215 | 0.900 | Espen Rushworth-Oyelaran (investor network) | investor_network (board seat) | CEO / exec team — Silverbrook Capital board seat | investor_network.csv: Espen Rushworth-Oyelaran (Venture capital investor), portfolio_company=Glasspoint Health, board_seat=True |
-| 0.172 | 0.720 | Priya Crowther-Kirkbride (investor network) | investor_network | CEO / exec team — Northgate Growth portfolio company | investor_network.csv: Priya Crowther-Kirkbride (Growth equity investor), portfolio_company=Glasspoint Health, board_seat=False |
 | 0.094 | 0.600 | Marcus Aldridge (Advisor) | direct | Sunniva Oldfield — Chief Operating Officer | connections_aldridge.csv: Sunniva Oldfield, Chief Operating Officer at Glasspoint Health, connected 2026-09-15 |
 | 0.000 | 0.600 | Elena Duvall (Advisor) | direct | Sunniva Oldfield — Chief Operating Officer | connections_duvall.csv: Sunniva Oldfield, Chief Operating Officer at Glasspoint Health, connected 2027-08-22 |
+| 0.215 | 0.900 | Espen Rushworth-Oyelaran (investor network) | investor_network (board seat) | CEO / exec team — Silverbrook Capital board seat | investor_network.csv: Espen Rushworth-Oyelaran (Venture capital investor), portfolio_company=Glasspoint Health, board_seat=True |
+| 0.172 | 0.720 | Priya Crowther-Kirkbride (investor network) | investor_network | CEO / exec team — Northgate Growth portfolio company | investor_network.csv: Priya Crowther-Kirkbride (Growth equity investor), portfolio_company=Glasspoint Health, board_seat=False |
 
 ## 4. Chronology (9 events, 1 request, newest first, as of 2026-09-06)
 

@@ -11,13 +11,13 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows take a 10% haircut on route score
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
-| 0.172 | 0.720 | Matteo Ferreira-Yarrow (investor network) | investor_network | CEO / exec team — Ironvale Partners portfolio company | investor_network.csv: Matteo Ferreira-Yarrow (Private equity investor), portfolio_company=Wrenfield Robotics, board_seat=False |
 | 0.130 | 0.285 | Priya Raghunathan (Investor) | direct | Saoirse Prendergast — Head of Platform Engineering | connections_raghunathan.csv: Saoirse Prendergast, Head of Platform Engineering at Wrenfield Robotics, connected 2014-01-26 |
 | 0.085 | 0.187 | Priya Raghunathan (Investor) | alumni | Saoirse Prendergast — ex-Wrenfield Robotics (2012-2015), now Head of Platform Engineering at Wrenfield Robotics | investor_network.csv: Saoirse Prendergast prior_employer=Wrenfield Robotics (2012-2015); connections_raghunathan.csv: connection of Priya Raghunathan since 2014-01-26 |
+| 0.172 | 0.720 | Matteo Ferreira-Yarrow (investor network) | investor_network | CEO / exec team — Ironvale Partners portfolio company | investor_network.csv: Matteo Ferreira-Yarrow (Private equity investor), portfolio_company=Wrenfield Robotics, board_seat=False |
 
 ## 4. Chronology (14 events, 3 requests, newest first, as of 2026-09-06)
 
