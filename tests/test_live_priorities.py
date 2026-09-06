@@ -750,7 +750,11 @@ class ThreadsIngestTest(unittest.TestCase):
         self.assertIn("4 appended", out)
         rows = {r["request_id"]: r for r in read_csv(self.requests)}
         self.assertEqual(len(rows), len(self.before) + 4)
-        self.assertEqual(rows["R1034"], self.before["R1034"], "a thread for a filed request changes no filed fact")
+        # routing and blocked_reason are conclusions and follow the allocation the new requests reshuffle
+        conclusions = set(bg.ROUTING_COLUMNS) | {"blocked_reason"}
+        self.assertEqual({k: v for k, v in rows["R1034"].items() if k not in conclusions},
+                         {k: v for k, v in self.before["R1034"].items() if k not in conclusions},
+                         "a thread for a filed request changes no filed fact")
 
         for rid, first in (("R2001", NEW_THREADS[0]), ("R2002", NEW_THREADS[1]), ("R2003", NEW_THREADS[2]), ("R2004", NEW_THREADS[3])):
             r = rows[rid]
@@ -796,7 +800,9 @@ class ThreadsIngestTest(unittest.TestCase):
         self.assertIn("0 appended", again)
         after = {r["request_id"]: r for r in read_csv(self.requests)}
         for rid in ("R2001", "R2002", "R2003", "R2004"):
-            self.assertEqual(after[rid], rows[rid], f"{rid} survives a rebuild without --threads")
+            self.assertEqual({k: v for k, v in after[rid].items() if k not in conclusions},
+                             {k: v for k, v in rows[rid].items() if k not in conclusions},
+                             f"{rid} survives a rebuild without --threads")
 
 
 if __name__ == "__main__":

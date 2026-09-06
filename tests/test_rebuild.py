@@ -13,6 +13,9 @@ dataset/ into a scratch root, edits one side, rebuilds there and checks:
      different requested_by / raw_ask does not touch the filed row, while a CRM
      account created for a company that was only ever requested collapses every
      historical row for that company onto one company_id with a CRM record.
+     Routing (routed_to, route_score, route_reason) is a conclusion until an
+     ask is logged: a filed row nobody has asked yet follows this run's
+     allocation; once asked_date is set it is kept as filed.
   4. golden_allocation.csv is the connector history, keyed on (cycle,
      request_id): a rebuild in a new cycle appends and leaves every prior
      cycle byte-identical; a rebuild in the same cycle replaces only that
@@ -213,8 +216,10 @@ class RebuildTest(ScratchRootTest):
             self.assertTrue(after[rid]["resolved_by"].endswith("crm-name"), f"{rid} {after[rid]['resolved_by']}")
             self.assertNotIn("no CRM account", after[rid]["needs_review"], rid)
             self.assertNotEqual(after[rid]["blocked_reason"], "company has no CRM record", rid)
-            for fact in ("requested_by", "request_date", "raw_ask", "company_as_written", "status_as_filed",
-                         "routed_to", "routed_on", "route_reason"):
+            frozen = ["requested_by", "request_date", "raw_ask", "company_as_written", "status_as_filed"]
+            if before[rid]["asked_date"]:
+                frozen += ["routed_to", "routed_on", "route_reason"]
+            for fact in frozen:
                 self.assertEqual(after[rid][fact], before[rid][fact], f"{rid} {fact}")
         same_company = [rid for rid, r in before.items() if r["company_id"] in old_company_id]
         self.assertIn(f"{len(same_company)} with recomputed", out)
@@ -223,6 +228,37 @@ class RebuildTest(ScratchRootTest):
         self.assertEqual(company["domain"], "vireosystems.com")
         self.assertEqual(sum(1 for c in read_csv(self.companies) if "Vireo" in c["company_name"]), 1,
                          "the company must not split into a requested one and a CRM one")
+
+    def test_routing_follows_the_allocation_until_an_ask_is_logged(self):
+        self.build(CYCLE_1)
+        alloc = {a["request_id"]: a for a in self.cycle_rows("2026-09")}
+        rows = self.by_id()
+        asked = next(r for r in rows.values() if r["asked_date"] and r["routed_to"])
+        placed = next(r for r in rows.values() if not r["asked_date"] and alloc.get(r["request_id"], {}).get("allocated_to"))
+        parked = next(r for r in rows.values() if not r["asked_date"] and r["request_id"] in alloc
+                      and not alloc[r["request_id"]]["allocated_to"])
+        expected = {rid: dict(rows[rid]) for rid in (asked["request_id"], placed["request_id"], parked["request_id"])}
+        # the file says what an older build concluded, before these paths were known
+        for r in (placed, parked):
+            r.update({"routed_to": "", "route_score": "", "route_reason": "not asked; no path to this company in the network"})
+        asked.update({"routed_to": "Someone Asked", "route_score": "0.999", "route_reason": "as filed with the ask"})
+        write_csv(self.requests, list(rows.values()))
+
+        out = self.build(CYCLE_1)
+
+        after = self.by_id()
+        a = alloc[placed["request_id"]]
+        self.assertEqual(after[placed["request_id"]], expected[placed["request_id"]], "an allocated row takes its routing back")
+        self.assertEqual((after[placed["request_id"]]["routed_to"], after[placed["request_id"]]["route_score"]),
+                         (a["allocated_to"], a["route_score"]), "the same connector and score as golden_allocation.csv")
+        self.assertIn(f"allocated to {a['batch_id']} batch, not yet asked", after[placed["request_id"]]["route_reason"])
+        self.assertEqual(after[parked["request_id"]], expected[parked["request_id"]])
+        self.assertIn(alloc[parked["request_id"]]["exception_reason"], after[parked["request_id"]]["route_reason"],
+                      "an exception row says why the allocator passed it over")
+        self.assertEqual((after[asked["request_id"]]["routed_to"], after[asked["request_id"]]["route_score"],
+                          after[asked["request_id"]]["route_reason"]),
+                         ("Someone Asked", "0.999", "as filed with the ask"), "an asked row keeps its routing as filed")
+        self.assertIn("2 with recomputed", out)
 
     # -- 4. golden_allocation.csv is the connector history ------------------
     def test_new_cycle_appends_and_leaves_prior_cycles_byte_identical(self):
