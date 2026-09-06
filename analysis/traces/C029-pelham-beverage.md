@@ -18,7 +18,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 |---|---|---|---|---|---|
 | 0.262 | 0.800 | Imani Mkhize (not on roster) | offer | Head of Platform | slack_threads.jsonl R1176 2026-04-05 Imani Mkhize: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
 
-strongest path, not where it went: Imani Mkhize, offer 0.800, 0/2 used this cycle; R1047 unrouted (already introduced: Imani Mkhize on 2026-04-19 (R1176, meeting booked)), R1200 unrouted (already introduced: Imani Mkhize on 2026-04-19 (R1176, meeting booked))
+why not #1: parked on live intro (R1176, Imani Mkhize, 2026-04-19, meeting booked): R1047, R1200
 
 ## 4. Chronology (17 events, 3 requests, newest first, as of 2026-09-06)
 
