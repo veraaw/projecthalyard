@@ -18,16 +18,20 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.800 | Curtis Hartigan (not on roster) | offer | Chief Data Officer | slack_threads.jsonl R1122 2026-07-20 Curtis Hartigan: "I met their Chief Data Officer at a conference last spring, happy to reach out" |
-| 0.800 | Hana Nakashima (not on roster) | offer | Chief Digital Officer | slack_threads.jsonl R1108 2025-10-09 Hana Nakashima: "I met their Chief Digital Officer at a conference last spring, happy to reach out" |
-| 0.800 | Priya Raghunathan (Investor) | offer | Head of Platform | slack_threads.jsonl R1115 2026-02-20 Priya Raghunathan: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
-| 0.720 | Priya Raghunathan (Investor) | investor | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Gravenhurst Motors, board_seat=False |
-| 0.332 | Elena Duvall (Advisor) | direct | Priya Fairweather — Head of Platform Engineering | connections_duvall.csv: Priya Fairweather, Head of Platform Engineering at Gravenhurst Motors, connected 2018-07-13 |
-| 0.285 | Priya Raghunathan (Investor) | direct | Priya Fairweather — Head of Platform Engineering | connections_raghunathan.csv: Priya Fairweather, Head of Platform Engineering at Gravenhurst Motors, connected 2016-11-20 |
-| 0.218 | Elena Duvall (Advisor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_duvall.csv: connection of Elena Duvall since 2018-07-13 |
-| 0.187 | Priya Raghunathan (Investor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_raghunathan.csv: connection of Priya Raghunathan since 2016-11-20 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.262 | 0.800 | Curtis Hartigan (not on roster) | offer | Chief Data Officer | slack_threads.jsonl R1122 2026-07-20 Curtis Hartigan: "I met their Chief Data Officer at a conference last spring, happy to reach out" |
+| 0.182 | 0.800 | Hana Nakashima (not on roster) | offer | Chief Digital Officer | slack_threads.jsonl R1108 2025-10-09 Hana Nakashima: "I met their Chief Digital Officer at a conference last spring, happy to reach out" |
+| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Head of Platform | slack_threads.jsonl R1115 2026-02-20 Priya Raghunathan: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
+| 0.147 | 0.720 | Priya Raghunathan (Investor) | investor | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Gravenhurst Motors, board_seat=False |
+| 0.058 | 0.285 | Priya Raghunathan (Investor) | direct | Priya Fairweather — Head of Platform Engineering | connections_raghunathan.csv: Priya Fairweather, Head of Platform Engineering at Gravenhurst Motors, connected 2016-11-20 |
+| 0.038 | 0.187 | Priya Raghunathan (Investor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_raghunathan.csv: connection of Priya Raghunathan since 2016-11-20 |
+| 0.000 | 0.332 | Elena Duvall (Advisor) | direct | Priya Fairweather — Head of Platform Engineering | connections_duvall.csv: Priya Fairweather, Head of Platform Engineering at Gravenhurst Motors, connected 2018-07-13 |
+| 0.000 | 0.218 | Elena Duvall (Advisor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_duvall.csv: connection of Elena Duvall since 2018-07-13 |
+
+strongest path, not where it went: Curtis Hartigan, offer 0.800, 0/2 used this cycle; R1143 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)), R1158 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked))
 
 ## 4. Chronology (56 events, 9 requests, as of 2026-09-06)
 

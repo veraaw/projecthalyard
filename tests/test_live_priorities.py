@@ -181,6 +181,13 @@ class PayloadTest(unittest.TestCase):
             for c in b["companies"]:
                 self.assertTrue(c["wanted"], "every person wanted, not just one")
                 self.assertTrue(c["waiting"] and c["path_type"] and c["why"])
+        self.assertEqual(sorted(c["company_id"] for c in A["all"]),
+                         sorted(c["company_id"] for b in A["batches"] for c in b["companies"]),
+                         "the Aggregate tab is every batch's companies")
+        values = [c["value_usd"] for c in A["all"]]
+        self.assertEqual(values, sorted(values, reverse=True), "biggest first")
+        self.assertEqual(sum(len(c["request_ids"]) for c in A["all"]), A["allocated"])
+        self.assertTrue(all(c["connector"] and c["slug"] and c["batch_id"] for c in A["all"]))
         self.assertEqual(A["exception_count"], len(alloc) - len(allocated), 56)
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
                          {"no path to this company in the network": 32, "already introduced": 11,
@@ -413,6 +420,32 @@ class PayloadTest(unittest.TestCase):
             seen += len(mine)
         self.assertEqual(seen, len(live.ranked()), "every ranked request lands on exactly one connector page")
         self.assertEqual(lp.slug("Tomás Beckett"), "tomas-beckett")
+
+    def test_strongest_path_elsewhere_is_read_only_and_never_an_ask(self):
+        """Elena's Harrowgate offer is the strongest raw path but never a logged ask:
+        it must not appear in `sitting_on` (intro_outcomes.csv only) or her queue,
+        only in the read-only `strongest_elsewhere` list with capacity and where
+        the requests went."""
+        live = lp.Live(AS_OF)
+        elena = next(c for c in live.connector_pages() if c["connector"] == "Elena Duvall")
+        self.assertNotIn("C018", [s["company_id"] for s in elena["sitting_on"]])
+        self.assertNotIn("C018", [q["company_id"] for q in elena["queue"]])
+        self.assertNotIn("C018", [r["company_id"] for r in elena["top"] + elena["rest"]])
+        rows = elena["strongest_elsewhere"]
+        row = next(r for r in rows if r["company_id"] == "C018")
+        self.assertEqual((row["reach_type"], row["strength"], row["route_score"], row["outside_focus"]), ("offer", 0.8, 0.0, True))
+        self.assertEqual((row["used"], row["capacity"]), (3, 3))
+        self.assertEqual(row["routed_to"], ["Tomás Beckett"])
+        self.assertEqual(row["requests"], ["R1136", "R1153"])
+        self.assertEqual(row["href"], f"{lp.TRACE_PAGE}#C018")
+        self.assertTrue({"action", "asked_date", "nudged_on"}.isdisjoint(row), "nothing to tick, chase or nudge")
+        self.assertEqual([r["strength"] for r in rows], sorted((r["strength"] for r in rows), reverse=True))
+        for c in live.connector_pages():
+            mine = {a["company_id"] for a in live.allocation if a["allocated_to"] == c["connector"]}
+            for r in c["strongest_elsewhere"]:
+                self.assertNotIn(r["company_id"], mine, f"{c['connector']} holds a request there; it is not 'not routed to you'")
+                self.assertTrue(r["routed_to"] or r["unrouted"])
+                self.assertNotIn(c["connector"], r["routed_to"])
 
     def test_cycles_intros_capacity_and_running_total(self):
         live = lp.Live(AS_OF)

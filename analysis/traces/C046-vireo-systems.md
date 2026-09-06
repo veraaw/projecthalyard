@@ -14,11 +14,15 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Vireo Systems, board_seat=True |
-| 0.519 | Elena Duvall (Advisor) | direct | Arjun Cathcart — Head of Developer Productivity | connections_duvall.csv: Arjun Cathcart, Head of Developer Productivity at Vireo Systems, connected 2026-01-23 |
-| 0.496 | Marcus Aldridge (Advisor) | direct | Arjun Cathcart — Head of Developer Productivity | connections_aldridge.csv: Arjun Cathcart, Head of Developer Productivity at Vireo Systems, connected 2025-10-27 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.287 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Vireo Systems, board_seat=True |
+| 0.131 | 0.519 | Elena Duvall (Advisor) | direct | Arjun Cathcart — Head of Developer Productivity | connections_duvall.csv: Arjun Cathcart, Head of Developer Productivity at Vireo Systems, connected 2026-01-23 |
+| 0.120 | 0.496 | Marcus Aldridge (Advisor) | direct | Arjun Cathcart — Head of Developer Productivity | connections_aldridge.csv: Arjun Cathcart, Head of Developer Productivity at Vireo Systems, connected 2025-10-27 |
+
+strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3, holds R1055; R1075 routed to Marcus Aldridge
 
 ## 4. Chronology (48 events, 9 requests, as of 2026-09-06)
 

@@ -13,16 +13,20 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.300 | Elena Duvall (Advisor) | direct | Curtis Marchetti — VP Enterprise Architecture | connections_duvall.csv: Curtis Marchetti, VP Enterprise Architecture at Priorwood Chemicals, connected 2014-02-22 |
-| 0.300 | Tomás Beckett (Internal) | direct | Curtis Marchetti — VP Enterprise Architecture | connections_beckett.csv: Curtis Marchetti, VP Enterprise Architecture at Priorwood Chemicals, connected 2014-07-13 |
-| 0.271 | Marcus Aldridge (Advisor) | direct | Margot Havercamp — Director of Software Engineering | connections_aldridge.csv: Margot Havercamp, Director of Software Engineering at Priorwood Chemicals, connected 2014-03-11 |
-| 0.271 | Tomás Beckett (Internal) | direct | Margot Havercamp — Director of Software Engineering | connections_beckett.csv: Margot Havercamp, Director of Software Engineering at Priorwood Chemicals, connected 2015-01-12 |
-| 0.187 | Elena Duvall (Advisor) | alumni | Curtis Marchetti — ex-Priorwood Chemicals (2010-2017), now VP Enterprise Architecture at Priorwood Chemicals | investor_network.csv: Curtis Marchetti prior_employer=Priorwood Chemicals (2010-2017); connections_duvall.csv: connection of Elena Duvall since 2014-02-22 |
-| 0.187 | Marcus Aldridge (Advisor) | alumni | Margot Havercamp — ex-Priorwood Chemicals (2011-2017), now Director of Software Engineering at Priorwood Chemicals | investor_network.csv: Margot Havercamp prior_employer=Priorwood Chemicals (2011-2017); connections_aldridge.csv: connection of Marcus Aldridge since 2014-03-11 |
-| 0.187 | Tomás Beckett (Internal) | alumni | Curtis Marchetti — ex-Priorwood Chemicals (2010-2017), now VP Enterprise Architecture at Priorwood Chemicals | investor_network.csv: Curtis Marchetti prior_employer=Priorwood Chemicals (2010-2017); connections_beckett.csv: connection of Tomás Beckett since 2014-07-13 |
-| 0.187 | Tomás Beckett (Internal) | alumni | Margot Havercamp — ex-Priorwood Chemicals (2011-2017), now Director of Software Engineering at Priorwood Chemicals | investor_network.csv: Margot Havercamp prior_employer=Priorwood Chemicals (2011-2017); connections_beckett.csv: connection of Tomás Beckett since 2015-01-12 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.108 | 0.300 | Elena Duvall (Advisor) | direct | Curtis Marchetti — VP Enterprise Architecture | connections_duvall.csv: Curtis Marchetti, VP Enterprise Architecture at Priorwood Chemicals, connected 2014-02-22 |
+| 0.067 | 0.187 | Elena Duvall (Advisor) | alumni | Curtis Marchetti — ex-Priorwood Chemicals (2010-2017), now VP Enterprise Architecture at Priorwood Chemicals | investor_network.csv: Curtis Marchetti prior_employer=Priorwood Chemicals (2010-2017); connections_duvall.csv: connection of Elena Duvall since 2014-02-22 |
+| 0.048 | 0.300 | Tomás Beckett (Internal) | direct | Curtis Marchetti — VP Enterprise Architecture | connections_beckett.csv: Curtis Marchetti, VP Enterprise Architecture at Priorwood Chemicals, connected 2014-07-13 |
+| 0.044 | 0.271 | Tomás Beckett (Internal) | direct | Margot Havercamp — Director of Software Engineering | connections_beckett.csv: Margot Havercamp, Director of Software Engineering at Priorwood Chemicals, connected 2015-01-12 |
+| 0.042 | 0.271 | Marcus Aldridge (Advisor) | direct | Margot Havercamp — Director of Software Engineering | connections_aldridge.csv: Margot Havercamp, Director of Software Engineering at Priorwood Chemicals, connected 2014-03-11 |
+| 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Curtis Marchetti — ex-Priorwood Chemicals (2010-2017), now VP Enterprise Architecture at Priorwood Chemicals | investor_network.csv: Curtis Marchetti prior_employer=Priorwood Chemicals (2010-2017); connections_beckett.csv: connection of Tomás Beckett since 2014-07-13 |
+| 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Margot Havercamp — ex-Priorwood Chemicals (2011-2017), now Director of Software Engineering at Priorwood Chemicals | investor_network.csv: Margot Havercamp prior_employer=Priorwood Chemicals (2011-2017); connections_beckett.csv: connection of Tomás Beckett since 2015-01-12 |
+| 0.029 | 0.187 | Marcus Aldridge (Advisor) | alumni | Margot Havercamp — ex-Priorwood Chemicals (2011-2017), now Director of Software Engineering at Priorwood Chemicals | investor_network.csv: Margot Havercamp prior_employer=Priorwood Chemicals (2011-2017); connections_aldridge.csv: connection of Marcus Aldridge since 2014-03-11 |
+
+strongest path, not where it went: Elena Duvall, direct 0.300, at capacity 3/3; R1092 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked)), R1174 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked))
 
 ## 4. Chronology (56 events, 9 requests, as of 2026-09-06)
 

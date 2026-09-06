@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Halyard — raw Sept data dashboard</title>
+<title>Halyard · raw Sept data dashboard</title>
 <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <style>
@@ -19,6 +19,35 @@ nav a{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}
 nav a:hover{color:var(--blue)}
 .part-lede{margin-bottom:24px}
 main{max-width:1240px;margin:0 auto;padding:28px 40px 72px}
+/* the left rail: a sticky list of the page's sections, highlighted as you scroll */
+.layout{display:grid;grid-template-columns:224px minmax(0,1fr);gap:0 36px;max-width:1560px;margin:0 auto;padding:0 40px;align-items:start}
+.layout>main{max-width:none;margin:0;padding:28px 0 72px}
+.side{position:sticky;top:var(--topbar,140px);max-height:calc(100vh - var(--topbar,140px));overflow-y:auto;padding:30px 0 40px;font-family:var(--sans);scrollbar-width:thin}
+.side .side-h{margin:0 0 10px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.side .side-h .foot{font-weight:400;letter-spacing:0;text-transform:none;margin-left:6px;font-size:11.5px}
+.side input[type=search]{width:100%;font:13px var(--sans);padding:7px 10px;margin:0 0 10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);outline:none}
+.side input[type=search]:focus{border-color:var(--blue)}
+.toc{display:flex;flex-direction:column}
+.toc a{display:block;margin:0;padding:5px 12px;border-left:2px solid var(--line);color:var(--mute);text-decoration:none;font-size:13.5px;line-height:1.35}
+.toc a:hover{color:var(--ink)}
+.toc a.on{color:var(--ink);border-left-color:var(--blue);font-weight:500}
+.toc a.band{margin-top:14px;padding-left:0;border-left-color:transparent;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--baton)}
+.toc a.band:first-child{margin-top:0}
+.toc a .n{float:right;margin-left:8px;color:var(--mute);font-size:11.5px;font-variant-numeric:tabular-nums}
+.toc .empty{color:var(--mute);font-style:italic;font-size:13px;padding:5px 12px}
+/* long tables: 20 rows at a time, with a filter box; .tall tables scroll inside a fixed height instead */
+.pager{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:10px 0 4px;font-family:var(--sans);font-size:12.5px;color:var(--mute)}
+.pager input{font:inherit;padding:5px 9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);min-width:170px}
+.pager input:focus{outline:none;border-color:var(--blue)}
+.pager .pg-b{display:inline-flex;gap:3px;align-items:center}
+.pager .pg-b span{padding:0 4px}
+.pager button{font:inherit;padding:4px 9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;min-width:30px}
+.pager button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager button.pg-all{margin-left:auto}
+.pager button[hidden]{display:none}
+.tscroll.tall{max-height:min(70vh,640px);overflow-y:auto}
+.tscroll.tall thead th{position:sticky;top:0;z-index:1;background:var(--surface);border-bottom-color:transparent;box-shadow:inset 0 -1px 0 var(--ink)}
 section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:calc(var(--topbar,140px) + 16px)}
 h2{margin:0 0 6px;font-size:22px}
 h3{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
@@ -51,6 +80,20 @@ table.cycles tr.now td .foot{font-weight:400}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:32px}
 .grid2>*{min-width:0}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+@media(max-width:1100px){
+  .layout{display:block;padding:0}
+  .layout>main{padding:24px 40px 72px}
+  .side{position:static;max-height:none;overflow:visible;padding:12px 40px 0;border-bottom:1px solid var(--line);background:var(--bg)}
+  .side .side-h{display:none}
+  .side input[type=search]{max-width:360px}
+  .toc{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;gap:2px;scrollbar-width:none}
+  .toc::-webkit-scrollbar{display:none}
+  .toc a{flex:none;white-space:nowrap;border-left:0;border-bottom:2px solid transparent;padding:6px 10px}
+  .toc a.on{border-bottom-color:var(--blue)}
+  .toc a.band{margin:0 0 0 12px;padding:8px 6px 6px 0}
+  .toc a.band:first-child{margin-left:0}
+  .toc a .n{float:none}
+}
 .finding{border-left:2px solid var(--blue);padding:6px 16px;margin:12px 0;background:var(--bg)}
 .finding.warn{border-color:var(--warn)}
 .finding b{display:block;font-family:var(--sans);font-weight:500;font-size:14px;margin-bottom:2px}
@@ -140,9 +183,12 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 #lp .subtabs button{font-family:var(--sans);font-size:14px;color:var(--mute);background:none;border:1px solid transparent;padding:8px 14px;margin-bottom:-1px;cursor:pointer}
 #lp .subtabs button .n{margin-left:8px;font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
 #lp .subtabs button.on{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}
+#lp .subtabs button.agg{margin-left:auto;color:var(--baton);font-weight:500}
+#lp .subtabs button.agg .n{color:var(--baton)}
+#lp .subtabs button.agg.on{color:var(--navy);border-color:rgba(196,118,62,0.35) rgba(196,118,62,0.35) var(--surface);box-shadow:inset 0 2px 0 var(--baton)}
 #lp .dl{display:flex;gap:16px;align-items:flex-start;margin:14px 0;font-size:14px;font-family:var(--sans)}
 #lp .dl span{color:var(--mute);padding-top:6px}
-#lp button:not(.subtabs button){font-family:var(--sans);font-size:14px;font-weight:500;background:var(--blue);color:#fff;border:1px solid var(--blue);padding:8px 16px;cursor:pointer;white-space:nowrap}
+#lp button:not(.subtabs button):not(.pager button){font-family:var(--sans);font-size:14px;font-weight:500;background:var(--blue);color:#fff;border:1px solid var(--blue);padding:8px 16px;cursor:pointer;white-space:nowrap}
 #lp button.secondary{background:var(--surface);color:var(--ink);border-color:var(--ink)}
 #lp .submitbar{position:sticky;bottom:0;z-index:5;display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:0 -2px;padding:12px 18px;background:var(--surface);border-top:2px solid var(--blue);box-shadow:0 -6px 18px rgba(0,0,0,.08);font-family:var(--sans);font-size:14px}
 #lp .submitbar[hidden]{display:none}
@@ -184,7 +230,8 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
   header h1{font-size:26px}
   header p{font-size:14px}
   nav a{display:inline-block;margin:0 14px 6px 0}
-  main{padding:16px 10px 64px}
+  main,.layout>main{padding:16px 10px 64px}
+  .side{padding:10px 16px 0}
   section{padding:18px 14px;margin-bottom:14px}
   h2{font-size:20px}
   h3{margin-top:22px}
@@ -223,7 +270,8 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 <body>
 <div class="topbar"><div class="mastrow"><a class="mast" href="livedata.html"><svg class="logo" width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="7" fill="#17293f"/><rect x="9" y="9" width="3.4" height="22" fill="#fff"/><rect x="27.6" y="9" width="3.4" height="22" fill="#fff"/><path d="M12.4 26.4 27.6 14.6" stroke="#c4763e" stroke-width="3"/></svg><span class="t"><b>Halyard Baton</b> / intro routing console</span></a><span class="built">built 2026-09-06</span></div><div class="tabs"><a href="livepriorities.html">Live Priorities</a><a href="batchask.html">Batched-Ask for Connectors</a><a href="companytrace.html">Company Trace</a><a href="livedata.html">Live Data Dashboard</a><a href="halyardscoping.html" class="on">Raw Sept Data Dashboard</a></div></div><button class="totop" type="button" title="Back to top" aria-label="Back to top">&uarr;</button>
 <script>
-(function () {
+// this script sits in the top bar, ahead of <main>, so it waits for the rest of the page to parse
+document.addEventListener('DOMContentLoaded', function () {
   var b = document.querySelector('.totop');
   var show = function () { b.classList.toggle('show', window.scrollY > 400); };
   window.addEventListener('scroll', show, { passive: true });
@@ -236,39 +284,147 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
   window.addEventListener('resize', fit);
   window.addEventListener('load', fit);
 
+  var PAGE = 20, MIN_ROWS = 25;
+  var pages = function (n, p) {
+    if (n <= 7) { var all = []; for (var i = 0; i < n; i++) all.push(i); return all; }
+    var keep = {}, out = [];
+    [0, 1, n - 2, n - 1, p - 1, p, p + 1].forEach(function (i) { if (i >= 0 && i < n) keep[i] = true; });
+    for (var j = 0; j < n; j++) {
+      if (keep[j]) out.push(j);
+      else if (out[out.length - 1] !== -1) out.push(-1);
+    }
+    return out;
+  };
+  var pager = function (t) {
+    if (t.dataset.pager || t.classList.contains('nopage') || !t.tBodies.length) return;
+    var rows = Array.prototype.slice.call(t.tBodies[0].rows);
+    if (rows.length < MIN_ROWS) return;
+    t.dataset.pager = '1';
+    var box = t.parentElement, q = '', p = 0, all = false;
+    var barEl = document.createElement('div');
+    barEl.className = 'pager';
+    barEl.innerHTML = '<input type="search" placeholder="filter rows" aria-label="filter rows"><span class="pg-l"></span><span class="pg-b"></span><button type="button" class="pg-all"></button>';
+    box.parentNode.insertBefore(barEl, box.nextSibling);
+    var label = barEl.querySelector('.pg-l'), nums = barEl.querySelector('.pg-b'), allBtn = barEl.querySelector('.pg-all');
+    var draw = function () {
+      var hits = rows.filter(function (r) { return !q || r.textContent.toLowerCase().indexOf(q) >= 0; });
+      var n = Math.max(1, Math.ceil(hits.length / PAGE));
+      if (p >= n) p = n - 1;
+      rows.forEach(function (r) { r.hidden = true; });
+      var shown = all ? hits : hits.slice(p * PAGE, (p + 1) * PAGE);
+      shown.forEach(function (r) { r.hidden = false; });
+      var of = q ? ' matching' : '';
+      label.textContent = !hits.length ? 'no rows match' : all || hits.length <= PAGE ? hits.length + of + ' rows'
+        : 'rows ' + (p * PAGE + 1) + '–' + (p * PAGE + shown.length) + ' of ' + hits.length + of;
+      nums.innerHTML = '';
+      if (!all && n > 1) {
+        var mk = function (txt, to, dis, on) {
+          var x = document.createElement('button');
+          x.type = 'button'; x.textContent = txt; x.disabled = !!dis; if (on) x.className = 'on';
+          x.onclick = function () { p = to; draw(); };
+          nums.appendChild(x);
+        };
+        mk('‹', p - 1, p === 0);
+        pages(n, p).forEach(function (i) {
+          if (i < 0) { var s = document.createElement('span'); s.textContent = '…'; nums.appendChild(s); }
+          else mk(String(i + 1), i, false, i === p);
+        });
+        mk('›', p + 1, p === n - 1);
+      }
+      allBtn.hidden = hits.length <= PAGE;
+      allBtn.textContent = all ? 'Show ' + PAGE + ' at a time' : 'Show all ' + hits.length;
+    };
+    barEl.querySelector('input').addEventListener('input', function (e) { q = e.target.value.trim().toLowerCase(); p = 0; draw(); });
+    allBtn.onclick = function () { all = !all; p = 0; draw(); };
+    draw();
+  };
+
   var wrap = function () {
     document.querySelectorAll('table').forEach(function (t) {
-      if (t.parentElement.classList.contains('tscroll')) return;
-      var row = t.querySelector('tr'), cols = 0;
-      if (row) for (var i = 0; i < row.cells.length; i++) cols += row.cells[i].colSpan;
-      t.style.setProperty('--tmin', Math.min(cols * 130, 1100) + 'px');
-      var d = document.createElement('div');
-      d.className = 'tscroll';
-      t.parentNode.insertBefore(d, t);
-      d.appendChild(t);
+      if (!t.parentElement.classList.contains('tscroll')) {
+        var row = t.querySelector('tr'), cols = 0;
+        if (row) for (var i = 0; i < row.cells.length; i++) cols += row.cells[i].colSpan;
+        t.style.setProperty('--tmin', Math.min(cols * 130, 1100) + 'px');
+        var d = document.createElement('div');
+        d.className = 'tscroll' + (t.classList.contains('tall') ? ' tall' : '');
+        t.parentNode.insertBefore(d, t);
+        d.appendChild(t);
+      }
+      pager(t);
     });
   };
+
+  var toc = document.querySelector('.side nav.toc'), main = document.querySelector('main'), tocKey = '';
+  var heading = function (s) {
+    var h = s.querySelector('h2');
+    if (!h) return '';
+    var c = h.cloneNode(true);
+    c.querySelectorAll('.foot').forEach(function (f) { f.remove(); });
+    return c.textContent.trim();
+  };
+  var fillToc = function () {
+    if (!toc || !toc.hasAttribute('data-auto') || !main) return;
+    var items = [];
+    main.querySelectorAll('section[id]').forEach(function (s) { var t = heading(s); if (t) items.push([s.id, t]); });
+    var key = items.join('|');
+    if (key === tocKey) return;
+    tocKey = key;
+    toc.innerHTML = '';
+    items.forEach(function (it) {
+      var a = document.createElement('a');
+      a.href = '#' + it[0]; a.textContent = it[1];
+      toc.appendChild(a);
+    });
+    spy();
+  };
+  var spy = function () {
+    if (!toc) return;
+    var links = Array.prototype.filter.call(toc.querySelectorAll('a[href^="#"]:not(.band)'), function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+    if (!links.length) return;
+    var line = bar.offsetHeight + 40, on = links[0];
+    links.forEach(function (a) {
+      var el = document.getElementById(a.getAttribute('href').slice(1));
+      if (el.getBoundingClientRect().top <= line) on = a;
+    });
+    if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 2) on = links[links.length - 1];
+    links.forEach(function (a) { a.classList.toggle('on', a === on); });
+    var side = toc.closest('.side');
+    if (side && side.scrollHeight > side.clientHeight) {
+      var top = on.offsetTop - side.offsetTop;
+      if (top < side.scrollTop + 20 || top > side.scrollTop + side.clientHeight - 40) side.scrollTop = top - side.clientHeight / 2;
+    } else if (toc.scrollWidth > toc.clientWidth) toc.scrollLeft = on.offsetLeft - (toc.clientWidth - on.offsetWidth) / 2;
+  };
+  var pending = false;
+  window.addEventListener('scroll', function () {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(function () { pending = false; spy(); });
+  }, { passive: true });
+  window.addEventListener('load', spy);
+
   wrap();
-  new MutationObserver(wrap).observe(document.body, { childList: true, subtree: true });
+  fillToc();
+  new MutationObserver(function () { wrap(); fillToc(); }).observe(document.body, { childList: true, subtree: true });
 
   bar.querySelectorAll('.tabs').forEach(function (row) {
     var on = row.querySelector('a.on, a.parent');
     if (on && row.scrollWidth > row.clientWidth) row.scrollLeft = on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2;
   });
-})();
+});
 </script>
 <header>
-  <h1>Raw Sept data — scoping &amp; verification</h1>
-  <p>200 warm-intro requests · Aug 2025 – Jul 2026 · source: the September exports in <code>dataset/</code>, as filed · built 2026-09-06</p>
-  <nav style="margin-top:12px"><a href="#flow">File flow</a><a href="#overview">Funnel overview</a><a href="#joins">Joins</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a></nav>
+  <h1>Raw Sept data: scoping and verification</h1>
+  <p>200 warm-intro requests · Aug 2025 to Jul 2026 · source: the September exports in <code>dataset/</code>, as filed · built 2026-09-06</p>
 </header>
+<div class="layout">
+<aside class="side"><div class="side-h">On this page</div><nav class="toc"><a href="#flow">File flow</a><a href="#overview">Funnel overview</a><a href="#joins">Joins</a><a href="#targets">Target people</a><a href="#timing">Timing</a><a href="#scoping">Slack threads</a><a href="#quality">Flags &amp; coverage</a><a href="#verify">CSV profile</a><a href="#integrity">Integrity audit</a></nav></aside>
 <main>
 
 <p class="lede part-lede">Computed directly from the exports in <code>dataset/</code>: intro requests and outcomes, CRM accounts, connection lists, roster and Slack threads, as filed. The <a href="livedata.html">Live Data Dashboard</a> tab shows the same requests after entity resolution.</p>
 
 <section id="flow">
   <h2>How the files connect</h2>
-  <p class="lede">An intro request moves from Slack to a logged outcome; the four reference tables feed the routing step by name/company text only — <code>request_id</code> is the sole real key.</p>
+  <p class="lede">An intro request moves from Slack to a logged outcome; the four reference tables feed the routing step by name/company text only, and <code>request_id</code> is the sole real key.</p>
   <img src="routing_flow.png" alt="Intro-request routing flow across the CSV files" style="display:block;max-width:720px;width:100%;margin:0 auto">
   <p class="foot">Source: <code>analysis/routing/routing_flow.mmd</code>; narrative in <code>analysis/routing/routing_flow.md</code>.</p>
 </section>
@@ -292,16 +448,16 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
   <div class="grid2">
     <div>
       <h3>Joins you can build on</h3>
-      <div class="finding"><b><code>intro_outcomes.request_id</code> -> <code>intro_requests.request_id</code> — 100%.</b>Every outcome row resolves to a real request and no request_id is duplicated, so the funnel is safe to read forward from a request.</div>
-      <div class="finding"><b><code>requested_by</code> -> <code>crm_accounts.owner</code> — 100% / 100%.</b>The same eight names, spelled identically, on both sides — requester-level and owner-level analysis can be mixed freely.</div>
-      <div class="finding"><b><code>connector_roster.connections_file</code> -> files on disk — 100%.</b>Supply is fully enumerable: six rosters, six exports, 5,075 contacts.</div>
+      <div class="finding"><b><code>intro_outcomes.request_id</code> -> <code>intro_requests.request_id</code>: 100%.</b>Every outcome row resolves to a real request and no request_id is duplicated, so the funnel is safe to read forward from a request.</div>
+      <div class="finding"><b><code>requested_by</code> -> <code>crm_accounts.owner</code>: 100% / 100%.</b>The same eight names, spelled identically, on both sides, so requester-level and owner-level analysis can be mixed freely.</div>
+      <div class="finding"><b><code>connector_roster.connections_file</code> -> files on disk: 100%.</b>Supply is fully enumerable: six rosters, six exports, 5,075 contacts.</div>
     </div>
     <div>
       <h3>Joins that break the analysis</h3>
-      <div class="finding warn"><b><code>target_person_raw</code> -> <code>connections_*.name</code> — 0% / 0%.</b>Not one of the 46 named individuals appears anywhere in the network (see below). Person-level routing is impossible; only the company can be matched.</div>
-      <div class="finding warn"><b><code>connector_asked</code> -> <code>connector_roster.name</code> — 54.5%.</b>5 asks went to 5 people who are not connectors (Yusuf Petrossian, Hana Nakashima, Curtis Hartigan, Bertrand Vandermolen, Imani Mkhize), so capacity and focus-area rules never applied to them.</div>
-      <div class="finding warn"><b><code>target_company_raw</code> -> <code>crm_accounts.account_name</code> — 71.2% only after normalization.</b>Exact match is 65.4%; the CRM side needs legal-suffix stripping to reach 84%. Every company cut below is therefore built on the resolved <code>golden/</code> company id, not the raw string.</div>
-      <div class="finding warn"><b><code>connections_*.company</code> -> <code>target_company_raw</code> — 58% / 55.8%.</b>Supply and demand barely overlap: 21 companies in the network are never requested and 23 requested companies have no contact at all.</div>
+      <div class="finding warn"><b><code>target_person_raw</code> -> <code>connections_*.name</code>: 0% / 0%.</b>Not one of the 46 named individuals appears anywhere in the network (see below). Person-level routing is impossible; only the company can be matched.</div>
+      <div class="finding warn"><b><code>connector_asked</code> -> <code>connector_roster.name</code>: 54.5%.</b>5 asks went to 5 people who are not connectors (Yusuf Petrossian, Hana Nakashima, Curtis Hartigan, Bertrand Vandermolen, Imani Mkhize), so capacity and focus-area rules never applied to them.</div>
+      <div class="finding warn"><b><code>target_company_raw</code> -> <code>crm_accounts.account_name</code>: 71.2%, and only after normalization.</b>Exact match is 65.4%; the CRM side needs legal-suffix stripping to reach 84%. Every company cut below is therefore built on the resolved <code>golden/</code> company id instead of the raw string.</div>
+      <div class="finding warn"><b><code>connections_*.company</code> -> <code>target_company_raw</code>: 58% / 55.8%.</b>Supply and demand barely overlap: 21 companies in the network are never requested and 23 requested companies have no contact at all.</div>
     </div>
   </div>
   <h3>All measured links</h3>
@@ -309,7 +465,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 </section>
 
 <section id="targets">
-  <h2>Target people — does the named individual exist anywhere?</h2>
+  <h2>Target people: does the named individual exist anywhere?</h2>
   <p class="lede">46 of 200 requests name a person in <code>target_person_raw</code> (154 leave it blank). Each name was looked up in every other file in <code>dataset/</code>.</p>
   <div class="kpis">
     <div class="kpi"><div class="v">0 / 46</div><div class="l">named targets found anywhere</div><div class="s">across connections, investors, roster, CRM owners, Slack</div></div>
@@ -325,8 +481,8 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
     </div>
     <div>
       <h3>Findings</h3>
-      <div class="finding warn"><b><code>target_person_raw</code> is unjoinable by construction.</b>All 46 names are distinct, none appears in 5,075 contacts, 73 investor rows, the roster, the CRM owners or as a Slack author. Every surname token, however, is a surname that does occur in the network — the names are recombinations, so any fuzzy matcher will produce plausible false positives.</div>
-      <div class="finding"><b>The usable signal is the title, not the person.</b>For 17 of the 46 person-named requests, a contact at the same company already holds exactly the requested title — routing should match company plus title and ignore the name.</div>
+      <div class="finding warn"><b><code>target_person_raw</code> is unjoinable by construction.</b>All 46 names are distinct, none appears in 5,075 contacts, 73 investor rows, the roster, the CRM owners or as a Slack author. Every surname token, however, is a surname that does occur in the network. The names are recombinations, so any fuzzy matcher will produce plausible false positives.</div>
+      <div class="finding"><b>The usable signal is the title.</b>For 17 of the 46 person-named requests, a contact at the same company already holds exactly the requested title, so routing should match company plus title and ignore the name.</div>
       <div class="finding"><b>Data point to track:</b><code>target_person_resolvable</code> = 0 / 46, <code>target_title_reachable</code> = 17 / 46. Recomputed on every build in <code>dashboard/data_cuts.py</code>.</div>
     </div>
   </div>
@@ -349,15 +505,15 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
     </div>
     <div>
       <h3>Reading it</h3>
-      <div class="finding"><b>Routing is fast; everything after it is not.</b>When a request is routed at all it is routed in 3.0 days on average (max 6), but the intro lands 15.7 days after the request — the delay is the connector, not the triage.</div>
-      <div class="finding warn"><b>Completion is flat, not improving.</b>Weekly volume swings between 1 and 9 requests, and the 4-week rolling completion rate stays inside 0%–36% across all 51 weeks. Month over month it never exceeds 35%.</div>
+      <div class="finding"><b>Routing is fast; everything after it is slow.</b>When a request is routed at all it is routed in 3.0 days on average (max 6), but the intro lands 15.7 days after the request. The delay sits with the connector rather than the triage.</div>
+      <div class="finding warn"><b>Completion is flat.</b>Weekly volume swings between 1 and 9 requests, and the 4-week rolling completion rate stays inside 0%–36% across all 51 weeks. Month over month it never exceeds 35%.</div>
       <div class="finding warn"><b>Week-over-week trending is noisy by construction.</b>The median week holds 4 requests, so a single intro moves the weekly rate by tens of points; the rolling line above is the honest read.</div>
     </div>
   </div>
 </section>
 
 <section id="scoping">
-  <h2>Scoping — what happens in <code>#intro-requests</code></h2>
+  <h2>Scoping: what happens in <code>#intro-requests</code></h2>
   <p class="lede">From <code>dataset/slack_threads.jsonl</code>: 200 threads, 523 messages, 323 replies. Full write-up in <code>analysis/slack/slack_thread_findings.md</code>.</p>
   <div class="kpis">
     <div class="kpi"><div class="v">98%</div><div class="l">of replies are canned</div><div class="s">18 distinct texts after name masking</div></div>
@@ -375,9 +531,9 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
     <div>
       <h3>Findings</h3>
       <div class="finding warn"><b>The channel is noise.</b>316 of 323 replies repeat one of 11 stock phrases; the top 7 alone are 274 replies. Only 15 replies actually offer a path.</div>
-      <div class="finding warn"><b>Offers fall through the cracks.</b>4 of the 15 offers (R1034, R1109, R1115, R1136) have no <code>connector_asked</code> row — $3.8M of pipeline where someone said "leave it with me" and nothing was recorded.</div>
-      <div class="finding warn"><b>Delegation never lands.</b>"adding X who might know" appears 34 times; the named person was logged as asked in 0 of them. Everyone tagged is an AE / CRM owner, not a roster connector.</div>
-      <div class="finding"><b>Silence is not a signal.</b>43 threads got no reply, yet 18 of them were routed to a connector anyway — the ask happened outside Slack.</div>
+      <div class="finding warn"><b>Offers fall through the cracks.</b>4 of the 15 offers (R1034, R1109, R1115, R1136) have no <code>connector_asked</code> row. That is $3.8M of pipeline where someone said "leave it with me" and nothing was recorded.</div>
+      <div class="finding warn"><b>Delegation never lands.</b>"adding X who might know" appears 34 times; the named person was logged as asked in 0 of them. Everyone tagged is an AE / CRM owner, and none of them is a roster connector.</div>
+      <div class="finding"><b>Silence tells you little.</b>43 threads got no reply, yet 18 of them were routed to a connector anyway, so the ask happened outside Slack.</div>
       <div class="finding"><b>Slow first response.</b>Median 27.2 h to the first reply on the 157 threads that got one.</div>
     </div>
   </div>
@@ -389,7 +545,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
     </div>
     <div>
       <div class="finding warn"><b>80 of 323 replies (25%) are someone asking whether this ask is a duplicate.</b>They appear in 70 of the 200 threads, and only 12 of those threads ever produced an intro. Nobody ever answers the question in-thread.</div>
-      <div class="finding"><b>The question is well-founded.</b>86% of asks are for a company that was already requested, so "is this the same as the one from last month?" is usually yes — and the answer already exists in <code>golden/golden_companies.csv</code> (<code>total_requests</code>, <code>latest_request_id</code>).</div>
+      <div class="finding"><b>The question is well-founded.</b>86% of asks are for a company that was already requested, so "is this the same as the one from last month?" is usually yes, and the answer already exists in <code>golden/golden_companies.csv</code> (<code>total_requests</code>, <code>latest_request_id</code>).</div>
     </div>
   </div>
   <h3>Offers to help with no logged ask</h3>
@@ -411,31 +567,31 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
       <table class=""><thead><tr><th>path_found_flag</th><th>Open</th><th>Routed</th><th>Intro sent</th><th>Stalled</th><th>Closed - no path</th><th>All</th></tr></thead><tbody><tr><td>Path found</td><td>22</td><td>5</td><td>6</td><td>8</td><td>8</td><td>49</td></tr><tr><td>No path found</td><td>14</td><td>3</td><td>6</td><td>8</td><td>4</td><td>35</td></tr><tr><td>Unknown</td><td>26</td><td>7</td><td>8</td><td>9</td><td>5</td><td>55</td></tr><tr><td>(blank)</td><td>28</td><td>5</td><td>4</td><td>13</td><td>11</td><td>61</td></tr></tbody></table>
       <h3>What the flag actually predicts</h3>
       <table class=""><thead><tr><th>path_found_flag</th><th>Requests</th><th>Company has a path in the network</th><th>Routed</th><th>Intro rate</th></tr></thead><tbody><tr><td>Path found</td><td>49</td><td>90%</td><td>32</td><td>24%</td></tr><tr><td>No path found</td><td>35</td><td>51%</td><td>11</td><td>14%</td></tr><tr><td>Unknown</td><td>55</td><td>65%</td><td>22</td><td>20%</td></tr><tr><td>(blank)</td><td>61</td><td>59%</td><td>20</td><td>7%</td></tr></tbody></table>
-      <p class="foot">"Company has a path" is measured against <code>golden/supply_reach.csv</code>, i.e. the network, not the flag.</p>
+      <p class="foot">"Company has a path" is measured against <code>golden/supply_reach.csv</code>, i.e. the network rather than the flag.</p>
     </div>
     <div>
       <h3>Findings</h3>
       <div class="finding warn"><b><code>path_found_flag</code> is noise for 58% of requests.</b>61 are blank and 55 say <code>Unknown</code>; of the blank ones 59% actually do have a path in the network, so blank does not mean "no path".</div>
       <div class="finding warn"><b>Where it is filled in, it contradicts the outcome.</b>17 requests flagged <code>Path found</code> were never routed, and 5 flagged <code>No path found</code> ended in an intro. The two fields are maintained independently of the funnel.</div>
-      <div class="finding warn"><b><code>status</code> and the outcome rows disagree both ways.</b>18 requests claim status <code>Intro sent</code> with no such outcome row, while 26 requests with a sent intro still show Open/Stalled/Routed. Neither field can be used as the funnel stage — <code>intro_outcomes.csv</code> has to be the source of truth.</div>
+      <div class="finding warn"><b><code>status</code> and the outcome rows disagree both ways.</b>18 requests claim status <code>Intro sent</code> with no such outcome row, while 26 requests with a sent intro still show Open/Stalled/Routed. Neither field can be used as the funnel stage; <code>intro_outcomes.csv</code> has to be the source of truth.</div>
       <table><thead><tr><th>Contradiction</th><th class="num">Requests</th></tr></thead><tbody><tr><td>status <code>Intro sent</code> with no <code>intro_sent=Y</code> outcome row</td><td class="num">18</td></tr><tr><td><code>intro_sent=Y</code> while status is still Open/Stalled/Routed</td><td class="num">26</td></tr><tr><td>flag <code>No path found</code> yet an intro was sent</td><td class="num">5</td></tr><tr><td>flag <code>Path found</code> yet nobody was ever asked</td><td class="num">17</td></tr><tr><td>status <code>Closed - no path</code> yet the flag says <code>Path found</code></td><td class="num">8</td></tr><tr><td>status <code>Closed - no path</code> yet a connector was asked</td><td class="num">10</td></tr></tbody></table>
     </div>
   </div>
-  <h3>intro_outcomes vs intro_requests — subset or coverage hole?</h3>
+  <h3>intro_outcomes vs intro_requests: subset or coverage hole?</h3>
   <div class="grid2">
     <div>
       <table class=""><thead><tr><th>Status in intro_requests.csv</th><th>Requests with no outcome row</th></tr></thead><tbody><tr><td>Open</td><td>55</td></tr><tr><td>Closed - no path</td><td>18</td></tr><tr><td>Stalled</td><td>15</td></tr><tr><td>Intro sent</td><td>14</td></tr><tr><td>Routed</td><td>13</td></tr></tbody></table>
     </div>
     <div>
-      <div class="finding warn"><b>It is a coverage hole, not a subset.</b>All 85 outcome rows resolve to a request and none is duplicated, so the file is clean in that direction. But 27 of the 115 requests with no outcome row are filed as <code>Routed</code> or <code>Intro sent</code> ($18.3M) — a routed request must have an ask, so those rows are missing rather than not-yet-existing.</div>
-      <div class="finding warn"><b>Slack shows the same gap.</b>4 of the requests with no outcome row have someone in-thread saying they would take it — the ask happened, the row was never written.</div>
+      <div class="finding warn"><b>It is a coverage hole.</b>All 85 outcome rows resolve to a request and none is duplicated, so the file is clean in that direction. But 27 of the 115 requests with no outcome row are filed as <code>Routed</code> or <code>Intro sent</code> ($18.3M). A routed request must have an ask, so those rows are missing rather than not-yet-existing.</div>
+      <div class="finding warn"><b>Slack shows the same gap.</b>4 of the requests with no outcome row have someone in-thread saying they would take it. The ask happened; the row was never written.</div>
       <div class="finding"><b>The rest is plausibly genuine.</b>The remaining 88 are Open, Stalled or Closed - no path, i.e. requests that legitimately never reached a connector. Treat 85/200 as the ceiling on funnel coverage and 27 as the known write-back defect.</div>
     </div>
   </div>
 </section>
 
 <section id="verify">
-  <h2>Verification — CSV inventory profile</h2>
+  <h2>Verification: CSV inventory profile</h2>
   <p class="lede">From <code>analysis/profile/profile.md</code> (generated by <code>analysis/profile/profile_csvs.py</code>): 11 CSV files, 5,489 data rows, 38 column-level flags.</p>
   <div class="kpis">
     <div class="kpi"><div class="v">11</div><div class="l">CSV files profiled</div><div class="s">5,489 rows</div></div>
@@ -443,7 +599,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
     <div class="kpi"><div class="v">6</div><div class="l">near-duplicate CRM accounts</div><div class="s">5 with conflicting owners</div></div>
     <div class="kpi"><div class="v">43 / 200</div><div class="l">requests with no target company</div><div class="s">154 lack a target person</div></div>
     <div class="kpi"><div class="v">61</div><div class="l">requests with blank path_found_flag</div><div class="s">55 more say Unknown</div></div>
-    <div class="kpi"><div class="v">0</div><div class="l">duplicate request_ids in outcomes</div><div class="s">one ask per request — a 2nd offer can never be logged</div></div>
+    <div class="kpi"><div class="v">0</div><div class="l">duplicate request_ids in outcomes</div><div class="s">one ask per request, so a 2nd offer can never be logged</div></div>
   </div>
   <div class="grid2">
     <div>
@@ -454,7 +610,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
       <h3>Findings</h3>
       <div class="finding warn"><b>Entity resolution is the hard part.</b>6 groups of CRM accounts differ only by case / suffix (e.g. <code>Ellerby Semiconductor, Inc.</code> vs <code>Ellerby Semiconductor</code>), 5 of them owned by different AEs. 43 requests have no structured company and must be recovered from free text.</div>
       <div class="finding warn"><b>Connection exports need cleaning.</b>Names with a stray leading <code>·</code> in every <code>connections_*.csv</code>; hundreds of <code>connected_on</code> dates pre-2020 and several in the future (up to 2028).</div>
-      <div class="finding"><b>Inconsistent casing is systematic.</b><code>requester_role</code>, <code>status</code>, <code>path_found_flag</code>, <code>role</code> and <code>account_name</code> all mix Title / Sentence / UPPER — safe to normalise, but joins on raw strings will miss.</div>
+      <div class="finding"><b>Inconsistent casing is systematic.</b><code>requester_role</code>, <code>status</code>, <code>path_found_flag</code>, <code>role</code> and <code>account_name</code> all mix Title / Sentence / UPPER. Safe to normalise, but joins on raw strings will miss.</div>
       <div class="finding"><b>Outcomes are one row per request.</b><code>intro_outcomes.csv</code> has 85 rows and 85 distinct request_ids, so only one connector can ever be recorded per request.</div>
       <h3>Flag categories</h3>
       <table class=""><thead><tr><th>Category</th><th>Columns affected</th></tr></thead><tbody><tr><td>non-ASCII characters</td><td>18</td></tr><tr><td>mixed case conventions</td><td>7</td></tr><tr><td>stray leading/trailing punctuation</td><td>6</td></tr><tr><td>dates outside 2020-2027</td><td>6</td></tr><tr><td>near-duplicate values (case/punctuation/legal suffix)</td><td>1</td></tr></tbody></table>
@@ -803,4 +959,5 @@ el("ia-examples").innerHTML = R.checks.map(c => {
 
 <p class="foot">Regenerate with <code>python3 build.py dashboard</code>. Everything on this tab is computed from <code>dataset/</code> at build time.</p>
 </main>
+</div>
 </body></html>

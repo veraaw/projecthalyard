@@ -13,9 +13,11 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.484 | Marcus Aldridge (Advisor) | direct | Astrid Salcedo — VP Data & Analytics | connections_aldridge.csv: Astrid Salcedo, VP Data & Analytics at Apex Logistics Group, connected 2023-11-25 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.168 | 0.484 | Marcus Aldridge (Advisor) | direct | Astrid Salcedo — VP Data & Analytics | connections_aldridge.csv: Astrid Salcedo, VP Data & Analytics at Apex Logistics Group, connected 2023-11-25 |
 
 ## 4. Chronology (17 events, 3 requests, as of 2026-09-06)
 

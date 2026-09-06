@@ -12,9 +12,11 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.800 | Priya Raghunathan (Investor) | offer | Kwame Marchetti-Drummond | slack_threads.jsonl R1187 2025-10-29 Priya Raghunathan: "I know Kwame Marchetti-Drummond there well, happy to intro" |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Kwame Marchetti-Drummond | slack_threads.jsonl R1187 2025-10-29 Priya Raghunathan: "I know Kwame Marchetti-Drummond there well, happy to intro" |
 
 ## 4. Chronology (10 events, 1 request, as of 2026-09-06)
 

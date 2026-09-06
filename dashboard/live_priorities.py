@@ -71,19 +71,19 @@ CONNECTOR_PAGE = "connector-{slug}.html"
 # sections are (section id, nav label) as rendered by live_priorities.js boot(), in page order.
 BANDS = [
     ("intake", "Intake: Preview a Routed Request Summary",
-     "does it accept input the build doesn't have yet?",
+     "Does it accept input the build doesn't have yet?",
      [("route", "Route a request"), ("upload", "Preview an export")]),
     ("orientation", "Orientation: Deal Value by Stage",
-     "is it a single aggregate with no rows?",
+     "Is it a single aggregate with no rows?",
      [("stages", "Deal value by stage")]),
-    ("now", "Actionable Now",
-     "does ticking it change what the queue proposes tomorrow?",
+    ("now", "Actionable Routing Steps",
+     "Does ticking it change what the queue proposes tomorrow?",
      [("top", "Top priorities"), ("offers", "Already offered"), ("bottlenecks", "Core bottlenecks"), ("crm", "CRM Updates")]),
     ("cycle", "Current Cycle Overview",
-     "does it describe a decision the allocator already made?",
+     "Does it describe a decision the allocator already made?",
      [("asks", "Current asks"), ("introduced", "Already introduced"), ("connectors", "Roster Connectors")]),
     ("stuck", "Not Moving",
-     "does the action belong to someone who isn't reading this page?",
+     "Does the action belong to someone who isn't reading this page?",
      [("unrouted", "Unrouted"), ("checkins", "Check-ins")]),
 ]
 # every section in page order; drives the header nav
@@ -247,7 +247,7 @@ class Live:
             elif fit >= 1.0:
                 focus = "in their focus area"
             elif fit <= 0.0:
-                focus = "outside their focus — they decline anything outside"
+                focus = "outside their focus, and they decline anything outside"
             else:
                 focus = "outside their focus area"
             cap = bg.capacity(self.roster, n)
@@ -596,6 +596,7 @@ class Live:
                     "path_type": a["path_type"],
                     "contact": p["contact_name"] or p["contact_title"],
                     "why": "; ".join(why),
+                    "value_usd": sum(usd(g["value_usd"]) for g in group),
                     "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
                     "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
                     "retry": self.retry_of(cid),
@@ -622,8 +623,13 @@ class Live:
                     "company_as_written": self.by_rid[a["request_id"]]["company_as_written"],
                 })
         n_exc = sum(len(v) for v in exceptions.values())
+        # every allocated company across all batches, biggest first: the Aggregate tab
+        everything = sorted(({**c, "connector": b["connector"], "slug": b["slug"], "batch_id": b["batch_id"]}
+                             for b in out for c in b["companies"]),
+                            key=lambda c: (-c["value_usd"], c["company_name"]))
         return {
             "cycle": self.cycle, "allocated": sum(b["size"] for b in out), "batches": out,
+            "all": everything, "value_fmt": money(sum(c["value_usd"] for c in everything)),
             "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(sum(usd(self.by_rid[r["request_id"]]["value_usd"]) for r in v)),
                             "rows": v} for k, v in sorted(exceptions.items(), key=lambda kv: -len(kv[1]))],
             "exception_count": n_exc,
@@ -800,6 +806,37 @@ class Live:
             } for a in queue],
         }
 
+    def strongest_elsewhere(self, name: str) -> list[dict]:
+        """Read-only: companies where this connector holds the strongest raw path
+        in supply_reach.csv yet none of the company's live requests routed to
+        them this cycle. Nothing here was asked of them (that is `sitting_on`,
+        from intro_outcomes.csv), so there is nothing to tick; it says where a
+        volunteered or strong path went unused and why: capacity, or a focus
+        area they decline outside of."""
+        cap = bg.capacity(self.roster, name)
+        used = cap - self.connector_facts.get(name, {}).get("idle", cap)
+        live: dict[str, list[dict]] = defaultdict(list)
+        for a in self.allocation:
+            live[a["company_id"]].append(a)
+        out = []
+        for cid, rows in live.items():
+            paths = [p for p in self.paths.get(cid, []) if p["reach_type"] != "none"]
+            if not paths:
+                continue
+            top = max(paths, key=lambda p: float(p["strength"]))
+            if top["connector"] != name or any(a["allocated_to"] == name for a in rows):
+                continue
+            fit = self.fit(name, self.industry(cid))
+            out.append({
+                **self.company_ref(cid, top["company_name"]), "reach_type": top["reach_type"],
+                "strength": round(float(top["strength"]), 3), "route_score": round(float(top["strength"]) * fit * self.rate(name), 3),
+                "outside_focus": fit <= 0, "industry": self.industry(cid), "used": used, "capacity": cap,
+                "requests": sorted(a["request_id"] for a in rows),
+                "routed_to": sorted({a["allocated_to"] for a in rows if a["allocated_to"]}),
+                "unrouted": sum(1 for a in rows if not a["allocated_to"]),
+            })
+        return sorted(out, key=lambda x: (-x["strength"], x["company_name"]))
+
     def batch_ask(self, name: str) -> dict | None:
         """The connector's drafted message for the current cycle, or None when
         nothing routes to them."""
@@ -834,7 +871,8 @@ class Live:
 
     def connector_pages(self) -> list[dict]:
         """One page per connector: their top 5 by expected value, then the rest of
-        their ranked list, then what they are already sitting on."""
+        their ranked list, what they are already sitting on, and (read-only) the
+        companies where their path is the strongest but did not route to them."""
         out = []
         for name in self.connector_names():
             mine = [dict(r, rank_here=i) for i, r in enumerate((r for r in self.ranked() if r["connector"] == name), 1)]
@@ -843,6 +881,7 @@ class Live:
                 "top": mine[:TOP_N], "rest": mine[TOP_N:], "ranked_count": len(mine),
                 "ranked_value_fmt": money(sum(usd(self.by_rid[r["request_id"]]["value_usd"]) for r in mine)),
                 "no_slot": sum(1 for r in mine if not r["allocated"]),
+                "strongest_elsewhere": self.strongest_elsewhere(name),
                 "formula": self.formula(), "completions": self.completion_export(), "as_of": self.today.isoformat(),
             })
         return out
@@ -941,7 +980,7 @@ class Live:
                     "value_usd": sum(usd(g["value_usd"]) for g in group),
                     "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
                     "has_path": bool(own),
-                    "path": bg.path_label(max(own, key=lambda p: float(p["strength"]))) if own else "no known path — ask them if they know anyone",
+                    "path": bg.path_label(max(own, key=lambda p: float(p["strength"]))) if own else "no known path; ask them if they know anyone",
                 })
             companies.sort(key=lambda c: (not c["has_path"], -c["value_usd"]))
             per.append({"connector": name, "page": CONNECTOR_PAGE.format(slug=slug(name)), "focus": sorted(r["focus"]),

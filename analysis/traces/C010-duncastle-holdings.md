@@ -12,9 +12,13 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Duncastle Hotels, board_seat=True |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.184 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Duncastle Hotels, board_seat=True |
+
+strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3; R1183 unrouted (capacity exhausted this cycle)
 
 ## 4. Chronology (27 events, 5 requests, as of 2026-09-06)
 

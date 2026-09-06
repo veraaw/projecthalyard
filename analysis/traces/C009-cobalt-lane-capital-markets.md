@@ -11,10 +11,12 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.496 | Tomás Beckett (Internal) | direct | Greta Petrossian — Head of Automation | connections_beckett.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2025-07-17 |
-| 0.449 | Priya Raghunathan (Investor) | direct | Greta Petrossian — Head of Automation | connections_raghunathan.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2023-11-21 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.092 | 0.449 | Priya Raghunathan (Investor) | direct | Greta Petrossian — Head of Automation | connections_raghunathan.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2023-11-21 |
+| 0.080 | 0.496 | Tomás Beckett (Internal) | direct | Greta Petrossian — Head of Automation | connections_beckett.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2025-07-17 |
 
 ## 4. Chronology (15 events, 2 requests, as of 2026-09-06)
 

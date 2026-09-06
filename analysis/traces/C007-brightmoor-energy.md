@@ -13,10 +13,12 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.357 | Elena Duvall (Advisor) | direct | Idris Drummond — Chief Digital Officer | connections_duvall.csv: Idris Drummond, Chief Digital Officer at Brightmoor Energy, connected 2017-07-02 |
-| 0.202 | Elena Duvall (Advisor) | alumni | Idris Drummond — ex-Brightmoor Energy (2015-2018), now Chief Digital Officer at Brightmoor Energy | investor_network.csv: Idris Drummond prior_employer=Brightmoor Energy (2015-2018); connections_duvall.csv: connection of Elena Duvall since 2017-07-02 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.129 | 0.357 | Elena Duvall (Advisor) | direct | Idris Drummond — Chief Digital Officer | connections_duvall.csv: Idris Drummond, Chief Digital Officer at Brightmoor Energy, connected 2017-07-02 |
+| 0.073 | 0.202 | Elena Duvall (Advisor) | alumni | Idris Drummond — ex-Brightmoor Energy (2015-2018), now Chief Digital Officer at Brightmoor Energy | investor_network.csv: Idris Drummond prior_employer=Brightmoor Energy (2015-2018); connections_duvall.csv: connection of Elena Duvall since 2017-07-02 |
 
 ## 4. Chronology (33 events, 5 requests, as of 2026-09-06)
 
