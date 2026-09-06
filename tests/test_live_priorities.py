@@ -464,11 +464,11 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual([sid for sid, _ in lp.SECTIONS], re.findall(r'<section id="([^"]+)"', boot),
                          "SECTIONS is the header nav; it must list every section boot() renders, in order")
         self.assertEqual([sid for sid, _ in lp.SECTIONS],
-                         ["route", "upload", "stages", "top", "bottlenecks", "crm", "asks", "introduced", "connectors", "unrouted"],
+                         ["route", "upload", "stages", "top", "crm", "asks", "introduced", "connectors", "unrouted", "bottlenecks"],
                          "intake, orientation, actionable now, current cycle, not moving")
-        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 3, 3, 1])
+        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 2, 3, 2])
         folded = re.findall(r'<section id="([^"]+)">\$\{fold\(', boot)
-        self.assertEqual(folded, ["bottlenecks", "crm", "asks", "introduced", "connectors", "unrouted"], "the long tables start collapsed")
+        self.assertEqual(folded, ["crm", "asks", "introduced", "connectors", "unrouted", "bottlenecks"], "the long tables start collapsed")
         self.assertIn('<section id="stages" class="masthead">', boot)
         self.assertNotIn("<table", boot.split('<section id="stages"')[1].split("</section>")[0], "orientation is one strip, no rows")
         self.assertIn("CRM Updates <span", boot)

@@ -1049,18 +1049,6 @@ const LP = (function () {
       + `<p class="foot">Per connector: ${D.connector_pages.map(c => `<a href="${esc(c.page)}">${esc(c.connector)}</a>`).join(' · ')}. Each tab opens on their own top 5, with the longer list below.</p>`
       + formulaNote(T.formula) + `</section>`;
 
-    // no slot spent: a nudge
-    const B = D.bottlenecks;
-    sec.bottlenecks = `<section id="bottlenecks">${fold(`Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro, ${esc(B.value_fmt)}, from <code>intro_outcomes.csv</code></span>`)}
-      <p class="lede">Each of these wants a <b>nudge</b>. Asking again would spend a fresh slot for an answer you already have. Tick the row once you have nudged; it comes back after ${B.quiet_days} quiet days.</p>`
-      + tabs('bottlenecks', [{ label: 'All connectors', n: B.count, rows: B.rows, note: `${plural(B.count, 'ask')} · ${esc(B.value_fmt)} · oldest agreement first` }]
-          .concat(B.by_connector.map(c => ({ label: c.connector, n: c.count, rows: B.rows.filter(r => r.connector === c.connector), note: `${plural(c.count, 'ask')} · ${esc(c.value_fmt)}${c.on_roster ? '' : ' · off roster'}` }))),
-        t => `<p class="foot">${t.note}</p><table class="top"><thead><tr><th></th><th>action</th><th>request</th><th>company</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
-          + t.rows.map(r => { const k = nudgeTick(X, r); return `<tr class="${doneClass(state, k)}">${tick(state, k)}<td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`; }).join('')
-          + `</tbody></table>`)
-      + (B.nudged.length ? `<p class="foot">Nudged in the last ${B.quiet_days} days, off the list until then: ${B.nudged.map(r => `${co(r)} (${esc(r.connector)}, ${esc(r.nudged_on)}, ${r.days_since_nudged}d ago)`).join(' · ')}.</p>` : '')
-      + `</details></section>`;
-
     // admin
     const C = D.crm;
     sec.crm = `<section id="crm">${fold(`CRM Updates <span class="foot">${C.groups.map(g => `${g.count} ${esc(g.group)}`).join(' · ')}</span>`)}
@@ -1140,6 +1128,18 @@ const LP = (function () {
         : `<p class="empty">no unrouted company in ${esc(c.connector)}'s focus areas</p>`;
     }
     sec.unrouted += `</details></section>`;
+
+    // no slot spent: a nudge the connector owes, not a fresh ask
+    const B = D.bottlenecks;
+    sec.bottlenecks = `<section id="bottlenecks">${fold(`Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro, ${esc(B.value_fmt)}, from <code>intro_outcomes.csv</code></span>`)}
+      <p class="lede">Each of these wants a <b>nudge</b>. Asking again would spend a fresh slot for an answer you already have. Tick the row once you have nudged; it comes back after ${B.quiet_days} quiet days.</p>`
+      + tabs('bottlenecks', [{ label: 'All connectors', n: B.count, rows: B.rows, note: `${plural(B.count, 'ask')} · ${esc(B.value_fmt)} · oldest agreement first` }]
+          .concat(B.by_connector.map(c => ({ label: c.connector, n: c.count, rows: B.rows.filter(r => r.connector === c.connector), note: `${plural(c.count, 'ask')} · ${esc(c.value_fmt)}${c.on_roster ? '' : ' · off roster'}` }))),
+        t => `<p class="foot">${t.note}</p><table class="top"><thead><tr><th></th><th>action</th><th>request</th><th>company</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
+          + t.rows.map(r => { const k = nudgeTick(X, r); return `<tr class="${doneClass(state, k)}">${tick(state, k)}<td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`; }).join('')
+          + `</tbody></table>`)
+      + (B.nudged.length ? `<p class="foot">Nudged in the last ${B.quiet_days} days, off the list until then: ${B.nudged.map(r => `${co(r)} (${esc(r.connector)}, ${esc(r.nudged_on)}, ${r.days_since_nudged}d ago)`).join(' · ')}.</p>` : '')
+      + `</details></section>`;
 
     // ---- assemble: five labelled bands, each carrying its membership test
     let out = `<p class="stamp" id="lp-stamp">as of <b>${esc(D.as_of)}</b></p>`;
