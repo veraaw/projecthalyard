@@ -1,4 +1,4 @@
-"""python3 -m unittest golden.test_resolver  (run from the repo root)"""
+"""python3 -m unittest tests.test_resolver  (run from the repo root)"""
 import unittest
 
 from golden.resolve_cli import load_resolver
