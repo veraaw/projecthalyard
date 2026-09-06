@@ -64,3 +64,4 @@ strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacit
 | 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | nudge, don't re-ask | said yes on 2025-08-17 and never forwarded | R1082 |
 | 2 | Bertrand Vandermolen | CRM owner (A1029) | check in on the account | last touch 2025-12-07, 273 days ago | — |
 | 3 | Sloane Fairweather (400 days), Yusuf Petrossian (313 days), Curtis Hartigan (220 days) | 3 reps still waiting, longest first | tell them it's with Priya Raghunathan | 3 reps raised this and have heard nothing; the oldest has been waiting 400 days | R1082, R1120, R1183, R1071 |
+| 4 | Hana Nakashima | AE, Healthcare, was introduced | no action: intro already made | Priya Raghunathan introduced VP Enterprise Architecture on 2025-09-30 (R1032) and no meeting followed in 341 days, so the allocator treats the company as a retry; nothing is allocated this cycle | R1032 |

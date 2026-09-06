@@ -51,5 +51,6 @@ strongest path, not where it went: Marcus Aldridge, direct 0.465, at capacity 4/
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Imani Mkhize | CRM owner (A1047) | check in on the account | last touch 2026-02-02, 216 days ago | — |
-| 2 | Bertrand Vandermolen (185 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 185 days | R1134 |
+| 1 | Nadia Okonkwo | AE, Industrials, holds the intro | extend the intro, no connector is asked | Marcus Aldridge introduced Chief Digital Officer on 2026-05-19 (R1129, meeting booked); the allocator parks every live request here, so Nadia asks that contact for Chief Technology Officer | R1134 |
+| 2 | Imani Mkhize | CRM owner (A1047) | check in on the account | last touch 2026-02-02, 216 days ago | — |
+| 3 | Bertrand Vandermolen (185 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 185 days | R1134 |
