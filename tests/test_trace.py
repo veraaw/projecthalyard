@@ -74,7 +74,7 @@ class HarrowgateTest(unittest.TestCase):
         not best_path_if_unbudgeted."""
         why = self.trace.bypass()
         self.assertTrue(why.startswith("Elena Duvall, offer 0.800, at capacity 3/3, Healthcare is outside their focus (route score 0.000); "), why)
-        self.assertIn("R1136 routed to Dana Whitfield", why)
+        self.assertIn("R1136 routed to Tomás Beckett", why)
         self.assertIn("R1153 routed to Tomás Beckett", why)
         reach = self.trace.as_dict()["reach"]
         self.assertEqual([r["connector"] for r in reach if r["bypass"]], ["Elena Duvall"])
@@ -97,17 +97,19 @@ class HarrowgateTest(unittest.TestCase):
 
     def test_next_steps(self):
         steps = self.trace.next_steps()
-        self.assertEqual(len(steps), 5)
-        self.assertEqual([s.order for s in steps], [1, 2, 3, 4, 5])
+        self.assertEqual(len(steps), 4)
+        self.assertEqual([s.order for s in steps], [1, 2, 4, 5])
         elena, tomas = steps[0], steps[1]
         self.assertEqual(elena.who, "Elena Duvall")
         self.assertEqual(elena.request_ids, ["R1136"])
         self.assertEqual(tomas.who, "Tomás Beckett")
         self.assertEqual(tomas.why.count("said yes"), 2)
-        self.assertEqual(set(tomas.request_ids) >= {"R1057", "R1157"}, True)
-        self.assertEqual(steps[2].who, "Dana Whitfield")
-        self.assertEqual(steps[3].who, "Imani Mkhize")
-        reps = steps[4]
+        # the cycle's fresh asks on Harrowgate all land with Tomás: once requests behind
+        # a live intro elsewhere stop consuming his slots, the strongest path gets R1136 too
+        self.assertEqual(set(tomas.request_ids) >= {"R1057", "R1157", "R1136", "R1153"}, True)
+        self.assertIn("send the ask", tomas.action)
+        self.assertEqual(steps[2].who, "Imani Mkhize")
+        reps = steps[3]
         self.assertIn("7 reps", reps.role)
         self.assertTrue(reps.who.startswith("Imani Mkhize (355 days)"), reps.who)
         self.assertTrue(reps.who.endswith("Curtis Hartigan (81 days)"), reps.who)

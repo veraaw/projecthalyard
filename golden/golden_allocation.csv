@@ -1,84 +1,84 @@
 cycle,request_id,decided_at,company_id,company_name,target_title,value_usd,urgency_declared,request_date,status_as_filed,allocated_to,batch_id,batch_size,path_type,contact_name,route_score,exception_reason,best_path_if_unbudgeted
-2026-09,R1143,2026-09-05T01:27:08Z,C016,Gravenhurst Motors,Chief Operating Officer,150000,Low,2026-03-04,Routed,Curtis Hartigan,2026-09 Curtis Hartigan,2,offer,,0.262,,"Curtis Hartigan (offer, 0.26)"
-2026-09,R1158,2026-09-05T01:27:08Z,C016,Gravenhurst Motors,Head of Platform Engineering,750000,Critical,2025-10-30,Open,Curtis Hartigan,2026-09 Curtis Hartigan,2,offer,,0.262,,"Curtis Hartigan (offer, 0.26)"
-2026-09,R1065,2026-09-05T01:27:08Z,C019,Hollowbrook Grocers,Director of Software Engineering,80000,High,2026-04-08,Stalled,Dana Whitfield,2026-09 Dana Whitfield,6,direct,Freya Havercamp,0.128,,"Priya Raghunathan (investor, 0.18)"
-2026-09,R1067,2026-09-05T01:27:08Z,C045,Redtree Foods,Head of Platform Engineering,1200000,Medium,2025-10-22,Open,Dana Whitfield,2026-09 Dana Whitfield,6,offer,,0.240,,"Dana Whitfield (offer, 0.24)"
-2026-09,R1070,2026-09-05T01:27:08Z,C058,Kingsmere Retail Group,SVP Digital,400000,High,2026-05-07,Open,Dana Whitfield,2026-09 Dana Whitfield,6,direct,Saoirse Quillane,0.145,,"Yusuf Petrossian (offer, 0.18)"
-2026-09,R1074,2026-09-05T01:27:08Z,C045,Redtree Foods,VP Data & Analytics,750000,High,2026-06-03,Stalled,Dana Whitfield,2026-09 Dana Whitfield,6,offer,,0.240,,"Dana Whitfield (offer, 0.24)"
-2026-09,R1136,2026-09-05T01:27:08Z,C018,Harrowgate Health,SVP Digital,1200000,Low,2026-03-14,Open,Dana Whitfield,2026-09 Dana Whitfield,6,direct,Amara Thackeray,0.064,,"Tomás Beckett (direct, 0.08)"
-2026-09,R1193,2026-09-05T01:27:08Z,C058,Kingsmere Retail Group,Chief Operating Officer,250000,Low,2026-06-05,Stalled,Dana Whitfield,2026-09 Dana Whitfield,6,direct,Saoirse Quillane,0.145,,"Yusuf Petrossian (offer, 0.18)"
-2026-09,R1055,2026-09-05T01:27:08Z,C046,Vireo Systems,Chief Digital Officer,1200000,Critical,2026-07-08,Open,Elena Duvall,2026-09 Elena Duvall,3,direct,Arjun Cathcart,0.131,,"Priya Raghunathan (investor, 0.29)"
-2026-09,R1092,2026-09-05T01:27:08Z,C031,Priorwood Chemicals,VP Enterprise Architecture,750000,Critical,2026-03-28,Stalled,Elena Duvall,2026-09 Elena Duvall,3,direct,Curtis Marchetti,0.108,,"Elena Duvall (direct, 0.11)"
-2026-09,R1184,2026-09-05T01:27:08Z,C008,Cindermill Holdings,Chief Digital Officer,750000,Critical,2026-07-26,Open,Elena Duvall,2026-09 Elena Duvall,3,direct,Bertrand Glückstein,0.119,,"Elena Duvall (direct, 0.12)"
-2026-09,R1047,2026-09-05T01:27:08Z,C029,Pelham Beverage,Director of Software Engineering,250000,High,2025-08-17,Stalled,Imani Mkhize,2026-09 Imani Mkhize,2,offer,,0.262,,"Imani Mkhize (offer, 0.26)"
-2026-09,R1200,2026-09-05T01:27:08Z,C029,Pelham Beverage,Director of Software Engineering,750000,Medium,2026-02-15,Open,Imani Mkhize,2026-09 Imani Mkhize,2,offer,,0.262,,"Imani Mkhize (offer, 0.26)"
-2026-09,R1001,2026-09-05T01:27:08Z,C041,Vantage Ridge Utilities,Chief Operating Officer,400000,High,2026-04-14,Open,Marcus Aldridge,2026-09 Marcus Aldridge,4,direct,Sabine Dellinger,0.171,,"Marcus Aldridge (direct, 0.17)"
-2026-09,R1024,2026-09-05T01:27:08Z,C002,Apex Logistics,Director of Software Engineering,2000000,High,2026-07-04,Routed,Marcus Aldridge,2026-09 Marcus Aldridge,4,direct,Curtis Prendergast,0.133,,"Marcus Aldridge (direct, 0.13)"
-2026-09,R1134,2026-09-05T01:27:08Z,C024,Marlowe Freight Systems,Chief Technology Officer,1200000,High,2026-03-05,Open,Marcus Aldridge,2026-09 Marcus Aldridge,4,direct,Marcus Merriweather,0.161,,"Marcus Aldridge (direct, 0.16)"
-2026-09,R1179,2026-09-05T01:27:08Z,C006,Blackwood Holdings,SVP Digital,250000,High,2025-12-10,Open,Marcus Aldridge,2026-09 Marcus Aldridge,4,direct,Bram Quillane,0.180,,"Elena Duvall (direct, 0.19)"
-2026-09,R1034,2026-09-05T01:27:08Z,C037,Sundermere Bank,Chief Data Officer,400000,High,2025-10-13,Open,Nadia Okonkwo,2026-09 Nadia Okonkwo,1,offer,,0.213,,"Nadia Okonkwo (offer, 0.21)"
-2026-09,R1039,2026-09-05T01:27:08Z,C033,Ravensmoor Defense,Head of Developer Productivity,2000000,High,2026-01-29,Stalled,Owen Trask,2026-09 Owen Trask,2,offer,,0.091,,"Owen Trask (offer, 0.09)"
-2026-09,R1049,2026-09-05T01:27:08Z,C033,Ravensmoor Defense,Chief Digital Officer,750000,Critical,2025-10-07,Open,Owen Trask,2026-09 Owen Trask,2,offer,,0.091,,"Owen Trask (offer, 0.09)"
-2026-09,R1028,2026-09-05T01:27:08Z,C028,Osric Networks,Chief Digital Officer,2000000,Critical,2026-07-18,Open,Priya Raghunathan,2026-09 Priya Raghunathan,3,offer,,0.164,,"Priya Raghunathan (offer, 0.16)"
-2026-09,R1084,2026-09-05T01:27:08Z,C019,Hollowbrook Grocers,VP Engineering,2000000,Critical,2026-07-13,Open,Priya Raghunathan,2026-09 Priya Raghunathan,3,investor,CEO / exec team,0.184,,"Priya Raghunathan (investor, 0.18)"
-2026-09,R1159,2026-09-05T01:27:08Z,C019,Hollowbrook Grocers,VP Enterprise Architecture,1200000,Critical,2025-12-11,Open,Priya Raghunathan,2026-09 Priya Raghunathan,3,investor,CEO / exec team,0.184,,"Priya Raghunathan (investor, 0.18)"
-2026-09,R1027,2026-09-05T01:27:08Z,C036,Strathmore Holdings,Chief Technology Officer,400000,High,2026-07-05,Routed,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Bertrand Lomsadze,0.053,,"Tomás Beckett (direct, 0.05)"
-2026-09,R1048,2026-09-05T01:27:08Z,C005,Bexley Bioworks,Chief Data Officer,750000,High,2026-04-14,Stalled,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Yusuf Wolstenholme,0.096,,"Priya Raghunathan (investor, 0.41)"
-2026-09,R1059,2026-09-05T01:27:08Z,C008,Cindermill Holdings,VP Data & Analytics,250000,High,2025-09-06,Open,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Bo Marchetti,0.061,,"Elena Duvall (direct, 0.12)"
-2026-09,R1125,2026-09-05T01:27:08Z,C036,Strathmore Holdings,Chief Operating Officer,400000,High,2026-07-05,Open,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Bertrand Lomsadze,0.053,,"Tomás Beckett (direct, 0.05)"
-2026-09,R1132,2026-09-05T01:27:08Z,C036,Strathmore Holdings,Chief Operating Officer,150000,High,2025-12-13,Routed,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Bertrand Lomsadze,0.053,,"Tomás Beckett (direct, 0.05)"
-2026-09,R1144,2026-09-05T01:27:08Z,C008,Cindermill Holdings,VP Engineering,400000,Critical,2025-08-17,Open,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Bo Marchetti,0.061,,"Elena Duvall (direct, 0.12)"
-2026-09,R1153,2026-09-05T01:27:08Z,C018,Harrowgate Health,Chief Operating Officer,750000,Critical,2025-11-29,Stalled,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Marcus Salcedo,0.079,,"Tomás Beckett (direct, 0.08)"
-2026-09,R1174,2026-09-05T01:27:08Z,C031,Priorwood Chemicals,Head of Platform Engineering,150000,Critical,2026-05-29,Open,Tomás Beckett,2026-09 Tomás Beckett,8,direct,Curtis Marchetti,0.048,,"Elena Duvall (direct, 0.11)"
-2026-09,R1006,2026-09-05T01:27:08Z,C058,Kingsmere Retail Group,VP Engineering,750000,High,2026-06-07,Open,Yusuf Petrossian,2026-09 Yusuf Petrossian,2,offer,,0.182,,"Yusuf Petrossian (offer, 0.18)"
-2026-09,R1128,2026-09-05T01:27:08Z,C058,Kingsmere Retail Group,VP Enterprise Architecture,80000,Critical,2025-12-26,Routed,Yusuf Petrossian,2026-09 Yusuf Petrossian,2,offer,,0.182,,"Yusuf Petrossian (offer, 0.18)"
-2026-09,R1002,2026-09-05T01:27:08Z,C042,Volney Industrial Systems,VP Data & Analytics,400000,High,2025-09-14,Open,,,,,,,no path to this company in the network,
-2026-09,R1004,2026-09-05T01:27:08Z,C023,Marchford Clinics,Head of Developer Productivity,750000,Medium,2026-07-06,Open,,,,,,,capacity exhausted this cycle,"Marcus Aldridge (direct, 0.08)"
-2026-09,R1007,2026-09-05T01:27:08Z,C017,Halcyon Grid,Head of Platform Engineering,80000,High,2026-06-01,Open,,,,,,,no path to this company in the network,
-2026-09,R1010,2026-09-05T01:27:08Z,C022,Larkhall Software,Chief Technology Officer,250000,Medium,2026-05-24,Open,,,,,,,no path to this company in the network,
-2026-09,R1011,2026-09-05T01:27:08Z,,,Head of Platform Engineering,400000,High,2025-08-29,Open,,,,,,,company unresolved,
-2026-09,R1013,2026-09-05T01:27:08Z,C027,Nortonbury Logistics,Chief Operating Officer,80000,Low,2026-05-10,Open,,,,,,,capacity exhausted this cycle,"Marcus Aldridge (direct, 0.18)"
-2026-09,R1018,2026-09-05T01:27:08Z,C043,Wrenfield Robotics,Chief Technology Officer,1200000,High,2026-05-31,Open,,,,,,,capacity exhausted this cycle,"Priya Raghunathan (direct, 0.13)"
-2026-09,R1019,2026-09-05T01:27:08Z,C026,Northwind Freight,Chief Data Officer,400000,High,2026-01-01,Open,,,,,,,no path to this company in the network,
-2026-09,R1023,2026-09-05T01:27:08Z,C039,Thistledown Energy,Chief Operating Officer,400000,Low,2025-10-21,Routed,,,,,,,no path to this company in the network,
-2026-09,R1030,2026-09-05T01:27:08Z,C021,Larchmont Aerospace,Head of Platform Engineering,80000,High,2026-07-01,Open,,,,,,,no path to this company in the network,
-2026-09,R1036,2026-09-05T01:27:08Z,C034,Sablefield Motors,Chief Data Officer,150000,Critical,2026-05-19,Open,,,,,,,no path to this company in the network,
-2026-09,R1037,2026-09-05T01:27:08Z,C039,Thistledown Energy,Head of Platform Engineering,1200000,Low,2025-11-26,Open,,,,,,,no path to this company in the network,
-2026-09,R1041,2026-09-05T01:27:08Z,C002,Apex Logistics,SVP Digital,750000,Medium,2025-12-02,Open,,,,,,,capacity exhausted this cycle,"Marcus Aldridge (direct, 0.13)"
-2026-09,R1050,2026-09-05T01:27:08Z,C030,Pemberton Retail,Head of Developer Productivity,400000,Medium,2025-09-05,Open,,,,,,,no path to this company in the network,
-2026-09,R1054,2026-09-05T01:27:08Z,C014,Kestrel Airlines,Chief Operating Officer,1200000,Low,2026-01-10,Routed,,,,,,,no path to this company in the network,
-2026-09,R1056,2026-09-05T01:27:08Z,,,VP Engineering,1200000,High,2025-08-25,Open,,,,,,,company unresolved,
-2026-09,R1061,2026-09-05T01:27:08Z,C030,Pemberton Retail,Head of Developer Productivity,1200000,Medium,2026-02-21,Stalled,,,,,,,no path to this company in the network,
-2026-09,R1063,2026-09-05T01:27:08Z,C035,Silverbrook Paper,Chief Operating Officer,80000,High,2025-11-06,Routed,,,,,,,capacity exhausted this cycle,"Owen Trask (direct, 0.04)"
-2026-09,R1064,2026-09-05T01:27:08Z,C039,Thistledown Energy,Chief Data Officer,1200000,Low,2025-08-14,Routed,,,,,,,no path to this company in the network,
-2026-09,R1075,2026-09-05T01:27:08Z,C046,Vireo Systems,VP Engineering,750000,Medium,2026-02-25,Stalled,,,,,,,capacity exhausted this cycle,"Priya Raghunathan (investor, 0.29)"
-2026-09,R1080,2026-09-05T01:27:08Z,C042,Volney Industrial Systems,VP Engineering,750000,High,2026-01-14,Open,,,,,,,no path to this company in the network,
-2026-09,R1081,2026-09-05T01:27:08Z,C034,Sablefield Motors,SVP Digital,80000,Low,2025-09-30,Open,,,,,,,no path to this company in the network,
-2026-09,R1083,2026-09-05T01:27:08Z,C039,Thistledown Energy,VP Engineering,750000,Critical,2026-06-04,Open,,,,,,,no path to this company in the network,
-2026-09,R1087,2026-09-05T01:27:08Z,,,VP Data & Analytics,400000,Critical,2026-02-10,Routed,,,,,,,company unresolved,
-2026-09,R1096,2026-09-05T01:27:08Z,,,Head of Developer Productivity,750000,High,2026-03-25,Open,,,,,,,company unresolved,
-2026-09,R1099,2026-09-05T01:27:08Z,C001,Aldergate Telecom,VP Enterprise Architecture,400000,Critical,2026-01-09,Open,,,,,,,no path to this company in the network,
-2026-09,R1105,2026-09-05T01:27:08Z,C040,Thornbury Financial,Chief Information Officer,2000000,High,2025-09-14,Open,,,,,,,no path to this company in the network,
-2026-09,R1106,2026-09-05T01:27:08Z,,,Head of Developer Productivity,80000,Critical,2026-07-14,Stalled,,,,,,,company unresolved,
-2026-09,R1116,2026-09-05T01:27:08Z,C059,Marrow Point Airways,Chief Digital Officer,2000000,Medium,2026-04-24,Open,,,,,,,no path to this company in the network,
-2026-09,R1117,2026-09-05T01:27:08Z,C034,Sablefield Motors,SVP Digital,250000,Low,2026-04-11,Open,,,,,,,no path to this company in the network,
-2026-09,R1119,2026-09-05T01:27:08Z,,,VP Enterprise Architecture,150000,Critical,2026-06-10,Open,,,,,,,company unresolved,
-2026-09,R1126,2026-09-05T01:27:08Z,,,Chief Information Officer,750000,High,2026-03-09,Open,,,,,,,company unresolved,
-2026-09,R1127,2026-09-05T01:27:08Z,C017,Halcyon Grid,SVP Digital,750000,High,2026-05-26,Open,,,,,,,no path to this company in the network,
-2026-09,R1133,2026-09-05T01:27:08Z,C059,Marrow Point Airways,Chief Technology Officer,1200000,Low,2026-04-08,Open,,,,,,,no path to this company in the network,
-2026-09,R1138,2026-09-05T01:27:08Z,C034,Sablefield Motors,Chief Information Officer,80000,High,2026-04-06,Open,,,,,,,no path to this company in the network,
-2026-09,R1142,2026-09-05T01:27:08Z,C023,Marchford Clinics,Chief Technology Officer,2000000,Low,2025-09-26,Stalled,,,,,,,capacity exhausted this cycle,"Marcus Aldridge (direct, 0.08)"
-2026-09,R1145,2026-09-05T01:27:08Z,,,SVP Digital,80000,High,2026-04-12,Stalled,,,,,,,company unresolved,
-2026-09,R1152,2026-09-05T01:27:08Z,C039,Thistledown Energy,Head of Developer Productivity,400000,High,2025-12-18,Routed,,,,,,,no path to this company in the network,
-2026-09,R1161,2026-09-05T01:27:08Z,C026,Northwind Freight,Chief Digital Officer,80000,Critical,2025-12-20,Routed,,,,,,,no path to this company in the network,
-2026-09,R1165,2026-09-05T01:27:08Z,C030,Pemberton Retail,Head of Platform Engineering,80000,Low,2026-04-30,Open,,,,,,,no path to this company in the network,
-2026-09,R1170,2026-09-05T01:27:08Z,C028,Osric Networks,SVP Digital,1200000,High,2025-09-10,Open,,,,,,,capacity exhausted this cycle,"Priya Raghunathan (offer, 0.16)"
-2026-09,R1177,2026-09-05T01:27:08Z,C017,Halcyon Grid,Chief Digital Officer,2000000,Medium,2026-01-10,Open,,,,,,,no path to this company in the network,
-2026-09,R1180,2026-09-05T01:27:08Z,C040,Thornbury Financial,Director of Software Engineering,2000000,High,2025-08-07,Routed,,,,,,,no path to this company in the network,
-2026-09,R1182,2026-09-05T01:27:08Z,C034,Sablefield Motors,VP Data & Analytics,2000000,Critical,2026-02-12,Open,,,,,,,no path to this company in the network,
-2026-09,R1183,2026-09-05T01:27:08Z,C010,Duncastle Holdings,SVP Digital,750000,High,2026-04-29,Open,,,,,,,capacity exhausted this cycle,"Priya Raghunathan (investor, 0.18)"
-2026-09,R1188,2026-09-05T01:27:08Z,C026,Northwind Freight,VP Engineering,80000,Low,2026-02-02,Stalled,,,,,,,no path to this company in the network,
-2026-09,R1189,2026-09-05T01:27:08Z,C059,Marrow Point Airways,Chief Information Officer,750000,Medium,2026-02-27,Open,,,,,,,no path to this company in the network,
-2026-09,R1191,2026-09-05T01:27:08Z,C042,Volney Industrial Systems,Chief Digital Officer,2000000,High,2025-12-15,Stalled,,,,,,,no path to this company in the network,
-2026-09,R1194,2026-09-05T01:27:08Z,C059,Marrow Point Airways,VP Data & Analytics,750000,High,2026-06-28,Open,,,,,,,no path to this company in the network,
-2026-09,R1195,2026-09-05T01:27:08Z,C043,Wrenfield Robotics,SVP Digital,1200000,Low,2026-04-27,Open,,,,,,,capacity exhausted this cycle,"Priya Raghunathan (direct, 0.13)"
+2026-09,R1013,2026-09-06T15:44:01Z,C027,Nortonbury Logistics,Chief Operating Officer,80000,Low,2026-05-10,Open,Dana Whitfield,2026-09 Dana Whitfield,6,direct,Zaid Fontaine,0.116,,"Marcus Aldridge (direct, 0.18)"
+2026-09,R1065,2026-09-06T15:44:01Z,C019,Hollowbrook Grocers,Director of Software Engineering,80000,High,2026-04-08,Stalled,Dana Whitfield,2026-09 Dana Whitfield,6,direct,Freya Havercamp,0.128,,"Priya Raghunathan (investor, 0.18)"
+2026-09,R1067,2026-09-06T15:44:01Z,C045,Redtree Foods,Head of Platform Engineering,1200000,Medium,2025-10-22,Open,Dana Whitfield,2026-09 Dana Whitfield,6,offer,,0.240,,"Dana Whitfield (offer, 0.24)"
+2026-09,R1070,2026-09-06T15:44:01Z,C058,Kingsmere Retail Group,SVP Digital,400000,High,2026-05-07,Open,Dana Whitfield,2026-09 Dana Whitfield,6,direct,Saoirse Quillane,0.145,,"Yusuf Petrossian (offer, 0.18)"
+2026-09,R1074,2026-09-06T15:44:01Z,C045,Redtree Foods,VP Data & Analytics,750000,High,2026-06-03,Stalled,Dana Whitfield,2026-09 Dana Whitfield,6,offer,,0.240,,"Dana Whitfield (offer, 0.24)"
+2026-09,R1193,2026-09-06T15:44:01Z,C058,Kingsmere Retail Group,Chief Operating Officer,250000,Low,2026-06-05,Stalled,Dana Whitfield,2026-09 Dana Whitfield,6,direct,Saoirse Quillane,0.145,,"Yusuf Petrossian (offer, 0.18)"
+2026-09,R1059,2026-09-06T15:44:01Z,C008,Cindermill Holdings,VP Data & Analytics,250000,High,2025-09-06,Open,Elena Duvall,2026-09 Elena Duvall,3,direct,Bertrand Glückstein,0.119,,"Elena Duvall (direct, 0.12)"
+2026-09,R1144,2026-09-06T15:44:01Z,C008,Cindermill Holdings,VP Engineering,400000,Critical,2025-08-17,Open,Elena Duvall,2026-09 Elena Duvall,3,direct,Bertrand Glückstein,0.119,,"Elena Duvall (direct, 0.12)"
+2026-09,R1184,2026-09-06T15:44:01Z,C008,Cindermill Holdings,Chief Digital Officer,750000,Critical,2026-07-26,Open,Elena Duvall,2026-09 Elena Duvall,3,direct,Bertrand Glückstein,0.119,,"Elena Duvall (direct, 0.12)"
+2026-09,R1001,2026-09-06T15:44:01Z,C041,Vantage Ridge Utilities,Chief Operating Officer,400000,High,2026-04-14,Open,Marcus Aldridge,2026-09 Marcus Aldridge,4,direct,Sabine Dellinger,0.171,,"Marcus Aldridge (direct, 0.17)"
+2026-09,R1004,2026-09-06T15:44:01Z,C023,Marchford Clinics,Head of Developer Productivity,750000,Medium,2026-07-06,Open,Marcus Aldridge,2026-09 Marcus Aldridge,4,direct,Kofi Jarrold,0.081,,"Marcus Aldridge (direct, 0.08)"
+2026-09,R1075,2026-09-06T15:44:01Z,C046,Vireo Systems,VP Engineering,750000,Medium,2026-02-25,Stalled,Marcus Aldridge,2026-09 Marcus Aldridge,4,direct,Arjun Cathcart,0.120,,"Priya Raghunathan (investor, 0.29)"
+2026-09,R1179,2026-09-06T15:44:01Z,C006,Blackwood Holdings,SVP Digital,250000,High,2025-12-10,Open,Marcus Aldridge,2026-09 Marcus Aldridge,4,direct,Bram Quillane,0.180,,"Elena Duvall (direct, 0.19)"
+2026-09,R1034,2026-09-06T15:44:01Z,C037,Sundermere Bank,Chief Data Officer,400000,High,2025-10-13,Open,Nadia Okonkwo,2026-09 Nadia Okonkwo,1,offer,,0.213,,"Nadia Okonkwo (offer, 0.21)"
+2026-09,R1039,2026-09-06T15:44:01Z,C033,Ravensmoor Defense,Head of Developer Productivity,2000000,High,2026-01-29,Stalled,Owen Trask,2026-09 Owen Trask,2,offer,,0.091,,"Owen Trask (offer, 0.09)"
+2026-09,R1049,2026-09-06T15:44:01Z,C033,Ravensmoor Defense,Chief Digital Officer,750000,Critical,2025-10-07,Open,Owen Trask,2026-09 Owen Trask,2,offer,,0.091,,"Owen Trask (offer, 0.09)"
+2026-09,R1055,2026-09-06T15:44:01Z,C046,Vireo Systems,Chief Digital Officer,1200000,Critical,2026-07-08,Open,Priya Raghunathan,2026-09 Priya Raghunathan,3,investor,CEO / exec team,0.287,,"Priya Raghunathan (investor, 0.29)"
+2026-09,R1084,2026-09-06T15:44:01Z,C019,Hollowbrook Grocers,VP Engineering,2000000,Critical,2026-07-13,Open,Priya Raghunathan,2026-09 Priya Raghunathan,3,investor,CEO / exec team,0.184,,"Priya Raghunathan (investor, 0.18)"
+2026-09,R1159,2026-09-06T15:44:01Z,C019,Hollowbrook Grocers,VP Enterprise Architecture,1200000,Critical,2025-12-11,Open,Priya Raghunathan,2026-09 Priya Raghunathan,3,investor,CEO / exec team,0.184,,"Priya Raghunathan (investor, 0.18)"
+2026-09,R1027,2026-09-06T15:44:01Z,C036,Strathmore Holdings,Chief Technology Officer,400000,High,2026-07-05,Routed,Tomás Beckett,2026-09 Tomás Beckett,6,direct,Bertrand Lomsadze,0.053,,"Tomás Beckett (direct, 0.05)"
+2026-09,R1048,2026-09-06T15:44:01Z,C005,Bexley Bioworks,Chief Data Officer,750000,High,2026-04-14,Stalled,Tomás Beckett,2026-09 Tomás Beckett,6,direct,Yusuf Wolstenholme,0.096,,"Priya Raghunathan (investor, 0.41)"
+2026-09,R1125,2026-09-06T15:44:01Z,C036,Strathmore Holdings,Chief Operating Officer,400000,High,2026-07-05,Open,Tomás Beckett,2026-09 Tomás Beckett,6,direct,Bertrand Lomsadze,0.053,,"Tomás Beckett (direct, 0.05)"
+2026-09,R1132,2026-09-06T15:44:01Z,C036,Strathmore Holdings,Chief Operating Officer,150000,High,2025-12-13,Routed,Tomás Beckett,2026-09 Tomás Beckett,6,direct,Bertrand Lomsadze,0.053,,"Tomás Beckett (direct, 0.05)"
+2026-09,R1136,2026-09-06T15:44:01Z,C018,Harrowgate Health,SVP Digital,1200000,Low,2026-03-14,Open,Tomás Beckett,2026-09 Tomás Beckett,6,direct,Marcus Salcedo,0.079,,"Tomás Beckett (direct, 0.08)"
+2026-09,R1153,2026-09-06T15:44:01Z,C018,Harrowgate Health,Chief Operating Officer,750000,Critical,2025-11-29,Stalled,Tomás Beckett,2026-09 Tomás Beckett,6,direct,Marcus Salcedo,0.079,,"Tomás Beckett (direct, 0.08)"
+2026-09,R1006,2026-09-06T15:44:01Z,C058,Kingsmere Retail Group,VP Engineering,750000,High,2026-06-07,Open,Yusuf Petrossian,2026-09 Yusuf Petrossian,2,offer,,0.182,,"Yusuf Petrossian (offer, 0.18)"
+2026-09,R1128,2026-09-06T15:44:01Z,C058,Kingsmere Retail Group,VP Enterprise Architecture,80000,Critical,2025-12-26,Routed,Yusuf Petrossian,2026-09 Yusuf Petrossian,2,offer,,0.182,,"Yusuf Petrossian (offer, 0.18)"
+2026-09,R1002,2026-09-06T15:44:01Z,C042,Volney Industrial Systems,VP Data & Analytics,400000,High,2025-09-14,Open,,,,,,,no path to this company in the network,
+2026-09,R1007,2026-09-06T15:44:01Z,C017,Halcyon Grid,Head of Platform Engineering,80000,High,2026-06-01,Open,,,,,,,no path to this company in the network,
+2026-09,R1010,2026-09-06T15:44:01Z,C022,Larkhall Software,Chief Technology Officer,250000,Medium,2026-05-24,Open,,,,,,,no path to this company in the network,
+2026-09,R1011,2026-09-06T15:44:01Z,,,Head of Platform Engineering,400000,High,2025-08-29,Open,,,,,,,company unresolved,
+2026-09,R1018,2026-09-06T15:44:01Z,C043,Wrenfield Robotics,Chief Technology Officer,1200000,High,2026-05-31,Open,,,,,,,capacity exhausted this cycle,"Priya Raghunathan (direct, 0.13)"
+2026-09,R1019,2026-09-06T15:44:01Z,C026,Northwind Freight,Chief Data Officer,400000,High,2026-01-01,Open,,,,,,,no path to this company in the network,
+2026-09,R1023,2026-09-06T15:44:01Z,C039,Thistledown Energy,Chief Operating Officer,400000,Low,2025-10-21,Routed,,,,,,,no path to this company in the network,
+2026-09,R1024,2026-09-06T15:44:01Z,C002,Apex Logistics,Director of Software Engineering,2000000,High,2026-07-04,Routed,,,,,,,"already introduced: Elena Duvall on 2026-06-10 (R1038, meeting booked)","Marcus Aldridge (direct, 0.13)"
+2026-09,R1028,2026-09-06T15:44:01Z,C028,Osric Networks,Chief Digital Officer,2000000,Critical,2026-07-18,Open,,,,,,,"already introduced: Elena Duvall on 2026-04-02 (R1163, meeting booked)","Priya Raghunathan (offer, 0.16)"
+2026-09,R1030,2026-09-06T15:44:01Z,C021,Larchmont Aerospace,Head of Platform Engineering,80000,High,2026-07-01,Open,,,,,,,no path to this company in the network,
+2026-09,R1036,2026-09-06T15:44:01Z,C034,Sablefield Motors,Chief Data Officer,150000,Critical,2026-05-19,Open,,,,,,,no path to this company in the network,
+2026-09,R1037,2026-09-06T15:44:01Z,C039,Thistledown Energy,Head of Platform Engineering,1200000,Low,2025-11-26,Open,,,,,,,no path to this company in the network,
+2026-09,R1041,2026-09-06T15:44:01Z,C002,Apex Logistics,SVP Digital,750000,Medium,2025-12-02,Open,,,,,,,"already introduced: Elena Duvall on 2026-06-10 (R1038, meeting booked)","Marcus Aldridge (direct, 0.13)"
+2026-09,R1047,2026-09-06T15:44:01Z,C029,Pelham Beverage,Director of Software Engineering,250000,High,2025-08-17,Stalled,,,,,,,"already introduced: Imani Mkhize on 2026-04-19 (R1176, meeting booked)","Imani Mkhize (offer, 0.26)"
+2026-09,R1050,2026-09-06T15:44:01Z,C030,Pemberton Retail,Head of Developer Productivity,400000,Medium,2025-09-05,Open,,,,,,,no path to this company in the network,
+2026-09,R1054,2026-09-06T15:44:01Z,C014,Kestrel Airlines,Chief Operating Officer,1200000,Low,2026-01-10,Routed,,,,,,,no path to this company in the network,
+2026-09,R1056,2026-09-06T15:44:01Z,,,VP Engineering,1200000,High,2025-08-25,Open,,,,,,,company unresolved,
+2026-09,R1061,2026-09-06T15:44:01Z,C030,Pemberton Retail,Head of Developer Productivity,1200000,Medium,2026-02-21,Stalled,,,,,,,no path to this company in the network,
+2026-09,R1063,2026-09-06T15:44:01Z,C035,Silverbrook Paper,Chief Operating Officer,80000,High,2025-11-06,Routed,,,,,,,capacity exhausted this cycle,"Owen Trask (direct, 0.04)"
+2026-09,R1064,2026-09-06T15:44:01Z,C039,Thistledown Energy,Chief Data Officer,1200000,Low,2025-08-14,Routed,,,,,,,no path to this company in the network,
+2026-09,R1080,2026-09-06T15:44:01Z,C042,Volney Industrial Systems,VP Engineering,750000,High,2026-01-14,Open,,,,,,,no path to this company in the network,
+2026-09,R1081,2026-09-06T15:44:01Z,C034,Sablefield Motors,SVP Digital,80000,Low,2025-09-30,Open,,,,,,,no path to this company in the network,
+2026-09,R1083,2026-09-06T15:44:01Z,C039,Thistledown Energy,VP Engineering,750000,Critical,2026-06-04,Open,,,,,,,no path to this company in the network,
+2026-09,R1087,2026-09-06T15:44:01Z,,,VP Data & Analytics,400000,Critical,2026-02-10,Routed,,,,,,,company unresolved,
+2026-09,R1092,2026-09-06T15:44:01Z,C031,Priorwood Chemicals,VP Enterprise Architecture,750000,Critical,2026-03-28,Stalled,,,,,,,"already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked)","Elena Duvall (direct, 0.11)"
+2026-09,R1096,2026-09-06T15:44:01Z,,,Head of Developer Productivity,750000,High,2026-03-25,Open,,,,,,,company unresolved,
+2026-09,R1099,2026-09-06T15:44:01Z,C001,Aldergate Telecom,VP Enterprise Architecture,400000,Critical,2026-01-09,Open,,,,,,,no path to this company in the network,
+2026-09,R1105,2026-09-06T15:44:01Z,C040,Thornbury Financial,Chief Information Officer,2000000,High,2025-09-14,Open,,,,,,,no path to this company in the network,
+2026-09,R1106,2026-09-06T15:44:01Z,,,Head of Developer Productivity,80000,Critical,2026-07-14,Stalled,,,,,,,company unresolved,
+2026-09,R1116,2026-09-06T15:44:01Z,C059,Marrow Point Airways,Chief Digital Officer,2000000,Medium,2026-04-24,Open,,,,,,,no path to this company in the network,
+2026-09,R1117,2026-09-06T15:44:01Z,C034,Sablefield Motors,SVP Digital,250000,Low,2026-04-11,Open,,,,,,,no path to this company in the network,
+2026-09,R1119,2026-09-06T15:44:01Z,,,VP Enterprise Architecture,150000,Critical,2026-06-10,Open,,,,,,,company unresolved,
+2026-09,R1126,2026-09-06T15:44:01Z,,,Chief Information Officer,750000,High,2026-03-09,Open,,,,,,,company unresolved,
+2026-09,R1127,2026-09-06T15:44:01Z,C017,Halcyon Grid,SVP Digital,750000,High,2026-05-26,Open,,,,,,,no path to this company in the network,
+2026-09,R1133,2026-09-06T15:44:01Z,C059,Marrow Point Airways,Chief Technology Officer,1200000,Low,2026-04-08,Open,,,,,,,no path to this company in the network,
+2026-09,R1134,2026-09-06T15:44:01Z,C024,Marlowe Freight Systems,Chief Technology Officer,1200000,High,2026-03-05,Open,,,,,,,"already introduced: Marcus Aldridge on 2026-05-19 (R1129, meeting booked)","Marcus Aldridge (direct, 0.16)"
+2026-09,R1138,2026-09-06T15:44:01Z,C034,Sablefield Motors,Chief Information Officer,80000,High,2026-04-06,Open,,,,,,,no path to this company in the network,
+2026-09,R1142,2026-09-06T15:44:01Z,C023,Marchford Clinics,Chief Technology Officer,2000000,Low,2025-09-26,Stalled,,,,,,,capacity exhausted this cycle,"Marcus Aldridge (direct, 0.08)"
+2026-09,R1143,2026-09-06T15:44:01Z,C016,Gravenhurst Motors,Chief Operating Officer,150000,Low,2026-03-04,Routed,,,,,,,"already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)","Curtis Hartigan (offer, 0.26)"
+2026-09,R1145,2026-09-06T15:44:01Z,,,SVP Digital,80000,High,2026-04-12,Stalled,,,,,,,company unresolved,
+2026-09,R1152,2026-09-06T15:44:01Z,C039,Thistledown Energy,Head of Developer Productivity,400000,High,2025-12-18,Routed,,,,,,,no path to this company in the network,
+2026-09,R1158,2026-09-06T15:44:01Z,C016,Gravenhurst Motors,Head of Platform Engineering,750000,Critical,2025-10-30,Open,,,,,,,"already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)","Curtis Hartigan (offer, 0.26)"
+2026-09,R1161,2026-09-06T15:44:01Z,C026,Northwind Freight,Chief Digital Officer,80000,Critical,2025-12-20,Routed,,,,,,,no path to this company in the network,
+2026-09,R1165,2026-09-06T15:44:01Z,C030,Pemberton Retail,Head of Platform Engineering,80000,Low,2026-04-30,Open,,,,,,,no path to this company in the network,
+2026-09,R1170,2026-09-06T15:44:01Z,C028,Osric Networks,SVP Digital,1200000,High,2025-09-10,Open,,,,,,,"already introduced: Elena Duvall on 2026-04-02 (R1163, meeting booked)","Priya Raghunathan (offer, 0.16)"
+2026-09,R1174,2026-09-06T15:44:01Z,C031,Priorwood Chemicals,Head of Platform Engineering,150000,Critical,2026-05-29,Open,,,,,,,"already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked)","Elena Duvall (direct, 0.11)"
+2026-09,R1177,2026-09-06T15:44:01Z,C017,Halcyon Grid,Chief Digital Officer,2000000,Medium,2026-01-10,Open,,,,,,,no path to this company in the network,
+2026-09,R1180,2026-09-06T15:44:01Z,C040,Thornbury Financial,Director of Software Engineering,2000000,High,2025-08-07,Routed,,,,,,,no path to this company in the network,
+2026-09,R1182,2026-09-06T15:44:01Z,C034,Sablefield Motors,VP Data & Analytics,2000000,Critical,2026-02-12,Open,,,,,,,no path to this company in the network,
+2026-09,R1183,2026-09-06T15:44:01Z,C010,Duncastle Holdings,SVP Digital,750000,High,2026-04-29,Open,,,,,,,capacity exhausted this cycle,"Priya Raghunathan (investor, 0.18)"
+2026-09,R1188,2026-09-06T15:44:01Z,C026,Northwind Freight,VP Engineering,80000,Low,2026-02-02,Stalled,,,,,,,no path to this company in the network,
+2026-09,R1189,2026-09-06T15:44:01Z,C059,Marrow Point Airways,Chief Information Officer,750000,Medium,2026-02-27,Open,,,,,,,no path to this company in the network,
+2026-09,R1191,2026-09-06T15:44:01Z,C042,Volney Industrial Systems,Chief Digital Officer,2000000,High,2025-12-15,Stalled,,,,,,,no path to this company in the network,
+2026-09,R1194,2026-09-06T15:44:01Z,C059,Marrow Point Airways,VP Data & Analytics,750000,High,2026-06-28,Open,,,,,,,no path to this company in the network,
+2026-09,R1195,2026-09-06T15:44:01Z,C043,Wrenfield Robotics,SVP Digital,1200000,Low,2026-04-27,Open,,,,,,,capacity exhausted this cycle,"Priya Raghunathan (direct, 0.13)"
+2026-09,R1200,2026-09-06T15:44:01Z,C029,Pelham Beverage,Director of Software Engineering,750000,Medium,2026-02-15,Open,,,,,,,"already introduced: Imani Mkhize on 2026-04-19 (R1176, meeting booked)","Imani Mkhize (offer, 0.26)"

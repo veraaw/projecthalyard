@@ -26,7 +26,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Margot Havercamp — ex-Priorwood Chemicals (2011-2017), now Director of Software Engineering at Priorwood Chemicals | investor_network.csv: Margot Havercamp prior_employer=Priorwood Chemicals (2011-2017); connections_beckett.csv: connection of Tomás Beckett since 2015-01-12 |
 | 0.029 | 0.187 | Marcus Aldridge (Advisor) | alumni | Margot Havercamp — ex-Priorwood Chemicals (2011-2017), now Director of Software Engineering at Priorwood Chemicals | investor_network.csv: Margot Havercamp prior_employer=Priorwood Chemicals (2011-2017); connections_aldridge.csv: connection of Marcus Aldridge since 2014-03-11 |
 
-strongest path, not where it went: Elena Duvall, direct 0.300, at capacity 3/3, holds R1092; R1174 routed to Tomás Beckett
+strongest path, not where it went: Elena Duvall, direct 0.300, at capacity 3/3; R1092 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked)), R1174 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked))
 
 ## 4. Chronology (56 events, 9 requests, as of 2026-09-06)
 
@@ -102,7 +102,6 @@ strongest path, not where it went: Elena Duvall, direct 0.300, at capacity 3/3, 
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask; send the ask (batch 2026-09 Tomás Beckett) | said yes on 2025-09-17 and never forwarded; said yes on 2026-03-28 and never forwarded; said yes on 2026-06-11 and never forwarded; allocated in golden_allocation.csv via direct path to Curtis Marchetti, score 0.048 | R1118, R1098, R1033, R1174 |
-| 2 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | send the ask (batch 2026-09 Elena Duvall) | allocated in golden_allocation.csv via direct path to Curtis Marchetti, score 0.108 | R1092 |
-| 3 | Bertrand Vandermolen | CRM owner (A1030) | check in on the account | last touch 2025-10-17, 324 days ago | — |
-| 4 | Yusuf Petrossian (383 days), Nadia Okonkwo (356 days), Curtis Hartigan (170 days), Sloane Fairweather (162 days) | 4 reps still waiting, longest first | tell them it's with Tomás Beckett / Elena Duvall | 4 reps raised this and have heard nothing; the oldest has been waiting 383 days | R1052, R1174, R1118, R1098, R1033, R1092 |
+| 1 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask | said yes on 2025-09-17 and never forwarded; said yes on 2026-03-28 and never forwarded; said yes on 2026-06-11 and never forwarded | R1118, R1098, R1033 |
+| 2 | Bertrand Vandermolen | CRM owner (A1030) | check in on the account | last touch 2025-10-17, 324 days ago | — |
+| 3 | Yusuf Petrossian (383 days), Nadia Okonkwo (356 days), Curtis Hartigan (170 days), Sloane Fairweather (162 days) | 4 reps still waiting, longest first | tell them it's with Tomás Beckett / Elena Duvall | 4 reps raised this and have heard nothing; the oldest has been waiting 383 days | R1052, R1174, R1118, R1098, R1033, R1092 |

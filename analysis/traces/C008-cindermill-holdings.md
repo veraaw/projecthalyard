@@ -20,7 +20,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.038 | 0.330 | Owen Trask (Investor) | direct | Bertrand Glückstein — Chief Data Officer | connections_trask.csv: Bertrand Glückstein, Chief Data Officer at Cindermill Mining, connected 2015-05-17 |
 | 0.021 | 0.187 | Owen Trask (Investor) | alumni | Bertrand Glückstein — ex-Cindermill Mining (2011-2016), now Chief Data Officer at Cindermill Mining | investor_network.csv: Bertrand Glückstein prior_employer=Cindermill Mining (2011-2016); connections_trask.csv: connection of Owen Trask since 2015-05-17 |
 
-strongest path, not where it went: Owen Trask, direct 0.426, at capacity 2/2; R1059 routed to Tomás Beckett, R1144 routed to Tomás Beckett, R1184 routed to Elena Duvall
+strongest path, not where it went: Owen Trask, direct 0.426, at capacity 2/2; R1059 routed to Elena Duvall, R1144 routed to Elena Duvall, R1184 routed to Elena Duvall
 
 ## 4. Chronology (17 events, 4 requests, as of 2026-09-06)
 
@@ -52,7 +52,6 @@ strongest path, not where it went: Owen Trask, direct 0.426, at capacity 2/2; R1
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | send the ask (batch 2026-09 Elena Duvall) | allocated in golden_allocation.csv via direct path to Bertrand Glückstein, score 0.119 | R1184 |
-| 2 | Tomás Beckett | VP Partnerships (internal connector) | send the ask (batch 2026-09 Tomás Beckett) | allocated in golden_allocation.csv via direct path to Bo Marchetti, score 0.061; allocated in golden_allocation.csv via direct path to Bo Marchetti, score 0.061 | R1059, R1144 |
-| 3 | Nadia Okonkwo | CRM owner (A1025) | check in on the account | last touch 2025-07-10, 423 days ago | — |
-| 4 | Curtis Hartigan (385 days), Bertrand Vandermolen (365 days), Yusuf Petrossian (75 days) | 3 reps still waiting, longest first | tell them it's with Elena Duvall / Owen Trask | 3 reps raised this and have heard nothing; the oldest has been waiting 385 days | R1144, R1059, R1184, R1015 |
+| 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | send the ask (batch 2026-09 Elena Duvall) | allocated in golden_allocation.csv via direct path to Bertrand Glückstein, score 0.119; allocated in golden_allocation.csv via direct path to Bertrand Glückstein, score 0.119; allocated in golden_allocation.csv via direct path to Bertrand Glückstein, score 0.119 | R1059, R1144, R1184 |
+| 2 | Nadia Okonkwo | CRM owner (A1025) | check in on the account | last touch 2025-07-10, 423 days ago | — |
+| 3 | Curtis Hartigan (385 days), Bertrand Vandermolen (365 days), Yusuf Petrossian (75 days) | 3 reps still waiting, longest first | tell them it's with Elena Duvall / Owen Trask | 3 reps raised this and have heard nothing; the oldest has been waiting 385 days | R1144, R1059, R1184, R1015 |

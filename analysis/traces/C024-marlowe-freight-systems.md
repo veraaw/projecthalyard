@@ -18,6 +18,8 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 |---|---|---|---|---|---|
 | 0.161 | 0.465 | Marcus Aldridge (Advisor) | direct | Marcus Merriweather — Chief Data Officer | connections_aldridge.csv: Marcus Merriweather, Chief Data Officer at Marlowe Freight Systems, connected 2021-01-07 |
 
+strongest path, not where it went: Marcus Aldridge, direct 0.465, at capacity 4/4; R1134 unrouted (already introduced: Marcus Aldridge on 2026-05-19 (R1129, meeting booked))
+
 ## 4. Chronology (19 events, 3 requests, as of 2026-09-06)
 
 ```
@@ -49,6 +51,5 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | send the ask (batch 2026-09 Marcus Aldridge) | allocated in golden_allocation.csv via direct path to Marcus Merriweather, score 0.161 | R1134 |
-| 2 | Imani Mkhize | CRM owner (A1047) | check in on the account | last touch 2026-02-02, 216 days ago | — |
-| 3 | Bertrand Vandermolen (185 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 185 days | R1134 |
+| 1 | Imani Mkhize | CRM owner (A1047) | check in on the account | last touch 2026-02-02, 216 days ago | — |
+| 2 | Bertrand Vandermolen (185 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 185 days | R1134 |

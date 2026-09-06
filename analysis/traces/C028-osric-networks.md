@@ -22,7 +22,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | exec team | slack_threads.jsonl R1167 2026-01-16 Priya Raghunathan: "I'll take this one — I've got a direct line to their exec team" |
 | 0.000 | 0.800 | Elena Duvall (Advisor) | offer | Chief Data Officer | slack_threads.jsonl R1163 2026-03-27 Elena Duvall: "I met their Chief Data Officer at a conference last spring, happy to reach out" |
 
-strongest path, not where it went: Priya Raghunathan, offer 0.800, at capacity 3/3, holds R1028; R1170 unrouted (capacity exhausted this cycle)
+strongest path, not where it went: Priya Raghunathan, offer 0.800, at capacity 3/3; R1028 unrouted (already introduced: Elena Duvall on 2026-04-02 (R1163, meeting booked)), R1170 unrouted (already introduced: Elena Duvall on 2026-04-02 (R1163, meeting booked))
 
 ## 4. Chronology (24 events, 4 requests, as of 2026-09-06)
 
@@ -61,6 +61,5 @@ strongest path, not where it went: Priya Raghunathan, offer 0.800, at capacity 3
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | send the ask (batch 2026-09 Priya Raghunathan) | allocated in golden_allocation.csv via offer path, score 0.164 | R1028 |
-| 2 | Nadia Okonkwo | CRM owner (A1044) | check in on the account | last touch 2026-04-19, 140 days ago | — |
-| 3 | Hana Nakashima (361 days), Yusuf Petrossian (50 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 361 days | R1170, R1028 |
+| 1 | Nadia Okonkwo | CRM owner (A1044) | check in on the account | last touch 2026-04-19, 140 days ago | — |
+| 2 | Hana Nakashima (361 days), Yusuf Petrossian (50 days) | 2 reps still waiting, longest first | tell them nobody has it | 2 reps raised this and have heard nothing; the oldest has been waiting 361 days | R1170, R1028 |

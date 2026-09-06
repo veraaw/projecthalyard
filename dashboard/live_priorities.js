@@ -14,6 +14,8 @@ const LP = (function () {
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
   // a section that starts closed: the h2 is the summary, the arrow toggles the body
   const fold = h2 => `<details class="fold"><summary><h2>${h2}</h2></summary>`;
+  // a fresh ask on a company whose last intro fizzled: the row says so, and names that intro
+  const retryTag = r => r.retry ? `<br><b class="warn">retry intro</b> <span class="foot">${esc(r.retry.note)}</span>` : '';
   const openFoldAt = root => {
     const s = location.hash.length > 1 && root.querySelector(`${location.hash} > details.fold`);
     if (s) s.open = true;
@@ -471,7 +473,7 @@ const LP = (function () {
   // rows of ranked() with tick-boxes (an ask sent); `rankKey` picks the number shown in the # column
   function priorityTable(rows, X, state, rankKey, withConnector) {
     return `<table class="top"><thead><tr><th></th><th>#</th><th>request</th><th>company</th><th>who wants</th>${withConnector ? '<th>ask</th>' : '<th>path</th>'}${FM_HEAD}</tr></thead><tbody>`
-      + rows.map(r => { const t = askTick(X, r); return `<tr class="${doneClass(state, t)}" data-rid="${esc(r.request_id)}">${tick(state, t)}<td class="order">${r[rankKey]}</td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.crm_stage)}</span></td><td>${co(r)}<br><span class="foot">${esc(r.target_title)}</span></td><td>${esc(r.requested_by)}${r.reps.length > 1 ? `<br><span class="foot">+${r.reps.length - 1} more waiting</span>` : ''}</td><td>${withConnector ? `<b>${esc(r.connector)}</b><br><span class="foot">${esc(r.path)}</span>` : `${esc(r.path)}${r.allocated ? '' : '<br><b class="warn">no slot this cycle</b>'}`}</td>${fmCells(r)}</tr>`; }).join('')
+      + rows.map(r => { const t = askTick(X, r); return `<tr class="${doneClass(state, t)}" data-rid="${esc(r.request_id)}">${tick(state, t)}<td class="order">${r[rankKey]}</td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.crm_stage)}</span></td><td>${co(r)}<br><span class="foot">${esc(r.target_title)}</span>${retryTag(r)}</td><td>${esc(r.requested_by)}${r.reps.length > 1 ? `<br><span class="foot">+${r.reps.length - 1} more waiting</span>` : ''}</td><td>${withConnector ? `<b>${esc(r.connector)}</b><br><span class="foot">${esc(r.path)}</span>` : `${esc(r.path)}${r.allocated ? '' : '<br><b class="warn">no slot this cycle</b>'}`}</td>${fmCells(r)}</tr>`; }).join('')
       + `</tbody></table>`;
   }
 
@@ -662,14 +664,14 @@ const LP = (function () {
       + tabs('asks', [...A.batches.map(b => ({ label: b.connector, n: b.size, b })), { label: 'Aggregate', n: A.allocated, cls: 'agg' }], ({ b }) => b
         ? `<p class="foot">${esc(b.connector_type)} · ${plural(b.size, 'request')} · ${esc(b.value_fmt)} · one consolidated ask, batch <code>${esc(b.batch_id)}</code> · <a href="${esc(D.batch_page)}#${esc(b.slug)}">the message</a></p>
         <table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>why this connector</th></tr></thead><tbody>`
-        + b.companies.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td class="foot">${esc(c.why)}</td></tr>`).join('')
+        + b.companies.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td class="foot">${esc(c.why)}</td></tr>`).join('')
         + `</tbody></table>`
         : `<p class="foot">everything going out this cycle · ${plural(A.allocated, 'request')} across ${plural(A.batches.length, 'connector')} · ${esc(A.value_fmt)} · biggest first; a company listed twice is being asked of two connectors</p>
         <table><thead><tr><th>company</th><th>connector</th><th>everyone wanted</th><th>who is waiting</th><th>path</th></tr></thead><tbody>`
-        + A.all.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span></td><td><b>${esc(c.connector)}</b><br><a class="foot" href="${esc(D.batch_page)}#${esc(c.slug)}">the message</a></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td></tr>`).join('')
+        + A.all.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td><b>${esc(c.connector)}</b><br><a class="foot" href="${esc(D.batch_page)}#${esc(c.slug)}">the message</a></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td></tr>`).join('')
         + `</tbody></table>`);
-    const EXCEPTION_TITLE = { 'no path to this company in the network': 'no direct path to this company in the network' };
-    const EXCEPTION_NOTE = { 'no path to this company in the network': 'Not routable this cycle (sourcing issue vs. allocation)' };
+    const EXCEPTION_TITLE = { 'no path to this company in the network': 'no direct path to this company in the network', 'already introduced': 'already introduced — extend the intro' };
+    const EXCEPTION_NOTE = { 'no path to this company in the network': 'Not routable this cycle (sourcing issue vs. allocation)', 'already introduced': 'Someone is already in the door; the rep introduced asks for the other names. Listed under Already introduced.' };
     sec.asks += `<details><summary>${plural(A.exception_count, 'exception')} not allocated this cycle: ${A.exceptions.map(e => `${e.count} ${esc((EXCEPTION_TITLE[e.reason] || e.reason).replace(' to this company in the network', ''))}`).join(', ')}</summary>`;
     const cover = sc => !sc ? '' : sc.connectors.length
       ? sc.connectors.map(c => `<b>${esc(c.connector)}</b> <span class="foot">${c.asked ? `asked ${esc(c.asked)}` : 'never asked'}</span>`).join('<br>')
@@ -677,10 +679,23 @@ const LP = (function () {
     for (const e of A.exceptions) {
       const withStage = !e.reason.startsWith('company'), noPath = e.reason.startsWith('no path');
       sec.asks += `<h3>${esc(EXCEPTION_TITLE[e.reason] || e.reason)} <span class="foot">${e.count} · ${esc(e.value_fmt)}</span></h3>${EXCEPTION_NOTE[e.reason] ? `<p class="foot">${esc(EXCEPTION_NOTE[e.reason])}</p>` : ''}<table><thead><tr><th>request</th><th>company</th>${withStage ? '<th>CRM stage</th>' : ''}<th>wanted</th><th>who</th><th>value</th><th>urgency</th><th>status</th>${noPath ? '<th>who covers this sector</th>' : ''}<th>${e.reason.startsWith('capacity') ? 'best path (no slot)' : e.reason.startsWith('company') ? 'as written' : 'note'}</th></tr></thead><tbody>`
-        + e.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}</td><td>${co(r)}</td>${withStage ? `<td>${esc(r.crm_stage)}</td>` : ''}<td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td><td>${esc(r.value_fmt)}</td><td>${esc(r.urgency)}</td><td>${esc(r.status)}</td>${noPath ? `<td>${cover(r.sector_cover)}</td>` : ''}<td class="foot">${esc(r.best_path || (e.reason.startsWith('company') ? r.company_as_written || '(nothing parseable)' : 'nobody in the network reaches them'))}</td></tr>`).join('')
+        + e.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}</td><td>${co(r)}</td>${withStage ? `<td>${esc(r.crm_stage)}</td>` : ''}<td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td><td>${esc(r.value_fmt)}</td><td>${esc(r.urgency)}</td><td>${esc(r.status)}</td>${noPath ? `<td>${cover(r.sector_cover)}</td>` : ''}<td class="foot">${esc(r.detail || r.best_path || (e.reason.startsWith('company') ? r.company_as_written || '(nothing parseable)' : 'nobody in the network reaches them'))}</td></tr>`).join('')
         + `</tbody></table>`;
     }
     sec.asks += `</details></details></section>`;
+
+    // already in the door: the allocator parked these rather than spend a slot
+    const I = D.introduced;
+    sec.introduced = `<section id="introduced">${fold(`Already introduced — extend the intro <span class="foot">${plural(I.requests, 'request')} on ${plural(I.count, 'company')}, ${esc(I.value_fmt)} — an intro already landed there (meeting booked, or sent within ${I.days} days), so no connector slot is spent</span>`)}
+      <p class="lede">The action is with the rep who was introduced, not a connector: they ask the contact they already have for the other names. An intro with no meeting after ${I.days} days counts as fizzled and the company goes back into the queue, flagged <b class="warn">retry intro</b>.</p>`
+      + (I.rows.length ? `<table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>the intro that landed</th><th>next step</th><th>fallback path</th></tr></thead><tbody>`
+        + I.rows.map(r => `<tr><td>${co(r)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.urgency)} · ${esc(r.crm_stage)} · ${r.request_ids.map(esc).join(', ')}</span></td><td>${r.wanted.map(esc).join('<br>')}</td><td>${r.waiting.map(esc).join('<br>')}</td><td><b>${esc(r.intro.connector)}</b> → ${esc(r.intro.requested_by || 'unattributed')}<br><span class="foot">${esc(r.intro.intro_date)} · ${esc(r.intro.request_id)} · ${esc(r.intro.target_title)}${r.intro.meeting_booked ? ' · <b>meeting booked</b>' : ` · ${r.intro.days} days ago, no meeting yet`}</span></td><td><b>${esc(r.owner || 'nobody')}</b><br><span class="foot">${esc(r.action)}</span></td><td class="foot">${esc(r.best_path || 'none in the network')}</td></tr>`).join('')
+        + `</tbody></table>` : `<p class="empty">nothing parked behind a live intro this cycle</p>`)
+      + (I.retries.length ? `<h3>Back in the queue as a retry <span class="foot">${plural(I.retry_requests, 'request')} on ${plural(I.retries.length, 'company')} whose last intro fizzled</span></h3>
+        <table><thead><tr><th>company</th><th>everyone wanted</th><th>the intro that fizzled</th><th>asked again this cycle</th></tr></thead><tbody>`
+        + I.retries.map(r => `<tr><td>${co(r)}<br><span class="foot">${esc(r.value_fmt)} · ${r.request_ids.map(esc).join(', ')}</span></td><td>${r.wanted.map(esc).join('<br>')}</td><td>${esc(r.retry.connector)} → ${esc(r.retry.requested_by || 'unattributed')}<br><span class="foot">${esc(r.retry.intro_date)} · ${esc(r.retry.request_id)} · ${r.retry.days} days ago, no meeting</span></td><td>${r.connectors.map(c => `<b>${esc(c)}</b>`).join(', ')}<br><span class="foot">${r.connectors.includes(r.retry.connector) ? 'same connector: ask for a second name or a nudge on the first' : 'different connector this time'}</span></td></tr>`).join('')
+        + `</tbody></table>` : '')
+      + `</details></section>`;
 
     // who is carrying it
     sec.connectors = `<section id="connectors">${fold(`Roster Connectors <span class="foot">one panel each: queue this cycle, capacity used against stated capacity, delivery rate, what they are already sitting on. The coloured tabs at the top open each connector's own page</span>`)}`
@@ -692,7 +707,7 @@ const LP = (function () {
           <div class="kpi"><div class="v">${c.queue.length}</div><div class="l">in this cycle's ask</div><div class="s">${c.queue.length ? 'one consolidated batch' : 'nothing allocated'}</div></div></div>`
         + composeBlock(c.batch_ask, `ask-${c.slug}`, `tick <i>ask sent</i> under <a href="#top">Top priorities</a> or on <a href="${esc(c.page)}">their page</a> once it has gone out`)
         + `<h3>queue this cycle</h3>` + (c.queue.length ? `<table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>for</th><th>path</th><th class="num">score</th><th>value</th><th>urgency</th></tr></thead><tbody>`
-          + c.queue.map(q => `<tr><td class="rid">${esc(q.request_id)}</td><td>${co(q)}</td><td>${esc(q.target_title)}</td><td>${esc(q.requested_by)}</td><td>${esc(q.path_type)}${q.contact ? ` <span class="foot">via ${esc(q.contact)}</span>` : ''}</td><td class="num">${esc(q.route_score)}</td><td>${esc(q.value_fmt)}</td><td>${esc(q.urgency)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing allocated to ${esc(c.connector)} this cycle</p>`)
+          + c.queue.map(q => `<tr><td class="rid">${esc(q.request_id)}</td><td>${co(q)}${retryTag(q)}</td><td>${esc(q.target_title)}</td><td>${esc(q.requested_by)}</td><td>${esc(q.path_type)}${q.contact ? ` <span class="foot">via ${esc(q.contact)}</span>` : ''}</td><td class="num">${esc(q.route_score)}</td><td>${esc(q.value_fmt)}</td><td>${esc(q.urgency)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing allocated to ${esc(c.connector)} this cycle</p>`)
         + `<h3>already sitting on</h3>` + sittingTable(c, X, state))
       + `</details></section>`;
 

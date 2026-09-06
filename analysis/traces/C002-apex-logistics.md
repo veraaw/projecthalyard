@@ -19,7 +19,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.133 | 0.383 | Marcus Aldridge (Advisor) | direct | Curtis Prendergast — SVP Digital | connections_aldridge.csv: Curtis Prendergast, SVP Digital at Apex Logistics, connected 2019-08-28 |
 | 0.000 | 0.459 | Elena Duvall (Advisor) | direct | Curtis Prendergast — SVP Digital | connections_duvall.csv: Curtis Prendergast, SVP Digital at Apex Logistics, connected 2022-02-04 |
 
-strongest path, not where it went: Elena Duvall, direct 0.459, at capacity 3/3, Logistics is outside their focus (route score 0.000); R1024 routed to Marcus Aldridge, R1041 unrouted (capacity exhausted this cycle)
+strongest path, not where it went: Elena Duvall, direct 0.459, at capacity 3/3, Logistics is outside their focus (route score 0.000); R1024 unrouted (already introduced: Elena Duvall on 2026-06-10 (R1038, meeting booked)), R1041 unrouted (already introduced: Elena Duvall on 2026-06-10 (R1038, meeting booked))
 
 ## 4. Chronology (25 events, 4 requests, as of 2026-09-06)
 
@@ -60,6 +60,5 @@ strongest path, not where it went: Elena Duvall, direct 0.459, at capacity 3/3, 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | nudge, don't re-ask | said yes on 2025-08-24 and never forwarded | R1197 |
-| 2 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | send the ask (batch 2026-09 Marcus Aldridge) | allocated in golden_allocation.csv via direct path to Curtis Prendergast, score 0.133 | R1024 |
-| 3 | Rafael Salcedo | CRM owner (A1001) | check in on the account | last touch 2026-04-03, 156 days ago | — |
-| 4 | Imani Mkhize (394 days), Hana Nakashima (278 days), Curtis Hartigan (64 days) | 3 reps still waiting, longest first | tell them it's with Elena Duvall / Marcus Aldridge | 3 reps raised this and have heard nothing; the oldest has been waiting 394 days | R1197, R1041, R1024 |
+| 2 | Rafael Salcedo | CRM owner (A1001) | check in on the account | last touch 2026-04-03, 156 days ago | — |
+| 3 | Imani Mkhize (394 days), Hana Nakashima (278 days), Curtis Hartigan (64 days) | 3 reps still waiting, longest first | tell them it's with Elena Duvall / Marcus Aldridge | 3 reps raised this and have heard nothing; the oldest has been waiting 394 days | R1197, R1041, R1024 |

@@ -31,6 +31,8 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.000 | 0.332 | Elena Duvall (Advisor) | direct | Priya Fairweather — Head of Platform Engineering | connections_duvall.csv: Priya Fairweather, Head of Platform Engineering at Gravenhurst Motors, connected 2018-07-13 |
 | 0.000 | 0.218 | Elena Duvall (Advisor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_duvall.csv: connection of Elena Duvall since 2018-07-13 |
 
+strongest path, not where it went: Curtis Hartigan, offer 0.800, 0/2 used this cycle; R1143 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)), R1158 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked))
+
 ## 4. Chronology (56 events, 9 requests, as of 2026-09-06)
 
 ```
@@ -107,6 +109,5 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 |---|---|---|---|---|---|
 | 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | take them up on it | offered on 2026-02-20 ("their Head of Platform reports to someone I've known for a decade, leave it with me") and was never asked — free, they already said yes | R1115 |
 | 2 | Hana Nakashima | off-roster connector | nudge, don't re-ask | said yes on 2025-10-23 and never forwarded | R1108 |
-| 3 | Curtis Hartigan | AE, Financial Services | send the ask (batch 2026-09 Curtis Hartigan) | allocated in golden_allocation.csv via offer path, score 0.262; allocated in golden_allocation.csv via offer path, score 0.262 | R1143, R1158 |
-| 4 | Sloane Fairweather | CRM owner (A1041) | check in on the account | last touch 2026-01-07, 242 days ago | — |
-| 5 | Yusuf Petrossian (332 days), Rafael Salcedo (311 days), Curtis Hartigan (248 days), Sloane Fairweather (186 days) | 4 reps still waiting, longest first | tell them it's with Hana Nakashima / Priya Raghunathan | 4 reps raised this and have heard nothing; the oldest has been waiting 332 days | R1108, R1158, R1058, R1115, R1143 |
+| 3 | Sloane Fairweather | CRM owner (A1041) | check in on the account | last touch 2026-01-07, 242 days ago | — |
+| 4 | Yusuf Petrossian (332 days), Rafael Salcedo (311 days), Curtis Hartigan (248 days), Sloane Fairweather (186 days) | 4 reps still waiting, longest first | tell them it's with Hana Nakashima / Priya Raghunathan | 4 reps raised this and have heard nothing; the oldest has been waiting 332 days | R1108, R1158, R1058, R1115, R1143 |

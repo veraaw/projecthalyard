@@ -31,7 +31,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.021 | 0.187 | Owen Trask (Investor) | alumni | Ingrid Marchetti — ex-Harrowgate Health (2015-2018), now Head of Developer Productivity at Harrowgate Health | investor_network.csv: Ingrid Marchetti prior_employer=Harrowgate Health (2015-2018); connections_trask.csv: connection of Owen Trask since 2016-01-02 |
 | 0.000 | 0.800 | Elena Duvall (Advisor) | offer | Head of Platform | slack_threads.jsonl R1136 2026-03-16 Elena Duvall: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
 
-strongest path, not where it went: Elena Duvall, offer 0.800, at capacity 3/3, Healthcare is outside their focus (route score 0.000); R1136 routed to Dana Whitfield, R1153 routed to Tomás Beckett
+strongest path, not where it went: Elena Duvall, offer 0.800, at capacity 3/3, Healthcare is outside their focus (route score 0.000); R1136 routed to Tomás Beckett, R1153 routed to Tomás Beckett
 
 ## 4. Chronology (51 events, 9 requests, as of 2026-09-06)
 
@@ -103,7 +103,6 @@ strongest path, not where it went: Elena Duvall, offer 0.800, at capacity 3/3, H
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | take them up on it | offered on 2026-03-16 ("their Head of Platform reports to someone I've known for a decade, leave it with me") and was never asked — free, they already said yes | R1136 |
-| 2 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask; send the ask (batch 2026-09 Tomás Beckett) | said yes on 2026-05-09 and never forwarded; said yes on 2026-07-03 and never forwarded; allocated in golden_allocation.csv via direct path to Marcus Salcedo, score 0.079 | R1157, R1057, R1153 |
-| 3 | Dana Whitfield | Chief Revenue Officer (internal connector) | send the ask (batch 2026-09 Dana Whitfield) | allocated in golden_allocation.csv via direct path to Amara Thackeray, score 0.064 | R1136 |
-| 4 | Imani Mkhize | CRM owner (A1050) | check in on the account | last touch 2026-05-14, 115 days ago | — |
-| 5 | Imani Mkhize (356 days), Rafael Salcedo (335 days), Sloane Fairweather (310 days), Nadia Okonkwo (281 days), Hana Nakashima (263 days), Yusuf Petrossian (131 days), Curtis Hartigan (82 days) | 7 reps still waiting, longest first | tell them it's with Tomás Beckett | 7 reps raised this and have heard nothing; the oldest has been waiting 356 days | R1137, R1173, R1072, R1153, R1136, R1090, R1157, R1057 |
+| 2 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask; send the ask (batch 2026-09 Tomás Beckett) | said yes on 2026-05-09 and never forwarded; said yes on 2026-07-03 and never forwarded; allocated in golden_allocation.csv via direct path to Marcus Salcedo, score 0.079; allocated in golden_allocation.csv via direct path to Marcus Salcedo, score 0.079 | R1157, R1057, R1136, R1153 |
+| 3 | Imani Mkhize | CRM owner (A1050) | check in on the account | last touch 2026-05-14, 115 days ago | — |
+| 4 | Imani Mkhize (356 days), Rafael Salcedo (335 days), Sloane Fairweather (310 days), Nadia Okonkwo (281 days), Hana Nakashima (263 days), Yusuf Petrossian (131 days), Curtis Hartigan (82 days) | 7 reps still waiting, longest first | tell them it's with Tomás Beckett | 7 reps raised this and have heard nothing; the oldest has been waiting 356 days | R1137, R1173, R1072, R1153, R1136, R1090, R1157, R1057 |

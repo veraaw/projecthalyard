@@ -164,6 +164,37 @@ class ComposerTest(unittest.TestCase):
             positions = [m["message"].index(c["company_name"]) for c in m["companies"]]
             self.assertEqual(positions, sorted(positions), f"{m['connector']}: blocks out of order in the text")
 
+    def test_retry_line_names_the_intro_that_fizzled(self):
+        """A company the allocator routed afresh after an earlier intro went nowhere
+        carries one retry line under its block header: who introduced whom, on
+        what date; 'you' when the connector being asked sent that intro."""
+        outcomes = bg.read_csv(batch_ask.OUTCOMES)
+        intros = batch_ask.prior_intros(outcomes, self.requests)
+        hits = own = 0
+        for m in self.records:
+            for c in m["companies"]:
+                intro = intros.get(c["company_id"])
+                expect = intro if intro and intro["date"][:7] < m["cycle"] else None
+                self.assertEqual(c["retry"], expect, c["company_name"])
+                lines = block(m["message"], c["company_name"])
+                retry_lines = [ln for ln in lines if ln.startswith("  retry:")]
+                if not expect:
+                    self.assertEqual(retry_lines, [], c["company_name"])
+                    continue
+                hits += 1
+                self.assertEqual(lines[1], c["retry_line"], "the retry line sits right under the company header")
+                self.assertEqual(len(retry_lines), 1)
+                self.assertIn(expect["date"], lines[1])
+                self.assertIn(expect["requester"], lines[1])
+                if expect["connector"] == m["connector"]:
+                    own += 1
+                    self.assertIn("you introduced", lines[1])
+                    self.assertNotIn(m["connector"], lines[1])
+                else:
+                    self.assertIn(expect["connector"], lines[1])
+        self.assertGreater(hits, 0, "the golden allocation retries at least one fizzled intro")
+        self.assertGreater(own, 0, "at least one retry goes back to the connector who sent the intro")
+
     def test_templates_live_in_config_and_no_names_in_source(self):
         self.assertTrue(batch_ask.TEMPLATES.is_relative_to(ROOT / "config"))
         src = (ROOT / "dashboard" / "batch_ask.py").read_text(encoding="utf-8")
