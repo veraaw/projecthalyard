@@ -49,12 +49,3 @@ strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacit
 
 !! 2026-05-16  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1024  [113 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Dana Whitfield | Chief Revenue Officer (internal connector) | send the ask (batch 2026-09 Dana Whitfield) | allocated in golden_allocation.csv via direct path to Freya Havercamp, score 0.128 | R1065 |
-| 2 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | send the ask (batch 2026-09 Priya Raghunathan) | allocated in golden_allocation.csv via investor path to CEO / exec team, score 0.184; allocated in golden_allocation.csv via investor path to CEO / exec team, score 0.184 | R1084, R1159 |
-| 3 | Nadia Okonkwo | CRM owner (A1024) | check in on the account | last touch 2026-05-16, 113 days ago | — |
-| 4 | Yusuf Petrossian (300 days), Bertrand Vandermolen (269 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 300 days | R1124, R1159, R1065, R1084 |

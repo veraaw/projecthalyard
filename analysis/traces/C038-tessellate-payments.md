@@ -31,11 +31,3 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 !! 2025-08-01  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1037  [401 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Owen Trask | Angel investor / advisor (investor connector) | nudge, don't re-ask | said yes on 2025-12-18 and never forwarded | R1026 |
-| 2 | Nadia Okonkwo | CRM owner (A1037) | check in on the account | last touch 2025-08-01, 401 days ago | — |
-| 3 | Imani Mkhize (268 days) | 1 rep still waiting, longest first | tell them it's with Owen Trask | 1 rep raised this and has heard nothing; the oldest has been waiting 268 days | R1026 |

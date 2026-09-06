@@ -41,10 +41,3 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 !! 2026-04-21  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1034  [138 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Bertrand Vandermolen | CRM owner (A1034) | check in on the account | last touch 2026-04-21, 138 days ago | — |
-| 2 | Hana Nakashima (320 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 320 days | R1172 |

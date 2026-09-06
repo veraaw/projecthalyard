@@ -33,11 +33,3 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 !! 2026-01-31  crm_accounts.csv     Hana Nakashima       last CRM touch on A1035  [218 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | nudge, don't re-ask | said yes on 2025-11-03 and never forwarded | R1187 |
-| 2 | Hana Nakashima | CRM owner (A1035) | check in on the account | last touch 2026-01-31, 218 days ago | — |
-| 3 | Bertrand Vandermolen (312 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 312 days | R1187 |

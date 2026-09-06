@@ -30,9 +30,3 @@ nobody in the network reaches this company
    2026-07-22  slack_threads.jsonl  Sloane Fairweather   R1151 slack: "is this the same as the one from last month?"
    2026-07-24  slack_threads.jsonl  Curtis Hartigan      R1151 slack: "is this the same as the one from last month?"
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Yusuf Petrossian (171 days) | 1 rep still waiting, longest first | tell them nobody has it | 1 rep raised this and has heard nothing; the oldest has been waiting 171 days | R1043 |

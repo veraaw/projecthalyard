@@ -1264,7 +1264,7 @@ trace_page = f"""<!doctype html>
 {sidebar(title=f'Companies <span class="foot" id="trace-count"></span>', body=trace_sidebar())}
 <main>
 <section id="trace">
-  <p class="lede">Pick a company on the left, or search by name, alias, company id or CRM account id. Five sections follow: the header, where the files disagree (left out when they agree), who can reach them by strength, every event from <code>intro_requests.csv</code>, <code>slack_threads.jsonl</code>, <code>intro_outcomes.csv</code> and <code>crm_accounts.csv</code> oldest first, and who needs to do what next, cheapest action first. The same traces are written to <code>analysis/traces/</code> by <code>python3 build.py trace</code>.</p>
+  <p class="lede">Pick a company on the left, or search by name, alias, company id or CRM account id. Four sections follow: the header, where the files disagree (left out when they agree), who can reach them by strength, and every event from <code>intro_requests.csv</code>, <code>slack_threads.jsonl</code>, <code>intro_outcomes.csv</code> and <code>crm_accounts.csv</code> oldest first. The same traces are written to <code>analysis/traces/</code> by <code>python3 build.py trace</code>.</p>
   {trace_fragment()}
 </section>
 <p class="foot">Regenerate with <code>python3 build.py dashboard</code>.</p>

@@ -41,10 +41,3 @@ strongest path, not where it went: Priya Raghunathan, direct 0.285, at capacity 
 
 !! 2025-10-15  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1036  [326 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Rafael Salcedo | CRM owner (A1036) | check in on the account | last touch 2025-10-15, 326 days ago | — |
-| 2 | Nadia Okonkwo (132 days), Yusuf Petrossian (98 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 132 days | R1195, R1018 |

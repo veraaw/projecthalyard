@@ -26,10 +26,3 @@ nobody in the network reaches this company
 
 !! 2026-03-14  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1008  [176 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Bertrand Vandermolen | CRM owner (A1008) | check in on the account | last touch 2026-03-14, 176 days ago | — |
-| 2 | Nadia Okonkwo (239 days), Imani Mkhize (103 days), Rafael Salcedo (97 days) | 3 reps still waiting, longest first | tell them nobody has it | 3 reps raised this and have heard nothing; the oldest has been waiting 239 days | R1177, R1127, R1007 |

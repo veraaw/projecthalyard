@@ -63,10 +63,3 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 !! 2026-04-16  crm_accounts.csv     Hana Nakashima       last CRM touch on A1009  [143 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Hana Nakashima | CRM owner (A1009) | check in on the account | last touch 2026-04-16, 143 days ago | — |
-| 2 | Imani Mkhize (284 days), Sloane Fairweather (201 days), Hana Nakashima (200 days) | 3 reps still waiting, longest first | tell them it's with Priya Raghunathan / Marcus Aldridge | 3 reps raised this and have heard nothing; the oldest has been waiting 284 days | R1031, R1086, R1040, R1089 |
