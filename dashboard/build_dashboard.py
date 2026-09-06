@@ -286,6 +286,73 @@ connector_table = table(["Connector", "Type", "Capacity/mo", "Asked", "Responded
 target_table = table(["Looked up in", "Distinct target people found"],
                      [(label, n) for label, n in targets["hits"]])
 
+# --------------------------------------------------------------------------- requesters
+requesters = data_cuts.requester_cut(cuts)
+req_rows = requesters["requesters"]
+REQ_X = [f'{b["name"]}<br><span style="font-size:11px;color:{theme.MUTE}">{b["kind"]}</span>' for b in req_rows]
+
+
+def requester_chart(traces, div_id, ytitle, tickformat=None, barmode="group"):
+    """One bar per requester, in the order of the table (most asks first)."""
+    fig = go.Figure()
+    for t in traces:
+        fig.add_bar(x=REQ_X, **t)
+    # headroom so the labels printed above the bars clear the legend
+    tops = [sum(ys) for ys in zip(*(t["y"] for t in traces))] if barmode == "stack" else [y for t in traces for y in t["y"]]
+    fig.update_layout(barmode=barmode, height=360, autosize=True, margin=dict(l=10, r=10, t=30, b=10),
+                      showlegend=len(traces) > 1, **theme.PLOTLY_LAYOUT)
+    fig.update_layout(legend=dict(orientation="h", y=1.14, x=0),
+                      xaxis=dict(tickfont=dict(size=12), tickangle=-40, fixedrange=True),
+                      yaxis=dict(title=ytitle, tickformat=tickformat, range=[0, max(tops) * 1.18], fixedrange=True))
+    return plot(fig, div_id)
+
+
+req_asks_div = requester_chart(
+    [dict(y=[b["requests"] for b in req_rows], marker_color=theme.ACCENT, text=[b["requests"] for b in req_rows],
+          textposition="outside", customdata=[b["routed"] for b in req_rows],
+          hovertemplate="%{y} requests<br>%{customdata} routed to a connector<extra></extra>")],
+    "req-asks", "requests")
+req_value_div = requester_chart(
+    [dict(y=[b["crm_value"] for b in req_rows], marker_color=theme.ACCENT, text=[usd(b["crm_value"]) for b in req_rows],
+          textposition="outside", customdata=[b["crm_accounts"] for b in req_rows],
+          hovertemplate="$%{y:,.0f} ARR potential<br>across %{customdata} CRM accounts<extra></extra>")],
+    "req-value", "CRM ARR potential", tickformat="$~s")
+req_accounts_div = requester_chart(
+    [dict(y=[b["crm_accounts"] for b in req_rows], name="with a CRM account", marker_color=theme.ACCENT,
+          hovertemplate="%{y} accounts in the CRM<extra></extra>"),
+     dict(y=[b["accounts"] - b["crm_accounts"] for b in req_rows], name="no CRM record", marker_color=theme.NEUTRAL,
+          text=[b["accounts"] for b in req_rows], textposition="outside", cliponaxis=False,
+          hovertemplate="%{y} companies with no CRM record<extra></extra>")],
+    "req-accounts", "distinct companies", barmode="stack")
+req_rate_div = requester_chart(
+    [dict(y=[b["intro_rate"] for b in req_rows], marker_color=theme.ACCENT, text=[f'{b["intro_rate"]:.0%}' for b in req_rows],
+          textposition="outside", customdata=[[b["intros"], b["requests"]] for b in req_rows],
+          hovertemplate="%{customdata[0]} intros / %{customdata[1]} requests<extra></extra>")],
+    "req-rate", "intros / requests", tickformat=".0%")
+req_urgency_div = requester_chart(
+    [dict(y=[b["critical_share"] for b in req_rows], name="Critical", marker_color=theme.WARN,
+          text=[f'{b["critical_share"]:.0%}' for b in req_rows], textposition="outside",
+          customdata=[[b["critical"], b["requests"]] for b in req_rows],
+          hovertemplate="Critical on %{customdata[0]} of %{customdata[1]} requests<extra></extra>"),
+     dict(y=[b["critical_high_share"] for b in req_rows], name="Critical + High", marker_color=theme.NEUTRAL_DARK,
+          text=[f'{b["critical_high_share"]:.0%}' for b in req_rows], textposition="outside",
+          customdata=[[b["critical_high"], b["requests"]] for b in req_rows],
+          hovertemplate="Critical or High on %{customdata[0]} of %{customdata[1]} requests<extra></extra>")],
+    "req-urgency", "share of own requests", tickformat=".0%")
+requester_table = table(["Requester", "Role", "Asks", "Routed", "Intros", "Intro rate", "Accounts", "In CRM",
+                         "CRM ARR potential", "Critical", "Critical + High"],
+                        [(b["name"], b["role"], b["requests"], b["routed"], b["intros"], f'{b["intro_rate"]:.0%}',
+                          b["accounts"], b["crm_accounts"], usd(b["crm_value"]),
+                          f'{b["critical"]} ({b["critical_share"]:.0%})', f'{b["critical_high"]} ({b["critical_high_share"]:.0%})')
+                         for b in req_rows])
+req_top = req_rows[0]
+req_best_rate = max(req_rows, key=lambda b: b["intro_rate"])
+req_worst_rate = min(req_rows, key=lambda b: b["intro_rate"])
+req_most_critical = max(req_rows, key=lambda b: b["critical_share"])
+req_least_critical = min(req_rows, key=lambda b: b["critical_share"])
+req_most_value = max(req_rows, key=lambda b: b["crm_value"])
+req_unresolved = sum(b["unresolved"] for b in req_rows)
+
 weeks = timing["weekly"]
 roll = []
 for i in range(len(weeks)):
@@ -1102,7 +1169,7 @@ live_page = f"""{head("live data dashboard")}
   <p>The same {len(requests)} requests after entity resolution · source: <code>golden/</code>, rebuilt from <code>dataset/</code> by <code>python3 build.py</code> · {built}</p>
 </header>
 <div class="layout">
-{sidebar([("#funnel", "Funnel", ""), ("#accounts", "Accounts", ""), ("#connectors", "Connectors", ""), ("#cycles", "Intros by cycle", "")])}
+{sidebar([("#funnel", "Funnel", ""), ("#accounts", "Accounts", ""), ("#requesters", "Requesters", ""), ("#connectors", "Connectors", ""), ("#cycles", "Intros by cycle", "")])}
 <main>
 
 <p class="lede part-lede">Computed from <code>golden/</code> (<code>golden_requests.csv</code>, <code>golden_companies.csv</code>, <code>supply_reach.csv</code>) after entity resolution, so companies are counted by identity rather than by how the name was typed.</p>
@@ -1196,6 +1263,53 @@ live_page = f"""{head("live data dashboard")}
   }});
 }})();
 </script>
+
+<section id="requesters">
+  <h2>Requesters: the SDR and the seven AEs</h2>
+  <p class="lede">Every request on file grouped by <code>requested_by</code>, in order of asks. Accounts are the distinct companies behind a requester's asks after entity resolution, so asking twice for the same company counts one account, and its CRM <code>arr_potential_usd</code> counts once. Intro rate is intros sent over every request filed, routed or not. Urgency is what the requester declared in <code>urgency</code>.</p>
+  <div class="kpis">
+    {kpi(len(req_rows), "requesters", f"{sum(1 for b in req_rows if b['kind'] == 'SDR')} SDR · {sum(1 for b in req_rows if b['kind'] == 'AE')} AEs")}
+    {kpi(f"{req_top['requests']}", f"asks from {req_top['name']}", f"{pct(req_top['requests'], requesters['requests'])} of {requesters['requests']} requests, the most of anyone")}
+    {kpi(f"{requesters['intro_rate']:.0%}", "intro rate across every requester", f"{requesters['intros']} intros / {requesters['requests']} requests · {req_best_rate['intro_rate']:.0%} ({req_best_rate['name']}) to {req_worst_rate['intro_rate']:.0%} ({req_worst_rate['name']})")}
+    {kpi(f"{requesters['critical_share']:.0%}", "of requests declared Critical", f"{requesters['critical_high_share']:.0%} Critical or High")}
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Cumulative asks per requester</h3>
+      {req_asks_div}
+    </div>
+    <div>
+      <h3>CRM value per requester</h3>
+      {req_value_div}
+      <p class="foot">Sum of <code>arr_potential_usd</code> over the distinct CRM accounts each requester asked for; companies with no CRM record contribute nothing.</p>
+    </div>
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Accounts per requester</h3>
+      {req_accounts_div}
+    </div>
+    <div>
+      <h3>Intro rate per requester</h3>
+      {req_rate_div}
+    </div>
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>How often they declare Critical, and Critical or High</h3>
+      {req_urgency_div}
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      <div class="finding"><b>Who files the asks.</b>{req_top['name']} ({req_top['kind']}) files the most at {req_top['requests']}, {req_rows[-1]['name']} the fewest at {req_rows[-1]['requests']}; {req_rows[0]['requests'] - req_rows[-1]['requests']} requests separate the top from the bottom of {len(req_rows)} people.</div>
+      <div class="finding"><b>Where the CRM value sits.</b>{req_most_value['name']} carries the most at {usd(req_most_value['crm_value'])} across {req_most_value['crm_accounts']} accounts. The bars overlap: {requesters['shared_accounts']} of the {requesters['accounts']} companies requested were asked for by more than one person, so the same account's ARR appears under each of them; de-duplicated, {usd(requesters['crm_value'])} sits behind the {requesters['crm_accounts']} companies with a CRM account. {req_unresolved} requests resolve to no company and count toward asks only.</div>
+      <div class="finding warn"><b>Intro rate ranges from {req_worst_rate['intro_rate']:.0%} to {req_best_rate['intro_rate']:.0%}.</b>{req_best_rate['name']} lands {req_best_rate['intros']} intros from {req_best_rate['requests']} requests; {req_worst_rate['name']} lands {req_worst_rate['intros']} from {req_worst_rate['requests']}. The whole floor averages {requesters['intro_rate']:.0%}.</div>
+      <div class="finding warn"><b>Critical means different things to different people.</b>{req_most_critical['name']} marks {req_most_critical['critical_share']:.0%} of their asks Critical, {req_least_critical['name']} {req_least_critical['critical_share']:.0%}. Add High and {requesters['critical_high_share']:.0%} of all requests are in the top two tiers, so urgency barely separates one ask from the next.</div>
+    </div>
+  </div>
+  <h3>Per requester</h3>
+  {requester_table}
+</section>
 
 <section id="connectors">
   <h2>Connectors: the six on the roster</h2>

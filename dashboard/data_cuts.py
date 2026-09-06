@@ -398,11 +398,62 @@ def outcome_delta_cut(data):
                                     if o["request_id"].strip() not in {r["request_id"] for r in data["requests"]}])}
 
 
+# --------------------------------------------------------------------------- 10. requesters
+def requester_cut(data):
+    """Per requester (the SDR and the AEs): asks filed, distinct accounts asked for and
+    the CRM value of the ones with an account, intros landed, and how often the ask
+    was declared Critical or High. Companies come from golden/ so a repeat ask for
+    the same account counts one account and its CRM value once."""
+    by = {}
+    for r in data["requests"]:
+        name = r["requested_by"].strip()
+        role = r["requester_role"].strip()
+        b = by.setdefault(name, {
+            "name": name, "role": role, "kind": "SDR" if "SDR" in role.upper() else "AE",
+            "requests": 0, "routed": 0, "intros": 0, "unresolved": 0,
+            "companies": set(), "crm_values": {}, "urgency": Counter(),
+        })
+        b["requests"] += 1
+        b["urgency"][r["urgency"].strip().title()] += 1
+        cid = data["golden_requests"][r["request_id"]]["company_id"]
+        if cid:
+            b["companies"].add(cid)
+            gc = data["golden_companies"][cid]
+            if gc["crm_account_ids"]:
+                b["crm_values"][cid] = money(gc["value_usd"])
+        else:
+            b["unresolved"] += 1
+        o = data["outcome_by_request"].get(r["request_id"])
+        if o:
+            b["routed"] += 1
+            b["intros"] += yes(o, "intro_sent")
+    for b in by.values():
+        b["accounts"] = len(b["companies"])
+        b["crm_accounts"] = len(b["crm_values"])
+        b["crm_value"] = sum(b["crm_values"].values())
+        b["intro_rate"] = b["intros"] / b["requests"]
+        b["critical"] = b["urgency"]["Critical"]
+        b["critical_high"] = b["urgency"]["Critical"] + b["urgency"]["High"]
+        b["critical_share"] = b["critical"] / b["requests"]
+        b["critical_high_share"] = b["critical_high"] / b["requests"]
+    rows = sorted(by.values(), key=lambda b: (-b["requests"], b["name"]))
+    n = sum(b["requests"] for b in rows)
+    crm_values = {cid: v for b in rows for cid, v in b["crm_values"].items()}
+    return {"requesters": rows, "requests": n,
+            "intros": sum(b["intros"] for b in rows),
+            "intro_rate": sum(b["intros"] for b in rows) / n if n else 0.0,
+            "critical_share": sum(b["critical"] for b in rows) / n if n else 0.0,
+            "critical_high_share": sum(b["critical_high"] for b in rows) / n if n else 0.0,
+            "accounts": len({c for b in rows for c in b["companies"]}),
+            "crm_accounts": len(crm_values), "crm_value": sum(crm_values.values()),
+            "shared_accounts": sum(1 for c in Counter(c for b in rows for c in b["companies"]).values() if c > 1)}
+
+
 CUTS = [("Scoped joins", join_summary_cut), ("Account demand", account_demand_cut),
         ("Top accounts by value", top_accounts_cut), ("Connectors", connector_cut),
         ("Target person provenance", target_person_cut), ("Routing time", routing_time_cut),
         ("Slack threads", slack_cut), ("Flag / status noise", flag_noise_cut),
-        ("Outcomes vs requests", outcome_delta_cut)]
+        ("Outcomes vs requests", outcome_delta_cut), ("Requesters", requester_cut)]
 
 
 if __name__ == "__main__":
