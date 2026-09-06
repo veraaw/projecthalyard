@@ -13,7 +13,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (14 events, 3 requests, as of 2026-09-05)
+## 4. Chronology (14 events, 3 requests, as of 2026-09-06)
 
 ```
 !! 2025-08-06  intro_requests.csv   Hana Nakashima       R1164 raised by Hana Nakashima (AE, Healthcare): wants Director of Software Engineering, $150,000, Low urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
@@ -32,12 +32,12 @@ nobody in the network reaches this company
    2025-09-15  slack_threads.jsonl  Yusuf Petrossian     R1105 slack: "no idea sorry"
    2025-09-18  slack_threads.jsonl  Yusuf Petrossian     R1105 slack: "bumping this"
 
-!! 2026-02-12  crm_accounts.csv     Sloane Fairweather   last CRM touch on A1015  [205 days ago, nothing since]
+!! 2026-02-12  crm_accounts.csv     Sloane Fairweather   last CRM touch on A1015  [206 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Sloane Fairweather | CRM owner (A1015) | check in on the account | last touch 2026-02-12, 205 days ago | — |
-| 2 | Hana Nakashima (395 days), Rafael Salcedo (394 days), Imani Mkhize (356 days) | 3 reps still waiting, longest first | tell them nobody has it | 3 reps raised this and have heard nothing; the oldest has been waiting 395 days | R1164, R1180, R1105 |
+| 1 | Sloane Fairweather | CRM owner (A1015) | check in on the account | last touch 2026-02-12, 206 days ago | — |
+| 2 | Hana Nakashima (396 days), Rafael Salcedo (395 days), Imani Mkhize (357 days) | 3 reps still waiting, longest first | tell them nobody has it | 3 reps raised this and have heard nothing; the oldest has been waiting 396 days | R1164, R1180, R1105 |

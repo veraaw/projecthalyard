@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from analysis.crm import writeback  # noqa: E402
 from analysis.crm.writeback import (  # noqa: E402
-    CREATE, DEFAULT_STAGE, GROUPS, IMPORT_COLUMNS, MERGE, OWNERS, REOPEN, REVIEW_COLUMNS, STALE,
+    CREATE, DEFAULT_STAGE, EXECUTED, GROUPS, IMPORT_COLUMNS, MERGE, OWNERS, REOPEN, REVIEW_COLUMNS, STALE,
     STALE_TOUCH_DAYS, STATUS, Writeback, split_bar,
 )
 from golden.build_golden import OPEN_STATUSES  # noqa: E402
@@ -44,6 +44,7 @@ class WritebackTest(unittest.TestCase):
         cls.companies = {c["company_id"]: c for c in rows(G / "golden_companies.csv") if int(c["total_requests"] or 0)}
         cls.accounts = {a["account_id"]: a for a in rows(D / "crm_accounts.csv")}
         cls.requests = rows(G / "golden_requests.csv")
+        cls.created = cls.wb.created  # company_id -> date someone ticked "account created" (golden/completions.csv)
 
     def by_group(self, group: str) -> list:
         return [r for r in self.review if r.group == group]
@@ -56,7 +57,9 @@ class WritebackTest(unittest.TestCase):
         expected = {cid for cid, c in self.companies.items() if not c["crm_account_ids"]}
         self.assertTrue(expected)
         self.assertEqual({r.company_id for r in self.by_group(CREATE)}, expected)
-        self.assertEqual({r["account_name"] for r in self.imports}, {self.companies[c]["company_name"] for c in expected})
+        # a create someone has ticked off stays in the review file as executed and leaves the import file
+        self.assertEqual({r["account_name"] for r in self.imports},
+                         {self.companies[c]["company_name"] for c in expected - set(self.created)})
 
     def test_merge_is_every_duplicate_and_owners_the_disagreeing_subset(self):
         dups = {cid for cid, c in self.companies.items() if c["duplicate_accounts"] != "no"}
@@ -95,8 +98,10 @@ class WritebackTest(unittest.TestCase):
     # -- rows and ordering ------------------------------------------------------
     def test_every_row_is_a_recommendation_with_its_evidence(self):
         for r in self.review:
-            self.assertEqual(r.status, STATUS)
-            self.assertEqual(r.executed_on, "")
+            if r.group == CREATE and r.company_id in self.created:
+                self.assertEqual((r.status, r.executed_on), (EXECUTED, self.created[r.company_id]))
+            else:
+                self.assertEqual((r.status, r.executed_on), (STATUS, ""))
             self.assertTrue(r.action and r.why and r.evidence, r)
             self.assertTrue(r.request_ids, r)
             for rid in split_bar(r.request_ids):
@@ -113,7 +118,7 @@ class WritebackTest(unittest.TestCase):
 
     # -- the two files ----------------------------------------------------------
     def test_import_file_shape(self):
-        self.assertEqual(len(self.imports), len(self.by_group(CREATE)))
+        self.assertEqual(len(self.imports), sum(r.status == STATUS for r in self.by_group(CREATE)))
         for row in self.imports:
             self.assertEqual(list(row), IMPORT_COLUMNS)
             self.assertEqual(row["stage"], DEFAULT_STAGE)
@@ -143,9 +148,10 @@ class WritebackTest(unittest.TestCase):
         self.assertEqual(len(got_import), len(imports))
         self.assertEqual(len(got_review), len(review))
         self.assertEqual({r["group"] for r in got_review}, set(GROUPS))
-        self.assertEqual(sum(r["group"] == CREATE for r in got_review), len(got_import),
+        self.assertEqual(sum(r["group"] == CREATE and r["status"] == STATUS for r in got_review), len(got_import),
                          "every account in the import file is also a recommendation in the review file")
-        self.assertTrue(all(r["status"] == STATUS and not r["executed_on"] for r in got_review))
+        self.assertTrue(all((r["status"] == STATUS and not r["executed_on"])
+                            or (r["group"] == CREATE and r["status"] == EXECUTED and r["executed_on"]) for r in got_review))
 
 
 if __name__ == "__main__":

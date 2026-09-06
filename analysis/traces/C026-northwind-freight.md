@@ -9,7 +9,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (17 events, 5 requests, as of 2026-09-05)
+## 4. Chronology (17 events, 5 requests, as of 2026-09-06)
 
 ```
    2025-12-20  intro_requests.csv   Bertrand Vandermolen R1161 raised by Bertrand Vandermolen (AE, EMEA): wants Chief Digital Officer, $80,000, Critical urgency, filed "Routed"
@@ -33,12 +33,12 @@ nobody in the network reaches this company
    2026-05-08  slack_threads.jsonl  Nadia Okonkwo        R1100 slack: "bumping this"
    2026-05-12  slack_threads.jsonl  Hana Nakashima       R1100 slack: "is this the same as the one from last month?"
 
-!! 2026-04-11  crm_accounts.csv     Curtis Hartigan      last CRM touch on A1003  [147 days ago, nothing since]
+!! 2026-04-11  crm_accounts.csv     Curtis Hartigan      last CRM touch on A1003  [148 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Curtis Hartigan | CRM owner (A1003) | check in on the account | last touch 2026-04-11, 147 days ago | — |
-| 2 | Bertrand Vandermolen (259 days), Nadia Okonkwo (247 days) | 2 reps still waiting, longest first | tell them nobody has it | 2 reps raised this and have heard nothing; the oldest has been waiting 259 days | R1161, R1188, R1019 |
+| 1 | Curtis Hartigan | CRM owner (A1003) | check in on the account | last touch 2026-04-11, 148 days ago | — |
+| 2 | Bertrand Vandermolen (260 days), Nadia Okonkwo (248 days) | 2 reps still waiting, longest first | tell them nobody has it | 2 reps raised this and have heard nothing; the oldest has been waiting 260 days | R1161, R1188, R1019 |

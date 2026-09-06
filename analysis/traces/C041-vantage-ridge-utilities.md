@@ -16,7 +16,7 @@
 | 0.546 | Tomás Beckett (Internal) | direct | Sabine Dellinger — Chief Data Officer | connections_beckett.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2024-11-09 |
 | 0.492 | Marcus Aldridge (Advisor) | direct | Sabine Dellinger — Chief Data Officer | connections_aldridge.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2022-12-23 |
 
-## 4. Chronology (9 events, 2 requests, as of 2026-09-05)
+## 4. Chronology (9 events, 2 requests, as of 2026-09-06)
 
 ```
 !! 2026-01-29  intro_requests.csv   Imani Mkhize         R1111 raised by Imani Mkhize (Enterprise AE, West): wants Chief Operating Officer, $1,200,000, Medium urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
@@ -29,7 +29,7 @@
    2026-04-16  slack_threads.jsonl  Hana Nakashima       R1001 slack: "adding Curtis Hartigan who might know"
    2026-04-16  slack_threads.jsonl  Nadia Okonkwo        R1001 slack: "no idea sorry"
 
-!! 2026-03-19  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1007  [170 days ago, nothing since]
+!! 2026-03-19  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1007  [171 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
@@ -37,5 +37,5 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | send the ask (batch 2026-09 Marcus Aldridge) | allocated in golden_allocation.csv via direct path to Sabine Dellinger, score 0.171 | R1001 |
-| 2 | Rafael Salcedo | CRM owner (A1007) | check in on the account | last touch 2026-03-19, 170 days ago | — |
-| 3 | Imani Mkhize (219 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 219 days | R1111, R1001 |
+| 2 | Rafael Salcedo | CRM owner (A1007) | check in on the account | last touch 2026-03-19, 171 days ago | — |
+| 3 | Imani Mkhize (220 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 220 days | R1111, R1001 |

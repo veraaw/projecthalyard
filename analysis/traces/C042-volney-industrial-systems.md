@@ -9,7 +9,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (16 events, 4 requests, as of 2026-09-05)
+## 4. Chronology (16 events, 4 requests, as of 2026-09-06)
 
 ```
    2025-09-14  intro_requests.csv   Imani Mkhize         R1002 raised by Imani Mkhize (Enterprise AE, West): wants VP Data & Analytics, $400,000, High urgency, filed "Open"
@@ -31,12 +31,12 @@ nobody in the network reaches this company
    2026-01-14  slack_threads.jsonl  Imani Mkhize         R1080 slack: "wrong channel? this feels like a partner ask"
    2026-01-16  slack_threads.jsonl  Nadia Okonkwo        R1080 slack: "adding Rafael Salcedo who might know"
 
-!! 2026-01-13  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1049  [235 days ago, nothing since]
+!! 2026-01-13  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1049  [236 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Yusuf Petrossian | CRM owner (A1049) | check in on the account | last touch 2026-01-13, 235 days ago | — |
-| 2 | Imani Mkhize (356 days), Yusuf Petrossian (264 days), Hana Nakashima (234 days) | 3 reps still waiting, longest first | tell them nobody has it | 3 reps raised this and have heard nothing; the oldest has been waiting 356 days | R1002, R1191, R1080 |
+| 1 | Yusuf Petrossian | CRM owner (A1049) | check in on the account | last touch 2026-01-13, 236 days ago | — |
+| 2 | Imani Mkhize (357 days), Yusuf Petrossian (265 days), Hana Nakashima (235 days) | 3 reps still waiting, longest first | tell them nobody has it | 3 reps raised this and have heard nothing; the oldest has been waiting 357 days | R1002, R1191, R1080 |

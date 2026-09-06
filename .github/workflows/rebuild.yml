@@ -1,0 +1,86 @@
+# Rebuild golden/, analysis/ and docs/ and publish them back to main.
+#
+# Every 15 minutes: pull the Supabase `completions` table into
+# golden/completions.csv (what the Live Priorities tab's Submit recorded),
+# rebuild, test, and commit — only when something actually changed. Also on a
+# push to main that touches the raw exports or the completions file, and by
+# hand from the Actions tab.
+#
+# Secrets (Settings -> Secrets and variables -> Actions):
+#   SUPABASE_URL          https://<project>.supabase.co  (with or without /rest/v1)
+#   SUPABASE_ANON_KEY     the publishable key; goes into the built dashboard so the browser can insert
+#   SUPABASE_SERVICE_KEY  the secret key; read the table here, never leaves this job
+#
+# The bot's own commit touches golden/ and docs/, so the job skips itself when
+# that commit is the trigger (github.actor). An unchanged rebuild commits
+# nothing: docs/build_stamp.json changes on every run and is not counted when
+# deciding whether there is a diff (it goes in with the rest of docs/ when there
+# is one); the dashboard shows this workflow's last successful run for "is the
+# page current".
+name: rebuild
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  push:
+    branches: [main]
+    paths:
+      - "dataset/**"
+      - "golden/completions.csv"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rebuild-main
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    if: github.actor != 'halyard-bot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python3 -m pip install --quiet -r requirements.txt
+
+      - name: Pull completions from Supabase and rebuild golden/
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python3 golden/build_golden.py --completions supabase
+
+      # docs/ is regenerated before the tests run: several tests compare the
+      # built pages with what golden/ now says, so on the old pages they would
+      # fail every time a completion changed the queue. Nothing is committed
+      # until the tests pass, and a malformed completion has already stopped the
+      # step above before completions.csv was touched.
+      - name: Rebuild analysis/ and docs/
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: python3 build.py --skip-tests
+
+      - name: Tests (a failure here means nothing below is committed)
+        run: python3 -m unittest discover tests
+
+      - name: Commit only if something changed
+        run: |
+          git config user.name halyard-bot
+          git config user.email halyard-bot@users.noreply.github.com
+          git add -A golden analysis docs
+          if git diff --staged --quiet -- . ':(exclude)docs/build_stamp.json'; then
+            echo "nothing changed; not committing"
+            exit 0
+          fi
+          git diff --staged --quiet || git commit -m "rebuild: $(date -u +%Y-%m-%dT%H:%MZ) (${{ github.event_name }})"
+          git push origin HEAD:main

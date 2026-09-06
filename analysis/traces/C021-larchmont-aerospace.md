@@ -15,7 +15,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (12 events, 4 requests, as of 2026-09-05)
+## 4. Chronology (12 events, 4 requests, as of 2026-09-06)
 
 ```
 !! 2025-10-29  intro_requests.csv   Imani Mkhize         R1021 raised by Imani Mkhize (Enterprise AE, West): wants VP Data & Analytics, $1,200,000, Medium urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
@@ -33,12 +33,12 @@ nobody in the network reaches this company
    2026-07-01  intro_requests.csv   Curtis Hartigan      R1030 raised by Curtis Hartigan (AE, Financial Services): wants Head of Platform Engineering, $80,000, High urgency, filed "Open"
    2026-07-01  slack_threads.jsonl  Curtis Hartigan      R1030 slack: "long shot — Larchmont Aerospace. Kofi Højgaard-Zettergren (Head of Platform Engineering). Anyone?"
 
-!! 2025-12-17  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1042  [262 days ago, nothing since]
+!! 2025-12-17  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1042  [263 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Bertrand Vandermolen | CRM owner (A1042) | check in on the account | last touch 2025-12-17, 262 days ago | — |
-| 2 | Imani Mkhize (311 days), Nadia Okonkwo (280 days), Curtis Hartigan (66 days) | 3 reps still waiting, longest first | tell them nobody has it | 3 reps raised this and have heard nothing; the oldest has been waiting 311 days | R1021, R1103, R1146, R1030 |
+| 1 | Bertrand Vandermolen | CRM owner (A1042) | check in on the account | last touch 2025-12-17, 263 days ago | — |
+| 2 | Imani Mkhize (312 days), Nadia Okonkwo (281 days), Curtis Hartigan (67 days) | 3 reps still waiting, longest first | tell them nobody has it | 3 reps raised this and have heard nothing; the oldest has been waiting 312 days | R1021, R1103, R1146, R1030 |

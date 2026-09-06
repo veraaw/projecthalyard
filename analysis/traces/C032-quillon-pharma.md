@@ -27,7 +27,7 @@
 | 0.187 | Owen Trask (Investor) | alumni | Kian Merriweather — ex-Quillon Pharma (2012-2018), now VP Engineering at Quillon Pharma | investor_network.csv: Kian Merriweather prior_employer=Quillon Pharma (2012-2018); connections_trask.csv: connection of Owen Trask since 2016-12-15 |
 | 0.187 | Priya Raghunathan (Investor) | alumni | Casper Bellinger — ex-Quillon Pharma (2012-2017), now VP Enterprise Architecture at Quillon Pharma | investor_network.csv: Casper Bellinger prior_employer=Quillon Pharma (2012-2017); connections_raghunathan.csv: connection of Priya Raghunathan since 2015-11-21 |
 
-## 4. Chronology (10 events, 2 requests, as of 2026-09-05)
+## 4. Chronology (10 events, 2 requests, as of 2026-09-06)
 
 ```
 !! 2025-10-07  intro_requests.csv   Sloane Fairweather   R1198 raised by Sloane Fairweather (Strategic AE): wants Chief Operating Officer, $750,000, Critical urgency, filed "Closed - no path"  [12 paths in supply_reach.csv]
@@ -41,12 +41,12 @@
    2026-05-16  slack_threads.jsonl  Nadia Okonkwo        R1178 slack: "did we not already lose this one?"
    2026-05-17  slack_threads.jsonl  Yusuf Petrossian     R1178 slack: "what's the deal size here?"
 
-!! 2025-07-07  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1019  [425 days ago, nothing since]
+!! 2025-07-07  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1019  [426 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Rafael Salcedo | CRM owner (A1019) | check in on the account | last touch 2025-07-07, 425 days ago | — |
-| 2 | Sloane Fairweather (333 days), Bertrand Vandermolen (112 days) | 2 reps still waiting, longest first | tell them it's with Tomás Beckett | 2 reps raised this and have heard nothing; the oldest has been waiting 333 days | R1198, R1178 |
+| 1 | Rafael Salcedo | CRM owner (A1019) | check in on the account | last touch 2025-07-07, 426 days ago | — |
+| 2 | Sloane Fairweather (334 days), Bertrand Vandermolen (113 days) | 2 reps still waiting, longest first | tell them it's with Tomás Beckett | 2 reps raised this and have heard nothing; the oldest has been waiting 334 days | R1198, R1178 |

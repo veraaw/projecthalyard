@@ -84,6 +84,8 @@ def build_figure(stages):
 if __name__ == "__main__":
     stages = funnel_stages()
     fig = build_figure(stages)
-    fig.write_html(os.path.join(OUT, "sankey_funnel.html"), include_plotlyjs="cdn")
+    # fixed div_id: plotly's default is a fresh uuid per run, which would make
+    # every scheduled rebuild look like a change
+    fig.write_html(os.path.join(OUT, "sankey_funnel.html"), include_plotlyjs="cdn", div_id="sankey-funnel")
     for name, c in stages:
         print(f"{name:14} {c:4}")

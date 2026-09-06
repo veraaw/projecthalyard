@@ -9,7 +9,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (16 events, 5 requests, as of 2026-09-05)
+## 4. Chronology (16 events, 5 requests, as of 2026-09-06)
 
 ```
    2025-12-23  intro_requests.csv   Rafael Salcedo       R1035 raised by Rafael Salcedo (AE, Transport & Logistics): wants VP Engineering, $400,000, High urgency, filed "Closed - no path"
@@ -38,4 +38,4 @@ nobody in the network reaches this company
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Nadia Okonkwo (190 days), Sloane Fairweather (150 days), Curtis Hartigan (134 days), Imani Mkhize (69 days) | 4 reps still waiting, longest first | tell them nobody has it | 4 reps raised this and have heard nothing; the oldest has been waiting 190 days | R1189, R1133, R1116, R1194 |
+| 1 | Nadia Okonkwo (191 days), Sloane Fairweather (151 days), Curtis Hartigan (135 days), Imani Mkhize (70 days) | 4 reps still waiting, longest first | tell them nobody has it | 4 reps raised this and have heard nothing; the oldest has been waiting 191 days | R1189, R1133, R1116, R1194 |

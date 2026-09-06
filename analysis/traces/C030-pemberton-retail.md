@@ -13,7 +13,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (14 events, 4 requests, as of 2026-09-05)
+## 4. Chronology (14 events, 4 requests, as of 2026-09-06)
 
 ```
    2025-09-05  intro_requests.csv   Curtis Hartigan      R1050 raised by Curtis Hartigan (AE, Financial Services): wants Head of Developer Productivity, $400,000, Medium urgency, filed "Open"
@@ -33,12 +33,12 @@ nobody in the network reaches this company
    2026-04-30  intro_requests.csv   Sloane Fairweather   R1165 raised by Sloane Fairweather (Strategic AE): wants Head of Platform Engineering, $80,000, Low urgency, filed "Open"
    2026-04-30  slack_threads.jsonl  Sloane Fairweather   R1165 slack: "trying to reach Head of Platform Engineering at Pemberton Retail — anyone have a path?"
 
-!! 2025-08-24  crm_accounts.csv     Hana Nakashima       last CRM touch on A1023  [377 days ago, nothing since]
+!! 2025-08-24  crm_accounts.csv     Hana Nakashima       last CRM touch on A1023  [378 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Hana Nakashima | CRM owner (A1023) | check in on the account | last touch 2025-08-24, 377 days ago | — |
-| 2 | Curtis Hartigan (365 days), Nadia Okonkwo (275 days), Bertrand Vandermolen (196 days), Sloane Fairweather (128 days) | 4 reps still waiting, longest first | tell them nobody has it | 4 reps raised this and have heard nothing; the oldest has been waiting 365 days | R1050, R1097, R1061, R1165 |
+| 1 | Hana Nakashima | CRM owner (A1023) | check in on the account | last touch 2025-08-24, 378 days ago | — |
+| 2 | Curtis Hartigan (366 days), Nadia Okonkwo (276 days), Bertrand Vandermolen (197 days), Sloane Fairweather (129 days) | 4 reps still waiting, longest first | tell them nobody has it | 4 reps raised this and have heard nothing; the oldest has been waiting 366 days | R1050, R1097, R1061, R1165 |

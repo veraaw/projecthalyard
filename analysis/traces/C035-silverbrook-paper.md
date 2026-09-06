@@ -15,7 +15,7 @@
 |---|---|---|---|---|
 | 0.356 | Owen Trask (Investor) | direct | Elena Rushworth — Head of Automation | connections_trask.csv: Elena Rushworth, Head of Automation at Silverbrook Paper, connected 2019-11-27 |
 
-## 4. Chronology (12 events, 2 requests, as of 2026-09-05)
+## 4. Chronology (12 events, 2 requests, as of 2026-09-06)
 
 ```
    2025-11-06  intro_requests.csv   Sloane Fairweather   R1063 raised by Sloane Fairweather (Strategic AE): wants Chief Operating Officer, $80,000, High urgency, filed "Routed"
@@ -29,14 +29,14 @@
    2026-01-07  intro_outcomes.csv   Owen Trask           R1008 asked
    2026-01-08  slack_threads.jsonl  Curtis Hartigan      R1008 slack: "what's the deal size here?"
    2026-01-10  slack_threads.jsonl  Curtis Hartigan      R1008 slack: "what's the deal size here?"
-<- 2026-09-05  intro_outcomes.csv   Owen Trask           R1008 never replied (asked 2026-01-07, 241 days ago)
+<- 2026-09-06  intro_outcomes.csv   Owen Trask           R1008 never replied (asked 2026-01-07, 242 days ago)
 
-!! 2026-05-10  crm_accounts.csv     Curtis Hartigan      last CRM touch on A1032  [118 days ago, nothing since]
+!! 2026-05-10  crm_accounts.csv     Curtis Hartigan      last CRM touch on A1032  [119 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Curtis Hartigan | CRM owner (A1032) | check in on the account | last touch 2026-05-10, 118 days ago | — |
-| 2 | Sloane Fairweather (303 days), Yusuf Petrossian (241 days) | 2 reps still waiting, longest first | tell them it's with Owen Trask | 2 reps raised this and have heard nothing; the oldest has been waiting 303 days | R1063, R1008 |
+| 1 | Curtis Hartigan | CRM owner (A1032) | check in on the account | last touch 2026-05-10, 119 days ago | — |
+| 2 | Sloane Fairweather (304 days), Yusuf Petrossian (242 days) | 2 reps still waiting, longest first | tell them it's with Owen Trask | 2 reps raised this and have heard nothing; the oldest has been waiting 304 days | R1063, R1008 |

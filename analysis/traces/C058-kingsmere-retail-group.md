@@ -23,7 +23,7 @@
 | 0.187 | Owen Trask (Investor) | alumni | Kofi Mkhize — ex-Kingsmere Retail Group (2012-2019), now VP Engineering at Kingsmere Retail Group | investor_network.csv: Kofi Mkhize prior_employer=Kingsmere Retail Group (2012-2019); connections_trask.csv: connection of Owen Trask since 2016-05-20 |
 | 0.187 | Tomás Beckett (Internal) | alumni | Kofi Mkhize — ex-Kingsmere Retail Group (2012-2019), now VP Engineering at Kingsmere Retail Group | investor_network.csv: Kofi Mkhize prior_employer=Kingsmere Retail Group (2012-2019); connections_beckett.csv: connection of Tomás Beckett since 2016-03-26 |
 
-## 4. Chronology (35 events, 8 requests, as of 2026-09-05)
+## 4. Chronology (35 events, 8 requests, as of 2026-09-06)
 
 ```
    2025-12-26  intro_requests.csv   Nadia Okonkwo        R1128 raised by Nadia Okonkwo (AE, Industrials): wants VP Enterprise Architecture, $80,000, Critical urgency, filed "Routed"
@@ -42,12 +42,12 @@
    2026-02-03  intro_outcomes.csv   Dana Whitfield       R1113 asked
 ++ 2026-02-04  intro_outcomes.csv   Dana Whitfield       R1113 replied (1 days after the ask)
    2026-02-05  slack_threads.jsonl  Hana Nakashima       R1113 slack: "adding Nadia Okonkwo who might know"
-<- 2026-09-05  intro_outcomes.csv   Dana Whitfield       R1113 said yes 213 days ago and never forwarded
+<- 2026-09-06  intro_outcomes.csv   Dana Whitfield       R1113 said yes 214 days ago and never forwarded
 
 !! 2026-02-11  intro_requests.csv   Hana Nakashima       R1147 raised by Hana Nakashima (AE, Healthcare): wants VP Enterprise Architecture, $1,200,000, Medium urgency, filed "Closed - no path"  [7 paths in supply_reach.csv; same title as R1128, 47 days earlier]
    2026-02-11  slack_threads.jsonl  Hana Nakashima       R1147 slack: "does anyone know anyone at Kingsmere Retail Group? looking for VP Enterprise Architecture, ideally warm"
    2026-02-16  intro_outcomes.csv   Dana Whitfield       R1147 asked
-<- 2026-09-05  intro_outcomes.csv   Dana Whitfield       R1147 never replied (asked 2026-02-16, 201 days ago)
+<- 2026-09-06  intro_outcomes.csv   Dana Whitfield       R1147 never replied (asked 2026-02-16, 202 days ago)
 
    2026-05-07  intro_requests.csv   Imani Mkhize         R1070 raised by Imani Mkhize (Enterprise AE, West): wants SVP Digital, $400,000, High urgency, filed "Open"
    2026-05-07  slack_threads.jsonl  Imani Mkhize         R1070 slack: "trying to reach SVP Digital at Kingsmere Retail Group. I know we sell into Pelham Beverage and Larchmont Aerospace — could either of those relationships get us there?"
@@ -67,7 +67,7 @@
 ** 2026-06-27  slack_threads.jsonl  Yusuf Petrossian     R1066 slack: "I'll take this one — I've got a direct line to their exec team"
    2026-07-01  intro_outcomes.csv   Yusuf Petrossian     R1066 asked
 ++ 2026-07-06  intro_outcomes.csv   Yusuf Petrossian     R1066 replied (5 days after the ask)
-<- 2026-09-05  intro_outcomes.csv   Yusuf Petrossian     R1066 said yes 61 days ago and never forwarded
+<- 2026-09-06  intro_outcomes.csv   Yusuf Petrossian     R1066 said yes 62 days ago and never forwarded
 ```
 
 ## 5. Next steps, by person, cheapest first
@@ -76,4 +76,4 @@
 |---|---|---|---|---|---|
 | 1 | Dana Whitfield | Chief Revenue Officer (internal connector) | nudge, don't re-ask; send the ask (batch 2026-09 Dana Whitfield) | said yes on 2026-02-04 and never forwarded; allocated in golden_allocation.csv via direct path to Saoirse Quillane, score 0.145; allocated in golden_allocation.csv via direct path to Saoirse Quillane, score 0.145 | R1113, R1070, R1193 |
 | 2 | Yusuf Petrossian | off-roster connector | nudge, don't re-ask; send the ask (batch 2026-09 Yusuf Petrossian) | said yes on 2026-07-06 and never forwarded; allocated in golden_allocation.csv via offer path, score 0.182; allocated in golden_allocation.csv via offer path, score 0.182 | R1066, R1006, R1128 |
-| 3 | Nadia Okonkwo (253 days), Imani Mkhize (216 days), Hana Nakashima (206 days), Rafael Salcedo (92 days), Curtis Hartigan (72 days) | 5 reps still waiting, longest first | tell them it's with Dana Whitfield / Yusuf Petrossian | 5 reps raised this and have heard nothing; the oldest has been waiting 253 days | R1128, R1113, R1070, R1147, R1193, R1006, R1066 |
+| 3 | Nadia Okonkwo (254 days), Imani Mkhize (217 days), Hana Nakashima (207 days), Rafael Salcedo (93 days), Curtis Hartigan (73 days) | 5 reps still waiting, longest first | tell them it's with Dana Whitfield / Yusuf Petrossian | 5 reps raised this and have heard nothing; the oldest has been waiting 254 days | R1128, R1113, R1070, R1147, R1193, R1006, R1066 |

@@ -17,7 +17,7 @@
 | 0.459 | Elena Duvall (Advisor) | direct | Curtis Prendergast — SVP Digital | connections_duvall.csv: Curtis Prendergast, SVP Digital at Apex Logistics, connected 2022-02-04 |
 | 0.383 | Marcus Aldridge (Advisor) | direct | Curtis Prendergast — SVP Digital | connections_aldridge.csv: Curtis Prendergast, SVP Digital at Apex Logistics, connected 2019-08-28 |
 
-## 4. Chronology (25 events, 4 requests, as of 2026-09-05)
+## 4. Chronology (25 events, 4 requests, as of 2026-09-06)
 
 ```
 !! 2025-08-08  intro_requests.csv   Imani Mkhize         R1197 raised by Imani Mkhize (Enterprise AE, West): wants Head of Developer Productivity, $250,000, Low urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
@@ -26,7 +26,7 @@
    2025-08-10  slack_threads.jsonl  Nadia Okonkwo        R1197 slack: "adding Rafael Salcedo who might know"
    2025-08-14  intro_outcomes.csv   Elena Duvall         R1197 asked
 ++ 2025-08-24  intro_outcomes.csv   Elena Duvall         R1197 replied (10 days after the ask)
-<- 2026-09-05  intro_outcomes.csv   Elena Duvall         R1197 said yes 377 days ago and never forwarded
+<- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1197 said yes 378 days ago and never forwarded
 
    2025-12-02  intro_requests.csv   Hana Nakashima       R1041 raised by Hana Nakashima (AE, Healthcare): wants SVP Digital, $750,000, Medium urgency, filed "Open"
    2025-12-02  slack_threads.jsonl  Hana Nakashima       R1041 slack: "trying to reach SVP Digital at Apex Logistics — anyone have a path?"
@@ -48,7 +48,7 @@
    2026-07-07  slack_threads.jsonl  Sloane Fairweather   R1024 slack: "I think their procurement is frozen until Q1"
    2026-07-08  slack_threads.jsonl  Nadia Okonkwo        R1024 slack: "adding Rafael Salcedo who might know"
 
-!! 2026-04-03  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1001  [155 days ago, nothing since]
+!! 2026-04-03  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1001  [156 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
@@ -57,5 +57,5 @@
 |---|---|---|---|---|---|
 | 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | nudge, don't re-ask | said yes on 2025-08-24 and never forwarded | R1197 |
 | 2 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | send the ask (batch 2026-09 Marcus Aldridge) | allocated in golden_allocation.csv via direct path to Curtis Prendergast, score 0.133 | R1024 |
-| 3 | Rafael Salcedo | CRM owner (A1001) | check in on the account | last touch 2026-04-03, 155 days ago | — |
-| 4 | Imani Mkhize (393 days), Hana Nakashima (277 days), Curtis Hartigan (63 days) | 3 reps still waiting, longest first | tell them it's with Elena Duvall / Marcus Aldridge | 3 reps raised this and have heard nothing; the oldest has been waiting 393 days | R1197, R1041, R1024 |
+| 3 | Rafael Salcedo | CRM owner (A1001) | check in on the account | last touch 2026-04-03, 156 days ago | — |
+| 4 | Imani Mkhize (394 days), Hana Nakashima (278 days), Curtis Hartigan (64 days) | 3 reps still waiting, longest first | tell them it's with Elena Duvall / Marcus Aldridge | 3 reps raised this and have heard nothing; the oldest has been waiting 394 days | R1197, R1041, R1024 |
