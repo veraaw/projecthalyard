@@ -51,6 +51,11 @@ jobs:
       - name: Install dependencies
         run: python3 -m pip install --quiet -r requirements.txt
 
+      # One build clock for golden/, analysis/, docs/ and the tests below (see
+      # golden/clock.py): a run that straddles midnight UTC still stamps one date.
+      - name: Fix the build date
+        run: echo "HALYARD_AS_OF=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
+
       - name: Pull completions from Supabase and rebuild golden/
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

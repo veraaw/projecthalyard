@@ -23,7 +23,7 @@ import re
 import shutil
 import statistics
 from collections import Counter
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -37,6 +37,7 @@ from dashboard.live_priorities import (BANDS as PRIORITIES_BANDS, BATCH_PAGE as 
 from dashboard.sankey_funnel import GOLDEN as GOLDEN_REQUESTS, build_figure, funnel_stages
 from dashboard.trace_section import fragment as trace_fragment, sidebar as trace_sidebar
 from golden import build_golden as bg
+from golden.clock import as_of
 from paths import DATASET, DOCS, PROFILE, ROUTING
 
 DATA = str(DATASET)
@@ -56,7 +57,7 @@ def esc(s):
 
 
 # --------------------------------------------------------------------------- funnel
-TODAY = date.today()
+TODAY = as_of()
 ROLLING_SINCE = (TODAY - timedelta(days=365)).isoformat()
 stages = funnel_stages()
 stages_12m = funnel_stages(since=ROLLING_SINCE)
@@ -852,7 +853,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>"""
 
 
-built = f"built {datetime.now():%Y-%m-%d}"
+built = f"built {TODAY.isoformat()}"
 
 
 def head(title):
