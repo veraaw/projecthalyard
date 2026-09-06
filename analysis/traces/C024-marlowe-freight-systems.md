@@ -46,10 +46,3 @@ strongest path, not where it went: Marcus Aldridge, direct 0.465, at capacity 4/
 
 !! 2026-02-02  crm_accounts.csv     Imani Mkhize         last CRM touch on A1047  [216 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Imani Mkhize | CRM owner (A1047) | check in on the account | last touch 2026-02-02, 216 days ago | — |
-| 2 | Bertrand Vandermolen (185 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 185 days | R1134 |

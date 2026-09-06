@@ -28,10 +28,3 @@ nobody in the network reaches this company
 
 !! 2026-03-16  crm_accounts.csv     Imani Mkhize         last CRM touch on A1022  [174 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Imani Mkhize | CRM owner (A1022) | check in on the account | last touch 2026-03-16, 174 days ago | — |
-| 2 | Bertrand Vandermolen (120 days) | 1 rep still waiting, longest first | tell them nobody has it | 1 rep raised this and has heard nothing; the oldest has been waiting 120 days | R1062, R1010 |

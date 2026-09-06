@@ -43,10 +43,3 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 !! 2025-08-03  crm_accounts.csv     Imani Mkhize         last CRM touch on A1002  [399 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Imani Mkhize | CRM owner (A1002) | check in on the account | last touch 2025-08-03, 399 days ago | — |
-| 2 | Sloane Fairweather (311 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 311 days | R1069 |

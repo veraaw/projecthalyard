@@ -44,10 +44,3 @@ strongest path, not where it went: Imani Mkhize, offer 0.800, 0/2 used this cycl
 
 !! 2026-01-20  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1043  [229 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Yusuf Petrossian | CRM owner (A1043) | check in on the account | last touch 2026-01-20, 229 days ago | — |
-| 2 | Rafael Salcedo (385 days), Hana Nakashima (203 days) | 2 reps still waiting, longest first | tell them nobody has it | 2 reps raised this and have heard nothing; the oldest has been waiting 385 days | R1047, R1200 |
