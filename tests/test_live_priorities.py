@@ -639,7 +639,7 @@ class PayloadTest(unittest.TestCase):
             self.assertIn(token, connectors, "a tab per connector: capacity, the drafted message, the batch by company, owner heads-ups; plus the Aggregate")
         self.assertNotIn("sittingTable", connectors, "follow-ups have one home on this page")
         exceptions = boot.split('<section id="exceptions"')[1].split('<section id=')[0]
-        self.assertIn("<th>who covers this sector</th>", exceptions)
+        self.assertIn("<th>Who covers this sector</th>", exceptions)
         self.assertNotIn("noPath ?", exceptions, "the sector column is on every group")
         self.assertIn("Fo.in_focus_pct", exceptions, "the in-focus finding is one line in the header")
         self.assertIn("A.no_slot", exceptions, "the no-slot requests are counted, and pointed at the ranked list")
