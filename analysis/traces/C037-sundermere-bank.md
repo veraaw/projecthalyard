@@ -10,13 +10,18 @@
 - R1034: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 1 paths
 - R1034: Nadia Okonkwo offered in slack_threads.jsonl on 2025-10-13 ("their Head of Platform reports to someone I've known for a decade, leave it with me") but intro_outcomes.csv never asked them
 
+## Currently routing to: Nadia Okonkwo
+
+- this cycle: R1034 -> Nadia Okonkwo
+- top askable path: Nadia Okonkwo, offer via ?, route score 0.213, 1/2 capacity used this cycle
+
 ## 3. Who can reach them
 
 ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.213 | 0.800 | Nadia Okonkwo (not on roster) | offer | Head of Platform | slack_threads.jsonl R1034 2025-10-13 Nadia Okonkwo: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.213 | 0.800 | Nadia Okonkwo (not on roster) | offer | Head of Platform | slack_threads.jsonl R1034 2025-10-13 Nadia Okonkwo: "their Head of Platform reports to someone I've known for a decade, leave it with me" |  |
 
 ## 4. Chronology (6 events, 1 request, newest first, as of 2026-09-06)
 

@@ -9,25 +9,31 @@
 
 - R1093: filed "Closed - no path" but supply_reach.csv has 13 paths into Strathmore Holdings
 
+## Currently routing to: Tomás Beckett
+
+- this cycle: R1027, R1125, R1132 -> Tomás Beckett
+- top askable path: Tomás Beckett, direct via Bertrand Lomsadze, route score 0.053, 8/8 capacity used this cycle
+- not asked again here: Marcus Aldridge agreed on 2025-11-01 (R1102), no intro - nudge
+
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.053 | 0.330 | Tomás Beckett (Internal) | direct | Bertrand Lomsadze — Chief Digital Officer | connections_beckett.csv: Bertrand Lomsadze, Chief Digital Officer at Strathmore Rail, connected 2015-09-22 |
-| 0.045 | 0.289 | Marcus Aldridge (Advisor) | direct | Tomás Dobrescu — VP Engineering | connections_aldridge.csv: Tomás Dobrescu, VP Engineering at Strathmore Rail, connected 2018-12-16 |
-| 0.043 | 0.269 | Tomás Beckett (Internal) | direct | Tomás Dobrescu — VP Engineering | connections_beckett.csv: Tomás Dobrescu, VP Engineering at Strathmore Rail, connected 2017-12-20 |
-| 0.042 | 0.271 | Marcus Aldridge (Advisor) | direct | Yusuf Vasquez — Director of Software Engineering | connections_aldridge.csv: Yusuf Vasquez, Director of Software Engineering at Strathmore Rail, connected 2015-08-28 |
-| 0.034 | 0.218 | Marcus Aldridge (Advisor) | alumni | Tomás Dobrescu — ex-Strathmore Rail (2013-2018), now VP Engineering at Strathmore Rail | investor_network.csv: Tomás Dobrescu prior_employer=Strathmore Rail (2013-2018); connections_aldridge.csv: connection of Marcus Aldridge since 2018-12-16 |
-| 0.032 | 0.202 | Tomás Beckett (Internal) | alumni | Tomás Dobrescu — ex-Strathmore Rail (2013-2018), now VP Engineering at Strathmore Rail | investor_network.csv: Tomás Dobrescu prior_employer=Strathmore Rail (2013-2018); connections_beckett.csv: connection of Tomás Beckett since 2017-12-20 |
-| 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Bertrand Lomsadze — ex-Strathmore Rail (2013-2017), now Chief Digital Officer at Strathmore Rail | investor_network.csv: Bertrand Lomsadze prior_employer=Strathmore Rail (2013-2017); connections_beckett.csv: connection of Tomás Beckett since 2015-09-22 |
-| 0.029 | 0.187 | Marcus Aldridge (Advisor) | alumni | Yusuf Vasquez — ex-Strathmore Rail (2014-2017), now Director of Software Engineering at Strathmore Rail | investor_network.csv: Yusuf Vasquez prior_employer=Strathmore Rail (2014-2017); connections_aldridge.csv: connection of Marcus Aldridge since 2015-08-28 |
-| 0.000 | 0.357 | Elena Duvall (Advisor) | direct | Bertrand Lomsadze — Chief Digital Officer | connections_duvall.csv: Bertrand Lomsadze, Chief Digital Officer at Strathmore Rail, connected 2017-03-25 |
-| 0.000 | 0.271 | Elena Duvall (Advisor) | direct | Yusuf Vasquez — Director of Software Engineering | connections_duvall.csv: Yusuf Vasquez, Director of Software Engineering at Strathmore Rail, connected 2015-02-06 |
-| 0.000 | 0.202 | Elena Duvall (Advisor) | alumni | Bertrand Lomsadze — ex-Strathmore Rail (2013-2017), now Chief Digital Officer at Strathmore Rail | investor_network.csv: Bertrand Lomsadze prior_employer=Strathmore Rail (2013-2017); connections_duvall.csv: connection of Elena Duvall since 2017-03-25 |
-| 0.000 | 0.187 | Elena Duvall (Advisor) | alumni | Yusuf Vasquez — ex-Strathmore Rail (2014-2017), now Director of Software Engineering at Strathmore Rail | investor_network.csv: Yusuf Vasquez prior_employer=Strathmore Rail (2014-2017); connections_duvall.csv: connection of Elena Duvall since 2015-02-06 |
-| 0.172 | 0.720 | Freya Oldfield-Ibarra (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Freya Oldfield-Ibarra (Venture capital investor), portfolio_company=Strathmore Rail, board_seat=False |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.053 | 0.330 | Tomás Beckett (Internal) | direct | Bertrand Lomsadze — Chief Digital Officer | connections_beckett.csv: Bertrand Lomsadze, Chief Digital Officer at Strathmore Rail, connected 2015-09-22 |  |
+| 0.043 | 0.269 | Tomás Beckett (Internal) | direct | Tomás Dobrescu — VP Engineering | connections_beckett.csv: Tomás Dobrescu, VP Engineering at Strathmore Rail, connected 2017-12-20 |  |
+| 0.032 | 0.202 | Tomás Beckett (Internal) | alumni | Tomás Dobrescu — ex-Strathmore Rail (2013-2018), now VP Engineering at Strathmore Rail | investor_network.csv: Tomás Dobrescu prior_employer=Strathmore Rail (2013-2018); connections_beckett.csv: connection of Tomás Beckett since 2017-12-20 |  |
+| 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Bertrand Lomsadze — ex-Strathmore Rail (2013-2017), now Chief Digital Officer at Strathmore Rail | investor_network.csv: Bertrand Lomsadze prior_employer=Strathmore Rail (2013-2017); connections_beckett.csv: connection of Tomás Beckett since 2015-09-22 |  |
+| 0.000 | 0.357 | Elena Duvall (Advisor) | direct | Bertrand Lomsadze — Chief Digital Officer | connections_duvall.csv: Bertrand Lomsadze, Chief Digital Officer at Strathmore Rail, connected 2017-03-25 |  |
+| 0.000 | 0.271 | Elena Duvall (Advisor) | direct | Yusuf Vasquez — Director of Software Engineering | connections_duvall.csv: Yusuf Vasquez, Director of Software Engineering at Strathmore Rail, connected 2015-02-06 |  |
+| 0.000 | 0.202 | Elena Duvall (Advisor) | alumni | Bertrand Lomsadze — ex-Strathmore Rail (2013-2017), now Chief Digital Officer at Strathmore Rail | investor_network.csv: Bertrand Lomsadze prior_employer=Strathmore Rail (2013-2017); connections_duvall.csv: connection of Elena Duvall since 2017-03-25 |  |
+| 0.000 | 0.187 | Elena Duvall (Advisor) | alumni | Yusuf Vasquez — ex-Strathmore Rail (2014-2017), now Director of Software Engineering at Strathmore Rail | investor_network.csv: Yusuf Vasquez prior_employer=Strathmore Rail (2014-2017); connections_duvall.csv: connection of Elena Duvall since 2015-02-06 |  |
+| 0.172 | 0.720 | Freya Oldfield-Ibarra (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Freya Oldfield-Ibarra (Venture capital investor), portfolio_company=Strathmore Rail, board_seat=False |  |
+| 0.045 | 0.289 | Marcus Aldridge (Advisor) | direct | Tomás Dobrescu — VP Engineering | connections_aldridge.csv: Tomás Dobrescu, VP Engineering at Strathmore Rail, connected 2018-12-16 | Marcus Aldridge agreed on 2025-11-01 (R1102), no intro - nudge |
+| 0.042 | 0.271 | Marcus Aldridge (Advisor) | direct | Yusuf Vasquez — Director of Software Engineering | connections_aldridge.csv: Yusuf Vasquez, Director of Software Engineering at Strathmore Rail, connected 2015-08-28 | Marcus Aldridge agreed on 2025-11-01 (R1102), no intro - nudge |
+| 0.034 | 0.218 | Marcus Aldridge (Advisor) | alumni | Tomás Dobrescu — ex-Strathmore Rail (2013-2018), now VP Engineering at Strathmore Rail | investor_network.csv: Tomás Dobrescu prior_employer=Strathmore Rail (2013-2018); connections_aldridge.csv: connection of Marcus Aldridge since 2018-12-16 | Marcus Aldridge agreed on 2025-11-01 (R1102), no intro - nudge |
+| 0.029 | 0.187 | Marcus Aldridge (Advisor) | alumni | Yusuf Vasquez — ex-Strathmore Rail (2014-2017), now Director of Software Engineering at Strathmore Rail | investor_network.csv: Yusuf Vasquez prior_employer=Strathmore Rail (2014-2017); connections_aldridge.csv: connection of Marcus Aldridge since 2015-08-28 | Marcus Aldridge agreed on 2025-11-01 (R1102), no intro - nudge |
 
 why not #1: Freya Oldfield-Ibarra investor network, roster asked first -> R1027, R1125, R1132 to Tomás Beckett
 

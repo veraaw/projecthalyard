@@ -5,21 +5,26 @@
 - also goes by: Cindermill Mining
 - 4 requests from 3 people wanting 4 different titles: Chief Digital Officer | Chief Information Officer | VP Data & Analytics | VP Engineering
 
+## Currently routing to: Elena Duvall
+
+- this cycle: R1059 -> Tomás Beckett; R1144, R1184 -> Elena Duvall
+- top askable path: Elena Duvall, direct via Bertrand Glückstein, route score 0.119, 3/3 capacity used this cycle
+
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.119 | 0.330 | Elena Duvall (Advisor) | direct | Bertrand Glückstein — Chief Data Officer | connections_duvall.csv: Bertrand Glückstein, Chief Data Officer at Cindermill Mining, connected 2015-08-26 |
-| 0.067 | 0.187 | Elena Duvall (Advisor) | alumni | Bertrand Glückstein — ex-Cindermill Mining (2011-2016), now Chief Data Officer at Cindermill Mining | investor_network.csv: Bertrand Glückstein prior_employer=Cindermill Mining (2011-2016); connections_duvall.csv: connection of Elena Duvall since 2015-08-26 |
-| 0.061 | 0.381 | Tomás Beckett (Internal) | direct | Bo Marchetti — Platform Lead | connections_beckett.csv: Bo Marchetti, Platform Lead at Cindermill Mining, connected 2022-02-02 |
-| 0.061 | 0.381 | Tomás Beckett (Internal) | direct | Leandro Brenneman — Director of Software Engineering | connections_beckett.csv: Leandro Brenneman, Director of Software Engineering at Cindermill Mining, connected 2021-08-25 |
-| 0.050 | 0.319 | Marcus Aldridge (Advisor) | direct | Bo Marchetti — Platform Lead | connections_aldridge.csv: Bo Marchetti, Platform Lead at Cindermill Mining, connected 2019-08-23 |
-| 0.049 | 0.426 | Owen Trask (Investor) | direct | Leandro Brenneman — Director of Software Engineering | connections_trask.csv: Leandro Brenneman, Director of Software Engineering at Cindermill Mining, connected 2023-10-26 |
-| 0.038 | 0.330 | Owen Trask (Investor) | direct | Bertrand Glückstein — Chief Data Officer | connections_trask.csv: Bertrand Glückstein, Chief Data Officer at Cindermill Mining, connected 2015-05-17 |
-| 0.021 | 0.187 | Owen Trask (Investor) | alumni | Bertrand Glückstein — ex-Cindermill Mining (2011-2016), now Chief Data Officer at Cindermill Mining | investor_network.csv: Bertrand Glückstein prior_employer=Cindermill Mining (2011-2016); connections_trask.csv: connection of Owen Trask since 2015-05-17 |
-| 0.172 | 0.720 | Camille Merriweather-Balogun (investor network) | investor_network | CEO / exec team — Silverbrook Capital portfolio company | investor_network.csv: Camille Merriweather-Balogun (Venture capital investor), portfolio_company=Cindermill Mining, board_seat=False |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.119 | 0.330 | Elena Duvall (Advisor) | direct | Bertrand Glückstein — Chief Data Officer | connections_duvall.csv: Bertrand Glückstein, Chief Data Officer at Cindermill Mining, connected 2015-08-26 |  |
+| 0.067 | 0.187 | Elena Duvall (Advisor) | alumni | Bertrand Glückstein — ex-Cindermill Mining (2011-2016), now Chief Data Officer at Cindermill Mining | investor_network.csv: Bertrand Glückstein prior_employer=Cindermill Mining (2011-2016); connections_duvall.csv: connection of Elena Duvall since 2015-08-26 |  |
+| 0.061 | 0.381 | Tomás Beckett (Internal) | direct | Bo Marchetti — Platform Lead | connections_beckett.csv: Bo Marchetti, Platform Lead at Cindermill Mining, connected 2022-02-02 |  |
+| 0.061 | 0.381 | Tomás Beckett (Internal) | direct | Leandro Brenneman — Director of Software Engineering | connections_beckett.csv: Leandro Brenneman, Director of Software Engineering at Cindermill Mining, connected 2021-08-25 |  |
+| 0.050 | 0.319 | Marcus Aldridge (Advisor) | direct | Bo Marchetti — Platform Lead | connections_aldridge.csv: Bo Marchetti, Platform Lead at Cindermill Mining, connected 2019-08-23 |  |
+| 0.172 | 0.720 | Camille Merriweather-Balogun (investor network) | investor_network | CEO / exec team — Silverbrook Capital portfolio company | investor_network.csv: Camille Merriweather-Balogun (Venture capital investor), portfolio_company=Cindermill Mining, board_seat=False |  |
+| 0.049 | 0.426 | Owen Trask (Investor) | direct | Leandro Brenneman — Director of Software Engineering | connections_trask.csv: Leandro Brenneman, Director of Software Engineering at Cindermill Mining, connected 2023-10-26 | Owen Trask asked on 2026-06-26 (R1015), no reply for 72 days - askable, ranked last |
+| 0.038 | 0.330 | Owen Trask (Investor) | direct | Bertrand Glückstein — Chief Data Officer | connections_trask.csv: Bertrand Glückstein, Chief Data Officer at Cindermill Mining, connected 2015-05-17 | Owen Trask asked on 2026-06-26 (R1015), no reply for 72 days - askable, ranked last |
+| 0.021 | 0.187 | Owen Trask (Investor) | alumni | Bertrand Glückstein — ex-Cindermill Mining (2011-2016), now Chief Data Officer at Cindermill Mining | investor_network.csv: Bertrand Glückstein prior_employer=Cindermill Mining (2011-2016); connections_trask.csv: connection of Owen Trask since 2015-05-17 | Owen Trask asked on 2026-06-26 (R1015), no reply for 72 days - askable, ranked last |
 
 why not #1: Camille Merriweather-Balogun investor network, roster asked first -> R1059 to Tomás Beckett; R1144, R1184 to Elena Duvall
 

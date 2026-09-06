@@ -10,16 +10,22 @@
 - crm_accounts.csv: two accounts, two owners: A1001 -> Rafael Salcedo; A91001 -> Yusuf Petrossian
 - R1197: filed "Intro sent" but intro_outcomes.csv has no intro (asked Elena Duvall, intro_sent=N)
 
+## Currently routing to: Marcus Aldridge
+
+- this cycle: R1024 -> Marcus Aldridge; R1041 unrouted (capacity exhausted this cycle)
+- top askable path: Marcus Aldridge, direct via Curtis Prendergast, route score 0.133, 4/4 capacity used this cycle
+- not asked again here: Elena Duvall agreed on 2025-08-24 (R1197), no intro - nudge
+
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.133 | 0.383 | Marcus Aldridge (Advisor) | direct | Curtis Prendergast — SVP Digital | connections_aldridge.csv: Curtis Prendergast, SVP Digital at Apex Logistics, connected 2019-08-28 |
-| 0.000 | 0.459 | Elena Duvall (Advisor) | direct | Curtis Prendergast — SVP Digital | connections_duvall.csv: Curtis Prendergast, SVP Digital at Apex Logistics, connected 2022-02-04 |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.133 | 0.383 | Marcus Aldridge (Advisor) | direct | Curtis Prendergast — SVP Digital | connections_aldridge.csv: Curtis Prendergast, SVP Digital at Apex Logistics, connected 2019-08-28 |  |
+| 0.000 | 0.459 | Elena Duvall (Advisor) | direct | Curtis Prendergast — SVP Digital | connections_duvall.csv: Curtis Prendergast, SVP Digital at Apex Logistics, connected 2022-02-04 | Elena Duvall agreed on 2025-08-24 (R1197), no intro - nudge |
 
-why not #1: Elena Duvall at capacity 3/3, outside focus (Logistics) -> R1024 to Marcus Aldridge; R1041 unrouted (capacity exhausted)
+why not #1: Elena Duvall at capacity 3/3, outside focus (Logistics), not asked again here: Elena Duvall agreed on 2025-08-24 (R1197), no intro - nudge -> R1024 to Marcus Aldridge; R1041 unrouted (capacity exhausted)
 
 ## 4. Chronology (25 events, 4 requests, newest first, as of 2026-09-06)
 

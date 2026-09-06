@@ -105,7 +105,13 @@ Writes five CSVs (UTF-8, no BOM, CRLF):
                                the connector it was allocated to, or an
                                exception (capacity exhausted this cycle / no
                                path / company unresolved / already proposed
-                               with no outcome logged). APPEND-ONLY by cycle:
+                               with no outcome logged / already introduced /
+                               unresolved ask on every path). A connector who
+                               agreed to an ask at a company and never sent
+                               the intro is not asked there again (nudge
+                               them); one who never replied is left alone for
+                               UNANSWERED_ASK_DAYS (chase them), then askable
+                               again behind every other path. APPEND-ONLY by cycle:
                                a run appends its cycle; a rerun in the same
                                cycle replaces only that cycle's rows; earlier
                                cycles are never touched. decided_at is the
@@ -248,6 +254,16 @@ INTRO_LIVE_DAYS = 60  # an intro this recent is still in play, as is a meeting u
                       # while newer requests wait on the company: nobody is asked afresh
 # exception_reason prefix: '<ALREADY_INTRODUCED>: <connector> on <intro_date> (<request_id>[, meeting booked])'
 ALREADY_INTRODUCED = "already introduced"
+NO_PATH = "no path to this company in the network"
+UNANSWERED_ASK_DAYS = 60  # a connector who never replied to an ask at a company is not asked there again this long;
+                          # after that they are askable again, ranked behind every path with no unresolved ask
+# exception_reason prefix: '<UNRESOLVED_ASK>: <connector> agreed on <date> (<request_id>), no intro; <connector> asked on ...'
+UNRESOLVED_ASK = "unresolved ask on every path"
+# what an unresolved ask at a company does to its connector's other paths in there
+HOLD_NUDGE = "nudge"    # they agreed and never delivered: never asked again, the nudge queue owns it
+HOLD_WINDOW = "window"  # no reply yet, within UNANSWERED_ASK_DAYS: not asked again yet, the chase queue owns it
+HOLD_LAST = "last"      # no reply after UNANSWERED_ASK_DAYS: askable, behind every other path
+HOLD_ORDER = (HOLD_NUDGE, HOLD_WINDOW, HOLD_LAST)
 # contradicts_log: status_as_filed vs intro_outcomes.csv
 INTRO_CLAIMED_NOT_LOGGED = "intro claimed, none logged"
 INTRO_LOGGED_FILED_STALLED = "intro logged, filed as stalled"
@@ -887,6 +903,72 @@ def retriable(o: dict, today: date) -> bool:
     return i is not None and not i["live"] and not o.get("reasked_date", "")
 
 
+def unresolved_ask(o: dict, today: date) -> dict | None:
+    """The ask an outcome row leaves open on its connector, or None. Open while
+    no intro has followed it: the connector agreed (responded Y) and never
+    delivered, or never replied; a retry (reasked_date) is a fresh ask nobody
+    has answered, whatever the first one drew. `hold` says what it does to the
+    connector's other paths into the company: HOLD_NUDGE when they agreed (they
+    are never asked there again; the nudge queue owns it), HOLD_WINDOW while an
+    unanswered ask is younger than UNANSWERED_ASK_DAYS (or undated), HOLD_LAST
+    once it is older: askable again, ranked behind every clean path."""
+    reasked = o.get("reasked_date", "")
+    if o["intro_sent"].strip() == "Y" and not reasked:
+        return None
+    agreed = o["responded"].strip() == "Y" and not reasked
+    asked_on = reasked or o["asked_date"]
+    d = parse_date(asked_on or "")
+    days = (today - d).days if d else None
+    if agreed:
+        hold = HOLD_NUDGE
+    elif days is None or days <= UNANSWERED_ASK_DAYS:
+        hold = HOLD_WINDOW
+    else:
+        hold = HOLD_LAST
+    return {
+        "request_id": o["request_id"], "connector": o["connector_asked"], "asked_date": asked_on,
+        "agreed_date": o["response_date"] if agreed else "", "agreed": agreed, "days": days, "hold": hold,
+    }
+
+
+def unresolved_asks(outcomes: list[dict], company_of: dict[str, str], today: date) -> dict[tuple[str, str], dict]:
+    """(connector, company_id) -> the ask that holds the connector's paths into
+    the company (unresolved_ask), one per pair: the most binding when there are
+    several - an agreed ask over an unanswered one, a younger unanswered one
+    over an older - so a connector with an open agreement at a company is on
+    nudge however many times they were asked there."""
+    held: dict[tuple[str, str], dict] = {}
+    for o in outcomes:
+        cid = company_of.get(o["request_id"], "")
+        u = unresolved_ask(o, today) if cid else None
+        if u is None:
+            continue
+        key = (u["connector"], cid)
+        if key not in held or hold_rank(u) < hold_rank(held[key]):
+            held[key] = u
+    return held
+
+
+def hold_rank(u: dict) -> tuple[int, int]:
+    """Sort key for unresolved asks on one (connector, company): the one that
+    binds hardest first."""
+    return HOLD_ORDER.index(u["hold"]), u["days"] if u["days"] is not None else -1
+
+
+def hold_reason(u: dict) -> str:
+    """An unresolved ask in words, for exception_reason and the dashboards:
+    'Dana Whitfield agreed on 2026-02-05 (R1113), no intro - nudge' /
+    'Owen Trask asked on 2026-08-20 (R1015), no reply - day 17 of 60' /
+    'Priya Raghunathan asked on 2025-11-13 (R1084), no reply for 297 days - askable, ranked last'."""
+    who, rid = u["connector"], u["request_id"]
+    if u["hold"] == HOLD_NUDGE:
+        return f"{who} agreed on {u['agreed_date'] or u['asked_date']} ({rid}), no intro - nudge"
+    if u["hold"] == HOLD_WINDOW:
+        when = f"day {u['days']} of {UNANSWERED_ASK_DAYS}" if u["days"] is not None else "undated"
+        return f"{who} asked on {u['asked_date'] or '?'} ({rid}), no reply - {when}"
+    return f"{who} asked on {u['asked_date']} ({rid}), no reply for {u['days']} days - askable, ranked last"
+
+
 def meeting_stalled(i: dict, requested_after: list[str]) -> bool:
     """A meeting that has not become an opportunity within INTRO_LIVE_DAYS while
     requests filed after the intro wait on the company: the intro no longer
@@ -1210,15 +1292,19 @@ def load_threads(extra: Path | None = None) -> dict[str, dict]:
     return out
 
 
-def best_route(paths: list[dict], roster: dict, rates: dict, industry: str, exclude_connector: str = "") -> tuple[dict | None, float]:
-    best, best_rank, best_score = None, None, 0.0
-    for p in paths:
-        if p["connector"] == exclude_connector:
-            continue
-        rank = path_rank(p, roster, rates, industry)
-        if rank[1] < 0 and (best_rank is None or rank < best_rank):
-            best, best_rank, best_score = p, rank, -rank[1]
-    return best, best_score
+def best_route(paths: list[dict], roster: dict, rates: dict, industry: str, exclude_connector: str = "",
+               held: dict[tuple[str, str], dict] | None = None, company_id: str = "") -> tuple[dict | None, float]:
+    """The path the allocator would try first, with its route score: allocator
+    order (path_rank), and with `held` (unresolved_asks) the connectors sitting
+    on an unresolved ask at the company stepped over or behind (hold_paths).
+    (None, 0.0) when no path scores."""
+    ordered = [p for rank, p in sorted(((path_rank(p, roster, rates, industry), p) for p in paths
+                                        if p["connector"] != exclude_connector), key=lambda t: t[0]) if rank[1] < 0]
+    if held is not None:
+        ordered, _ = hold_paths(ordered, held, company_id)
+    if not ordered:
+        return None, 0.0
+    return ordered[0], path_score(ordered[0], roster, rates, industry)
 
 
 def path_score(p: dict, roster: dict, rates: dict, industry: str) -> float:
@@ -1235,6 +1321,25 @@ def path_rank(p: dict, roster: dict, rates: dict, industry: str) -> tuple[int, f
     ones, then by route score. The roster is asked first; our wider network fills
     in only when no roster path exists or every one is out of capacity."""
     return (int(p["reach_type"] == INVESTOR_NETWORK), -path_score(p, roster, rates, industry))
+
+
+def hold_paths(paths: list[dict], held: dict[tuple[str, str], dict], company_id: str) -> tuple[list[dict], list[dict]]:
+    """Split a company's paths, already in allocator order, by the unresolved
+    asks (unresolved_asks) their connectors hold there: (askable, skipped).
+    Askable keeps the order except that every path of a connector on HOLD_LAST
+    goes behind the rest; skipped is one unresolved ask per connector on
+    HOLD_NUDGE or HOLD_WINDOW, the hardest-bound first, for the exception and
+    the page to say who is being left alone and why."""
+    clean, last, skipped = [], [], {}
+    for p in paths:
+        u = held.get((p["connector"], company_id))
+        if u is None:
+            clean.append(p)
+        elif u["hold"] == HOLD_LAST:
+            last.append(p)
+        else:
+            skipped[p["connector"]] = u
+    return clean + last, sorted(skipped.values(), key=hold_rank)
 
 
 def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company: dict[str, list[dict]],
@@ -1260,6 +1365,13 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     that has gone INTRO_LIVE_DAYS without an opportunity stops parking the
     company once requests are filed after it (meeting_stalled): its open
     requests are routed again, as retries.
+    A connector with an unresolved ask at the company (unresolved_asks) is
+    left alone there: skipped for good while they have agreed and not
+    delivered (the nudge queue owns it), skipped for UNANSWERED_ASK_DAYS while
+    they have not replied (the chase queue owns it), and after that askable
+    again but behind every clean path (hold_paths). When every path is held the
+    request is an exception (UNRESOLVED_ASK, naming each ask) rather than a
+    fresh ask to someone already sitting on one.
     Roster paths are tried before investor_network ones whatever their scores
     (path_rank). Once every connector with a path is spent the request becomes
     an exception. Requests
@@ -1276,8 +1388,9 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     for rq in resolved.values():
         if rq["company"] and rq["facts"]["status_as_filed"] in OPEN_STATUSES:
             open_since[rq["company"].company_id].append(rq["facts"]["request_date"])
-    introduced = introductions(outcomes, {rid: rq["company"].company_id for rid, rq in resolved.items() if rq["company"]},
-                               today, open_since)
+    company_of = {rid: rq["company"].company_id for rid, rq in resolved.items() if rq["company"]}
+    introduced = introductions(outcomes, company_of, today, open_since)
+    held = unresolved_asks(outcomes, company_of, today)
     live = [(rid, rq) for rid, rq in resolved.items()
             if rq["facts"]["status_as_filed"] in OPEN_STATUSES and (rid not in asked or rid in retry)]
     live.sort(key=lambda t: (URGENCY_RANK.get(t[1]["facts"]["urgency_declared"], 9),
@@ -1307,17 +1420,22 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
         if company is None:
             row["exception_reason"] = "company unresolved"
             continue
-        scored = [(-rank[1], p) for rank, p in sorted(((path_rank(p, roster, rates, industry), p) for p in paths),
-                                                       key=lambda t: t[0]) if rank[1] < 0]
-        if scored:
-            best_sc, best = scored[0]
-            row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {best_sc:.2f})"
+        ordered = [p for rank, p in sorted(((path_rank(p, roster, rates, industry), p) for p in paths),
+                                           key=lambda t: t[0]) if rank[1] < 0]
+        askable, skipped = hold_paths(ordered, held, company.company_id)
+        scored = [(path_score(p, roster, rates, industry), p) for p in askable]
+        if ordered:
+            best = askable[0] if askable else ordered[0]
+            row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {path_score(best, roster, rates, industry):.2f})"
         intro = introduced.get(company.company_id)
         if intro and intro["live"]:
             row["exception_reason"] = introduced_reason(intro)
             continue
+        if not ordered:
+            row["exception_reason"] = NO_PATH
+            continue
         if not scored:
-            row["exception_reason"] = "no path to this company in the network"
+            row["exception_reason"] = f"{UNRESOLVED_ASK}: " + "; ".join(hold_reason(u) for u in skipped)
             continue
         for sc, p in scored:
             n = p["connector"]
@@ -1499,6 +1617,8 @@ def blocked_reason(company: Company | None, paths: list[dict], roster: dict, all
         return STALE_ASK
     if alloc and alloc["exception_reason"].startswith(ALREADY_INTRODUCED):
         return ALREADY_INTRODUCED
+    if alloc and alloc["exception_reason"].startswith(UNRESOLVED_ASK):
+        return UNRESOLVED_ASK
     if not paths:
         return BLOCK_NO_PATH
     if not any(p["connector"] in roster for p in paths):

@@ -11,6 +11,11 @@
 - R1103: filed "Intro sent" but intro_outcomes.csv has no row at all
 - R1146: filed "Intro sent" but intro_outcomes.csv has no row at all
 
+## Currently routing to: nobody (no path to this company in the network)
+
+- this cycle: R1030 unrouted (no path to this company in the network)
+- nobody in the network reaches this company
+
 ## 3. Who can reach them
 
 nobody in the network reaches this company

@@ -272,7 +272,8 @@ class ExportedRulesTest(unittest.TestCase):
         cls.js_extract = {t: r for t, r in zip(cls.texts, js["extracted"])}
 
     def python_top(self, cid):
-        p, _ = bg.best_route(self.live.paths.get(cid, []), self.live.roster, self.live.rates, self.live.industry(cid))
+        p, _ = bg.best_route(self.live.paths.get(cid, []), self.live.roster, self.live.rates, self.live.industry(cid),
+                             held=self.live.held, company_id=cid)
         return (p["connector"], p["reach_type"], p["contact_name"]) if p else None
 
     def test_cue_table_is_parse_py_verbatim(self):
@@ -318,10 +319,18 @@ class ExportedRulesTest(unittest.TestCase):
             self.assertEqual(e["owner"], c["owner"])
             self.assertEqual(len(e["paths"]), len(self.live.paths.get(cid, [])))
             for p in e["paths"]:
-                for k in ("connector", "contact", "title", "evidence", "strength", "fit", "rate", "score", "reason"):
+                for k in ("connector", "contact", "title", "evidence", "strength", "fit", "rate", "score", "reason", "hold", "askable"):
                     self.assertIn(k, p)
-            keys = [(p["reach_type"] == bg.INVESTOR_NETWORK, -p["score"]) for p in e["paths"]]
-            self.assertEqual(keys, sorted(keys), f"{cid}: roster paths first, then by route score")
+                u = self.live.held.get((p["connector"], cid))
+                self.assertEqual(p["hold"], u["hold"] if u else "")
+                self.assertEqual(p["askable"], u is None or u["hold"] == bg.HOLD_LAST)
+            # askable paths first in the allocator's order, a connector who never answered an old ask
+            # here behind them, then the paths of anyone whose unresolved ask rules them out
+            keys = [(not p["askable"], p["hold"] == bg.HOLD_LAST, p["reach_type"] == bg.INVESTOR_NETWORK, -p["score"]) for p in e["paths"]]
+            self.assertEqual(keys, sorted(keys), f"{cid}: roster paths first, then by route score, held connectors behind")
+            if e["best"]:
+                self.assertIn(e["best"]["hold"], ("", bg.HOLD_LAST))
+                self.assertEqual(e["best"]["connector"], next(p["connector"] for p in e["paths"] if p["askable"]))
 
     def test_network_only_companies_are_exported(self):
         """A company the network reaches but nobody has filed is in the payload under a

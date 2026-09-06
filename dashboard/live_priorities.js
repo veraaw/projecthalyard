@@ -229,26 +229,33 @@ const LP = (function () {
       }
       // who it would route to: the best existing path vs any offer in the thread, scored as the build scores them
       // (path strength x focus fit x delivery rate); expected value then multiplies by the request priority
-      // and the slots left, as the allocator does. Every factor comes from the payload.
+      // and the slots left, as the allocator does. Every factor comes from the payload. A connector sitting on
+      // an unresolved ask at this company (C.holds) is stepped over: they agreed and sent no intro (nudge them),
+      // or have not answered yet (chase them); one who never answered an ask older than the window is askable
+      // again but ranks behind everyone else, offer or path.
       const C = get(P.companies, row.company_id || row.network || '', null);
       const priority = C ? C.priority : { request_priority: 0, deal_source: 'no deal value on file',
                                           components: { deal_value_musd: 0, stage_weight: P.no_crm_weight, age: 1, reps_waiting: 1 } };
+      const holdOf = who => C ? get(C.holds, who, null) : null;
       const cand = (who, score, label, strength, fit, rate, capacity_left) => ({
-        who, score, label, connector_score: score * capacity_left,
+        who, score, label, connector_score: score * capacity_left, hold: (holdOf(who) || { hold: '' }).hold,
         expected_value: priority.request_priority * score * capacity_left, if_slot: priority.request_priority * score,
         components: { path_strength: strength, focus_fit: fit, delivery_rate: rate, capacity_left },
       });
-      const cands = [];
+      const cands = [], held = [];
       if (C && C.best) cands.push(cand(C.best.connector, C.best.score, C.best.label, C.best.strength, C.best.fit, C.best.rate, C.best.capacity_left));
       for (const o of offers) {
+        const h = holdOf(o.who);
+        if (h && !h.askable) { held.push(h); human.push(`${o.who} offers, but ${h.reason}: ${h.hold === 'nudge' ? 'nudge' : 'chase'} them instead of asking afresh`); continue; }
         const score = C ? get(C.offer_score, o.who, C.offer_score_unknown) : get(P.offer_score_no_industry, o.who, P.offer_score_unknown);
         const conn = get(P.connectors, o.who, null);
         const fit = C ? get(C.offer_fit, o.who, P.unknown_fit) : P.unknown_fit, rate = conn ? conn.rate : P.prior_rate;
         const cap = conn ? conn.capacity : P.off_roster_capacity, idle = conn ? conn.idle : cap;
         cands.push(cand(o.who, score, 'offered in Slack', P.offer_base, fit, rate, cap ? Math.max(0, idle) / cap : 0));
       }
-      cands.sort((a, b) => b.score - a.score);
-      row.cands = cands; row.priority = priority;
+      if (C) for (const p of C.paths) { const h = holdOf(p.connector); if (h && !h.askable && !held.includes(h)) held.push(h); }
+      cands.sort((a, b) => (a.hold === 'last') - (b.hold === 'last') || b.score - a.score);
+      row.cands = cands; row.priority = priority; row.held = held.map(h => h.reason);
       if (offers.length) { row.offer_by = offers.map(o => o.who).join(' | '); row.offer_text = offers.map(o => o.text).join(' | '); }
       if (filed && filed.asked) {
         row.path = 'already asked, so not re-routed';
@@ -258,6 +265,10 @@ const LP = (function () {
         if (conn && conn.idle <= 0) human.push(`${best.who} has no slot left this cycle, so this would be "capacity exhausted" unless a slot frees`);
         if (conn && !conn.on_roster) human.push(`${best.who} is not on the connector roster`);
         if (!conn) human.push(`${best.who} is unknown to the roster and the outcome log`);
+        if (best.hold === 'last') human.push(`${best.who} never answered an earlier ask here; every other path is held, so they are asked again`);
+      } else if (held.length) {
+        row.path = 'unresolved ask on every path';
+        human.push(`unresolved ask on every path, an exception unless someone else offers: ${held.map(h => h.reason).join('; ')}`);
       } else {
         row.path = 'no path';
         if (row.company_id || row.network) human.push('no path to this company in the network, an exception unless someone offers');
@@ -322,14 +333,18 @@ const LP = (function () {
     }
     out.company = C; out.crm = C.crm; out.network = !!C.network;
     out.paths = C.paths;
-    out.top = C.paths.find(p => p.score > 0) || null;
+    out.top = C.paths.find(p => p.score > 0 && p.askable) || null;
     out.priority = out.top ? {
       ...C.priority, connector_score: out.top.connector_score,
       expected_value: +(C.priority.request_priority * out.top.connector_score).toFixed(4),
       connector_components: { path_strength: out.top.strength, focus_fit: out.top.fit, delivery_rate: out.top.rate, capacity_left: out.top.capacity_left },
     } : { ...C.priority, connector_score: 0, expected_value: 0, connector_components: null };
+    const heldOnly = !out.top && C.paths.some(p => p.score > 0 && !p.askable);
     out.status = out.top ? 'routed' : 'no-path';
-    out.note = out.top ? '' : `no path on the roster: nobody in the network reaches ${C.company_name}. It would be an exception this cycle unless someone offers.`;
+    out.note = out.top ? ''
+      : heldOnly ? `unresolved ask on every path into ${C.company_name}: ${C.paths.filter(p => !p.askable).map(p => p.reason.split(' · ').pop()).join('; ')}. Nobody is asked again; it would be an exception this cycle unless someone else offers.`
+      : `no path on the roster: nobody in the network reaches ${C.company_name}. It would be an exception this cycle unless someone offers.`;
+    if (out.top && out.top.hold === 'last') out.note = `${out.top.connector} never answered an earlier ask here; every other path is held, so they are asked again.`;
     if (C.network) out.note = `${C.company_name} is not on file: no CRM account, never requested. The network reaches it${C.path_count ? ` (${plural(C.path_count, 'path')})` : ''}; filing this request creates the company and the next rebuild routes it as ranked below. Create the CRM account (see CRM Updates).${out.note ? ' ' + out.note : ''}`;
     return out;
   }
@@ -723,8 +738,10 @@ const LP = (function () {
       + `</details></section>`;
 
     // requests the allocator could not place this cycle, by reason
-    const EXCEPTION_TITLE = { 'no path to this company in the network': 'no direct path to this company in the network', 'already introduced': 'already introduced — extend the intro' };
-    const EXCEPTION_NOTE = { 'no path to this company in the network': 'Not routable this cycle (sourcing issue vs. allocation)' };
+    const EXCEPTION_TITLE = { 'no path to this company in the network': 'no direct path to this company in the network', 'already introduced': 'already introduced — extend the intro',
+                              'unresolved ask on every path': 'unresolved ask on every path — nudge or chase, don’t ask afresh' };
+    const EXCEPTION_NOTE = { 'no path to this company in the network': 'Not routable this cycle (sourcing issue vs. allocation)',
+                             'unresolved ask on every path': 'Everyone who reaches the company is sitting on an ask there: agreed and sent no intro (Core bottlenecks, nudge), or not yet answered (chase). Nobody is asked again until it resolves or, unanswered, ages past the window.' };
     const parked = A.exceptions.find(e => e.reason === 'already introduced');
     sec.exceptions = `<section id="exceptions">${fold(`Unrouted Exceptions <span class="foot">${plural(A.exception_count, 'request')} not allocated in cycle ${esc(A.cycle)}: ${A.exceptions.map(e => `${e.count} ${esc((EXCEPTION_TITLE[e.reason] || e.reason).replace(' to this company in the network', ''))}`).join(', ')} · from <code>golden_allocation.csv</code></span>`)}`
       + (parked ? `<p class="lede">${plural(parked.count, 'request')} · ${esc(parked.value_fmt)} parked behind a live intro → <a href="#introduced">Already Introduced</a>, not repeated here</p>` : '');
@@ -755,11 +772,11 @@ const LP = (function () {
     // no slot spent: a nudge the connector owes, not a fresh ask
     const B = D.bottlenecks;
     sec.bottlenecks = `<section id="bottlenecks">${fold(`Core Introduction Bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro · <code>intro_outcomes.csv</code></span>`)}
-      <p class="lede">Each of these wants a <b>nudge</b>. Asking again would spend a fresh slot for an answer you already have. Tick the row once you have nudged; it comes back after ${B.quiet_days} quiet days.</p>`
+      <p class="lede">Each of these wants a <b>nudge</b>. Asking again would spend a fresh slot for an answer you already have, so while it stands the connector is not routed a new ask at that company. Tick the row once you have nudged; it comes back after ${B.quiet_days} quiet days.</p>`
       + tabs('bottlenecks', [{ label: 'All connectors', n: B.count, rows: B.rows, note: `${plural(B.count, 'ask')} · oldest agreement first` }]
           .concat(B.by_connector.map(c => ({ label: c.connector, n: c.count, rows: B.rows.filter(r => r.connector === c.connector), note: `${plural(c.count, 'ask')}${c.on_roster ? '' : ' · off roster'}` }))),
         t => `<p class="foot">${t.note}</p><table class="top"><thead><tr><th></th><th>action</th><th>request</th><th>company</th><th>value</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
-          + t.rows.map(r => { const k = nudgeTick(X, r); return `<tr class="${doneClass(state, k)}">${tick(state, k)}<td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.value_fmt)}${r.value_source === 'crm' ? ' <span class="foot">CRM</span>' : r.value_source === 'deal' ? ' <span class="foot">latest ask</span>' : ''}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`; }).join('')
+          + t.rows.map(r => { const k = nudgeTick(X, r); return `<tr class="${doneClass(state, k)}">${tick(state, k)}<td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.status)}</span></td><td>${co(r)}${r.blocking && r.blocking.length ? `<br><span class="foot" title="no one else reaches the company: these requests are exceptions until this resolves">holds up ${r.blocking.map(esc).join(', ')}</span>` : ''}</td><td>${esc(r.value_fmt)}${r.value_source === 'crm' ? ' <span class="foot">CRM</span>' : r.value_source === 'deal' ? ' <span class="foot">latest ask</span>' : ''}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`; }).join('')
           + `</tbody></table>`)
       + (B.nudged.length ? `<p class="foot">Nudged in the last ${B.quiet_days} days, off the list until then: ${B.nudged.map(r => `${co(r)} (${esc(r.connector)}, ${esc(r.nudged_on)}, ${r.days_since_nudged}d ago)`).join(' · ')}.</p>` : '')
       + `</details></section>`;
@@ -829,9 +846,10 @@ const LP = (function () {
     if (x.note) out += `<div class="route-note${x.status === 'routed' ? ' ok' : ''}">${esc(x.note)}</div>`;
     if (x.paths.length) {
       const shown = C && C.path_count > x.paths.length ? ` · the best ${x.paths.length} of ${C.path_count}` : '';
-      out += `<h3>Ranked connectors <span class="foot">best first: path strength × focus fit × delivery rate, as <code>build_golden.py</code> scores them${shown}</span></h3>
+      const heldNote = x.paths.some(p => p.hold) ? '; a connector sitting on an unresolved ask here is skipped (nudge or chase them), or ranked last once it is older than the window' : '';
+      out += `<h3>Ranked connectors <span class="foot">best first: path strength × focus fit × delivery rate, as <code>build_golden.py</code> scores them${heldNote}${shown}</span></h3>
         <table><thead><tr><th>#</th><th>connector</th><th>path</th><th class="num">score</th><th>why</th></tr></thead><tbody>`
-        + x.paths.map((p, i) => `<tr class="${p.score > 0 ? '' : 'foot'}"><td class="order">${i + 1}</td><td><b>${esc(p.connector)}</b>${p.on_roster ? '' : '<br><span class="foot">not on the roster</span>'}</td><td class="path">${esc(p.reach_type)}${p.contact ? `<br><span class="foot">${esc(p.contact)}</span>` : ''}</td><td class="num"><span class="c" title="${p.strength} strength × ${p.fit} fit × ${p.rate} delivery rate">${p.score.toFixed(3)}</span></td><td class="foot">${esc(p.reason)}${p.score > 0 ? '' : '; <b>would not be routed</b>'}</td></tr>`).join('')
+        + x.paths.map((p, i) => `<tr class="${p.score > 0 && p.askable ? '' : 'foot'}"><td class="order">${i + 1}</td><td><b>${esc(p.connector)}</b>${p.on_roster ? '' : '<br><span class="foot">not on the roster</span>'}</td><td class="path">${esc(p.reach_type)}${p.contact ? `<br><span class="foot">${esc(p.contact)}</span>` : ''}</td><td class="num"><span class="c" title="${p.strength} strength × ${p.fit} fit × ${p.rate} delivery rate">${p.score.toFixed(3)}</span></td><td class="foot">${esc(p.reason)}${p.score <= 0 ? '; <b>would not be routed</b>' : p.askable ? '' : '; <b>not asked again here</b>'}</td></tr>`).join('')
         + `</tbody></table>`;
     } else if (C) out += `<p class="empty">no path on the roster</p>`;
     return out;
@@ -854,7 +872,8 @@ const LP = (function () {
               `request priority ${f3(p.request_priority)} = deal $M ${f2(q.deal_value_musd)} × stage ${f2(q.stage_weight)} × age ${f2(q.age)} × reps ${q.reps_waiting} (deal value is ${p.deal_source}; age 1.0 = posted today)`,
               `connector score ${f3(c.connector_score)} = path ${f2(k.path_strength)} (${c.label}) × fit ${f2(k.focus_fit)} × rate ${f2(k.delivery_rate)} × capacity ${f2(k.capacity_left)}`,
               k.capacity_left <= 0 ? `zero: ${who} has no slot left this cycle; ${f3(c.if_slot)} the moment one frees` : '',
-              r.cands.length > 1 ? `ranked by path × fit × rate: ${r.cands.map(x => `${x.who} ${f3(x.score)}`).join(' > ')}` : ''].filter(Boolean).join('\n');
+              r.cands.length > 1 ? `ranked by path × fit × rate: ${r.cands.map(x => `${x.who} ${f3(x.score)}${x.hold === 'last' ? ' (ranked last: unanswered ask here past the window)' : ''}`).join(' > ')}` : '',
+              r.held && r.held.length ? `not asked again here: ${r.held.join('; ')}` : ''].filter(Boolean).join('\n');
     };
     const named = (r, who) => `<b class="c" title="${esc(workings(r, who))}">${esc(who)}</b>`;
     if (pv.errors.length) out += `<div class="finding warn"><b>${plural(pv.errors.length, 'line')} skipped</b>${pv.errors.slice(0, 5).map(esc).join('<br>')}</div>`;

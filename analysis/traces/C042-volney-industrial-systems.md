@@ -9,16 +9,21 @@
 
 - R1073: filed "Closed - no path" but supply_reach.csv has 4 paths into Volney Industrial Systems
 
+## Currently routing to: Curtis Sandoval-Glückstein
+
+- this cycle: R1002 -> Bertrand Achterberg-Quillane; R1080, R1191 -> Curtis Sandoval-Glückstein
+- top askable path: Curtis Sandoval-Glückstein, investor_network via CEO / exec team, route score 0.215, 2/2 capacity used this cycle
+
 ## 3. Who can reach them
 
 ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.215 | 0.900 | Curtis Sandoval-Glückstein (investor network) | investor_network (board seat) | CEO / exec team — Thornbury Equity board seat | investor_network.csv: Curtis Sandoval-Glückstein (Private equity investor), portfolio_company=Volney Industrial Systems, board_seat=True |
-| 0.172 | 0.720 | Bertrand Achterberg-Quillane (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Bertrand Achterberg-Quillane (Venture capital investor), portfolio_company=Volney Industrial Systems, board_seat=False |
-| 0.172 | 0.720 | Freya Oldfield-Ibarra (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Freya Oldfield-Ibarra (Venture capital investor), portfolio_company=Volney Industrial Systems, board_seat=False |
-| 0.172 | 0.720 | Priya Dobrescu-Prendergast (investor network) | investor_network | CEO / exec team — Thornbury Equity portfolio company | investor_network.csv: Priya Dobrescu-Prendergast (Private equity investor), portfolio_company=Volney Industrial Systems, board_seat=False |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.215 | 0.900 | Curtis Sandoval-Glückstein (investor network) | investor_network (board seat) | CEO / exec team — Thornbury Equity board seat | investor_network.csv: Curtis Sandoval-Glückstein (Private equity investor), portfolio_company=Volney Industrial Systems, board_seat=True |  |
+| 0.172 | 0.720 | Bertrand Achterberg-Quillane (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Bertrand Achterberg-Quillane (Venture capital investor), portfolio_company=Volney Industrial Systems, board_seat=False |  |
+| 0.172 | 0.720 | Freya Oldfield-Ibarra (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Freya Oldfield-Ibarra (Venture capital investor), portfolio_company=Volney Industrial Systems, board_seat=False |  |
+| 0.172 | 0.720 | Priya Dobrescu-Prendergast (investor network) | investor_network | CEO / exec team — Thornbury Equity portfolio company | investor_network.csv: Priya Dobrescu-Prendergast (Private equity investor), portfolio_company=Volney Industrial Systems, board_seat=False |  |
 
 why not #1: Curtis Sandoval-Glückstein at capacity 2/2 (holds R1080, R1191) -> R1002 to Bertrand Achterberg-Quillane
 
