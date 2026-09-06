@@ -130,6 +130,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 #lp table.top tr.done td{color:var(--mute);text-decoration:line-through}
 #lp table.top tr.done td.ev{color:var(--mute)}
 #lp table.top tr.quiet td{color:var(--mute)}
+#lp table.top tr.owned td{color:var(--mute)}
 #lp table.top .tick{width:16px;height:16px;accent-color:var(--blue)}
 #lp .parts .c{border-bottom:1px dotted var(--mute);cursor:help}
 #lp th .fm{font-weight:400;font-size:11px;text-transform:none;letter-spacing:0}
@@ -563,14 +564,13 @@ const LP = (function () {
 
   // ------------------------------------------------------------ completions
   // A tick is one thing someone did: an ask sent (Top priorities), a nudge or a
-  // chase sent (Core bottlenecks, a connector's "already sitting on"), a company
-  // checked in on (Overdue a check-in). Ticks wait in this
-  // browser until Submit posts them, one row each, to the Supabase
+  // chase sent (Core bottlenecks, a connector's "already sitting on"). Ticks wait
+  // in this browser until Submit posts them, one row each, to the Supabase
   // `completions` table (X.supabase_url, anon key: insert only). The scheduled
   // rebuild pulls the table into golden/completions.csv and the ticked items
-  // leave the queue. completion_id is <request_id>:<action>:<day>
-  // (company_id for a check-in), so submitting the same tick twice
-  // hits the primary key and lands nothing new; the build applies it once.
+  // leave the queue. completion_id is <request_id>:<action>:<day>, so submitting
+  // the same tick twice hits the primary key and lands nothing new; the build
+  // applies it once.
   const tickKey = t => `${t.action}:${t.request_id || t.company_id}`;
   const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } };
   const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
@@ -632,8 +632,7 @@ const LP = (function () {
   const nudgeTick = (X, r) => ({ action: X.actions.bottlenecks, request_id: r.request_id, company_id: r.company_id, connector: r.connector, note: `${r.company_name} · agreed ${r.agreed_date || r.asked_date}` });
   // a connector's outstanding ask: `nudge` (they agreed — the same row as Core bottlenecks) or `chase` (never replied)
   const followTick = (X, s) => ({ action: X.actions[s.action], request_id: s.request_id, company_id: s.company_id, connector: s.connector, note: `${s.company_name} · asked ${s.asked_date}` });
-  const checkinTick = (X, r) => ({ action: X.actions.checkins, request_id: '', company_id: r.company_id, connector: '', note: `${r.company_name} · ${r.failed.join(' + ')} overdue` });
-  const actionLabel = { ask_sent: 'ask sent', nudged: 'nudged', chased: 'chased', checked_in: 'checked in' };
+  const actionLabel = { ask_sent: 'ask sent', nudged: 'nudged', chased: 'chased' };
   const describe = r => `${actionLabel[r.action] || r.action} ${esc(r.request_id || r.company_id)}${r.connector ? ` → ${esc(r.connector)}` : ''}`;
 
   const submitBar = X => `<div class="submitbar" id="lp-submit" hidden><span id="lp-submit-n"></span><button id="lp-submit-go">Submit</button><button id="lp-submit-clear" class="secondary">Clear</button><span id="lp-submit-who"></span><span class="foot">${X.supabase_url ? `records your ticks in the <code>${esc(X.table)}</code> table; the site rebuilds from it every 15 minutes and the ticked items leave the queue` : '<b class="warn">this build cannot submit: no Supabase URL / anon key</b>'}</span></div>`;
@@ -959,13 +958,12 @@ const LP = (function () {
     sec.unrouted += `</details></section>`;
 
     const K = D.checkins;
-    sec.checkins = `<section id="checkins">${fold(`Overdue a check-in <span class="foot">${plural(K.count, 'company')} with requests and a CRM account; ${K.both} failed both tests</span>`)}
-      <p class="lede">Two tests, ${K.days} days each: has anyone touched the CRM account, and has anyone asked a connector for an intro. A company failing both is being neither sold to nor networked into. The CRM touch is the account owner's; the intro ask is whoever is routing. Tick a company once you have checked in; it comes back after ${K.days} days if nothing else moves.</p>
-      <table class="top"><thead><tr><th></th><th>company</th><th>owner</th><th>stage</th><th>CRM last_touch_date</th><th>last intro ask</th><th>failed</th><th>live</th><th>action lives</th></tr></thead><tbody>`
-      + K.rows.map(r => { const k = checkinTick(X, r); return `<tr class="${doneClass(state, k)}">${tick(state, k)}<td>${co(r)}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage)}</td><td class="date">${esc(r.last_touch_date || 'never')}${r.touch_days != null ? ` <span class="foot">${r.touch_days}d</span>` : ''}</td><td class="date">${esc(r.last_ask_date || 'never')}${r.ask_days != null ? ` <span class="foot">${r.ask_days}d</span>` : ''}</td><td>${r.failed.map(f => `<b class="${r.failed.length === 2 ? 'warn' : ''}">${esc(f)}</b>`).join(' + ')}</td><td>${r.live_requests ? `${r.live_requests} · ${esc(r.live_value_fmt)}` : '—'}</td><td class="foot">${r.failed.map(f => f === 'CRM touch' ? `${esc(r.owner || 'nobody')} in the CRM` : r.live_requests ? '<a href="#top">the queue</a>' : 'nobody — no live request').join('<br>')}${r.href ? `<br><a href="${esc(r.href)}">trace</a>` : ''}</td></tr>`; }).join('')
-      + `</tbody></table>`
-      + (K.checked_in.length ? `<p class="foot">Checked in on in the last ${K.days} days, off the list until then: ${K.checked_in.map(r => `${co(r)} (${esc(r.checked_in_on)}, ${r.days_since_checked_in}d ago)`).join(' · ')}.</p>` : '')
-      + `</details></section>`;
+    const ownedBy = r => r.owned_by ? `<a class="foot" href="#${esc(r.owned_by)}">→ ${esc(r.owned_by_title)}</a>` : `<b>${esc(r.owner || 'nobody')}</b> <span class="foot">in the CRM</span>`;
+    sec.checkins = `<section id="checkins">${fold(`Overdue a check-in <span class="foot">${plural(K.count, 'company')} with live requests and no CRM touch in ${K.days} days; ${K.unique} owned by no other section</span>`)}
+      <p class="lede"><b>${plural(K.count, 'company')} with live requests ${K.count === 1 ? 'has' : 'have'} had no CRM touch in ${K.days} days. ${K.both} ${K.both === 1 ? 'has' : 'have'} had no intro ask either.</b> Those are being neither sold to nor networked into. ${K.owned} of them already sit in another section that owns the next move — the pointer says which; the ${plural(K.unique, 'company')} nothing else owns ${K.unique === 1 ? 'is' : 'are'} at the top, and a check-in is the only action left on them.</p>
+      <table class="top"><thead><tr><th>company</th><th>owner</th><th>stage</th><th>CRM last_touch_date</th><th>last intro ask</th><th>failed</th><th>live</th><th>action owned by</th></tr></thead><tbody>`
+      + K.rows.map(r => `<tr class="${r.owned_by ? 'owned' : ''}"><td>${co(r)}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage)}</td><td class="date">${esc(r.last_touch_date || 'never')}${r.touch_days != null ? ` <span class="foot">${r.touch_days}d</span>` : ''}</td><td class="date">${esc(r.last_ask_date || 'never')}${r.ask_days != null ? ` <span class="foot">${r.ask_days}d</span>` : ''}</td><td>${r.failed.map(f => `<b class="${r.failed.length === 2 ? 'warn' : ''}">${esc(f)}</b>`).join(' + ')}</td><td>${r.live_requests} · ${esc(r.live_value_fmt)}</td><td>${ownedBy(r)}</td></tr>`).join('')
+      + `</tbody></table></details></section>`;
 
     // ---- assemble: five labelled bands, each carrying its membership test
     let out = `<p class="stamp" id="lp-stamp">as of <b>${esc(D.as_of)}</b></p>`;

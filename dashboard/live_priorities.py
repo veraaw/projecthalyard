@@ -11,9 +11,9 @@ rules (golden/parse.py cues, golden/build_golden.py OFFER_RE, and the
 golden/resolver.py lookup tables) are exported into the payload and applied
 verbatim by the browser, so a dropped .jsonl previews exactly what
 `python3 golden/build_golden.py --threads FILE` would file. And Submit: the
-tick-boxes on Top priorities (an ask sent), Core bottlenecks (a nudge sent),
-the connector pages' "already sitting on" (a nudge or a chase sent) and Overdue
-a check-in (a company checked in on) are posted, one row each, to the Supabase
+tick-boxes on Top priorities (an ask sent), Core bottlenecks (a nudge sent) and
+the connector pages' "already sitting on" (a nudge or a chase sent) are posted,
+one row each, to the Supabase
 `completions` table with the anon key (insert-only; the
 URL and key come from SUPABASE_URL / SUPABASE_ANON_KEY at build time, never
 from this file). The scheduled rebuild (.github/workflows/rebuild.yml) pulls
@@ -764,15 +764,40 @@ class Live:
         return out
 
     # -- 7. overdue a check-in ------------------------------------------------
+    def owned_elsewhere(self) -> dict[str, str]:
+        """company_id -> the first section, in page order, that already holds an
+        action on the company: an ask to send (Top priorities, Current asks), an
+        offer to answer, a nudge, a connector's follow-up, an unrouted ask to
+        place, a CRM fix. A company in none of them is this section's alone."""
+        listed = {
+            "top": [r["company_id"] for r in self.priorities()["top"]],
+            "asks": [c["company_id"] for b in self.asks()["batches"] for c in b["companies"]],
+            "offers": [r["company_id"] for r in self.offer_gaps()["rows"]],
+            "bottlenecks": [r["company_id"] for r in self.bottlenecks()["rows"]],
+            "connectors": [s["company_id"] for c in self.connectors() for s in c["sitting_on"]],
+            "unrouted": [x["company_id"] for c in self.unrouted()["per_connector"] for x in c["companies"]],
+            "crm": [r["company_id"] for g in self.crm()["groups"] for r in g["rows"]],
+        }
+        out: dict[str, str] = {}
+        for section, _ in SECTIONS:
+            for cid in listed.get(section, []):
+                if cid:
+                    out.setdefault(cid, section)
+        return out
+
     def checkins(self) -> dict:
-        """Companies with requests and a CRM account that nobody has touched (CRM
-        last_touch_date) or asked a connector about in CHECKIN_DAYS. One checked in
-        on in that window (golden_companies.checked_in_on, from completions.csv) is
-        listed under `checked_in` instead and comes back when the window passes."""
-        rows, checked_in = [], []
+        """Companies with live requests and a CRM account nobody has touched (CRM
+        last_touch_date) in CHECKIN_DAYS; `both` of them have had no connector asked
+        about them in that window either. Every row already listed in another
+        section carries `owned_by`, the section that owns the action on it; the rows
+        nothing else owns sort first, so the page's sections stay mutually exclusive."""
+        titles = dict(SECTIONS)
+        owned = self.owned_elsewhere()
+        rows = []
         for cid, c in self.companies.items():
             accts = [self.accounts[a] for a in bar(c["crm_account_ids"]) if a in self.accounts]
-            if not accts or not int(c["total_requests"] or 0):
+            live = [r for r in self.by_company.get(cid, []) if r["status_as_filed"] in bg.OPEN_STATUSES]
+            if not accts or not live:
                 continue
             touch = max((parse_date(a["last_touch_date"]) for a in accts if a["last_touch_date"]), default=None)
             asks = [parse_date(self.outcome_by_rid[r["request_id"]]["asked_date"]) for r in self.by_company.get(cid, [])
@@ -780,27 +805,23 @@ class Live:
             last_ask = max((d for d in asks if d), default=None)
             touch_days = (self.today - touch).days if touch else None
             ask_days = (self.today - last_ask).days if last_ask else None
-            touch_failed = touch_days is None or touch_days > CHECKIN_DAYS
-            ask_failed = ask_days is None or ask_days > CHECKIN_DAYS
-            if not (touch_failed or ask_failed):
+            if touch_days is not None and touch_days <= CHECKIN_DAYS:
                 continue
-            live = [r for r in self.by_company.get(cid, []) if r["status_as_filed"] in bg.OPEN_STATUSES]
-            checked = parse_date(c.get("checked_in_on", ""))
-            checked_days = (self.today - checked).days if checked else None
-            row = {
+            ask_failed = ask_days is None or ask_days > CHECKIN_DAYS
+            rows.append({
                 **self.company_ref(cid), "owner": c["owner"], "stage": c["stage"],
-                "checked_in_on": c.get("checked_in_on", ""), "days_since_checked_in": checked_days,
                 "last_touch_date": touch.isoformat() if touch else "", "touch_days": touch_days,
                 "last_ask_date": last_ask.isoformat() if last_ask else "", "ask_days": ask_days,
-                "failed": [t for t, f in (("CRM touch", touch_failed), ("intro ask", ask_failed)) if f],
+                "failed": ["CRM touch", "intro ask"] if ask_failed else ["CRM touch"],
                 "live_requests": len(live), "live_value_fmt": money(sum(usd(r["value_usd"]) for r in live)),
                 "live_value_usd": sum(usd(r["value_usd"]) for r in live),
-            }
-            (checked_in if checked_days is not None and 0 <= checked_days < CHECKIN_DAYS else rows).append(row)
-        rows.sort(key=lambda r: (-len(r["failed"]), -r["live_value_usd"], r["company_name"]))
-        checked_in.sort(key=lambda r: (r["checked_in_on"], r["company_name"]))
+                "owned_by": owned.get(cid, ""), "owned_by_title": titles.get(owned.get(cid, ""), ""),
+            })
+        rows.sort(key=lambda r: (bool(r["owned_by"]), -len(r["failed"]), -r["live_value_usd"], r["company_name"]))
         return {"days": CHECKIN_DAYS, "rows": rows, "count": len(rows),
-                "both": sum(1 for r in rows if len(r["failed"]) == 2), "checked_in": checked_in}
+                "both": sum(1 for r in rows if len(r["failed"]) == 2),
+                "unique": sum(1 for r in rows if not r["owned_by"]),
+                "owned": sum(1 for r in rows if r["owned_by"])}
 
     # -- 8. unrouted company asks, per connector -------------------------------
     def unrouted(self) -> dict:
@@ -888,10 +909,9 @@ class Live:
             "supabase_url": bg.supabase_rest(url) if url else "",
             "anon_key": os.environ.get("SUPABASE_ANON_KEY", "").strip(),
             "table": bg.SUPABASE_TABLE, "columns": bg.COMPLETION_COLUMNS,
-            "actions": {"top": bg.ASKED, "bottlenecks": bg.NUDGED, "nudge": bg.NUDGED, "chase": bg.CHASED,
-                        "checkins": bg.CHECKED_IN},
+            "actions": {"top": bg.ASKED, "bottlenecks": bg.NUDGED, "nudge": bg.NUDGED, "chase": bg.CHASED},
             "ids": sorted(c["completion_id"] for c in self.completions), "count": len(self.completions),
-            "quiet_days": NUDGE_QUIET_DAYS, "checkin_days": CHECKIN_DAYS,
+            "quiet_days": NUDGE_QUIET_DAYS,
             "stamp": BUILD_STAMP.name, "repo_url": repo_url(), "workflow": WORKFLOW_FILE,
             "path": bg.COMPLETIONS_OUT.relative_to(bg.ROOT).as_posix(),
         }
@@ -1046,6 +1066,6 @@ if __name__ == "__main__":
           + ", ".join(r["request_id"] for r in p["offer_gaps"]["rows"]))
     print(f"bottlenecks {p['bottlenecks']['count']} nudges" + (f", {len(p['bottlenecks']['nudged'])} nudged recently" if p['bottlenecks']['nudged'] else ""))
     print(f"completions {p['completions']['count']} on file")
-    print(f"check-ins   {p['checkins']['count']} overdue ({p['checkins']['both']} failed both)")
+    print(f"check-ins   {p['checkins']['count']} overdue ({p['checkins']['both']} failed both, {p['checkins']['unique']} owned by no other section)")
     print("unrouted   ", ", ".join(f"{c['connector'].split()[0]} {c['count']}" for c in p["unrouted"]["per_connector"]))
     print("crm        ", ", ".join(f"{g['count']} {g['group']}" for g in p["crm"]["groups"]))

@@ -509,6 +509,7 @@ nav.bands a.band{{font-weight:600;font-size:12px;text-transform:uppercase;letter
 #lp table.top tr.done td{{color:var(--mute);text-decoration:line-through}}
 #lp table.top tr.done td.ev{{color:var(--mute)}}
 #lp table.top tr.quiet td{{color:var(--mute)}}
+#lp table.top tr.owned td{{color:var(--mute)}}
 #lp table.top .tick{{width:16px;height:16px;accent-color:var(--blue)}}
 #lp .parts .c{{border-bottom:1px dotted var(--mute);cursor:help}}
 #lp th .fm{{font-weight:400;font-size:11px;text-transform:none;letter-spacing:0}}
