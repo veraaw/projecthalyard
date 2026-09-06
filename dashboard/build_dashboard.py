@@ -236,18 +236,26 @@ joins_rows = [(link, f"{left:.1f}%", f"{right:.1f}%", note or "—")
               for link, left, right, note in sorted(joins["joins"], key=lambda j: min(j[1], j[2]))]
 joins_table = table(["Link (left -> right)", "Left matched", "Right matched", "What it means"], joins_rows)
 
+demand_12m = data_cuts.account_demand_cut(cuts, since=ROLLING_SINCE)
 demand_top = demand["companies"][:20]
-demand_fig = go.Figure()
-demand_fig.add_bar(y=[b["name"] for b in demand_top][::-1], x=[b["routed"] for b in demand_top][::-1],
-                   name="routed to a connector", orientation="h", marker_color=theme.ACCENT)
-demand_fig.add_bar(y=[b["name"] for b in demand_top][::-1],
-                   x=[b["requests"] - b["routed"] for b in demand_top][::-1],
-                   name="never routed", orientation="h", marker_color=theme.NEUTRAL)
-demand_fig.update_layout(barmode="stack", height=560, autosize=True, margin=dict(l=10, r=20, t=10, b=30),
-                         **theme.PLOTLY_LAYOUT)
-demand_fig.update_layout(legend=dict(orientation="h", y=1.04, x=0),
-                         xaxis=dict(title="asks"), yaxis=dict(automargin=True))
-demand_div = plot(demand_fig, "demand")
+
+
+def demand_chart(dm, div_id):
+    """Top 20 companies by asks, routed vs never routed, for one window of `dm`."""
+    top = dm["companies"][:20]
+    fig = go.Figure()
+    fig.add_bar(y=[b["name"] for b in top][::-1], x=[b["routed"] for b in top][::-1],
+                name="routed to a connector", orientation="h", marker_color=theme.ACCENT)
+    fig.add_bar(y=[b["name"] for b in top][::-1], x=[b["requests"] - b["routed"] for b in top][::-1],
+                name="never routed", orientation="h", marker_color=theme.NEUTRAL)
+    fig.update_layout(barmode="stack", height=560, autosize=True, margin=dict(l=10, r=20, t=10, b=30),
+                      **theme.PLOTLY_LAYOUT)
+    fig.update_layout(legend=dict(orientation="h", y=1.04, x=0), xaxis=dict(title="asks"), yaxis=dict(automargin=True))
+    return plot(fig, div_id)
+
+
+demand_div = demand_chart(demand, "demand")
+demand_div_12m = demand_chart(demand_12m, "demand-12m")
 demand_rows = [(b["name"], b["industry"] or ("—" if b["in_crm"] else "no CRM record"), b["requests"], b["routed"], b["requests"] - b["routed"],
                 len(b["requesters"]), b["paths"], usd(b["value"])) for b in demand_top]
 demand_rows += [(b["name"], "unresolvable", b["requests"], b["routed"], b["requests"] - b["routed"],
@@ -481,6 +489,7 @@ img{{max-width:100%}}
 #lp table.top td.ev{{font-size:18px;font-weight:500;color:var(--blue)}}
 #lp table.top tr.done td{{color:var(--mute);text-decoration:line-through}}
 #lp table.top tr.done td.ev{{color:var(--mute)}}
+#lp table.top tr.quiet td{{color:var(--mute)}}
 #lp table.top .tick{{width:16px;height:16px;accent-color:var(--blue)}}
 #lp .parts .c{{border-bottom:1px dotted var(--mute);cursor:help}}
 #lp th .fm{{font-weight:400;font-size:11px;text-transform:none;letter-spacing:0}}
@@ -890,7 +899,7 @@ live_page = f"""{head("live data dashboard")}
 <section id="funnel">
   <h2>Where the requests go</h2>
   <p class="lede">From <code>golden/golden_requests.csv</code>. Node labels show how many requests survive each step. Pipeline $ is deliberately omitted: the same <code>deal_value_usd</code> would be re-counted at every stage a request passes through.</p>
-  <div class="seg" id="funnel-toggle" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
+  <div class="seg" id="funnel-toggle" data-scope="funnel" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
   <span class="foot" id="funnel-window" data-all="every request on file, {stages_first} to {stages_last}" data-12m="requests dated {ROLLING_SINCE} or later ({counts_12m[0]} of {counts[0]}), rolling from the build date">every request on file, {stages_first} to {stages_last}</span>
   <div class="fview" data-view="12m" hidden>
   {funnel_kpis(counts_12m)}
@@ -925,21 +934,6 @@ live_page = f"""{head("live data dashboard")}
     </div>
   </div>
   </div>
-  <script>
-  (function () {{
-    var seg = document.getElementById('funnel-toggle'), note = document.getElementById('funnel-window');
-    seg.querySelectorAll('button').forEach(function (b) {{
-      b.onclick = function () {{
-        seg.querySelectorAll('button').forEach(function (x) {{ x.classList.toggle('on', x === b); }});
-        document.querySelectorAll('#funnel .fview').forEach(function (v) {{
-          v.hidden = v.dataset.view !== b.dataset.view;
-          if (!v.hidden && window.Plotly) v.querySelectorAll('.js-plotly-plot').forEach(function (p) {{ Plotly.Plots.resize(p); }});
-        }});
-        note.textContent = note.dataset[b.dataset.view];
-      }};
-    }});
-  }})();
-  </script>
 </section>
 
 <section id="accounts">
@@ -952,9 +946,12 @@ live_page = f"""{head("live data dashboard")}
     {kpi(sum(1 for b in demand["companies"] if b["routed"] == 0), "companies never routed once", "nobody was asked for any of their requests")}
   </div>
   <div class="grid2">
-    <div>
+    <div id="demand-views">
       <h3>Top 20 companies by asks</h3>
-      {demand_div}
+      <div class="seg" id="demand-toggle" data-scope="demand-views" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
+      <span class="foot" id="demand-views-window" data-all="every request on file, {stages_first} to {stages_last}" data-12m="requests dated {ROLLING_SINCE} or later ({demand_12m['asks']} of {demand['asks']} asks, {len(demand_12m['companies'])} companies), rolling from the build date">every request on file, {stages_first} to {stages_last}</span>
+      <div class="fview" data-view="12m" hidden>{demand_div_12m}</div>
+      <div class="fview" data-view="all">{demand_div}</div>
     </div>
     <div>
       <h3>Reading it</h3>
@@ -970,6 +967,24 @@ live_page = f"""{head("live data dashboard")}
   <p class="lede">Value is the CRM <code>arr_potential_usd</code> where the company has a CRM account, otherwise the largest <code>deal_value_usd</code> filed on a request. Internal touchpoints are split into roster connectors employed internally versus advisors and investors.</p>
   {top_table}
 </section>
+<script>
+(function () {{
+  // Cumulative / Last 12 months: each .seg swaps the .fview blocks inside its data-scope element
+  document.querySelectorAll('.seg[data-scope]').forEach(function (seg) {{
+    var scope = document.getElementById(seg.dataset.scope), note = document.getElementById(seg.dataset.scope + '-window');
+    seg.querySelectorAll('button').forEach(function (b) {{
+      b.onclick = function () {{
+        seg.querySelectorAll('button').forEach(function (x) {{ x.classList.toggle('on', x === b); }});
+        scope.querySelectorAll('.fview').forEach(function (v) {{
+          v.hidden = v.dataset.view !== b.dataset.view;
+          if (!v.hidden && window.Plotly) v.querySelectorAll('.js-plotly-plot').forEach(function (p) {{ Plotly.Plots.resize(p); }});
+        }});
+        if (note) note.textContent = note.dataset[b.dataset.view];
+      }};
+    }});
+  }});
+}})();
+</script>
 
 <section id="connectors">
   <h2>Connectors — the six on the roster</h2>

@@ -215,8 +215,14 @@ class PayloadTest(unittest.TestCase):
             self.assertEqual(c["used"] + c["idle"], c["capacity"], c["connector"])
             self.assertEqual(len(c["queue"]), c["allocated_this_cycle"])
             self.assertTrue(0 <= c["delivery_rate"] <= 1)
+            self.assertEqual(c["quiet_days"], lp.NUDGE_QUIET_DAYS)
             for s in c["sitting_on"]:
                 self.assertIsInstance(s["responded"], bool)
+                self.assertEqual(s["action"], "nudge" if s["responded"] else "chase", "replied: nudge; silent: chase")
+                self.assertEqual(s["connector"], c["connector"], "the tick carries who to follow up with")
+                self.assertIsInstance(s["quiet"], bool)
+            quiet = [s["quiet"] for s in c["sitting_on"]]
+            self.assertEqual(quiet, sorted(quiet), "actionable rows first, recently followed-up rows last")
 
     def test_checkins_are_two_sixty_day_tests(self):
         K = self.P["checkins"]
@@ -227,6 +233,23 @@ class PayloadTest(unittest.TestCase):
             self.assertIn("CRM touch", r["failed"])
             self.assertEqual("intro ask" in r["failed"], r["ask_days"] is None or r["ask_days"] > 60, r)
         self.assertEqual(K["both"], sum(1 for r in K["rows"] if len(r["failed"]) == 2))
+        for r in K["rows"]:
+            self.assertTrue(r["company_id"], "the tick is on the company")
+            self.assertFalse(0 <= (r["days_since_checked_in"] or 60) < 60, "checked in on this window: not listed")
+        for r in K["checked_in"]:
+            self.assertTrue(0 <= r["days_since_checked_in"] < 60)
+
+    def test_completion_actions_cover_every_tick_and_no_crm(self):
+        X = self.P["completions"]
+        self.assertEqual(X["actions"], {"top": "ask_sent", "bottlenecks": "nudged", "nudge": "nudged",
+                                        "chase": "chased", "checkins": "checked_in"})
+        self.assertEqual(sorted(set(X["actions"].values())), sorted(lp.bg.COMPLETION_KINDS))
+        self.assertEqual((X["quiet_days"], X["checkin_days"]), (lp.NUDGE_QUIET_DAYS, lp.CHECKIN_DAYS))
+        js = (ROOT / "dashboard" / "live_priorities.js").read_text(encoding="utf-8")
+        self.assertNotIn("account_created", js)
+        self.assertNotIn("crmTick", js)
+        for name in ("askTick", "nudgeTick", "followTick", "checkinTick"):
+            self.assertIn(f"const {name} = ", js)
 
     def test_unrouted_in_focus(self):
         U = self.P["unrouted"]
@@ -247,16 +270,8 @@ class PayloadTest(unittest.TestCase):
         self.assertTrue(all(list(r.keys()) == lp.wb.IMPORT_COLUMNS for r in rows))
         self.assertEqual(C["review"]["filename"], "crm_review.csv")
         review = list(csv.DictReader(C["review"]["csv"].splitlines()))
-        self.assertTrue(all(r["status"] == lp.wb.STATUS and r["executed_on"] == "" for r in review if r["group"] != "create"),
-                        "merges and owner changes are recommended, never executed")
-        # a create ticked off on the tab (completions.csv) is reported as executed, off the import and the count
-        created = set(lp.bg.completions_of(lp.bg.load_completions(), lp.bg.CRM_CREATED))
-        for r in review:
-            if r["group"] == "create":
-                self.assertEqual(r["status"], lp.wb.EXECUTED if r["company_id"] in created else lp.wb.STATUS, r)
-        create = C["groups"][0]
-        self.assertEqual({r["company_id"] for r in create["executed"]}, created & {r["company_id"] for r in review})
-        self.assertEqual(create["count"] + len(create["executed"]), sum(r["group"] == "create" for r in review))
+        self.assertTrue(all(r["status"] == lp.wb.STATUS and r["executed_on"] == "" for r in review),
+                        "every CRM row is a recommendation; nothing is executed from the tab")
         self.assertEqual([g["group"] for g in C["groups"]], ["create", "merge", "owners", "reopen"])
 
     def test_connector_pages_top_five_then_the_rest(self):
@@ -420,6 +435,24 @@ class BuiltPagesTest(unittest.TestCase):
         self.assertIn('<div class="fview" data-view="12m" hidden>', html)
         self.assertIn('id="sankey"', html)
         self.assertIn('id="sankey-12m"', html)
+
+    def test_live_data_top_20_by_asks_has_the_same_toggle_as_the_funnel(self):
+        from dashboard import data_cuts
+        html = self.pages["livedata.html"]
+        self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 2, "funnel and Top 20 each carry the toggle")
+        self.assertIn('id="demand-toggle" data-scope="demand-views"', html)
+        self.assertIn('id="demand"', html)
+        self.assertIn('id="demand-12m"', html)
+        cuts = data_cuts.load()
+        every, recent = data_cuts.account_demand_cut(cuts), data_cuts.account_demand_cut(cuts, since="2026-01-01")
+        self.assertGreater(every["asks"], recent["asks"], "the window drops older asks")
+        self.assertTrue(0 < recent["asks"] == sum(b["requests"] for b in recent["companies"] + recent["unresolvable"]))
+        cutoff = {r["request_id"] for r in cuts["golden_requests"].values() if r["request_date"][:10] >= "2026-01-01"}
+        self.assertEqual(recent["asks"], len(cutoff))
+        for b in recent["companies"]:
+            self.assertGreaterEqual(next(e for e in every["companies"] if e["company_id"] == b["company_id"])["requests"],
+                                    b["requests"], b["name"])
+        self.assertEqual(data_cuts.account_demand_cut(cuts, since="2999-01-01")["asks"], 0, "an empty window does not divide by zero")
 
 
 @unittest.skipUnless(NODE, "node is not installed")

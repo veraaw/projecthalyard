@@ -295,13 +295,14 @@ const LP = (function () {
   }
 
   // ------------------------------------------------------------ completions
-  // A tick is one thing someone did: an ask sent (Top priorities), a nudge sent
-  // (Core bottlenecks), an account created (CRM Updates). Ticks wait in this
+  // A tick is one thing someone did: an ask sent (Top priorities), a nudge or a
+  // chase sent (Core bottlenecks, a connector's "already sitting on"), a company
+  // checked in on (Overdue a check-in). Ticks wait in this
   // browser until Submit posts them, one row each, to the Supabase
   // `completions` table (X.supabase_url, anon key: insert only). The scheduled
   // rebuild pulls the table into golden/completions.csv and the ticked items
   // leave the queue. completion_id is <request_id>:<action>:<day>
-  // (company_id for an account created), so submitting the same tick twice
+  // (company_id for a check-in), so submitting the same tick twice
   // hits the primary key and lands nothing new; the build applies it once.
   const tickKey = t => `${t.action}:${t.request_id || t.company_id}`;
   const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } };
@@ -362,8 +363,10 @@ const LP = (function () {
   const doneClass = (state, t) => { const k = tickKey(t); return state.ticks.has(k) || state.submitted.has(k) ? 'done' : ''; };
   const askTick = (X, r) => ({ action: X.actions.top, request_id: r.request_id, company_id: r.company_id, connector: r.connector, note: `${r.company_name} · ${r.target_title}` });
   const nudgeTick = (X, r) => ({ action: X.actions.bottlenecks, request_id: r.request_id, company_id: r.company_id, connector: r.connector, note: `${r.company_name} · agreed ${r.agreed_date || r.asked_date}` });
-  const crmTick = (X, r) => ({ action: X.actions.crm, request_id: '', company_id: r.company_id, connector: '', note: `${r.company_name} · ${r.request_ids.join(' | ')}` });
-  const actionLabel = { ask_sent: 'ask sent', nudged: 'nudged', account_created: 'account created' };
+  // a connector's outstanding ask: `nudge` (they agreed — the same row as Core bottlenecks) or `chase` (never replied)
+  const followTick = (X, s) => ({ action: X.actions[s.action], request_id: s.request_id, company_id: s.company_id, connector: s.connector, note: `${s.company_name} · asked ${s.asked_date}` });
+  const checkinTick = (X, r) => ({ action: X.actions.checkins, request_id: '', company_id: r.company_id, connector: '', note: `${r.company_name} · ${r.failed.join(' + ')} overdue` });
+  const actionLabel = { ask_sent: 'ask sent', nudged: 'nudged', chased: 'chased', checked_in: 'checked in' };
   const describe = r => `${actionLabel[r.action] || r.action} ${esc(r.request_id || r.company_id)}${r.connector ? ` → ${esc(r.connector)}` : ''}`;
 
   const submitBar = X => `<div class="submitbar" id="lp-submit" hidden><span id="lp-submit-n"></span><button id="lp-submit-go">Submit</button><button id="lp-submit-clear" class="secondary">Clear</button><span id="lp-submit-who"></span><span class="foot">${X.supabase_url ? `records your ticks in the <code>${esc(X.table)}</code> table; the site rebuilds from it every 15 minutes and the ticked items leave the queue` : '<b class="warn">this build cannot submit: no Supabase URL / anon key</b>'}</span></div>`;
@@ -479,8 +482,10 @@ const LP = (function () {
       <p class="foot">stage weight by CRM stage: ${Object.entries(F.stage_weight).map(([k, v]) => `${esc(k)} ${v}`).join(' · ')}. age: ${esc(F.age)}. reps waiting: ${esc(F.reps_waiting)}. path strength: ${esc(F.path_strength)}. focus fit: ${esc(F.focus_fit)}. delivery rate: ${esc(F.delivery_rate)}. capacity left: ${esc(F.capacity_left)}. Tick a row once the ask is sent; Submit records the ticks and the next rebuild takes them off the list.</p></div>`;
   }
 
-  const sittingTable = c => c.sitting_on.length ? `<table><thead><tr><th>action</th><th>request</th><th>company</th><th>wanted</th><th>for</th><th>asked</th><th class="num">days</th><th>responded</th><th>value</th></tr></thead><tbody>`
-    + c.sitting_on.map(s => `<tr><td><b>${esc(s.action)}</b></td><td class="rid">${esc(s.request_id)}</td><td>${co(s)}</td><td>${esc(s.target_title)}</td><td>${esc(s.requested_by)}</td><td class="date">${esc(s.asked_date)}</td><td class="num">${s.days_since_asked}</td><td>${s.responded ? '<b>yes — nudge, do not re-ask</b>' : 'no'}</td><td>${esc(s.value_fmt)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing outstanding</p>`;
+  // what a connector is sitting on, with a tick-box per row (nudged / chased); a row
+  // followed up in the last quiet_days has no box and says when
+  const sittingTable = (c, X, state) => c.sitting_on.length ? `<table class="top"><thead><tr><th></th><th>action</th><th>request</th><th>company</th><th>wanted</th><th>for</th><th>asked</th><th class="num">days</th><th>responded</th><th>value</th></tr></thead><tbody>`
+    + c.sitting_on.map(s => { const k = followTick(X, s); return `<tr class="${s.quiet ? 'quiet' : doneClass(state, k)}">${s.quiet ? `<td title="${esc(actionLabel[k.action])} ${esc(s.nudged_on)}; back in ${c.quiet_days - s.days_since_nudged}d"></td>` : tick(state, k)}<td><b>${esc(s.action)}</b>${s.quiet ? `<br><span class="foot">${esc(actionLabel[k.action])} ${s.days_since_nudged}d ago</span>` : ''}</td><td class="rid">${esc(s.request_id)}</td><td>${co(s)}</td><td>${esc(s.target_title)}</td><td>${esc(s.requested_by)}</td><td class="date">${esc(s.asked_date)}</td><td class="num">${s.days_since_asked}</td><td>${s.responded ? '<b>yes — nudge, do not re-ask</b>' : 'no'}</td><td>${esc(s.value_fmt)}</td></tr>`; }).join('') + `</tbody></table><p class="foot">Tick a row once you have nudged or chased; it is off the list for ${c.quiet_days} days after the next rebuild.</p>` : `<p class="empty">nothing outstanding</p>`;
 
   const pctOf = v => v == null ? '—' : `${Math.round(v * 100)}%`;
 
@@ -510,7 +515,7 @@ const LP = (function () {
 
     out += `<section id="rest"><h2>The longer list <span class="foot">everything else on ${esc(c.connector)}'s plate — ${plural(c.rest.length, 'more request')} to ask, then ${plural(c.sitting_on.length, 'ask')} already made and waiting on them</span></h2>
       <h3>after the top ${c.top.length}</h3>` + (c.rest.length ? priorityTable(c.rest, X, state, 'rank_here', false) : `<p class="empty">${c.ranked_count ? 'the top ' + c.top.length + ' is the whole list' : 'nothing to ask'}</p>`)
-      + `<h3>already sitting on</h3>` + sittingTable(c)
+      + `<h3>already sitting on</h3>` + sittingTable(c, X, state)
       + formulaNote(c.formula) + `</section>`;
 
     out += `<section id="cycles"><h2>By cycle <span class="foot">${esc(c.connector)}'s asks against capacity, intros made and the running total, one row per month since ${esc(c.cycles[0].cycle)}</span></h2>`
@@ -577,7 +582,7 @@ const LP = (function () {
           <div class="kpi"><div class="v">${c.queue.length}</div><div class="l">in this cycle's ask</div><div class="s">${c.queue.length ? 'one consolidated batch' : 'nothing allocated'}</div></div></div>
         <h3>queue this cycle</h3>` + (c.queue.length ? `<table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>for</th><th>path</th><th class="num">score</th><th>value</th><th>urgency</th></tr></thead><tbody>`
           + c.queue.map(q => `<tr><td class="rid">${esc(q.request_id)}</td><td>${co(q)}</td><td>${esc(q.target_title)}</td><td>${esc(q.requested_by)}</td><td>${esc(q.path_type)}${q.contact ? ` <span class="foot">via ${esc(q.contact)}</span>` : ''}</td><td class="num">${esc(q.route_score)}</td><td>${esc(q.value_fmt)}</td><td>${esc(q.urgency)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing allocated to ${esc(c.connector)} this cycle</p>`)
-        + `<h3>already sitting on</h3>` + sittingTable(c))
+        + `<h3>already sitting on</h3>` + sittingTable(c, X, state))
       + `</details></section>`;
 
     // 5. offer gaps
@@ -603,10 +608,12 @@ const LP = (function () {
     // 7. check-ins
     const K = D.checkins;
     out += `<section id="checkins">${fold(`Overdue a check-in <span class="foot">${plural(K.count, 'company')} with requests and a CRM account; ${K.both} failed both tests</span>`)}
-      <p class="lede">Two tests, ${K.days} days each: has anyone touched the CRM account, and has anyone asked a connector for an intro. A company failing both is being neither sold to nor networked into.</p>
-      <table><thead><tr><th>company</th><th>owner</th><th>stage</th><th>CRM last_touch_date</th><th>last intro ask</th><th>failed</th><th>live</th></tr></thead><tbody>`
-      + K.rows.map(r => `<tr><td>${co(r)}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage)}</td><td class="date">${esc(r.last_touch_date || 'never')}${r.touch_days != null ? ` <span class="foot">${r.touch_days}d</span>` : ''}</td><td class="date">${esc(r.last_ask_date || 'never')}${r.ask_days != null ? ` <span class="foot">${r.ask_days}d</span>` : ''}</td><td>${r.failed.map(f => `<b class="${r.failed.length === 2 ? 'warn' : ''}">${esc(f)}</b>`).join(' + ')}</td><td>${r.live_requests ? `${r.live_requests} · ${esc(r.live_value_fmt)}` : '—'}</td></tr>`).join('')
-      + `</tbody></table></details></section>`;
+      <p class="lede">Two tests, ${K.days} days each: has anyone touched the CRM account, and has anyone asked a connector for an intro. A company failing both is being neither sold to nor networked into. Tick a company once you have checked in; it comes back after ${K.days} days if nothing else moves.</p>
+      <table class="top"><thead><tr><th></th><th>company</th><th>owner</th><th>stage</th><th>CRM last_touch_date</th><th>last intro ask</th><th>failed</th><th>live</th></tr></thead><tbody>`
+      + K.rows.map(r => { const k = checkinTick(X, r); return `<tr class="${doneClass(state, k)}">${tick(state, k)}<td>${co(r)}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage)}</td><td class="date">${esc(r.last_touch_date || 'never')}${r.touch_days != null ? ` <span class="foot">${r.touch_days}d</span>` : ''}</td><td class="date">${esc(r.last_ask_date || 'never')}${r.ask_days != null ? ` <span class="foot">${r.ask_days}d</span>` : ''}</td><td>${r.failed.map(f => `<b class="${r.failed.length === 2 ? 'warn' : ''}">${esc(f)}</b>`).join(' + ')}</td><td>${r.live_requests ? `${r.live_requests} · ${esc(r.live_value_fmt)}` : '—'}</td></tr>`; }).join('')
+      + `</tbody></table>`
+      + (K.checked_in.length ? `<p class="foot">Checked in on in the last ${K.days} days, off the list until then: ${K.checked_in.map(r => `${co(r)} (${esc(r.checked_in_on)}, ${r.days_since_checked_in}d ago)`).join(' · ')}.</p>` : '')
+      + `</details></section>`;
 
     // 8. unrouted in focus
     const U = D.unrouted, F = U.finding;
@@ -626,12 +633,10 @@ const LP = (function () {
       <div class="dl"><button id="lp-dl-import">Download ${esc(C.import.filename)}</button><span>${plural(C.import.count, 'account')} to create, importer-shaped columns only (<code>${C.import.columns.map(esc).join(', ')}</code>). It can be uploaded straight into the CRM.</span></div>
       <div class="dl"><button id="lp-dl-review" class="secondary">Download ${esc(C.review.filename)}</button><span>${plural(C.review.count, 'recommendation')} (${C.review.groups.map(g => `${g.count} ${esc(g.group)}`).join(', ')}), every row <code>status = ${esc(C.status)}</code>. Merges and owner conflicts are recommended, never executed — ownership is compensation.</span></div>`;
     for (const g of C.groups) {
-      const ticks = g.group === 'create';  // the one group someone can do by hand and tick off
-      out += `<h3>${esc(g.title)} <span class="foot">${g.count} · ${esc(g.value_fmt)}${ticks ? ' · tick an account once it exists in the CRM' : ''}</span></h3>`;
-      out += g.rows.length ? `<table class="${ticks ? 'top' : ''}"><thead><tr>${ticks ? '<th></th>' : ''}<th>company</th><th>CRM accounts</th><th>owner</th><th>stage</th><th>action</th><th>why</th><th class="num">at stake</th></tr></thead><tbody>`
-        + g.rows.map(r => { const k = ticks ? crmTick(X, r) : null; return `<tr class="${k ? doneClass(state, k) : ''}">${k ? tick(state, k) : ''}<td>${co(r)}<br><span class="foot">${r.request_ids.map(esc).join(', ')}</span></td><td class="rid">${esc(r.crm_account_ids || '—')}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage || '—')}</td><td><b>${esc(r.action)}</b></td><td class="foot">${esc(r.why)}<br>${esc(r.evidence)}</td><td class="num">${esc(r.value_fmt)}</td></tr>`; }).join('') + `</tbody></table>`
+      out += `<h3>${esc(g.title)} <span class="foot">${g.count} · ${esc(g.value_fmt)}</span></h3>`;
+      out += g.rows.length ? `<table><thead><tr><th>company</th><th>CRM accounts</th><th>owner</th><th>stage</th><th>action</th><th>why</th><th class="num">at stake</th></tr></thead><tbody>`
+        + g.rows.map(r => `<tr><td>${co(r)}<br><span class="foot">${r.request_ids.map(esc).join(', ')}</span></td><td class="rid">${esc(r.crm_account_ids || '—')}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage || '—')}</td><td><b>${esc(r.action)}</b></td><td class="foot">${esc(r.why)}<br>${esc(r.evidence)}</td><td class="num">${esc(r.value_fmt)}</td></tr>`).join('') + `</tbody></table>`
         : `<p class="empty">nothing to do</p>`;
-      if (g.executed.length) out += `<p class="foot">Done, waiting for the next CRM export to confirm: ${g.executed.map(r => `${co(r)} (${esc(r.executed_on)})`).join(' · ')}.</p>`;
     }
     out += `</details></section>`;
 

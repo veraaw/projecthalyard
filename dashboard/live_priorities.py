@@ -11,9 +11,10 @@ rules (golden/parse.py cues, golden/build_golden.py OFFER_RE, and the
 golden/resolver.py lookup tables) are exported into the payload and applied
 verbatim by the browser, so a dropped .jsonl previews exactly what
 `python3 golden/build_golden.py --threads FILE` would file. And Submit: the
-tick-boxes on Top priorities (an ask sent), Core bottlenecks (a nudge sent) and
-CRM Updates / create these accounts (an account created) are posted, one row
-each, to the Supabase `completions` table with the anon key (insert-only; the
+tick-boxes on Top priorities (an ask sent), Core bottlenecks (a nudge sent),
+the connector pages' "already sitting on" (a nudge or a chase sent) and Overdue
+a check-in (a company checked in on) are posted, one row each, to the Supabase
+`completions` table with the anon key (insert-only; the
 URL and key come from SUPABASE_URL / SUPABASE_ANON_KEY at build time, never
 from this file). The scheduled rebuild (.github/workflows/rebuild.yml) pulls
 the table into golden/completions.csv, a fact source of the build, and the
@@ -646,6 +647,24 @@ class Live:
         queue = [a for a in self.allocation if a["allocated_to"] == name]
         sitting = [o for o in self.outcomes if o["connector_asked"] == name and o["intro_sent"] != "Y"
                    and self.by_rid.get(o["request_id"], {}).get("status_as_filed") in bg.OPEN_STATUSES]
+
+        def sitting_row(o: dict) -> dict:
+            """An ask with no intro yet: `nudge` it if they replied, `chase` if they
+            never did. One followed up in the last NUDGE_QUIET_DAYS (nudged_on, from
+            completions.csv) is `quiet`: listed, not actionable, until the period ends."""
+            r = self.by_rid.get(o["request_id"], {})
+            last = parse_date(r.get("nudged_on", ""))
+            since = (self.today - last).days if last else None
+            return {
+                "request_id": o["request_id"], **self.company_ref(r.get("company_id", "")),
+                "target_title": r.get("target_title", ""), "requested_by": r.get("requested_by", ""),
+                "connector": name, "asked_date": o["asked_date"], "responded": o["responded"] == "Y",
+                "days_since_asked": (self.today - (parse_date(o["asked_date"]) or self.today)).days,
+                "value_fmt": money(r.get("value_usd", "")),
+                "action": "nudge" if o["responded"] == "Y" else "chase",
+                "nudged_on": r.get("nudged_on", ""), "days_since_nudged": since,
+                "quiet": since is not None and 0 <= since < NUDGE_QUIET_DAYS,
+            }
         asks = [o for o in self.outcomes if o["connector_asked"] == name]
         intros = [o for o in asks if o["intro_sent"] == "Y"]
         cycles = self.cycle_rows([name])
@@ -660,15 +679,9 @@ class Live:
             "used": asked_cycle + len(queue), "idle": max(0, cap - asked_cycle - len(queue)),
             "delivery_rate": round(self.rate(name), 3), "asks_all_time": len(asks), "intros_all_time": len(intros),
             "intros_this_cycle": cycles[-1]["intros"], "cycles": cycles,
-            "sitting_on": [{
-                "request_id": o["request_id"], **self.company_ref(self.by_rid.get(o["request_id"], {}).get("company_id", "")),
-                "target_title": self.by_rid.get(o["request_id"], {}).get("target_title", ""),
-                "requested_by": self.by_rid.get(o["request_id"], {}).get("requested_by", ""),
-                "asked_date": o["asked_date"], "responded": o["responded"] == "Y",
-                "days_since_asked": (self.today - (parse_date(o["asked_date"]) or self.today)).days,
-                "value_fmt": money(self.by_rid.get(o["request_id"], {}).get("value_usd", "")),
-                "action": "nudge" if o["responded"] == "Y" else "chase",
-            } for o in sorted(sitting, key=lambda o: o["asked_date"])],
+            # actionable rows first (oldest ask first), then the ones followed up recently
+            "sitting_on": sorted((sitting_row(o) for o in sitting), key=lambda s: (s["quiet"], s["asked_date"], s["request_id"])),
+            "quiet_days": NUDGE_QUIET_DAYS,
             "queue": [{
                 "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
                 "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
@@ -706,7 +719,11 @@ class Live:
 
     # -- 7. overdue a check-in ------------------------------------------------
     def checkins(self) -> dict:
-        rows = []
+        """Companies with requests and a CRM account that nobody has touched (CRM
+        last_touch_date) or asked a connector about in CHECKIN_DAYS. One checked in
+        on in that window (golden_companies.checked_in_on, from completions.csv) is
+        listed under `checked_in` instead and comes back when the window passes."""
+        rows, checked_in = [], []
         for cid, c in self.companies.items():
             accts = [self.accounts[a] for a in bar(c["crm_account_ids"]) if a in self.accounts]
             if not accts or not int(c["total_requests"] or 0):
@@ -722,17 +739,22 @@ class Live:
             if not (touch_failed or ask_failed):
                 continue
             live = [r for r in self.by_company.get(cid, []) if r["status_as_filed"] in bg.OPEN_STATUSES]
-            rows.append({
+            checked = parse_date(c.get("checked_in_on", ""))
+            checked_days = (self.today - checked).days if checked else None
+            row = {
                 **self.company_ref(cid), "owner": c["owner"], "stage": c["stage"],
+                "checked_in_on": c.get("checked_in_on", ""), "days_since_checked_in": checked_days,
                 "last_touch_date": touch.isoformat() if touch else "", "touch_days": touch_days,
                 "last_ask_date": last_ask.isoformat() if last_ask else "", "ask_days": ask_days,
                 "failed": [t for t, f in (("CRM touch", touch_failed), ("intro ask", ask_failed)) if f],
                 "live_requests": len(live), "live_value_fmt": money(sum(usd(r["value_usd"]) for r in live)),
                 "live_value_usd": sum(usd(r["value_usd"]) for r in live),
-            })
+            }
+            (checked_in if checked_days is not None and 0 <= checked_days < CHECKIN_DAYS else rows).append(row)
         rows.sort(key=lambda r: (-len(r["failed"]), -r["live_value_usd"], r["company_name"]))
+        checked_in.sort(key=lambda r: (r["checked_in_on"], r["company_name"]))
         return {"days": CHECKIN_DAYS, "rows": rows, "count": len(rows),
-                "both": sum(1 for r in rows if len(r["failed"]) == 2)}
+                "both": sum(1 for r in rows if len(r["failed"]) == 2), "checked_in": checked_in}
 
     # -- 8. unrouted company asks, per connector -------------------------------
     def unrouted(self) -> dict:
@@ -790,14 +812,12 @@ class Live:
         review = w.review_rows()
         imports = w.import_rows()
 
-        def rows(group: str, status: str = wb.STATUS) -> list[dict]:
+        def rows(group: str) -> list[dict]:
             return [{**asdict(r), "value_fmt": money(r.value_at_stake_usd), "href": self.company_ref(r.company_id)["href"],
-                     "request_ids": bar(r.request_ids)} for r in review if r.group == group and r.status == status]
+                     "request_ids": bar(r.request_ids)} for r in review if r.group == group]
 
-        # a create row someone has ticked off (completions.csv) is `executed`: shown as done, not counted
         groups = [{"group": g, "title": wb.GROUP_TITLES[g], "rows": rows(g), "count": len(rows(g)),
-                   "value_fmt": money(sum(r["value_at_stake_usd"] for r in rows(g))),
-                   "executed": rows(g, wb.EXECUTED)}
+                   "value_fmt": money(sum(r["value_at_stake_usd"] for r in rows(g)))}
                   for g in (wb.CREATE, wb.MERGE, wb.OWNERS, wb.REOPEN)]
         return {
             "groups": groups,
@@ -821,9 +841,10 @@ class Live:
             "supabase_url": bg.supabase_rest(url) if url else "",
             "anon_key": os.environ.get("SUPABASE_ANON_KEY", "").strip(),
             "table": bg.SUPABASE_TABLE, "columns": bg.COMPLETION_COLUMNS,
-            "actions": {"top": bg.ASKED, "bottlenecks": bg.NUDGED, "crm": bg.CRM_CREATED},
+            "actions": {"top": bg.ASKED, "bottlenecks": bg.NUDGED, "nudge": bg.NUDGED, "chase": bg.CHASED,
+                        "checkins": bg.CHECKED_IN},
             "ids": sorted(c["completion_id"] for c in self.completions), "count": len(self.completions),
-            "quiet_days": NUDGE_QUIET_DAYS,
+            "quiet_days": NUDGE_QUIET_DAYS, "checkin_days": CHECKIN_DAYS,
             "stamp": BUILD_STAMP.name, "repo_url": repo_url(), "workflow": WORKFLOW_FILE,
             "path": bg.COMPLETIONS_OUT.relative_to(bg.ROOT).as_posix(),
         }

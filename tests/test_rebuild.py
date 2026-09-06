@@ -44,7 +44,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 import golden.build_golden as bg  # noqa: E402
-from golden.build_golden import ASKED, COMPLETION_COLUMNS, FACT_COLUMNS, NUDGED, STALE_ASK  # noqa: E402
+from golden.build_golden import ASKED, CHASED, CHECKED_IN, COMPLETION_COLUMNS, FACT_COLUMNS, NUDGED, STALE_ASK  # noqa: E402
 
 CYCLE_1, CYCLE_2 = "2026-09-05", "2026-10-05"
 
@@ -311,7 +311,7 @@ def completion(action: str, key: str, day: str, connector: str = "", who: str = 
     row = {c: "" for c in COMPLETION_COLUMNS}
     row.update({"completion_id": f"{key}:{action}:{day}", "completed_at": f"{day}T10:15:00+00:00",
                 "completed_by": who, "action": action, "connector": connector,
-                "company_id" if action == bg.CRM_CREATED else "request_id": key})
+                "company_id" if action == CHECKED_IN else "request_id": key})
     row.update(more)
     return row
 
@@ -401,12 +401,43 @@ class CompletionsTest(ScratchRootTest):
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("no such file", proc.stderr)
 
+    def test_a_chase_files_nudged_on_and_a_check_in_files_checked_in_on(self):
+        rid = self.first[1]["request_id"]
+        cid = self.by_id()[self.rid]["company_id"]
+        self.assertTrue(cid)
+        older = completion(NUDGED, rid, "2026-09-01", self.first[1]["allocated_to"] or "Marcus Aldridge")
+        chase = completion(CHASED, rid, self.day, self.first[1]["allocated_to"] or "Marcus Aldridge")
+        checkin = completion(CHECKED_IN, cid, self.day)
+        self.write_completions([older, chase, checkin])
+
+        out = self.build(CYCLE_1)
+
+        self.assertIn("completions.csv       3 rows applied: 1 chased, 1 checked_in, 1 nudged", out)
+        self.assertEqual(self.by_id()[rid]["nudged_on"], self.day, "the latest follow-up of either kind")
+        self.assertIn(rid, {a["request_id"] for a in self.cycle_rows("2026-09")}, "a chase does not spend the request")
+        companies = {c["company_id"]: c for c in read_csv(self.companies)}
+        self.assertEqual(companies[cid]["checked_in_on"], self.day)
+        self.assertTrue(all(c["checked_in_on"] == "" for k, c in companies.items() if k != cid))
+        self.assertEqual(self.by_id()[self.rid]["asked_date"], "", "a check-in is not an ask")
+
+    def test_a_chase_needs_its_connector_and_a_check_in_its_company(self):
+        for bad, why in [
+            (completion(CHASED, self.rid, self.day), "chased needs request_id and connector"),
+            (dict(completion(CHECKED_IN, "C001", self.day), company_id=""), "checked_in needs company_id"),
+        ]:
+            self.write_completions([bad])
+            proc = self.run_build("--as-of", CYCLE_1)
+            self.assertNotEqual(proc.returncode, 0, bad)
+            self.assertIn(why, proc.stderr)
+            self.assertIn("nothing written", proc.stderr)
+
     def test_frozen_facts_never_move(self):
         crm_id = self.by_id()[self.rid]["company_id"]
         self.write_completions([
             self.ask,
             completion(NUDGED, self.first[1]["request_id"], self.day, self.first[1]["allocated_to"] or "Marcus Aldridge"),
-            completion(bg.CRM_CREATED, crm_id, self.day),
+            completion(CHASED, self.first[2]["request_id"], self.day, self.first[2]["allocated_to"] or "Marcus Aldridge"),
+            completion(CHECKED_IN, crm_id, self.day),
         ])
         before = self.by_id()
 
@@ -424,7 +455,7 @@ class CompletionsTest(ScratchRootTest):
         self.write_completions([dict(self.ask, action="asked")])
         proc = self.run_build("--as-of", CYCLE_1)
         self.assertNotEqual(proc.returncode, 0)
-        self.assertIn("action 'asked' is not one of ask_sent, nudged, account_created", proc.stderr)
+        self.assertIn("action 'asked' is not one of ask_sent, nudged, chased, checked_in", proc.stderr)
         self.assertIn("nothing written", proc.stderr)
         self.completions.unlink()
         self.assertEqual(tree_digest(self.root / "golden"), digest, "no golden file moved")
