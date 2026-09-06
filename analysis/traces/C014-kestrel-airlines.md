@@ -26,3 +26,12 @@ nobody in the network reaches this company
 |---|---|---|---|---|---|
 | 1 | Rafael Salcedo | CRM owner (A1012) | check in on the account | last touch 2025-10-14, 327 days ago | — |
 | 2 | Nadia Okonkwo (239 days) | 1 rep still waiting, longest first | tell them nobody has it | 1 rep raised this and has heard nothing; the oldest has been waiting 239 days | R1054 |
+
+## 6. Additional Investor and Operator Network
+
+2 people from investor_network.csv, 2 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Espen Rushworth-Oyelaran | Venture capital investor | Silverbrook Capital | yes | portfolio_company | no warm path |
+| Wren Petrossian-Norrington | Venture capital investor | Silverbrook Capital | yes | portfolio_company | no warm path |

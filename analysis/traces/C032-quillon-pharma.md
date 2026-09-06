@@ -52,3 +52,15 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 |---|---|---|---|---|---|
 | 1 | Rafael Salcedo | CRM owner (A1019) | check in on the account | last touch 2025-07-07, 426 days ago | — |
 | 2 | Sloane Fairweather (334 days), Bertrand Vandermolen (113 days) | 2 reps still waiting, longest first | tell them it's with Tomás Beckett | 2 reps raised this and have heard nothing; the oldest has been waiting 334 days | R1198, R1178 |
+
+## 6. Additional Investor and Operator Network
+
+5 people from investor_network.csv, 3 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Casper Bellinger | Operator (work history) |  | no | prior_employer | via Aldridge, Raghunathan |
+| Kian Merriweather | Operator (work history) |  | no | prior_employer | via Duvall, Trask |
+| Matteo Ferreira-Yarrow | Private equity investor | Ironvale Partners | no | portfolio_company | no warm path |
+| Otto Cathcart-Brenneman | Venture capital investor | Ashgrove Capital | no | portfolio_company | no warm path |
+| Xiomara Achterberg-Norrington | Growth equity investor | Northgate Growth | no | portfolio_company | no warm path |

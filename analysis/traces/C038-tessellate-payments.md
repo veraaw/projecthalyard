@@ -39,3 +39,11 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 1 | Owen Trask | Angel investor / advisor (investor connector) | nudge, don't re-ask | said yes on 2025-12-18 and never forwarded | R1026 |
 | 2 | Nadia Okonkwo | CRM owner (A1037) | check in on the account | last touch 2025-08-01, 401 days ago | — |
 | 3 | Imani Mkhize (268 days) | 1 rep still waiting, longest first | tell them it's with Owen Trask | 1 rep raised this and has heard nothing; the oldest has been waiting 268 days | R1026 |
+
+## 6. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 0 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Ilse Mkhize | Operator (work history) |  | no | prior_employer | via Raghunathan, Trask |

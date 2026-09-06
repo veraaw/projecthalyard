@@ -105,3 +105,13 @@ strongest path, not where it went: Elena Duvall, direct 0.300, at capacity 3/3; 
 | 1 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask | said yes on 2025-09-17 and never forwarded; said yes on 2026-03-28 and never forwarded; said yes on 2026-06-11 and never forwarded | R1118, R1098, R1033 |
 | 2 | Bertrand Vandermolen | CRM owner (A1030) | check in on the account | last touch 2025-10-17, 324 days ago | — |
 | 3 | Yusuf Petrossian (383 days), Nadia Okonkwo (356 days), Curtis Hartigan (170 days), Sloane Fairweather (162 days) | 4 reps still waiting, longest first | tell them it's with Tomás Beckett / Elena Duvall | 4 reps raised this and have heard nothing; the oldest has been waiting 383 days | R1052, R1174, R1118, R1098, R1033, R1092 |
+
+## 6. Additional Investor and Operator Network
+
+3 people from investor_network.csv, 1 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Otto Cathcart-Brenneman | Venture capital investor | Ashgrove Capital | yes | portfolio_company | no warm path |
+| Curtis Marchetti | Operator (work history) |  | no | prior_employer | via Beckett, Duvall |
+| Margot Havercamp | Operator (work history) |  | no | prior_employer | via Aldridge, Beckett |

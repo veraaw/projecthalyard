@@ -45,3 +45,11 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Rafael Salcedo | CRM owner (A1038) | check in on the account | last touch 2025-11-27, 283 days ago | — |
+
+## 6. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 1 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Malik Thackeray-Okonkwo | Private equity investor | Meridian Peak Partners | no | portfolio_company | no warm path |

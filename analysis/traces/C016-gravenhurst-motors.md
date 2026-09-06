@@ -111,3 +111,13 @@ strongest path, not where it went: Curtis Hartigan, offer 0.800, 0/2 used this c
 | 2 | Hana Nakashima | off-roster connector | nudge, don't re-ask | said yes on 2025-10-23 and never forwarded | R1108 |
 | 3 | Sloane Fairweather | CRM owner (A1041) | check in on the account | last touch 2026-01-07, 242 days ago | — |
 | 4 | Yusuf Petrossian (332 days), Rafael Salcedo (311 days), Curtis Hartigan (248 days), Sloane Fairweather (186 days) | 4 reps still waiting, longest first | tell them it's with Hana Nakashima / Priya Raghunathan | 4 reps raised this and have heard nothing; the oldest has been waiting 332 days | R1108, R1158, R1058, R1115, R1143 |
+
+## 6. Additional Investor and Operator Network
+
+3 people from investor_network.csv, 1 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Priya Fairweather | Operator (work history) |  | no | prior_employer | via Duvall, Raghunathan |
+| Priya Raghunathan | Partner, Redtree Capital | Redtree Capital | no | portfolio_company | on the roster |
+| Amara Brenneman-Fairweather | Growth equity investor | Redtree Capital | no | portfolio_company | no warm path |

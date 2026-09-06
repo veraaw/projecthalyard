@@ -106,3 +106,12 @@ strongest path, not where it went: Elena Duvall, offer 0.800, at capacity 3/3, H
 | 2 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask; send the ask (batch 2026-09 Tomás Beckett) | said yes on 2026-05-09 and never forwarded; said yes on 2026-07-03 and never forwarded; allocated in golden_allocation.csv via direct path to Marcus Salcedo, score 0.079; allocated in golden_allocation.csv via direct path to Marcus Salcedo, score 0.079 | R1157, R1057, R1136, R1153 |
 | 3 | Imani Mkhize | CRM owner (A1050) | check in on the account | last touch 2026-05-14, 115 days ago | — |
 | 4 | Imani Mkhize (356 days), Rafael Salcedo (335 days), Sloane Fairweather (310 days), Nadia Okonkwo (281 days), Hana Nakashima (263 days), Yusuf Petrossian (131 days), Curtis Hartigan (82 days) | 7 reps still waiting, longest first | tell them it's with Tomás Beckett | 7 reps raised this and have heard nothing; the oldest has been waiting 356 days | R1137, R1173, R1072, R1153, R1136, R1090, R1157, R1057 |
+
+## 6. Additional Investor and Operator Network
+
+2 people from investor_network.csv, 0 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Amara Thackeray | Operator (work history) |  | no | prior_employer | via Raghunathan, Whitfield |
+| Ingrid Marchetti | Operator (work history) |  | no | prior_employer | via Trask, Whitfield |

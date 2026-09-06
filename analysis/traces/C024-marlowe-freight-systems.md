@@ -53,3 +53,12 @@ strongest path, not where it went: Marcus Aldridge, direct 0.465, at capacity 4/
 |---|---|---|---|---|---|
 | 1 | Imani Mkhize | CRM owner (A1047) | check in on the account | last touch 2026-02-02, 216 days ago | — |
 | 2 | Bertrand Vandermolen (185 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 185 days | R1134 |
+
+## 6. Additional Investor and Operator Network
+
+2 people from investor_network.csv, 2 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Matteo Falkenrath-Merriweather | Venture capital investor | Cobalt Lane Ventures | no | portfolio_company | no warm path |
+| Otto Højgaard-Ferreira | Venture capital investor | Cobalt Lane Ventures | no | portfolio_company | no warm path |

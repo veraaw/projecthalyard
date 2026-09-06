@@ -48,3 +48,12 @@ strongest path, not where it went: Priya Raghunathan, direct 0.285, at capacity 
 |---|---|---|---|---|---|
 | 1 | Rafael Salcedo | CRM owner (A1036) | check in on the account | last touch 2025-10-15, 326 days ago | — |
 | 2 | Nadia Okonkwo (132 days), Yusuf Petrossian (98 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 132 days | R1195, R1018 |
+
+## 6. Additional Investor and Operator Network
+
+2 people from investor_network.csv, 1 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Saoirse Prendergast | Operator (work history) |  | no | prior_employer | via Raghunathan |
+| Matteo Ferreira-Yarrow | Private equity investor | Ironvale Partners | no | portfolio_company | no warm path |

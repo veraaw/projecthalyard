@@ -40,3 +40,11 @@ strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacit
 | 1 | Tomás Beckett | VP Partnerships (internal connector) | send the ask (batch 2026-09 Tomás Beckett) | allocated in golden_allocation.csv via direct path to Yusuf Wolstenholme, score 0.096 | R1048 |
 | 2 | Sloane Fairweather | CRM owner (A1045) | check in on the account | last touch 2026-03-01, 189 days ago | — |
 | 3 | Bertrand Vandermolen (145 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 145 days | R1048 |
+
+## 6. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 0 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Priya Raghunathan | Partner, Redtree Capital | Redtree Capital | yes | portfolio_company | on the roster |

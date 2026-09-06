@@ -64,3 +64,15 @@ strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacit
 | 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | nudge, don't re-ask | said yes on 2025-08-17 and never forwarded | R1082 |
 | 2 | Bertrand Vandermolen | CRM owner (A1029) | check in on the account | last touch 2025-12-07, 273 days ago | — |
 | 3 | Sloane Fairweather (400 days), Yusuf Petrossian (313 days), Curtis Hartigan (220 days) | 3 reps still waiting, longest first | tell them it's with Priya Raghunathan | 3 reps raised this and have heard nothing; the oldest has been waiting 400 days | R1082, R1120, R1183, R1071 |
+
+## 6. Additional Investor and Operator Network
+
+5 people from investor_network.csv, 4 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Priya Raghunathan | Partner, Redtree Capital | Redtree Capital | yes | portfolio_company | on the roster |
+| Amara Brenneman-Fairweather | Growth equity investor | Redtree Capital | yes | portfolio_company | no warm path |
+| Matteo Falkenrath-Merriweather | Venture capital investor | Cobalt Lane Ventures | yes | portfolio_company | no warm path |
+| Renata Halloran-Quillane | Growth equity investor | Redtree Capital | yes | portfolio_company | no warm path |
+| Matteo Ferreira-Yarrow | Private equity investor | Ironvale Partners | no | portfolio_company | no warm path |

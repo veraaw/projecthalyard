@@ -48,3 +48,11 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 |---|---|---|---|---|---|
 | 1 | Bertrand Vandermolen | CRM owner (A1034) | check in on the account | last touch 2026-04-21, 138 days ago | — |
 | 2 | Hana Nakashima (320 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 320 days | R1172 |
+
+## 6. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 1 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Perrine Brenneman-Wexford | Private equity investor | Meridian Peak Partners | no | portfolio_company | no warm path |

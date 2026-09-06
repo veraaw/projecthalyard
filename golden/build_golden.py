@@ -35,7 +35,7 @@ unparseable completed_at or a missing key fails the build.
 
 golden/ is the state; dataset/ is read-only input and is never written.
 
-Writes four CSVs (UTF-8, no BOM, CRLF):
+Writes five CSVs (UTF-8, no BOM, CRLF):
 
   golden/golden_requests.csv   one row per intro request. A rebuild MERGES,
                                it never replaces: the file is read first and
@@ -106,6 +106,17 @@ Writes four CSVs (UTF-8, no BOM, CRLF):
                                allocated to one connector in a cycle shares
                                one batch_id (one consolidated ask per
                                connector per cycle).
+  golden/network_orbit.csv     one row per (person, company) pair in
+                               investor_network.csv whose portfolio_company or
+                               prior_employer resolves to an in-scope company:
+                               who sits around the company, on the roster or
+                               not. reachable_via = "connector" when the person
+                               is on the roster, else the surnames of the
+                               connectors whose connections_*.csv lists them,
+                               else empty (no warm route). Read-only context
+                               for the Company Trace: never scored, never
+                               allocated, never a supply_reach.csv row, and
+                               never counted against a connector's capacity.
 
 Scope. A company is in scope if it is in crm_accounts.csv or is named as the
 target of any intro request. The set is recomputed on every run; nothing is
@@ -145,6 +156,7 @@ COMPANIES_OUT = OUT / "golden_companies.csv"
 SUPPLY_OUT = OUT / "supply_reach.csv"
 ALLOCATION_OUT = OUT / "golden_allocation.csv"
 COMPLETIONS_OUT = OUT / "completions.csv"
+NETWORK_OUT = OUT / "network_orbit.csv"
 
 REQUEST_COLUMNS = [
     "request_id", "company_id", "company_as_written", "target_title", "requested_by", "request_date",
@@ -180,6 +192,12 @@ SUPPLY_COLUMNS = [
     "contact_title", "observed_date", "offer_age_days", "strength", "in_focus_area", "monthly_capacity",
     "delivery_rate", "idle_capacity", "evidence",
 ]
+
+NETWORK_COLUMNS = [
+    "company_id", "company_name", "person", "role", "fund", "board_seat", "source", "reachable_via",
+]
+NETWORK_SOURCES = ("portfolio_company", "prior_employer")  # the investor_network.csv columns that name a company
+REACHABLE_AS_CONNECTOR = "connector"  # reachable_via for a person who is on the roster themselves
 
 COMPLETION_COLUMNS = [
     "completion_id", "completed_at", "completed_by", "action", "request_id", "company_id", "connector", "note",
@@ -957,6 +975,46 @@ def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[di
 
 
 # ---------------------------------------------------------------------------
+# network orbit: who else sits around a company, from investor_network.csv
+# ---------------------------------------------------------------------------
+def build_network_orbit(reg: Registry, roster: dict) -> list[dict]:
+    """One row per (person, company) pair in investor_network.csv, for every
+    person in the file (on the roster or not), through the same resolver the
+    supply side uses. Rows naming a company outside the in-scope set are
+    dropped. Context only: nothing here feeds supply_reach.csv or the allocator."""
+    known_to: dict[str, set[str]] = defaultdict(set)  # person -> connector surnames whose export lists them
+    for name, r in roster.items():
+        surname = name.split()[-1]
+        for c in read_csv(DATASET / r["connections_file"]):
+            known_to[c["name"]].add(surname)
+    rows = []
+    for inv in read_csv(DATASET / "investor_network.csv"):
+        person = inv["person"].strip()
+        for source in NETWORK_SOURCES:
+            if not inv[source]:
+                continue
+            company, _ = reg.resolve(inv[source])
+            if company is None:
+                continue
+            if person in roster:
+                via = REACHABLE_AS_CONNECTOR
+            else:
+                via = MULTI.join(sorted(known_to.get(person, ())))
+            rows.append({
+                "company_id": company.company_id,
+                "company_name": company.name,
+                "person": person,
+                "role": inv["role"],
+                "fund": inv["fund"],
+                "board_seat": "yes" if source == "portfolio_company" and inv["board_seat"].strip().lower() == "true" else "no",
+                "source": source,
+                "reachable_via": via,
+            })
+    rows.sort(key=lambda r: (r["company_id"], r["board_seat"] != "yes", r["reachable_via"] == "", r["person"], r["source"]))
+    return rows
+
+
+# ---------------------------------------------------------------------------
 # demand side
 # ---------------------------------------------------------------------------
 def load_threads(extra: Path | None = None) -> dict[str, dict]:
@@ -1595,6 +1653,8 @@ def main() -> None:
     all_alloc, prior_cycles, prior_rows, replaced = merge_allocation(history, alloc_rows, cycle)
     companies = build_companies(reg, supply, read_csv(REQUESTS_OUT), today, outcomes, completions)
     write_derived(supply, all_alloc, companies)
+    orbit = build_network_orbit(reg, roster)
+    write_csv(NETWORK_OUT, NETWORK_COLUMNS, orbit)
 
     if completions:
         kinds = Counter(c["action"] for c in completions)
@@ -1608,6 +1668,9 @@ def main() -> None:
     print(f"golden_companies.csv  {len(companies)} rows (rebuilt)")
     print(f"supply_reach.csv      {len(supply)} rows (rebuilt): "
           + ", ".join(f"{k} {n}" for k, n in sorted(Counter(s['reach_type'] for s in supply).items())))
+    print(f"network_orbit.csv     {len(orbit)} rows (rebuilt) across {len({r['company_id'] for r in orbit})} companies: "
+          + ", ".join(f"{k} {n}" for k, n in sorted(Counter(r['source'] for r in orbit).items()))
+          + f"; {sum(1 for r in orbit if not r['reachable_via'])} with no warm route")
     n_alloc = sum(1 for a in alloc_rows if a["allocated_to"])
     reasons = Counter(a["exception_reason"].split(":")[0] for a in alloc_rows if a["exception_reason"])
     print(f"golden_allocation.csv {len(all_alloc)} rows in {prior_cycles + 1} cycles ({prior_rows} rows from "

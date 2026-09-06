@@ -42,3 +42,15 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 1 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask | said yes on 2025-12-28 and never forwarded | R1104 |
 | 2 | Sloane Fairweather | CRM owner (A1020) | check in on the account | last touch 2025-09-18, 353 days ago | — |
 | 3 | Bertrand Vandermolen (260 days) | 1 rep still waiting, longest first | tell them it's with Tomás Beckett | 1 rep raised this and has heard nothing; the oldest has been waiting 260 days | R1104 |
+
+## 6. Additional Investor and Operator Network
+
+5 people from investor_network.csv, 4 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Bertrand Achterberg-Quillane | Venture capital investor | Ashgrove Capital | yes | portfolio_company | no warm path |
+| Sunniva Højgaard | Operator (work history) |  | no | prior_employer | via Beckett, Whitfield |
+| Freya Oldfield-Ibarra | Venture capital investor | Ashgrove Capital | no | portfolio_company | no warm path |
+| Matteo Ferreira-Yarrow | Private equity investor | Ironvale Partners | no | portfolio_company | no warm path |
+| Otto Højgaard-Ferreira | Venture capital investor | Cobalt Lane Ventures | no | portfolio_company | no warm path |

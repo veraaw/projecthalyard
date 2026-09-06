@@ -58,3 +58,14 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | nudge, don't re-ask | said yes on 2025-12-16 and never forwarded | R1135 |
 | 2 | Dana Whitfield | Chief Revenue Officer (internal connector) | send the ask (batch 2026-09 Dana Whitfield) | allocated in golden_allocation.csv via offer path, score 0.240; allocated in golden_allocation.csv via offer path, score 0.240 | R1067, R1074 |
 | 3 | Curtis Hartigan (319 days), Bertrand Vandermolen (95 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 319 days | R1067, R1135, R1074 |
+
+## 6. Additional Investor and Operator Network
+
+4 people from investor_network.csv, 1 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Coretta Bellinger | Operator (work history) |  | no | prior_employer | via Raghunathan |
+| Niall Grimsby | Operator (work history) |  | no | prior_employer | via Aldridge, Trask |
+| Priya Raghunathan | Partner, Redtree Capital | Redtree Capital | no | portfolio_company | on the roster |
+| Renata Halloran-Quillane | Growth equity investor | Redtree Capital | no | portfolio_company | no warm path |

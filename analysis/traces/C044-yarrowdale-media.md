@@ -36,3 +36,11 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Curtis Hartigan (58 days) | 1 rep still waiting, longest first | tell them it's with Bertrand Vandermolen | 1 rep raised this and has heard nothing; the oldest has been waiting 58 days | R1169 |
+
+## 6. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 1 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Hugo Fairweather-Højgaard | Growth equity investor | Northgate Growth | yes | portfolio_company | no warm path |

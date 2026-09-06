@@ -2,7 +2,7 @@
 
     from dashboard.trace_section import fragment, sidebar
     aside = sidebar()          # search box + the company list, for the page's left rail
-    html = fragment()          # the five trace sections, rendered client-side
+    html = fragment()          # the trace sections, rendered client-side
 
 Every company trace (analysis/trace.py, `Trace.as_dict()`) is embedded as JSON;
 the search box filters the company list on id, name, alias, or CRM account id and
@@ -46,6 +46,9 @@ def fragment() -> str:
 #trace td.score,#trace td.raw{{white-space:nowrap;font-variant-numeric:tabular-nums}}
 #trace tr.bypass td{{color:var(--mute);font-size:13px;border-top:none;padding-top:0}}
 #trace tr.bypass b{{color:var(--ink);font-weight:600}}
+#trace tr.cold td{{color:var(--mute)}}
+#trace tr.cold td.route{{font-style:italic}}
+#trace td.seat{{font-family:var(--mono);font-weight:600;white-space:nowrap}}
 @media(max-width:720px){{#trace h2.co{{font-size:22px}}}}
 </style>
 <div id="trace-body"></div>
@@ -111,6 +114,15 @@ def fragment() -> str:
     else out += `<table><thead><tr><th>#</th><th>who</th><th>role</th><th>action</th><th>why</th><th>requests</th></tr></thead><tbody>` +
       t.next_steps.map((s, i) => `<tr><td class="order">${{i + 1}}</td><td>${{esc(s.who)}}</td><td class="foot">${{esc(s.role)}}</td><td><b>${{esc(s.action)}}</b></td><td>${{esc(s.why)}}</td><td class="rid">${{esc(s.request_ids.join(', ') || 'none')}}</td></tr>`).join('') +
       `</tbody></table>`;
+
+    if (t.orbit.length) {{
+      const cold = t.orbit.filter(r => !r.reachable_via).length;
+      out += `<h3>6. Additional Investor and Operator Network</h3>`;
+      out += `<p class="foot">${{t.orbit.length}} ${{t.orbit.length === 1 ? 'person' : 'people'}} from investor_network.csv, ${{cold}} with no warm path · read-only context: not scored, not allocated, not on supply_reach.csv, no connector capacity spent</p>`;
+      out += `<table><thead><tr><th>person</th><th>role</th><th>fund</th><th>board seat</th><th>source</th><th>warm path</th></tr></thead><tbody>` +
+        t.orbit.map(r => `<tr class="${{r.reachable_via ? '' : 'cold'}}"><td>${{esc(r.person)}}</td><td class="foot">${{esc(r.role)}}</td><td>${{esc(r.fund)}}</td><td class="seat">${{r.board_seat ? 'yes' : ''}}</td><td class="src">${{esc(r.source)}}</td><td class="route">${{esc(r.route)}}</td></tr>`).join('') +
+        `</tbody></table>`;
+    }}
     body.innerHTML = out;
     mark();
   }}

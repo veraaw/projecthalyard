@@ -1,0 +1,74 @@
+company_id,company_name,person,role,fund,board_seat,source,reachable_via
+C003,Apex Holdings,Espen Rushworth-Oyelaran,Venture capital investor,Silverbrook Capital,no,portfolio_company,
+C005,Bexley Bioworks,Priya Raghunathan,"Partner, Redtree Capital",Redtree Capital,yes,portfolio_company,connector
+C006,Blackwood Holdings,Otto Cathcart-Brenneman,Venture capital investor,Ashgrove Capital,yes,portfolio_company,
+C006,Blackwood Holdings,Marcus Højgaard,Operator (work history),,no,prior_employer,Beckett | Trask
+C007,Brightmoor Energy,Idris Drummond,Operator (work history),,no,prior_employer,Duvall
+C008,Cindermill Holdings,Bertrand Glückstein,Operator (work history),,no,prior_employer,Duvall | Trask
+C008,Cindermill Holdings,Camille Merriweather-Balogun,Venture capital investor,Silverbrook Capital,no,portfolio_company,
+C009,Cobalt Lane Capital Markets,Malik Thackeray-Okonkwo,Private equity investor,Meridian Peak Partners,no,portfolio_company,
+C010,Duncastle Holdings,Priya Raghunathan,"Partner, Redtree Capital",Redtree Capital,yes,portfolio_company,connector
+C010,Duncastle Holdings,Amara Brenneman-Fairweather,Growth equity investor,Redtree Capital,yes,portfolio_company,
+C010,Duncastle Holdings,Matteo Falkenrath-Merriweather,Venture capital investor,Cobalt Lane Ventures,yes,portfolio_company,
+C010,Duncastle Holdings,Renata Halloran-Quillane,Growth equity investor,Redtree Capital,yes,portfolio_company,
+C010,Duncastle Holdings,Matteo Ferreira-Yarrow,Private equity investor,Ironvale Partners,no,portfolio_company,
+C011,Ellerby Semiconductor,Bertrand Achterberg-Quillane,Venture capital investor,Ashgrove Capital,yes,portfolio_company,
+C011,Ellerby Semiconductor,Sunniva Højgaard,Operator (work history),,no,prior_employer,Beckett | Whitfield
+C011,Ellerby Semiconductor,Freya Oldfield-Ibarra,Venture capital investor,Ashgrove Capital,no,portfolio_company,
+C011,Ellerby Semiconductor,Matteo Ferreira-Yarrow,Private equity investor,Ironvale Partners,no,portfolio_company,
+C011,Ellerby Semiconductor,Otto Højgaard-Ferreira,Venture capital investor,Cobalt Lane Ventures,no,portfolio_company,
+C012,Falkirk Shipping,Priya Raghunathan,"Partner, Redtree Capital",Redtree Capital,no,portfolio_company,connector
+C012,Falkirk Shipping,Arjun Fairweather-Brenneman,Growth equity investor,Redtree Capital,no,portfolio_company,
+C014,Kestrel Airlines,Espen Rushworth-Oyelaran,Venture capital investor,Silverbrook Capital,yes,portfolio_company,
+C014,Kestrel Airlines,Wren Petrossian-Norrington,Venture capital investor,Silverbrook Capital,yes,portfolio_company,
+C015,Glasspoint Health,Espen Rushworth-Oyelaran,Venture capital investor,Silverbrook Capital,yes,portfolio_company,
+C015,Glasspoint Health,Priya Crowther-Kirkbride,Growth equity investor,Northgate Growth,no,portfolio_company,
+C016,Gravenhurst Motors,Priya Fairweather,Operator (work history),,no,prior_employer,Duvall | Raghunathan
+C016,Gravenhurst Motors,Priya Raghunathan,"Partner, Redtree Capital",Redtree Capital,no,portfolio_company,connector
+C016,Gravenhurst Motors,Amara Brenneman-Fairweather,Growth equity investor,Redtree Capital,no,portfolio_company,
+C018,Harrowgate Health,Amara Thackeray,Operator (work history),,no,prior_employer,Raghunathan | Whitfield
+C018,Harrowgate Health,Ingrid Marchetti,Operator (work history),,no,prior_employer,Trask | Whitfield
+C019,Hollowbrook Grocers,Priya Raghunathan,"Partner, Redtree Capital",Redtree Capital,yes,portfolio_company,connector
+C019,Hollowbrook Grocers,Arjun Fairweather-Brenneman,Growth equity investor,Redtree Capital,no,portfolio_company,
+C019,Hollowbrook Grocers,Priya Dobrescu-Prendergast,Private equity investor,Thornbury Equity,no,portfolio_company,
+C020,Ironvale Steel,Callum Oldfield-Fairweather,Venture capital investor,Cobalt Lane Ventures,yes,portfolio_company,
+C020,Ironvale Steel,Tomás Ferreira,Operator (work history),,no,prior_employer,Aldridge | Raghunathan
+C020,Ironvale Steel,Matteo Falkenrath-Merriweather,Venture capital investor,Cobalt Lane Ventures,no,portfolio_company,
+C024,Marlowe Freight Systems,Matteo Falkenrath-Merriweather,Venture capital investor,Cobalt Lane Ventures,no,portfolio_company,
+C024,Marlowe Freight Systems,Otto Højgaard-Ferreira,Venture capital investor,Cobalt Lane Ventures,no,portfolio_company,
+C025,Meridian Holdings,Perrine Brenneman-Wexford,Private equity investor,Meridian Peak Partners,no,portfolio_company,
+C027,Nortonbury Logistics,Amara Brenneman-Fairweather,Growth equity investor,Redtree Capital,yes,portfolio_company,
+C027,Nortonbury Logistics,Priya Raghunathan,"Partner, Redtree Capital",Redtree Capital,no,portfolio_company,connector
+C027,Nortonbury Logistics,Perrine Brenneman-Wexford,Private equity investor,Meridian Peak Partners,no,portfolio_company,
+C027,Nortonbury Logistics,Renata Halloran-Quillane,Growth equity investor,Redtree Capital,no,portfolio_company,
+C028,Osric Networks,Malik Thackeray-Okonkwo,Private equity investor,Meridian Peak Partners,yes,portfolio_company,
+C028,Osric Networks,Freya Oldfield-Ibarra,Venture capital investor,Ashgrove Capital,no,portfolio_company,
+C028,Osric Networks,Perrine Brenneman-Wexford,Private equity investor,Meridian Peak Partners,no,portfolio_company,
+C031,Priorwood Chemicals,Otto Cathcart-Brenneman,Venture capital investor,Ashgrove Capital,yes,portfolio_company,
+C031,Priorwood Chemicals,Curtis Marchetti,Operator (work history),,no,prior_employer,Beckett | Duvall
+C031,Priorwood Chemicals,Margot Havercamp,Operator (work history),,no,prior_employer,Aldridge | Beckett
+C032,Quillon Pharma,Casper Bellinger,Operator (work history),,no,prior_employer,Aldridge | Raghunathan
+C032,Quillon Pharma,Kian Merriweather,Operator (work history),,no,prior_employer,Duvall | Trask
+C032,Quillon Pharma,Matteo Ferreira-Yarrow,Private equity investor,Ironvale Partners,no,portfolio_company,
+C032,Quillon Pharma,Otto Cathcart-Brenneman,Venture capital investor,Ashgrove Capital,no,portfolio_company,
+C032,Quillon Pharma,Xiomara Achterberg-Norrington,Growth equity investor,Northgate Growth,no,portfolio_company,
+C036,Strathmore Holdings,Bertrand Lomsadze,Operator (work history),,no,prior_employer,Beckett | Duvall
+C036,Strathmore Holdings,Tomás Dobrescu,Operator (work history),,no,prior_employer,Aldridge | Beckett
+C036,Strathmore Holdings,Yusuf Vasquez,Operator (work history),,no,prior_employer,Aldridge | Duvall
+C036,Strathmore Holdings,Freya Oldfield-Ibarra,Venture capital investor,Ashgrove Capital,no,portfolio_company,
+C038,Tessellate Payments,Ilse Mkhize,Operator (work history),,no,prior_employer,Raghunathan | Trask
+C041,Vantage Ridge Utilities,Ravi Underhill-Halloran,Venture capital investor,Blackwood Ventures,no,portfolio_company,
+C042,Volney Industrial Systems,Curtis Sandoval-Glückstein,Private equity investor,Thornbury Equity,yes,portfolio_company,
+C042,Volney Industrial Systems,Bertrand Achterberg-Quillane,Venture capital investor,Ashgrove Capital,no,portfolio_company,
+C042,Volney Industrial Systems,Freya Oldfield-Ibarra,Venture capital investor,Ashgrove Capital,no,portfolio_company,
+C042,Volney Industrial Systems,Priya Dobrescu-Prendergast,Private equity investor,Thornbury Equity,no,portfolio_company,
+C043,Wrenfield Robotics,Saoirse Prendergast,Operator (work history),,no,prior_employer,Raghunathan
+C043,Wrenfield Robotics,Matteo Ferreira-Yarrow,Private equity investor,Ironvale Partners,no,portfolio_company,
+C044,Yarrowdale Media,Hugo Fairweather-Højgaard,Growth equity investor,Northgate Growth,yes,portfolio_company,
+C045,Redtree Foods,Coretta Bellinger,Operator (work history),,no,prior_employer,Raghunathan
+C045,Redtree Foods,Niall Grimsby,Operator (work history),,no,prior_employer,Aldridge | Trask
+C045,Redtree Foods,Priya Raghunathan,"Partner, Redtree Capital",Redtree Capital,no,portfolio_company,connector
+C045,Redtree Foods,Renata Halloran-Quillane,Growth equity investor,Redtree Capital,no,portfolio_company,
+C046,Vireo Systems,Priya Raghunathan,"Partner, Redtree Capital",Redtree Capital,yes,portfolio_company,connector
+C046,Vireo Systems,Amara Brenneman-Fairweather,Growth equity investor,Redtree Capital,no,portfolio_company,
+C058,Kingsmere Retail Group,Kofi Mkhize,Operator (work history),,no,prior_employer,Beckett | Trask

@@ -6,12 +6,17 @@
     python3 analysis/trace.py                            # every company with a
                                                          # request -> analysis/traces/
 
-Five sections: the header (identity, request counts and the routing stage), where the files
+Six sections: the header (identity, request counts and the routing stage), where the files
 disagree (skipped when they don't), who can reach them (supply_reach.csv ranked
 by route score = strength x focus fit x delivery rate, the allocator's own sort
 key, with the reason the top row did not take every live request), the chronology (every event from intro_requests.csv,
-slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, oldest first)
-and next steps, one row per person, cheapest action first.
+slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, oldest first),
+next steps, one row per person, cheapest action first, and the additional
+investor and operator network (network_orbit.csv: everyone investor_network.csv
+puts around the company, board seats first, then those a connector knows, then
+those nobody has a warm path to; skipped when the file has no row for the
+company). That last section is context, not supply: nothing in it is scored,
+allocated or counted against a connector.
 
 Chronology markers:  <- missed   ++ worked   ** offer   !! warning
 
@@ -34,13 +39,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.build_golden import (OFFER_RE, OPEN_STATUSES, PRIOR_RATE, STAGES, capacity, delivery_rates, fit, latest_cycle,  # noqa: E402
-                                 load_completions, load_roster, load_threads, path_score, stage_of, with_completions)
+from golden.build_golden import (NETWORK_OUT, OFFER_RE, OPEN_STATUSES, PRIOR_RATE, REACHABLE_AS_CONNECTOR, STAGES, capacity,  # noqa: E402
+                                 delivery_rates, fit, latest_cycle, load_completions, load_roster, load_threads, path_score,
+                                 stage_of, with_completions)
 from golden.resolver import normalize, normalize_strict  # noqa: E402
 from paths import ANALYSIS, DATASET, GOLDEN  # noqa: E402
 
 TRACES = ANALYSIS / "traces"
 STALE_TOUCH_DAYS = 90
+NO_WARM_PATH = "no warm path"  # the orbit table's label for a person no connector knows
 
 MISSED, WORKED, OFFER, WARN, PLAIN = "<-", "++", "**", "!!", "  "
 
@@ -92,6 +99,7 @@ class Data:
     outcome_by_rid: dict[str, dict]  # the ask log as the build reads it (completions applied), one row per request
     alloc_by_rid: dict[str, dict]    # the current cycle's allocation by request_id
     rates: dict[str, float]          # delivery rate per connector, as the allocator scores them
+    orbit: list[dict]                # network_orbit.csv: investors and operators around each company
 
     @classmethod
     def load(cls) -> "Data":
@@ -121,6 +129,7 @@ class Data:
             outcome_by_rid={o["request_id"]: o for o in as_read},
             alloc_by_rid={a["request_id"]: a for a in allocation},
             rates=delivery_rates(roster, as_read, load_threads()),
+            orbit=read_csv(NETWORK_OUT) if NETWORK_OUT.exists() else [],
         )
 
 
@@ -197,6 +206,9 @@ class Trace:
         self.accounts = [data.accounts[a] for a in split_bar(company["crm_account_ids"]) if a in data.accounts]
         self.live = [a for a in data.allocation if a["company_id"] == self.cid]
         self.allocated = {a["request_id"]: a for a in self.live if a["allocated_to"]}
+        # board seats first, then anyone a connector knows, then the cold rows
+        self.orbit = sorted((r for r in data.orbit if r["company_id"] == self.cid),
+                            key=lambda r: (r["board_seat"] != "yes", r["reachable_via"] == "", r["person"], r["source"]))
 
     # -- helpers --------------------------------------------------------------
     def spellings(self) -> list[str]:
@@ -566,6 +578,26 @@ class Trace:
             out.append(f"| {i} | {s.who} | {s.role} | {s.action} | {s.why} | {', '.join(s.request_ids) or '—'} |")
         return out
 
+    # -- section 6 --------------------------------------------------------------
+    @staticmethod
+    def orbit_route(r: dict) -> str:
+        """How the person could be reached, as the table prints it."""
+        via = r["reachable_via"]
+        if via == REACHABLE_AS_CONNECTOR:
+            return "on the roster"
+        if via:
+            return "via " + ", ".join(split_bar(via))
+        return NO_WARM_PATH
+
+    def orbit_table(self) -> list[str]:
+        n_cold = sum(1 for r in self.orbit if not r["reachable_via"])
+        out = [f"{len(self.orbit)} {'person' if len(self.orbit) == 1 else 'people'} from investor_network.csv, "
+               f"{n_cold} with no warm path; read-only: not scored, not allocated, not on supply_reach.csv", "",
+               "| person | role | fund | board seat | source | warm path |", "|---|---|---|---|---|---|"]
+        for r in self.orbit:
+            out.append(f"| {r['person']} | {r['role']} | {r['fund']} | {r['board_seat']} | {r['source']} | {self.orbit_route(r)} |")
+        return out
+
     # -- all --------------------------------------------------------------------
     def render(self) -> str:
         n_req = len(self.requests)
@@ -578,6 +610,8 @@ class Trace:
                          f" as of {self.today.isoformat()})", "",
                          *self.chronology()])
         sections.append(["## 5. Next steps, by person, cheapest first", "", *self.next_steps_table()])
+        if self.orbit:
+            sections.append(["## 6. Additional Investor and Operator Network", "", *self.orbit_table()])
         return "\n\n".join("\n".join(s) for s in sections) + "\n"
 
     def as_dict(self) -> dict:
@@ -616,6 +650,9 @@ class Trace:
                            for _, es in ordered],
             "next_steps": [{"order": s.order, "who": s.who, "role": s.role, "action": s.action, "why": s.why,
                             "request_ids": s.request_ids} for s in self.next_steps()],
+            "orbit": [{"person": r["person"], "role": r["role"], "fund": r["fund"], "board_seat": r["board_seat"] == "yes",
+                       "source": r["source"], "reachable_via": r["reachable_via"], "route": self.orbit_route(r)}
+                      for r in self.orbit],
         }
 
 

@@ -35,3 +35,12 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 |---|---|---|---|---|---|
 | 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | nudge, don't re-ask | said yes on 2026-03-07 and never forwarded | R1025 |
 | 2 | Sloane Fairweather (193 days) | 1 rep still waiting, longest first | tell them it's with Elena Duvall | 1 rep raised this and has heard nothing; the oldest has been waiting 193 days | R1025 |
+
+## 6. Additional Investor and Operator Network
+
+2 people from investor_network.csv, 2 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Espen Rushworth-Oyelaran | Venture capital investor | Silverbrook Capital | yes | portfolio_company | no warm path |
+| Priya Crowther-Kirkbride | Growth equity investor | Northgate Growth | no | portfolio_company | no warm path |

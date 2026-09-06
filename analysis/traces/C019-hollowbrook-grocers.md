@@ -58,3 +58,13 @@ strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacit
 | 2 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | send the ask (batch 2026-09 Priya Raghunathan) | allocated in golden_allocation.csv via investor path to CEO / exec team, score 0.184; allocated in golden_allocation.csv via investor path to CEO / exec team, score 0.184 | R1084, R1159 |
 | 3 | Nadia Okonkwo | CRM owner (A1024) | check in on the account | last touch 2026-05-16, 113 days ago | — |
 | 4 | Yusuf Petrossian (300 days), Bertrand Vandermolen (269 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 300 days | R1124, R1159, R1065, R1084 |
+
+## 6. Additional Investor and Operator Network
+
+3 people from investor_network.csv, 2 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Priya Raghunathan | Partner, Redtree Capital | Redtree Capital | yes | portfolio_company | on the roster |
+| Arjun Fairweather-Brenneman | Growth equity investor | Redtree Capital | no | portfolio_company | no warm path |
+| Priya Dobrescu-Prendergast | Private equity investor | Thornbury Equity | no | portfolio_company | no warm path |
