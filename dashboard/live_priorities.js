@@ -17,6 +17,11 @@ const LP = (function () {
   const fold = h2 => `<details class="fold"><summary><h2>${h2}</h2></summary>`;
   // a fresh ask on a company whose last intro fizzled: the row says so, and names that intro
   const retryTag = r => r.retry ? `<br><b class="warn">retry intro</b> <span class="foot">${esc(r.retry.note)}</span>` : '';
+  // the account owner(s) owed a heads-up (golden_allocation.notify_owner): the drafted message behind a
+  // copy button. A flag only: the row is routed regardless. `id` must be unique on the page
+  const notifyBlock = (n, id, lead = '') => `<div class="notify" id="${esc(id)}">${lead}<b>${n.owners.map(esc).join('<br>')}</b><br><span class="foot">${esc(n.request_id)} · ${esc(n.stage)} · Not ${esc(n.requester)}'s account</span><br><button type="button" class="copy secondary" data-copy="${esc(id)}" title="${esc(n.message)}">Copy heads-up</button><pre class="msg" hidden>${esc(n.message)}</pre></div>`;
+  // on a queue row: the heads-up goes out with the ask, so it sits beside the tick
+  const notifyTag = r => r.notify ? notifyBlock(r.notify, `notify-queue-${r.request_id}`, '<b class="warn">notify owner</b><br>') : '';
   const openFoldAt = root => {
     const s = location.hash.length > 1 && root.querySelector(`${location.hash} > details.fold`);
     if (s) s.open = true;
@@ -570,7 +575,7 @@ const LP = (function () {
   // rows of ranked() with tick-boxes (an ask sent); `rankKey` picks the number shown in the # column
   function priorityTable(rows, X, state, rankKey, withConnector) {
     return `<table class="top"><thead><tr><th></th><th>#</th><th>Request</th><th>Company</th><th>Who wants</th>${withConnector ? '<th>Ask</th>' : '<th>Path</th>'}${FM_HEAD}</tr></thead><tbody>`
-      + rows.map(r => { const t = askTick(X, r); return `<tr class="${doneClass(state, t)}" data-rid="${esc(r.request_id)}">${tick(state, t)}<td class="order">${r[rankKey]}</td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.crm_stage)}</span></td><td>${co(r)}<br><span class="foot">${esc(r.target_title)}</span>${retryTag(r)}</td><td>${esc(r.requested_by)}${r.reps.length > 1 ? `<br><span class="foot">+${r.reps.length - 1} more waiting</span>` : ''}</td><td>${withConnector ? `<b>${esc(r.connector)}</b>${r.on_roster ? '<br><span class="foot">roster</span>' : ''}<br><span class="foot">${esc(r.path)}</span>` : `${esc(r.path)}${r.allocated ? '' : '<br><b class="warn">no slot this cycle</b>'}`}</td>${fmCells(r)}</tr>`; }).join('')
+      + rows.map(r => { const t = askTick(X, r); return `<tr class="${doneClass(state, t)}" data-rid="${esc(r.request_id)}">${tick(state, t)}<td class="order">${r[rankKey]}</td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.crm_stage)}</span></td><td>${co(r)}<br><span class="foot">${esc(r.target_title)}</span>${retryTag(r)}${notifyTag(r)}</td><td>${esc(r.requested_by)}${r.reps.length > 1 ? `<br><span class="foot">+${r.reps.length - 1} more waiting</span>` : ''}</td><td>${withConnector ? `<b>${esc(r.connector)}</b>${r.on_roster ? '<br><span class="foot">roster</span>' : ''}<br><span class="foot">${esc(r.path)}</span>` : esc(r.path)}${r.allocated ? '' : '<br><b class="warn">no slot this cycle</b>'}</td>${fmCells(r)}</tr>`; }).join('')
       + `</tbody></table>`;
   }
 
@@ -714,6 +719,8 @@ const LP = (function () {
     const T = D.priorities;
     sec.top = `<section id="top"><h2>Top ${T.top.length} Priorities <span class="foot">Do these next: sorted by expected value across ${T.considered} live requests with a connector to act on · each spends a connector slot</span></h2>`
       + priorityTable(T.top, X, state, 'rank', true)
+      + (T.rest.length ? `<details class="rest"><summary><h3>The Rest of the Queue <span class="foot">${plural(T.rest.length, 'more request')}, ranked ${T.top.length + 1}–${T.considered} by the same expected value · ${esc(T.rest_value_fmt)}${T.rest_no_slot ? ` · ${T.rest_no_slot} have no slot this cycle` : ''} · Tick here too once an ask goes out</span></h3></summary>`
+        + priorityTable(T.rest, X, state, 'rank', true) + `</details>` : '')
       + `<p class="foot">Per connector: ${D.connector_pages.map(c => `<a href="${esc(c.page)}">${esc(c.connector)}</a>`).join(' · ')}. Each tab opens on their own top 5, with the longer list below.</p>`
       + formulaNote(T.formula) + `</section>`;
 
@@ -722,9 +729,8 @@ const LP = (function () {
     // holders): what they are carrying, the drafted message, their batch grouped by company; the
     // Aggregate tab is every batch's companies, biggest first
     const A = D.asks;
-    // notify owner: the account owner(s) owed a heads-up (golden_allocation.notify_owner), one drafted
-    // message per flagged request with a copy button. A flag only: the row is routed regardless
-    const notifyCell = (c, tab) => c.notify.length ? c.notify.map(n => { const id = `notify-${tab}-${n.request_id}`; return `<div class="notify" id="${esc(id)}"><b>${n.owners.map(esc).join('<br>')}</b><br><span class="foot">${esc(n.request_id)} · ${esc(n.stage)} · Not ${esc(n.requester)}'s account</span><br><button type="button" class="copy secondary" data-copy="${esc(id)}" title="${esc(n.message)}">Copy heads-up</button><pre class="msg" hidden>${esc(n.message)}</pre></div>`; }).join('') : '';
+    // one heads-up per flagged request in the company's batch row
+    const notifyCell = (c, tab) => c.notify.map(n => notifyBlock(n, `notify-${tab}-${n.request_id}`)).join('');
     const companyCell = c => `<td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td>`;
     const offRoster = D.connectors.filter(c => !c.on_roster).length;
     sec.connectors = `<section id="connectors">${fold(`This Cycle, by Connector <span class="foot">Cycle ${esc(A.cycle)}: ${A.allocated} requests allocated in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code> · A tab per connector (${D.connectors.length - offRoster} on the roster${offRoster ? `, ${offRoster} off it` : ''}) with capacity, delivery rate, the drafted message and the batch behind it · The drafted messages are also on <a href="${esc(D.batch_page)}">Batched-Ask</a>${A.notify_count ? ` · ${plural(A.notify_count, 'request')} on a late-stage account someone other than its owner asked for: the owner gets a heads-up, nothing is held` : ''}</span>`)}`
