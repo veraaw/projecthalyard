@@ -36,6 +36,7 @@ import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime
+from itertools import groupby
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -55,6 +56,11 @@ NO_WARM_PATH = "no warm path"  # the orbit table's label for a person no connect
 
 MISSED, WORKED, OFFER, WARN, PLAIN = "<-", "++", "**", "!!", "  "
 BYPASS_LABEL = "why not #1"
+# section 3 sits in the allocator's order, which is these groups then route score within each
+TIERS = ("roster - asked first",
+         f"{INVESTOR_NETWORK} - asked when no roster path is left",
+         "askable, ranked last - an ask here went unanswered past the window",
+         "not asked again here - an unresolved ask (nudge or chase) owns it")
 
 SOURCES = {
     "requests": "intro_requests.csv",
@@ -297,6 +303,13 @@ class Trace:
     def askable(self, p: dict) -> bool:
         u = self.hold_of(p["connector"])
         return u is None or u["hold"] == HOLD_LAST
+
+    def tier_of(self, p: dict) -> int:
+        """Index into TIERS: which group of the allocator's order the path sits in."""
+        u = self.hold_of(p["connector"])
+        if u is None:
+            return int(p["reach_type"] == INVESTOR_NETWORK)
+        return 2 if u["hold"] == HOLD_LAST else 3
 
     def retry_of(self, rid: str) -> str:
         """Why a request the log already shows asked is back in this cycle's queue:
@@ -566,20 +579,19 @@ class Trace:
     def reach(self) -> list[str]:
         if not self.paths:
             return ["nobody in the network reaches this company"]
-        note = (f"; {INVESTOR_NETWORK} rows rank below every roster path and take a "
-                f"{round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score"
+        note = (f"; {INVESTOR_NETWORK} rows rank below every roster path and take a {round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score"
                 if any(p["reach_type"] == INVESTOR_NETWORK for p in self.paths) else "")
-        note += ("; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again "
-                 "(agreed with no intro: nudge; unanswered inside the window: chase)"
-                 if any(self.hold_of(p["connector"]) for p in self.paths) else "")
-        out = [f"ranked by route score = strength x focus fit x delivery rate, the allocator's sort key{note}", "",
-               "| route score | strength | connector | reach | contact | evidence | unresolved ask |", "|---|---|---|---|---|---|---|"]
-        for p in self.paths:
-            contact = " — ".join(x for x in (p["contact_name"], p["contact_title"]) if x) or "?"
-            reach = p["reach_type"] + (" (board seat)" if p["board_seat"] == "yes" else "")
-            u = self.hold_of(p["connector"])
-            out.append(f"| {self.route_score(p):.3f} | {float(p['strength']):.3f} | {p['connector']} ({p['connector_type']}) "
-                       f"| {reach} | {contact} | {p['evidence']} | {hold_reason(u) if u else ''} |")
+        out = [f"in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each{note}"]
+        for tier, group in groupby(self.paths, key=self.tier_of):
+            paths = list(group)
+            out += ["", f"**{TIERS[tier]}** ({len(paths)} path{'s' if len(paths) != 1 else ''})", "",
+                    "| route score | strength | connector | reach | contact | evidence | unresolved ask |", "|---|---|---|---|---|---|---|"]
+            for p in paths:
+                contact = " — ".join(x for x in (p["contact_name"], p["contact_title"]) if x) or "?"
+                reach = p["reach_type"] + (" (board seat)" if p["board_seat"] == "yes" else "")
+                u = self.hold_of(p["connector"])
+                out.append(f"| {self.route_score(p):.3f} | {float(p['strength']):.3f} | {p['connector']} ({p['connector_type']}) "
+                           f"| {reach} | {contact} | {p['evidence']} | {hold_reason(u) if u else ''} |")
         why = self.bypass()
         if why:
             out += ["", f"{BYPASS_LABEL}: {why}"]
@@ -751,6 +763,7 @@ class Trace:
                        "reach_type": p["reach_type"] + (" (board seat)" if p["board_seat"] == "yes" else ""),
                        "contact_name": p["contact_name"], "contact_title": p["contact_title"], "evidence": p["evidence"],
                        "hold": (self.hold_of(p["connector"]) or {}).get("hold", ""), "askable": self.askable(p),
+                       "tier": TIERS[self.tier_of(p)],
                        "unresolved_ask": hold_reason(self.hold_of(p["connector"])) if self.hold_of(p["connector"]) else "",
                        "bypass": self.bypass() if p is self.strongest() else ""}
                       for p in self.paths],

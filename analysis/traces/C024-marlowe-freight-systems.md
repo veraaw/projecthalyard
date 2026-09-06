@@ -17,11 +17,18 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (1 path)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.161 | 0.465 | Marcus Aldridge (Advisor) | direct | Marcus Merriweather — Chief Data Officer | connections_aldridge.csv: Marcus Merriweather, Chief Data Officer at Marlowe Freight Systems, connected 2021-01-07 |  |
+
+**investor_network - asked when no roster path is left** (2 paths)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.172 | 0.720 | Matteo Falkenrath-Merriweather (investor network) | investor_network | CEO / exec team — Cobalt Lane Ventures portfolio company | investor_network.csv: Matteo Falkenrath-Merriweather (Venture capital investor), portfolio_company=Marlowe Freight Systems, board_seat=False |  |
 | 0.172 | 0.720 | Otto Højgaard-Ferreira (investor network) | investor_network | CEO / exec team — Cobalt Lane Ventures portfolio company | investor_network.csv: Otto Højgaard-Ferreira (Venture capital investor), portfolio_company=Marlowe Freight Systems, board_seat=False |  |
 

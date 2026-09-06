@@ -21,7 +21,9 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each
+
+**roster - asked first** (10 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
@@ -35,6 +37,11 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.032 | 0.285 | Owen Trask (Investor) | direct | Ingrid Marchetti — Head of Developer Productivity | connections_trask.csv: Ingrid Marchetti, Head of Developer Productivity at Harrowgate Health, connected 2016-01-02 |  |
 | 0.021 | 0.187 | Owen Trask (Investor) | alumni | Ingrid Marchetti — ex-Harrowgate Health (2015-2018), now Head of Developer Productivity at Harrowgate Health | investor_network.csv: Ingrid Marchetti prior_employer=Harrowgate Health (2015-2018); connections_trask.csv: connection of Owen Trask since 2016-01-02 |  |
 | 0.000 | 0.800 | Elena Duvall (Advisor) | offer | Head of Platform | slack_threads.jsonl R1136 2026-03-16 Elena Duvall: "their Head of Platform reports to someone I've known for a decade, leave it with me" |  |
+
+**not asked again here - an unresolved ask (nudge or chase) owns it** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.079 | 0.492 | Tomás Beckett (Internal) | direct | Marcus Salcedo — Director of Software Engineering | connections_beckett.csv: Marcus Salcedo, Director of Software Engineering at Harrowgate Health, connected 2026-03-16 | Tomás Beckett agreed on 2026-07-03 (R1057), no intro - nudge |
 
 why not #1: Elena Duvall at capacity 3/3, outside focus (Healthcare) -> R1136, R1140 unrouted (capacity exhausted); R1153 to Priya Raghunathan

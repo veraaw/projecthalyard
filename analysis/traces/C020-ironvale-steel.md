@@ -16,15 +16,27 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (3 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.208 | 0.600 | Marcus Aldridge (Advisor) | direct | Tanvi Eastcott — Chief Data Officer | connections_aldridge.csv: Tanvi Eastcott, Chief Data Officer at Ironvale Steel, connected 2026-07-05 |  |
 | 0.121 | 0.349 | Marcus Aldridge (Advisor) | direct | Tomás Ferreira — VP Enterprise Architecture | connections_aldridge.csv: Tomás Ferreira, VP Enterprise Architecture at Ironvale Steel, connected 2018-11-19 |  |
 | 0.076 | 0.218 | Marcus Aldridge (Advisor) | alumni | Tomás Ferreira — ex-Ironvale Steel (2015-2020), now VP Enterprise Architecture at Ironvale Steel | investor_network.csv: Tomás Ferreira prior_employer=Ironvale Steel (2015-2020); connections_aldridge.csv: connection of Marcus Aldridge since 2018-11-19 |  |
+
+**investor_network - asked when no roster path is left** (2 paths)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.215 | 0.900 | Callum Oldfield-Fairweather (investor network) | investor_network (board seat) | CEO / exec team — Cobalt Lane Ventures board seat | investor_network.csv: Callum Oldfield-Fairweather (Venture capital investor), portfolio_company=Ironvale Steel, board_seat=True |  |
 | 0.172 | 0.720 | Matteo Falkenrath-Merriweather (investor network) | investor_network | CEO / exec team — Cobalt Lane Ventures portfolio company | investor_network.csv: Matteo Falkenrath-Merriweather (Venture capital investor), portfolio_company=Ironvale Steel, board_seat=False |  |
+
+**askable, ranked last - an ask here went unanswered past the window** (3 paths)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.123 | 0.600 | Priya Raghunathan (Investor) | direct | Tanvi Eastcott — Chief Data Officer | connections_raghunathan.csv: Tanvi Eastcott, Chief Data Officer at Ironvale Steel, connected 2027-07-04 | Priya Raghunathan asked on 2026-02-20 (R1086), no reply for 198 days - askable, ranked last |
 | 0.067 | 0.325 | Priya Raghunathan (Investor) | direct | Tomás Ferreira — VP Enterprise Architecture | connections_raghunathan.csv: Tomás Ferreira, VP Enterprise Architecture at Ironvale Steel, connected 2017-06-21 | Priya Raghunathan asked on 2026-02-20 (R1086), no reply for 198 days - askable, ranked last |
 | 0.041 | 0.202 | Priya Raghunathan (Investor) | alumni | Tomás Ferreira — ex-Ironvale Steel (2015-2020), now VP Enterprise Architecture at Ironvale Steel | investor_network.csv: Tomás Ferreira prior_employer=Ironvale Steel (2015-2020); connections_raghunathan.csv: connection of Priya Raghunathan since 2017-06-21 | Priya Raghunathan asked on 2026-02-20 (R1086), no reply for 198 days - askable, ranked last |

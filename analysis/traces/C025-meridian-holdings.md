@@ -16,13 +16,25 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (2 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.178 | 0.415 | Dana Whitfield (Internal) | direct | Desmond Cardoso — Director of IT | connections_whitfield.csv: Desmond Cardoso, Director of IT at Meridian Peak Foods, connected 2022-03-01 |  |
 | 0.039 | 0.346 | Owen Trask (Investor) | direct | Desmond Cardoso — Director of IT | connections_trask.csv: Desmond Cardoso, Director of IT at Meridian Peak Foods, connected 2019-10-24 |  |
+
+**investor_network - asked when no roster path is left** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.172 | 0.720 | Perrine Brenneman-Wexford (investor network) | investor_network | CEO / exec team — Meridian Peak Partners portfolio company | investor_network.csv: Perrine Brenneman-Wexford (Private equity investor), portfolio_company=Meridian Peak Foods, board_seat=False |  |
+
+**askable, ranked last - an ask here went unanswered past the window** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.097 | 0.472 | Priya Raghunathan (Investor) | direct | Dev Ingleby — Head of Platform Engineering | connections_raghunathan.csv: Dev Ingleby, Head of Platform Engineering at Meridian Peak Foods, connected 2024-11-02 | Priya Raghunathan asked on 2025-10-21 (R1172), no reply for 320 days - askable, ranked last |
 
 ## 4. Chronology (15 events, 2 requests, newest first, as of 2026-09-06)

@@ -12,13 +12,20 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each
+
+**roster - asked first** (3 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.154 | 0.339 | Priya Raghunathan (Investor) | direct | Mei Dobrescu — Engineering Manager | connections_raghunathan.csv: Mei Dobrescu, Engineering Manager at Tessellate Payments, connected 2021-04-17 |  |
 | 0.140 | 0.308 | Priya Raghunathan (Investor) | direct | Ilse Mkhize — VP Data & Analytics | connections_raghunathan.csv: Ilse Mkhize, VP Data & Analytics at Tessellate Payments, connected 2016-10-11 |  |
 | 0.085 | 0.187 | Priya Raghunathan (Investor) | alumni | Ilse Mkhize — ex-Tessellate Payments (2012-2017), now VP Data & Analytics at Tessellate Payments | investor_network.csv: Ilse Mkhize prior_employer=Tessellate Payments (2012-2017); connections_raghunathan.csv: connection of Priya Raghunathan since 2016-10-11 |  |
+
+**not asked again here - an unresolved ask (nudge or chase) owns it** (3 paths)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.091 | 0.359 | Owen Trask (Investor) | direct | Mei Dobrescu — Engineering Manager | connections_trask.csv: Mei Dobrescu, Engineering Manager at Tessellate Payments, connected 2022-01-05 | Owen Trask agreed on 2025-12-18 (R1026), no intro - nudge |
 | 0.078 | 0.308 | Owen Trask (Investor) | direct | Ilse Mkhize — VP Data & Analytics | connections_trask.csv: Ilse Mkhize, VP Data & Analytics at Tessellate Payments, connected 2016-08-13 | Owen Trask agreed on 2025-12-18 (R1026), no intro - nudge |
 | 0.047 | 0.187 | Owen Trask (Investor) | alumni | Ilse Mkhize — ex-Tessellate Payments (2012-2017), now VP Data & Analytics at Tessellate Payments | investor_network.csv: Ilse Mkhize prior_employer=Tessellate Payments (2012-2017); connections_trask.csv: connection of Owen Trask since 2016-08-13 | Owen Trask agreed on 2025-12-18 (R1026), no intro - nudge |

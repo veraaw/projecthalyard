@@ -12,13 +12,25 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (1 path)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.094 | 0.600 | Marcus Aldridge (Advisor) | direct | Sunniva Oldfield — Chief Operating Officer | connections_aldridge.csv: Sunniva Oldfield, Chief Operating Officer at Glasspoint Health, connected 2026-09-15 |  |
+
+**investor_network - asked when no roster path is left** (2 paths)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.215 | 0.900 | Espen Rushworth-Oyelaran (investor network) | investor_network (board seat) | CEO / exec team — Silverbrook Capital board seat | investor_network.csv: Espen Rushworth-Oyelaran (Venture capital investor), portfolio_company=Glasspoint Health, board_seat=True |  |
 | 0.172 | 0.720 | Priya Crowther-Kirkbride (investor network) | investor_network | CEO / exec team — Northgate Growth portfolio company | investor_network.csv: Priya Crowther-Kirkbride (Growth equity investor), portfolio_company=Glasspoint Health, board_seat=False |  |
+
+**not asked again here - an unresolved ask (nudge or chase) owns it** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.000 | 0.600 | Elena Duvall (Advisor) | direct | Sunniva Oldfield — Chief Operating Officer | connections_duvall.csv: Sunniva Oldfield, Chief Operating Officer at Glasspoint Health, connected 2027-08-22 | Elena Duvall agreed on 2026-03-07 (R1025), no intro - nudge |
 
 ## 4. Chronology (9 events, 1 request, newest first, as of 2026-09-06)

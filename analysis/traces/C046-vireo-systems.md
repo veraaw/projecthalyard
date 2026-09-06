@@ -20,13 +20,25 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (2 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.287 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Vireo Systems, board_seat=True |  |
 | 0.120 | 0.496 | Marcus Aldridge (Advisor) | direct | Arjun Cathcart — Head of Developer Productivity | connections_aldridge.csv: Arjun Cathcart, Head of Developer Productivity at Vireo Systems, connected 2025-10-27 |  |
+
+**investor_network - asked when no roster path is left** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.172 | 0.720 | Amara Brenneman-Fairweather (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Amara Brenneman-Fairweather (Growth equity investor), portfolio_company=Vireo Systems, board_seat=False |  |
+
+**not asked again here - an unresolved ask (nudge or chase) owns it** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.131 | 0.519 | Elena Duvall (Advisor) | direct | Arjun Cathcart — Head of Developer Productivity | connections_duvall.csv: Arjun Cathcart, Head of Developer Productivity at Vireo Systems, connected 2026-01-23 | Elena Duvall agreed on 2025-11-21 (R1166), no intro - nudge |
 
 why not #1: Priya Raghunathan at capacity 3/3 (holds R1055) -> R1075 to Amara Brenneman-Fairweather

@@ -17,7 +17,9 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each
+
+**roster - asked first** (1 path)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|

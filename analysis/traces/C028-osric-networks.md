@@ -20,12 +20,19 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (2 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | exec team | slack_threads.jsonl R1167 2026-01-16 Priya Raghunathan: "I'll take this one — I've got a direct line to their exec team" |  |
 | 0.000 | 0.800 | Elena Duvall (Advisor) | offer | Chief Data Officer | slack_threads.jsonl R1163 2026-03-27 Elena Duvall: "I met their Chief Data Officer at a conference last spring, happy to reach out" |  |
+
+**investor_network - asked when no roster path is left** (3 paths)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.215 | 0.900 | Malik Thackeray-Okonkwo (investor network) | investor_network (board seat) | CEO / exec team — Meridian Peak Partners board seat | investor_network.csv: Malik Thackeray-Okonkwo (Private equity investor), portfolio_company=Osric Networks, board_seat=True |  |
 | 0.172 | 0.720 | Freya Oldfield-Ibarra (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Freya Oldfield-Ibarra (Venture capital investor), portfolio_company=Osric Networks, board_seat=False |  |
 | 0.172 | 0.720 | Perrine Brenneman-Wexford (investor network) | investor_network | CEO / exec team — Meridian Peak Partners portfolio company | investor_network.csv: Perrine Brenneman-Wexford (Private equity investor), portfolio_company=Osric Networks, board_seat=False |  |
