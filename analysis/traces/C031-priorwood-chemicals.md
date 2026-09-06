@@ -11,10 +11,10 @@
 - R1150: filed "Stalled" but intro_outcomes.csv says Tomás Beckett sent the intro on 2026-03-16
 - R1196: filed "Stalled" but intro_outcomes.csv says Tomás Beckett sent the intro on 2026-02-20
 
-## Currently routing to: Elena Duvall
+## Currently routing to: nobody (parked on live intro: R1150, Tomás Beckett, 2026-03-16, meeting booked)
 
 - this cycle: R1092, R1174 unrouted (already introduced)
-- the next request goes to the top askable path: Elena Duvall, direct via Curtis Marchetti, route score 0.108, 3/3 capacity used this cycle
+- nothing goes out this cycle; the top askable path is: Elena Duvall, direct via Curtis Marchetti, route score 0.108, 3/3 capacity used this cycle
 - not asked again here: Tomás Beckett agreed on 2026-06-11 (R1033), no intro - nudge
 
 ## 3. Who can reach them

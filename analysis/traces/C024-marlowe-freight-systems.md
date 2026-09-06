@@ -10,10 +10,10 @@
 - R1045: filed "Closed - no path" but supply_reach.csv has 3 paths into Marlowe Freight Systems
 - R1129: filed "Routed" but intro_outcomes.csv says Marcus Aldridge sent the intro on 2026-05-19
 
-## Currently routing to: Marcus Aldridge
+## Currently routing to: nobody (parked on live intro: R1129, Marcus Aldridge, 2026-05-19, meeting booked)
 
 - this cycle: R1134 unrouted (already introduced)
-- the next request goes to the top askable path: Marcus Aldridge, direct via Marcus Merriweather, route score 0.161, 4/4 capacity used this cycle
+- nothing goes out this cycle; the top askable path is: Marcus Aldridge, direct via Marcus Merriweather, route score 0.161, 4/4 capacity used this cycle
 
 ## 3. Who can reach them
 

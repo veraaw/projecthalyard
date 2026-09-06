@@ -15,7 +15,7 @@
 
 ## Currently routing to: Priya Raghunathan
 
-- this cycle: R1136, R1140 unrouted (capacity exhausted this cycle); R1153 -> Priya Raghunathan
+- this cycle: R1136, R1140 (retry) unrouted (capacity exhausted this cycle); R1153 -> Priya Raghunathan
 - top askable path: Priya Raghunathan, direct via Amara Thackeray, route score 0.079, 3/3 capacity used this cycle
 - not asked again here: Tomás Beckett agreed on 2026-07-03 (R1057), no intro - nudge
 

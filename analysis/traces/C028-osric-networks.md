@@ -13,10 +13,10 @@
 - R1167: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 5 paths
 - R1170: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 5 paths
 
-## Currently routing to: Priya Raghunathan
+## Currently routing to: nobody (parked on live intro: R1163, Elena Duvall, 2026-04-02, meeting booked)
 
 - this cycle: R1028, R1170 unrouted (already introduced)
-- the next request goes to the top askable path: Priya Raghunathan, offer via ?, route score 0.164, 3/3 capacity used this cycle
+- nothing goes out this cycle; the top askable path is: Priya Raghunathan, offer via ?, route score 0.164, 3/3 capacity used this cycle
 
 ## 3. Who can reach them
 

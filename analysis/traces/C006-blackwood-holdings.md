@@ -13,7 +13,7 @@
 
 ## Currently routing to: Marcus Aldridge
 
-- this cycle: R1022 -> Elena Duvall; R1091, R1179 -> Marcus Aldridge
+- this cycle: R1022 (retry) -> Elena Duvall; R1091 (retry), R1179 -> Marcus Aldridge
 - top askable path: Elena Duvall, direct via Bram Quillane, route score 0.187, 3/3 capacity used this cycle
 - not asked again here: Tomás Beckett agreed on 2026-02-19 (R1130), no intro - nudge
 

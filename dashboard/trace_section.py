@@ -11,7 +11,7 @@ clicking a company swaps the rendered trace in place. Opens on the most-requeste
 import json
 
 from analysis.trace import BYPASS_LABEL, all_traces
-from golden.build_golden import INVESTOR_NETWORK, NETWORK_HAIRCUT, NO_PATH
+from golden.build_golden import INVESTOR_NETWORK, NETWORK_HAIRCUT, NO_PATH, UNRESOLVED_ASK
 
 MARK_LABEL = {"<-": "missed", "++": "worked", "**": "offer", "!!": "warning", "  ": ""}
 
@@ -93,24 +93,30 @@ def fragment() -> str:
     }};
     let out = `<h2 class="co">${{esc(t.company_name)}} <span class="foot">${{esc(t.company_id)}}${{h.crm_account_ids ? ' · ' + esc(h.crm_account_ids) : ''}}${{h.domain ? ' · ' + esc(h.domain) : ''}}</span></h2>`;
     out += `<p class="aka">${{h.also_known_as.length ? 'also goes by ' + h.also_known_as.map(esc).join(' · ') : 'no other spellings on file'}}${{h.duplicate_accounts && h.duplicate_accounts !== 'no' ? ' · duplicate accounts: ' + esc(h.duplicate_accounts) : ''}}</p>`;
-    const rt = h.routing;
-    out += `<div class="kpis">${{kpi(cap(rt.furthest), 'routing stage', [rt.booked ? `intro ${{rt.booked.intro_date || 'undated'}} · ${{rt.booked.request_id}} · ${{rt.booked.connector}}` : '', rt.latest && rt.latest !== rt.furthest ? 'latest ask: ' + rt.latest : ''].filter(Boolean).join(' · '))}}${{kpi(h.stage || '?', 'CRM stage', h.industry)}}${{kpi(h.owner || 'none', 'CRM owner')}}${{kpi(h.value.value_usd, 'deal value', h.value.source, h.value.by_request.filter(q => q.value_usd).map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}}: ${{q.value_usd}}`).join('\\n') || 'no request carries a deal value')}}${{kpi(h.requests, 'requests', '', h.request_rows.map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}} · ${{q.requested_by || 'unattributed'}} · ${{q.stage}} (filed "${{q.status}}")`).join('\\n'))}}${{kpi(h.people, 'people asking', '', people(h.request_rows))}}${{kpi(rt.counts.routed || 0, 'routed', 'awaiting the ask', journey(h.request_rows.filter(q => q.stage === 'routed')) || 'no request sits at routed')}}${{kpi(rt.counts.closed || 0, 'closed — no path', 'filed closed, not asked', journey(h.request_rows.filter(q => q.stage === 'closed')) || 'no request filed Closed - no path')}}${{kpi(h.titles.length, 'different titles wanted', h.titles.join(' · '))}}</div>`;
+    const rt = h.routing, cr = t.route, top = cr.top;
+    // this cycle's allocation grouped by destination, each request saying whether it is a first ask or a retry
+    const byWho = new Map();
+    for (const a of cr.live) {{ const k = a.allocated_to || `unrouted (${{a.exception_reason.split(': ')[0]}})`; if (!byWho.has(k)) byWho.set(k, []); byWho.get(k).push(a); }}
+    const sent = cr.live.filter(a => a.allocated_to), retries = sent.filter(a => a.retry).length;
+    const cycleSub = sent.length ? `this cycle: ${{plural(sent.length, 'request')}} → ${{plural(cr.this_cycle.length, 'connector')}}` : cr.live.length ? 'nothing goes out this cycle' : '';
+    const cycleHover = [`Awaiting the ask (${{rt.counts.routed || 0}})`, journey(h.request_rows.filter(q => q.stage === 'routed')) || 'no request sits at routed',
+      '', `This cycle's allocation (${{plural(sent.length, 'request')}} → ${{plural(cr.this_cycle.length, 'connector')}}${{retries ? `, ${{retries}} ${{retries === 1 ? 'retry' : 'retries'}}` : ''}})`,
+      ...[...byWho].map(([who, rows]) => `${{who}}: ${{rows.map(a => `${{a.request_id}} (${{a.retry || 'first ask'}})`).join(', ')}}`)].join('\\n');
+    out += `<div class="kpis">${{kpi(cap(rt.furthest), 'routing stage', [rt.booked ? `intro ${{rt.booked.intro_date || 'undated'}} · ${{rt.booked.request_id}} · ${{rt.booked.connector}}` : '', rt.latest && rt.latest !== rt.furthest ? 'latest ask: ' + rt.latest : ''].filter(Boolean).join(' · '))}}${{kpi(h.stage || '?', 'CRM stage', h.industry)}}${{kpi(h.owner || 'none', 'CRM owner')}}${{kpi(h.value.value_usd, 'deal value', h.value.source, h.value.by_request.filter(q => q.value_usd).map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}}: ${{q.value_usd}}`).join('\\n') || 'no request carries a deal value')}}${{kpi(h.requests, 'requests', '', h.request_rows.map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}} · ${{q.requested_by || 'unattributed'}} · ${{q.stage}} (filed "${{q.status}}")`).join('\\n'))}}${{kpi(h.people, 'people asking', '', people(h.request_rows))}}${{kpi(rt.counts.routed || 0, 'awaiting the ask', cycleSub, cycleHover)}}${{kpi(rt.counts.closed || 0, 'closed — no path', 'filed closed, not asked', journey(h.request_rows.filter(q => q.stage === 'closed')) || 'no request filed Closed - no path')}}${{kpi(h.titles.length, 'different titles wanted', h.titles.join(' · '))}}</div>`;
 
     if (t.disagreements.length) {{
       out += `<h3>2. Where the files disagree</h3>` + t.disagreements.map(d => `<div class="finding warn">${{esc(d)}}</div>`).join('');
     }}
 
     // where the company's requests go now: this cycle's rows, else the allocator's first askable path
-    const cr = t.route, top = cr.top;
-    const byWho = new Map();
-    for (const a of cr.live) {{ const k = a.allocated_to || `unrouted (${{a.exception_reason.split(': ')[0]}})`; if (!byWho.has(k)) byWho.set(k, []); byWho.get(k).push(a.request_id); }}
+    const rlabel = rows => rows.map(a => a.request_id + (a.retry ? ' (retry)' : '')).join(', ');
     const routeNotes = [
-      cr.live.length ? 'this cycle: ' + [...byWho].map(([who, rids]) => who.startsWith('unrouted') ? `${{rids.join(', ')}} ${{who}}` : `${{rids.join(', ')}} → ${{who}}`).join('; ') : '',
-      top ? `${{cr.this_cycle.length ? 'top askable path' : 'the next request goes to the top askable path'}}: ${{top.connector}}, ${{top.reach_type}} via ${{top.contact_name || '?'}}, route score ${{top.route_score.toFixed(3)}}${{top.capacity ? `, ${{top.capacity}} capacity used this cycle` : ''}}${{top.ranked_last ? `; ranked last: ${{top.ranked_last}}` : ''}}`
-        : cr.why === '{NO_PATH}' ? 'nobody in the network reaches this company' : cr.why ? 'everyone who reaches the company is sitting on an ask there' : '',
+      cr.live.length ? 'this cycle: ' + [...byWho].map(([who, rows]) => who.startsWith('unrouted') ? `${{rlabel(rows)}} ${{who}}` : `${{rlabel(rows)}} → ${{who}}`).join('; ') : '',
+      top ? `${{cr.this_cycle.length ? 'top askable path' : cr.live.length ? 'nothing goes out this cycle; the top askable path is' : 'the next request goes to the top askable path'}}: ${{top.connector}}, ${{top.reach_type}} via ${{top.contact_name || '?'}}, route score ${{top.route_score.toFixed(3)}}${{top.capacity ? `, ${{top.capacity}} capacity used this cycle` : ''}}${{top.ranked_last ? `; ranked last: ${{top.ranked_last}}` : ''}}`
+        : cr.why === '{NO_PATH}' ? 'nobody in the network reaches this company' : cr.why === '{UNRESOLVED_ASK}' ? 'everyone who reaches the company is sitting on an ask there' : '',
       cr.not_asked.length ? 'not asked again here: ' + cr.not_asked.join('; ') : '',
     ].filter(Boolean);
-    out += `<h3 class="route">Currently routing to: ${{cr.connector ? esc(cr.connector) : `<b class="none">nobody</b> <span class="foot">(${{esc(cr.why)}})</span>`}}</h3>`
+    out += `<h3 class="route">Currently routing to: ${{cr.connector ? esc(cr.connector) : `<b class="none">nobody</b> <span class="foot">(${{esc(cr.why.replace(/ \\((.*)\\)$/, ': $1'))}})</span>`}}</h3>`
       + routeNotes.map(n => `<p class="foot">${{esc(n)}}</p>`).join('');
 
     out += `<h3>3. Who can reach them</h3>`;

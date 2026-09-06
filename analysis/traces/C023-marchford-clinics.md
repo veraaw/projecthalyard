@@ -10,10 +10,10 @@
 - R1009: filed "Intro sent" but intro_outcomes.csv has no row at all
 - R1121: filed "Stalled" but intro_outcomes.csv says Marcus Aldridge sent the intro on 2025-09-26
 
-## Currently routing to: Priya Raghunathan
+## Currently routing to: nobody (capacity exhausted)
 
-- this cycle: R1004, R1121, R1142 unrouted (capacity exhausted this cycle)
-- the next request goes to the top askable path: Priya Raghunathan, direct via Teodor Zubkov, route score 0.063, 3/3 capacity used this cycle
+- this cycle: R1004, R1121 (retry), R1142 unrouted (capacity exhausted this cycle)
+- nothing goes out this cycle; the top askable path is: Priya Raghunathan, direct via Teodor Zubkov, route score 0.063, 3/3 capacity used this cycle
 - not asked again here: Marcus Aldridge agreed on 2026-02-24 (R1114), no intro - nudge
 
 ## 3. Who can reach them

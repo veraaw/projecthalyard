@@ -16,10 +16,10 @@
 - R1160: filed "Closed - no path" but supply_reach.csv has 9 paths into Gravenhurst Motors
 - R1185: filed "Stalled" but intro_outcomes.csv says Priya Raghunathan sent the intro on 2026-02-22
 
-## Currently routing to: Curtis Hartigan
+## Currently routing to: nobody (parked on live intro: R1122, Curtis Hartigan, 2026-08-10, meeting booked)
 
-- this cycle: R1143, R1158, R1185 unrouted (already introduced)
-- the next request goes to the top askable path: Curtis Hartigan, offer via ?, route score 0.262, 0/2 capacity used this cycle
+- this cycle: R1143, R1158, R1185 (retry) unrouted (already introduced)
+- nothing goes out this cycle; the top askable path is: Curtis Hartigan, offer via ?, route score 0.262, 0/2 capacity used this cycle
 - not asked again here: Hana Nakashima agreed on 2025-10-23 (R1108), no intro - nudge
 
 ## 3. Who can reach them

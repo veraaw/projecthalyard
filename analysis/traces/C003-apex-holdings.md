@@ -13,7 +13,7 @@
 
 ## Currently routing to: Espen Rushworth-Oyelaran
 
-- this cycle: R1154, R1186 -> Espen Rushworth-Oyelaran
+- this cycle: R1154 (retry), R1186 (retry) -> Espen Rushworth-Oyelaran
 - top askable path: Espen Rushworth-Oyelaran, investor_network via CEO / exec team, route score 0.172, 2/2 capacity used this cycle
 
 ## 3. Who can reach them

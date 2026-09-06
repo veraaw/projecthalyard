@@ -13,7 +13,7 @@
 
 ## Currently routing to: Tomás Beckett
 
-- this cycle: R1006, R1070, R1128 -> Tomás Beckett; R1171, R1193 unrouted (capacity exhausted this cycle)
+- this cycle: R1006, R1070, R1128 -> Tomás Beckett; R1171 (retry), R1193 unrouted (capacity exhausted this cycle)
 - top askable path: Priya Raghunathan, direct via Saoirse Quillane, route score 0.138, 3/3 capacity used this cycle
 - not asked again here: Yusuf Petrossian agreed on 2026-07-06 (R1066), no intro - nudge; Dana Whitfield agreed on 2026-02-04 (R1113), no intro - nudge
 

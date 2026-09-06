@@ -11,7 +11,7 @@
 
 ## Currently routing to: Priya Raghunathan
 
-- this cycle: R1076 -> Priya Raghunathan
+- this cycle: R1076 (retry) -> Priya Raghunathan
 - top askable path: Priya Raghunathan, direct via Greta Petrossian, route score 0.092, 3/3 capacity used this cycle
 
 ## 3. Who can reach them

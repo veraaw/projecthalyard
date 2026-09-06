@@ -13,7 +13,7 @@
 
 ## Currently routing to: nobody (unresolved ask on every path)
 
-- this cycle: R1123 unrouted (unresolved ask on every path)
+- this cycle: R1123 (retry) unrouted (unresolved ask on every path)
 - everyone who reaches the company is sitting on an ask there
 - not asked again here: Elena Duvall agreed on 2026-07-06 (R1190), no intro - nudge
 

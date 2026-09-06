@@ -11,7 +11,7 @@
 
 ## Currently routing to: Matteo Ferreira-Yarrow
 
-- this cycle: R1018, R1156 -> Matteo Ferreira-Yarrow; R1195 unrouted (capacity exhausted this cycle)
+- this cycle: R1018, R1156 (retry) -> Matteo Ferreira-Yarrow; R1195 unrouted (capacity exhausted this cycle)
 - top askable path: Priya Raghunathan, direct via Saoirse Prendergast, route score 0.130, 3/3 capacity used this cycle
 
 ## 3. Who can reach them
