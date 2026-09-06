@@ -256,7 +256,8 @@ CLOSED_NO_PATH_BUT_PATH = "closed as no-path, path exists"
 BLOCK_NO_COMPANY = "no company named in the ask"
 BLOCK_NO_CRM = "company has no CRM record"
 BLOCK_FUND_OR_OPCO = "fund or operating company \u2014 ask the requester"
-BLOCK_NO_ROSTER_PATH = "no path on the roster"
+BLOCK_NO_PATH = "no path in the roster or investor network"
+BLOCK_NO_ROSTER_PATH = "no path on the roster"  # only off-roster (investor network / offer) paths reach the company
 BLOCK_CLOSED_LOST = "account is Closed Lost"
 BLOCK_NEVER_ROUTED = "path exists, never routed"  # a path exists but the request is not live, so nobody is allocated
 # a bare name shared by a fund and a customer (Thornbury, Silverbrook, Cobalt Lane,
@@ -1484,7 +1485,8 @@ def blocked_reason(company: Company | None, paths: list[dict], roster: dict, all
     """For a request nobody is routed to: the first thing an operator would
     have to fix, in the order they would fix it. Identity first (no company,
     no CRM record), then whether the account is worth a connector (Closed
-    Lost), then supply. Fund collisions are decided before this is called."""
+    Lost), then supply: nobody at all, or only people off the roster. Fund
+    collisions are decided before this is called."""
     if company is None:
         return BLOCK_NO_COMPANY
     if not company.accounts:
@@ -1497,6 +1499,8 @@ def blocked_reason(company: Company | None, paths: list[dict], roster: dict, all
         return STALE_ASK
     if alloc and alloc["exception_reason"].startswith(ALREADY_INTRODUCED):
         return ALREADY_INTRODUCED
+    if not paths:
+        return BLOCK_NO_PATH
     if not any(p["connector"] in roster for p in paths):
         return BLOCK_NO_ROSTER_PATH
     return BLOCK_NEVER_ROUTED

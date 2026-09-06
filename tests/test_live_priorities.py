@@ -755,6 +755,8 @@ class ThreadsIngestTest(unittest.TestCase):
         self.assertEqual({k: v for k, v in rows["R1034"].items() if k not in conclusions},
                          {k: v for k, v in self.before["R1034"].items() if k not in conclusions},
                          "a thread for a filed request changes no filed fact")
+        self.assertEqual(rows["R1034"]["blocked_reason"], bg.BLOCK_NO_PATH,
+                         "the uploaded thread replaces the one carrying the only (off-roster) offer, so the recomputed block widens")
 
         for rid, first in (("R2001", NEW_THREADS[0]), ("R2002", NEW_THREADS[1]), ("R2003", NEW_THREADS[2]), ("R2004", NEW_THREADS[3])):
             r = rows[rid]
