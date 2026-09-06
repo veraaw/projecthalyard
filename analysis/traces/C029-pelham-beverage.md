@@ -49,5 +49,5 @@ strongest path, not where it went: Imani Mkhize, offer 0.800, 0/2 used this cycl
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Yusuf Petrossian | CRM owner (A1043) | check in on the account | last touch 2026-01-20, 229 days ago | — |
-| 2 | Rafael Salcedo (385 days), Hana Nakashima (203 days) | 2 reps still waiting, longest first | tell them nobody has it | 2 reps raised this and have heard nothing; the oldest has been waiting 385 days | R1047, R1200 |
+| 1 | Yusuf Petrossian | CRM owner (A1043) | check in on the account; extend the intro, no connector is asked | last touch 2026-01-20, 229 days ago; Imani Mkhize introduced Head of Platform Engineering on 2026-04-19 (R1176, meeting booked); the allocator parks every live request here, so Yusuf asks that contact for Director of Software Engineering | R1047, R1200 |
+| 2 | Rafael Salcedo (385 days), Hana Nakashima (203 days) | 2 reps still waiting, longest first | tell them it's with Yusuf Petrossian, who holds Imani Mkhize's intro | 2 reps raised this and have heard nothing; the oldest has been waiting 385 days | R1047, R1200 |

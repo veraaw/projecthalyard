@@ -61,5 +61,6 @@ strongest path, not where it went: Priya Raghunathan, offer 0.800, at capacity 3
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Nadia Okonkwo | CRM owner (A1044) | check in on the account | last touch 2026-04-19, 140 days ago | — |
-| 2 | Hana Nakashima (361 days), Yusuf Petrossian (50 days) | 2 reps still waiting, longest first | tell them nobody has it | 2 reps raised this and have heard nothing; the oldest has been waiting 361 days | R1170, R1028 |
+| 1 | Curtis Hartigan | AE, Financial Services, holds the intro | extend the intro, no connector is asked | Elena Duvall introduced Chief Data Officer on 2026-04-02 (R1163, meeting booked); the allocator parks every live request here, so Curtis asks that contact for Chief Digital Officer, SVP Digital | R1028, R1170 |
+| 2 | Nadia Okonkwo | CRM owner (A1044) | check in on the account | last touch 2026-04-19, 140 days ago | — |
+| 3 | Hana Nakashima (361 days), Yusuf Petrossian (50 days) | 2 reps still waiting, longest first | tell them it's with Curtis Hartigan, who holds Elena Duvall's intro | 2 reps raised this and have heard nothing; the oldest has been waiting 361 days | R1170, R1028 |

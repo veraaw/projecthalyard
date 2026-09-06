@@ -50,3 +50,4 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 |---|---|---|---|---|---|
 | 1 | Imani Mkhize | CRM owner (A1002) | check in on the account | last touch 2025-08-03, 399 days ago | — |
 | 2 | Sloane Fairweather (311 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 311 days | R1069 |
+| 3 | Yusuf Petrossian | SDR Lead, was introduced | no action: intro already made | Marcus Aldridge introduced Head of Platform Engineering on 2026-03-11 (R1154) and no meeting followed in 179 days, so the allocator treats the company as a retry; nothing is allocated this cycle | R1154 |

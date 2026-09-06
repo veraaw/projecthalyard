@@ -102,6 +102,7 @@ strongest path, not where it went: Elena Duvall, direct 0.300, at capacity 3/3; 
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask | said yes on 2025-09-17 and never forwarded; said yes on 2026-03-28 and never forwarded; said yes on 2026-06-11 and never forwarded | R1118, R1098, R1033 |
-| 2 | Bertrand Vandermolen | CRM owner (A1030) | check in on the account | last touch 2025-10-17, 324 days ago | — |
-| 3 | Yusuf Petrossian (383 days), Nadia Okonkwo (356 days), Curtis Hartigan (170 days), Sloane Fairweather (162 days) | 4 reps still waiting, longest first | tell them it's with Tomás Beckett / Elena Duvall | 4 reps raised this and have heard nothing; the oldest has been waiting 383 days | R1052, R1174, R1118, R1098, R1033, R1092 |
+| 1 | Curtis Hartigan | AE, Financial Services, holds the intro | extend the intro, no connector is asked | Tomás Beckett introduced Chief Information Officer on 2026-03-16 (R1150, meeting booked); the allocator parks every live request here, so Curtis asks that contact for Head of Platform Engineering, VP Enterprise Architecture | R1092, R1174 |
+| 2 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask | said yes on 2025-09-17 and never forwarded; said yes on 2026-03-28 and never forwarded; said yes on 2026-06-11 and never forwarded | R1118, R1098, R1033 |
+| 3 | Bertrand Vandermolen | CRM owner (A1030) | check in on the account | last touch 2025-10-17, 324 days ago | — |
+| 4 | Yusuf Petrossian (383 days), Nadia Okonkwo (356 days), Curtis Hartigan (170 days), Sloane Fairweather (162 days) | 4 reps still waiting, longest first | tell them it's with Tomás Beckett / Elena Duvall | 4 reps raised this and have heard nothing; the oldest has been waiting 383 days | R1052, R1174, R1118, R1098, R1033, R1092 |

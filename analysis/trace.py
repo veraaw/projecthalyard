@@ -34,8 +34,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.build_golden import (OFFER_RE, OPEN_STATUSES, PRIOR_RATE, STAGES, capacity, delivery_rates, fit, latest_cycle,  # noqa: E402
-                                 load_completions, load_roster, load_threads, path_score, stage_of, with_completions)
+from golden.build_golden import (ALREADY_INTRODUCED, OFFER_RE, OPEN_STATUSES, PRIOR_RATE, STAGES, capacity, delivery_rates, fit,  # noqa: E402
+                                 introductions, latest_cycle, load_completions, load_roster, load_threads, path_score, stage_of,
+                                 with_completions)
 from golden.resolver import normalize, normalize_strict  # noqa: E402
 from paths import ANALYSIS, DATASET, GOLDEN  # noqa: E402
 
@@ -214,6 +215,13 @@ class Trace:
             if o["intro_sent"] == "Y":
                 return o
         return None
+
+    def introduction(self) -> dict | None:
+        """The intro that governs fresh asks on this company, as the allocator sees it:
+        live (meeting booked, or recent) parks every open request with the rep who
+        was introduced; fizzled puts the company back in the queue as a retry."""
+        rows = [o for rid in self.request_ids for o in self.d.outcomes.get(rid, [])]
+        return introductions(rows, dict.fromkeys(self.request_ids, self.cid), self.today).get(self.cid)
 
     def offers(self, rid: str) -> list[dict]:
         t = self.d.threads.get(rid)
@@ -528,6 +536,30 @@ class Trace:
             add(4, acct["owner"], "check in on the account",
                 f"last touch {touch.isoformat()}, {(self.today - touch).days} days ago", [], role=f"CRM owner ({acct['account_id']})")
 
+        intro = self.introduction()
+        rep_introduced = ""
+        if intro:
+            req = next(r for r in self.requests if r["request_id"] == intro["request_id"])
+            rep_introduced = req["requested_by"]
+            made = (f"{intro['connector']} introduced {req['target_title']} on {intro['intro_date']} ({intro['request_id']}"
+                    + (", meeting booked)" if intro["meeting_booked"] else ")"))
+            parked = [a for a in self.live if a["exception_reason"].startswith(ALREADY_INTRODUCED)]
+            if intro["live"] and parked:
+                wanted = sorted({a["target_title"] for a in parked})
+                add(0, rep_introduced, "extend the intro, no connector is asked",
+                    f"{made}; the allocator parks every live request here, so {rep_introduced.split()[0]} asks that contact for "
+                    + ", ".join(wanted), [a["request_id"] for a in parked], role=f"{self.role_of(rep_introduced)}, holds the intro")
+            elif intro["live"]:
+                add(6, rep_introduced, "no action: intro already made", f"{made}; nothing else is open here",
+                    [intro["request_id"]], role=f"{self.role_of(rep_introduced)}, holds the intro")
+            else:
+                batches = sorted({a["batch_id"] for a in self.allocated.values()})
+                since = f" in {intro['days']} days" if intro["days"] is not None else ""
+                add(6, rep_introduced, "no action: intro already made",
+                    f"{made} and no meeting followed{since}, so the allocator treats the company as a retry"
+                    + (f" on {', '.join(batches)}" if batches else "; nothing is allocated this cycle"),
+                    [intro["request_id"]], role=f"{self.role_of(rep_introduced)}, was introduced")
+
         waiting: dict[str, list[dict]] = defaultdict(list)
         for r in self.requests:
             rid = r["request_id"]
@@ -549,10 +581,15 @@ class Trace:
                     if h and h not in holders:
                         holders.append(h)
             n = len(reps)
+            if holders:
+                tell = f"tell them it's with {' / '.join(holders)}"
+            elif intro and intro["live"]:
+                tell = f"tell them it's with {rep_introduced}, who holds {intro['connector']}'s intro"
+            else:
+                tell = "tell them nobody has it"
             steps["\u0000reps"] = Step(
                 5, ", ".join(f"{rep} ({longest[rep]} days)" for rep in reps),
-                f"{n} rep{'s' if n != 1 else ''} still waiting, longest first",
-                f"tell them it's with {' / '.join(holders)}" if holders else "tell them nobody has it",
+                f"{n} rep{'s' if n != 1 else ''} still waiting, longest first", tell,
                 f"{n} rep{'s' if n != 1 else ''} raised this and {'have' if n != 1 else 'has'} heard nothing; "
                 f"the oldest has been waiting {max(longest.values())} days", rids)
         return sorted(steps.values(), key=lambda s: (s.order, s.who))
