@@ -8,8 +8,8 @@ Three things are checked:
      only renders — states the facts the golden files state: 27 allocated in 8
      batches, 56 exceptions by reason (11 of them parked behind a live intro,
      and the fizzled ones labelled as retries), the 23 responded-but-no-intro
-     asks, the 60-day check-in tests, importer-shaped CRM columns, and a company
-     link into Company Trace on every company.
+     asks, importer-shaped CRM columns, and a company link into Company Trace on
+     every company.
   2. the upload preview parses like the build: the JavaScript parser (run under
      node) picks the same target and resolves it the same way as golden/parse.py
      + golden/resolver.py on every Slack first message and every raw_ask.
@@ -314,47 +314,6 @@ class PayloadTest(unittest.TestCase):
             quiet = [s["quiet"] for s in c["sitting_on"]]
             self.assertEqual(quiet, sorted(quiet), "actionable rows first, recently followed-up rows last")
 
-    def test_checkins_lead_with_no_crm_touch_on_live_requests(self):
-        K = self.P["checkins"]
-        self.assertEqual(K["days"], 60)
-        self.assertEqual(K["count"], len(K["rows"]))
-        for r in K["rows"]:
-            self.assertGreater(r["live_requests"], 0, "only companies with live requests are listed")
-            self.assertTrue(r["touch_days"] is None or r["touch_days"] > 60, "only companies with no CRM touch in 60 days are listed")
-            self.assertIn("CRM touch", r["failed"])
-            self.assertEqual("intro ask" in r["failed"], r["ask_days"] is None or r["ask_days"] > 60, r)
-        self.assertEqual(K["both"], sum(1 for r in K["rows"] if len(r["failed"]) == 2))
-        self.assertEqual((K["unique"], K["owned"]), (sum(1 for r in K["rows"] if not r["owned_by"]), sum(1 for r in K["rows"] if r["owned_by"])))
-        self.assertEqual(K["unique"] + K["owned"], K["count"])
-        self.assertGreater(K["unique"], 0)
-        self.assertGreater(K["owned"], 0)
-        for r in K["rows"]:
-            self.assertNotIn("checked_in_on", r, "no Supabase completion on this section")
-        self.assertNotIn("checked_in", K)
-
-    def test_checkins_point_at_the_section_that_owns_the_action(self):
-        P, K = self.P, self.P["checkins"]
-        elsewhere = {
-            "top": {r["company_id"] for r in P["priorities"]["top"]},
-            "asks": {c["company_id"] for b in P["asks"]["batches"] for c in b["companies"]},
-            "introduced": {r["company_id"] for r in P["introduced"]["rows"]},
-            "connectors": {s["company_id"] for c in P["connectors"] for s in c["sitting_on"]},
-            "bottlenecks": {r["company_id"] for r in P["bottlenecks"]["rows"]},
-            "unrouted": {x["company_id"] for c in P["unrouted"]["per_connector"] for x in c["companies"]},
-            "crm": {r["company_id"] for g in P["crm"]["groups"] for r in g["rows"]},
-        }
-        order = [s for s, _ in lp.SECTIONS]
-        titles = dict(lp.SECTIONS)
-        for r in K["rows"]:
-            owners = [s for s in order if r["company_id"] in elsewhere.get(s, set())]
-            self.assertEqual(r["owned_by"], owners[0] if owners else "", f"{r['company_name']}: first section in page order that lists it")
-            self.assertEqual(r["owned_by_title"], titles.get(r["owned_by"], ""))
-        owned_flags = [bool(r["owned_by"]) for r in K["rows"]]
-        self.assertEqual(owned_flags, sorted(owned_flags), "the rows nothing else owns sort to the top")
-        for group in ([r for r in K["rows"] if not r["owned_by"]], [r for r in K["rows"] if r["owned_by"]]):
-            keys = [(-len(r["failed"]), -r["live_value_usd"], r["company_name"]) for r in group]
-            self.assertEqual(keys, sorted(keys), "within each half: both tests failed first, then largest live value")
-
     def test_completion_actions_cover_every_tick_and_no_crm(self):
         X = self.P["completions"]
         self.assertEqual(X["actions"], {"top": "ask_sent", "bottlenecks": "nudged", "nudge": "nudged", "chase": "chased"})
@@ -505,11 +464,11 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual([sid for sid, _ in lp.SECTIONS], re.findall(r'<section id="([^"]+)"', boot),
                          "SECTIONS is the header nav; it must list every section boot() renders, in order")
         self.assertEqual([sid for sid, _ in lp.SECTIONS],
-                         ["route", "upload", "stages", "top", "bottlenecks", "crm", "asks", "introduced", "connectors", "unrouted", "checkins"],
+                         ["route", "upload", "stages", "top", "bottlenecks", "crm", "asks", "introduced", "connectors", "unrouted"],
                          "intake, orientation, actionable now, current cycle, not moving")
-        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 3, 3, 2])
+        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 3, 3, 1])
         folded = re.findall(r'<section id="([^"]+)">\$\{fold\(', boot)
-        self.assertEqual(folded, ["bottlenecks", "crm", "asks", "introduced", "connectors", "unrouted", "checkins"], "the long tables start collapsed")
+        self.assertEqual(folded, ["bottlenecks", "crm", "asks", "introduced", "connectors", "unrouted"], "the long tables start collapsed")
         self.assertIn('<section id="stages" class="masthead">', boot)
         self.assertNotIn("<table", boot.split('<section id="stages"')[1].split("</section>")[0], "orientation is one strip, no rows")
         self.assertIn("CRM Updates <span", boot)

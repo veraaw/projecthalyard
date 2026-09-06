@@ -57,7 +57,6 @@ STAGE_WEIGHT = {
 }
 NO_CRM_WEIGHT = 0.25   # a requested company with no CRM account
 AGE_CAP_DAYS = 365     # age factor = 1 + min(days waiting, cap) / cap  (1.0 .. 2.0)
-CHECKIN_DAYS = 60
 TOP_N = 5
 NUDGE_QUIET_DAYS = 14  # a bottleneck nudged this recently is off the list until the quiet period passes
 BUILD_STAMP = DOCS / "build_stamp.json"  # when the site was last generated; the page shows it
@@ -84,7 +83,7 @@ BANDS = [
      [("asks", "Current asks"), ("introduced", "Already introduced"), ("connectors", "Roster Connectors")]),
     ("stuck", "Not Moving",
      "Does the action belong to someone who isn't reading this page?",
-     [("unrouted", "Unrouted"), ("checkins", "Check-ins")]),
+     [("unrouted", "Unrouted")]),
 ]
 # every section in page order; drives the header nav
 SECTIONS = [s for _, _, _, sections in BANDS for s in sections]
@@ -863,66 +862,6 @@ class Live:
             })
         return out
 
-    # -- 7. overdue a check-in ------------------------------------------------
-    def owned_elsewhere(self) -> dict[str, str]:
-        """company_id -> the first section, in page order, that already holds an
-        action on the company: an ask to send (Top priorities, Current asks), a
-        live intro to extend, a nudge, a connector's follow-up, an unrouted ask to
-        place, a CRM fix. A company in none of them is this section's alone."""
-        listed = {
-            "top": [r["company_id"] for r in self.priorities()["top"]],
-            "asks": [c["company_id"] for b in self.asks()["batches"] for c in b["companies"]],
-            "introduced": [r["company_id"] for r in self.introduced()["rows"]],
-            "bottlenecks": [r["company_id"] for r in self.bottlenecks()["rows"]],
-            "connectors": [s["company_id"] for c in self.connectors() for s in c["sitting_on"]],
-            "unrouted": [x["company_id"] for c in self.unrouted()["per_connector"] for x in c["companies"]],
-            "crm": [r["company_id"] for g in self.crm()["groups"] for r in g["rows"]],
-        }
-        out: dict[str, str] = {}
-        for section, _ in SECTIONS:
-            for cid in listed.get(section, []):
-                if cid:
-                    out.setdefault(cid, section)
-        return out
-
-    def checkins(self) -> dict:
-        """Companies with live requests and a CRM account nobody has touched (CRM
-        last_touch_date) in CHECKIN_DAYS; `both` of them have had no connector asked
-        about them in that window either. Every row already listed in another
-        section carries `owned_by`, the section that owns the action on it; the rows
-        nothing else owns sort first, so the page's sections stay mutually exclusive."""
-        titles = dict(SECTIONS)
-        owned = self.owned_elsewhere()
-        rows = []
-        for cid, c in self.companies.items():
-            accts = [self.accounts[a] for a in bar(c["crm_account_ids"]) if a in self.accounts]
-            live = [r for r in self.by_company.get(cid, []) if r["status_as_filed"] in bg.OPEN_STATUSES]
-            if not accts or not live:
-                continue
-            touch = max((parse_date(a["last_touch_date"]) for a in accts if a["last_touch_date"]), default=None)
-            asks = [parse_date(self.outcome_by_rid[r["request_id"]]["asked_date"]) for r in self.by_company.get(cid, [])
-                    if r["request_id"] in self.outcome_by_rid]
-            last_ask = max((d for d in asks if d), default=None)
-            touch_days = (self.today - touch).days if touch else None
-            ask_days = (self.today - last_ask).days if last_ask else None
-            if touch_days is not None and touch_days <= CHECKIN_DAYS:
-                continue
-            ask_failed = ask_days is None or ask_days > CHECKIN_DAYS
-            rows.append({
-                **self.company_ref(cid), "owner": c["owner"], "stage": c["stage"],
-                "last_touch_date": touch.isoformat() if touch else "", "touch_days": touch_days,
-                "last_ask_date": last_ask.isoformat() if last_ask else "", "ask_days": ask_days,
-                "failed": ["CRM touch", "intro ask"] if ask_failed else ["CRM touch"],
-                "live_requests": len(live), "live_value_fmt": money(sum(usd(r["value_usd"]) for r in live)),
-                "live_value_usd": sum(usd(r["value_usd"]) for r in live),
-                "owned_by": owned.get(cid, ""), "owned_by_title": titles.get(owned.get(cid, ""), ""),
-            })
-        rows.sort(key=lambda r: (bool(r["owned_by"]), -len(r["failed"]), -r["live_value_usd"], r["company_name"]))
-        return {"days": CHECKIN_DAYS, "rows": rows, "count": len(rows),
-                "both": sum(1 for r in rows if len(r["failed"]) == 2),
-                "unique": sum(1 for r in rows if not r["owned_by"]),
-                "owned": sum(1 for r in rows if r["owned_by"])}
-
     # -- 8. unrouted company asks, per connector -------------------------------
     def unrouted(self) -> dict:
         asks_in, asks_out, intros_in, intros_out = 0, 0, 0, 0
@@ -1115,7 +1054,7 @@ class Live:
                       for bid, title, test, sections in BANDS],
             "stages": self.stages(), "priorities": self.priorities(), "asks": self.asks(), "introduced": self.introduced(),
 "bottlenecks": self.bottlenecks(), "connectors": self.connectors(),
-            "checkins": self.checkins(), "unrouted": self.unrouted(), "crm": self.crm(), "parser": self.parser(),
+            "unrouted": self.unrouted(), "crm": self.crm(), "parser": self.parser(),
             "completions": self.completion_export(),
             "connector_pages": [{"connector": c["connector"], "page": c["page"], "on_roster": c["on_roster"]}
                                 for c in self.connector_pages()],
@@ -1165,6 +1104,5 @@ if __name__ == "__main__":
           + ", ".join(f"{e['count']} {e['reason']}" for e in p["asks"]["exceptions"]))
     print(f"bottlenecks {p['bottlenecks']['count']} nudges" + (f", {len(p['bottlenecks']['nudged'])} nudged recently" if p['bottlenecks']['nudged'] else ""))
     print(f"completions {p['completions']['count']} on file")
-    print(f"check-ins   {p['checkins']['count']} overdue ({p['checkins']['both']} failed both, {p['checkins']['unique']} owned by no other section)")
     print("unrouted   ", ", ".join(f"{c['connector'].split()[0]} {c['count']}" for c in p["unrouted"]["per_connector"]))
     print("crm        ", ", ".join(f"{g['count']} {g['group']}" for g in p["crm"]["groups"]))
