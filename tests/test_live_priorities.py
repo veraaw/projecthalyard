@@ -296,6 +296,12 @@ class PayloadTest(unittest.TestCase):
         self.assertTrue(all(r["days_since_agreed"] >= 0 for r in B["rows"]))
         self.assertEqual([r["days_since_agreed"] for r in B["rows"]],
                          sorted((r["days_since_agreed"] for r in B["rows"]), reverse=True))
+        L = lp.Live(AS_OF)
+        for r in B["rows"]:
+            if r["company_id"]:
+                self.assertEqual((r["value_usd"], r["value_source"]), L.company_value(r["company_id"]),
+                                 f"{r['request_id']}: the company's one $ as on Company Trace, not the request's")
+        self.assertNotIn("value_fmt", B, "no request-value total on the section")
 
     def test_connectors(self):
         C = self.P["connectors"]

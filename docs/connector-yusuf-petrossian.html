@@ -1022,14 +1022,14 @@ const LP = (function () {
 
     // ---- band 1 · intake: input the build does not have yet
     // route one message — the common case and the demo case, so it comes first
-    sec.route = `<section id="route"><h2>Route a live request <span class="foot">paste a Slack message and see what the router would do with it</span></h2>
+    sec.route = `<section id="route"><h2>Route a Live Request <span class="foot">paste a Slack message and see what the router would do with it</span></h2>
       <p class="lede">The browser applies the build's own rules, exported as data: the ${P.cues.length} cues from <code>golden/parse.py</code> score every company named, the highest positive score is the target, <code>golden/resolver.py</code>'s tables look the name up, and the company's paths from <code>supply_reach.csv</code> are ranked as the build ranks them. Nothing is written anywhere.</p>
       <div class="presets">try a real shape:${P.route_presets.map((p, i) => `<button class="secondary" data-i="${i}">${esc(p.label)}</button>`).join('')}</div>
       <div class="ask"><textarea id="lp-route-text" rows="3" placeholder="who do we know at …" aria-label="Slack message"></textarea><button id="lp-route-go">Route it</button></div>
       <div id="lp-route-out"></div></section>`;
 
     // bulk upload — rare, and ends in a command run elsewhere
-    sec.upload = `<section id="upload"><h2>Preview a Slack export before anything is written</h2>
+    sec.upload = `<section id="upload"><h2>Preview a Slack Export Before Anything Is Written</h2>
       <p class="lede">Drop a <code>.jsonl</code> of Slack threads (one <code>{request_id, messages:[{ts,user,text}…]}</code> per line). Every row shows the company the build would resolve, any offer spotted in the replies, who it would route to and what needs a human. It uses the build's own cues, resolver tables and offer pattern, so the preview matches what lands. A static page cannot write to disk: export the preview and run the command to file it.</p>
       <div class="drop" id="lp-drop"><input type="file" id="lp-file" accept=".jsonl,.json,.txt"><span>Drop a .jsonl here or click to choose</span></div>
       <div id="lp-preview"></div></section>`;
@@ -1044,7 +1044,7 @@ const LP = (function () {
     // ---- band 3 · actionable now: ticking a row changes what the queue proposes tomorrow
     // spends a connector slot
     const T = D.priorities;
-    sec.top = `<section id="top"><h2>Top ${T.top.length} priorities <span class="foot">do these next: sorted by expected value across ${T.considered} live requests with a connector to act on · each spends a connector slot</span></h2>`
+    sec.top = `<section id="top"><h2>Top ${T.top.length} Priorities <span class="foot">do these next: sorted by expected value across ${T.considered} live requests with a connector to act on · each spends a connector slot</span></h2>`
       + priorityTable(T.top, X, state, 'rank', true)
       + `<p class="foot">Per connector: ${D.connector_pages.map(c => `<a href="${esc(c.page)}">${esc(c.connector)}</a>`).join(' · ')}. Each tab opens on their own top 5, with the longer list below.</p>`
       + formulaNote(T.formula) + `</section>`;
@@ -1065,7 +1065,7 @@ const LP = (function () {
     // ---- band 4 · current cycle: decisions the allocator already made — read-only
     // what is going out
     const A = D.asks;
-    sec.asks = `<section id="asks">${fold(`Current asks <span class="foot">cycle ${esc(A.cycle)}: ${A.allocated} requests allocated in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code> · the drafted messages are on <a href="${esc(D.batch_page)}">Batched-Ask</a></span>`)}`
+    sec.asks = `<section id="asks">${fold(`Current Asks <span class="foot">cycle ${esc(A.cycle)}: ${A.allocated} requests allocated in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code> · the drafted messages are on <a href="${esc(D.batch_page)}">Batched-Ask</a></span>`)}`
       + tabs('asks', [...A.batches.map(b => ({ label: b.connector, n: b.size, b })), { label: 'Aggregate', n: A.allocated, cls: 'agg' }], ({ b }) => b
         ? `<p class="foot">${esc(b.connector_type)} · ${plural(b.size, 'request')} · ${esc(b.value_fmt)} · one consolidated ask, batch <code>${esc(b.batch_id)}</code> · <a href="${esc(D.batch_page)}#${esc(b.slug)}">the message</a></p>
         <table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>why this connector</th></tr></thead><tbody>`
@@ -1091,7 +1091,7 @@ const LP = (function () {
 
     // already in the door: the allocator parked these rather than spend a slot
     const I = D.introduced;
-    sec.introduced = `<section id="introduced">${fold(`Already introduced — extend the intro <span class="foot">${plural(I.requests, 'request')} on ${plural(I.count, 'company')}, ${esc(I.value_fmt)} — an intro already landed there (meeting booked, or sent within ${I.days} days), so no connector slot is spent</span>`)}
+    sec.introduced = `<section id="introduced">${fold(`Already Introduced — Extend the Intro <span class="foot">${plural(I.requests, 'request')} on ${plural(I.count, 'company')}, ${esc(I.value_fmt)} — an intro already landed there (meeting booked, or sent within ${I.days} days), so no connector slot is spent</span>`)}
       <p class="lede">The action is with the rep who was introduced, not a connector: they ask the contact they already have for the other names. An intro with no meeting after ${I.days} days counts as fizzled and the company goes back into the queue, flagged <b class="warn">retry intro</b>.</p>`
       + (I.rows.length ? `<table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>the intro that landed</th><th>next step</th><th>fallback path</th></tr></thead><tbody>`
         + I.rows.map(r => `<tr><td>${co(r)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.urgency)} · ${esc(r.crm_stage)} · ${r.request_ids.map(esc).join(', ')}</span></td><td>${r.wanted.map(esc).join('<br>')}</td><td>${r.waiting.map(esc).join('<br>')}</td><td><b>${esc(r.intro.connector)}</b> → ${esc(r.intro.requested_by || 'unattributed')}<br><span class="foot">${esc(r.intro.intro_date)} · ${esc(r.intro.request_id)} · ${esc(r.intro.target_title)}${r.intro.meeting_booked ? ' · <b>meeting booked</b>' : ` · ${r.intro.days} days ago, no meeting yet`}</span></td><td><b>${esc(r.owner || 'nobody')}</b><br><span class="foot">${esc(r.action)}</span></td><td class="foot">${esc(r.best_path || 'none in the network')}</td></tr>`).join('')
@@ -1103,14 +1103,14 @@ const LP = (function () {
       + `</details></section>`;
 
     // who is carrying it
-    sec.connectors = `<section id="connectors">${fold(`Roster Connectors <span class="foot">one panel each: queue this cycle, capacity used against stated capacity, delivery rate, what they are already sitting on. The coloured tabs at the top open each connector's own page</span>`)}`
+    sec.connectors = `<section id="connectors">${fold(`Roster Connectors Capacity <span class="foot">one panel each: queue this cycle, capacity used against stated capacity, delivery rate, what they are already sitting on. The coloured tabs at the top open each connector's own page</span>`)}`
       + tabs('connectors', D.connectors.map(c => ({ label: c.connector, n: `${c.used}/${c.capacity}`, c })), ({ c }) => `
         <p class="lede">${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''} · <a href="${esc(c.page)}">their top 5</a><br><span class="foot">${esc(c.notes)}</span></p>
         <div class="kpis"><div class="kpi"><div class="v">${c.used} / ${c.capacity}</div><div class="l">capacity used this cycle</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated · ${c.idle} idle</div></div>
           <div class="kpi"><div class="v">${Math.round(c.delivery_rate * 100)}%</div><div class="l">delivery rate</div><div class="s">${c.intros_all_time} intros / ${c.asks_all_time} asks, shrunk toward the prior</div></div>
           <div class="kpi ${c.sitting_on.length ? 'warn' : ''}"><div class="v">${c.sitting_on.length}</div><div class="l">already sitting on</div><div class="s">asked, live, no intro yet</div></div>
           <div class="kpi"><div class="v">${c.queue.length}</div><div class="l">in this cycle's ask</div><div class="s">${c.queue.length ? 'one consolidated batch' : 'nothing allocated'}</div></div></div>`
-        + composeBlock(c.batch_ask, `ask-${c.slug}`, `tick <i>ask sent</i> under <a href="#top">Top priorities</a> or on <a href="${esc(c.page)}">their page</a> once it has gone out`)
+        + composeBlock(c.batch_ask, `ask-${c.slug}`, `tick <i>ask sent</i> under <a href="#top">Top Priorities</a> or on <a href="${esc(c.page)}">their page</a> once it has gone out`)
         + `<h3>queue this cycle</h3>` + (c.queue.length ? `<table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>for</th><th>path</th><th class="num">score</th><th>value</th><th>urgency</th></tr></thead><tbody>`
           + c.queue.map(q => `<tr><td class="rid">${esc(q.request_id)}</td><td>${co(q)}${retryTag(q)}</td><td>${esc(q.target_title)}</td><td>${esc(q.requested_by)}</td><td>${esc(q.path_type)}${q.contact ? ` <span class="foot">via ${esc(q.contact)}</span>` : ''}</td><td class="num">${esc(q.route_score)}</td><td>${esc(q.value_fmt)}</td><td>${esc(q.urgency)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing allocated to ${esc(c.connector)} this cycle</p>`)
         + `<h3>already sitting on</h3>` + sittingTable(c, X, state))
@@ -1119,7 +1119,7 @@ const LP = (function () {
     // ---- band 5 · not moving: the action belongs to someone who is not reading this page
     // every row says where its action actually lives
     const U = D.unrouted, F = U.finding;
-    sec.unrouted = `<section id="unrouted">${fold(`Unrouted company asks, per connector <span class="foot">${U.unrouted_companies} companies with live requests nobody is allocated to, matched to each connector's stated focus areas</span>`)}
+    sec.unrouted = `<section id="unrouted">${fold(`Suggested Unrouted Company Connectors <span class="foot">${U.unrouted_companies} companies with live requests nobody is allocated to, matched to each connector's stated focus areas</span>`)}
       <p class="lede">In-focus asks convert at <b>${esc(F.in_focus_pct)}</b> versus ${esc(F.out_focus_pct)} outside, yet only ${F.in_focus_asks} of ${F.total_asks} asks landed in focus. These are the names that finding points at. Nothing here is ticked. A company with a path moves on the connector's page; one without moves in sourcing, from its trace.</p>`;
     for (const c of U.per_connector) {
       sec.unrouted += `<h3>${esc(c.connector)} <span class="foot">${c.focus.map(esc).join(', ')} · ${plural(c.count, 'company')} · ${esc(c.value_fmt)} · ${c.idle} idle slots · <a href="${esc(c.page)}">their page</a></span></h3>`;
@@ -1131,12 +1131,12 @@ const LP = (function () {
 
     // no slot spent: a nudge the connector owes, not a fresh ask
     const B = D.bottlenecks;
-    sec.bottlenecks = `<section id="bottlenecks">${fold(`Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro, ${esc(B.value_fmt)}, from <code>intro_outcomes.csv</code></span>`)}
+    sec.bottlenecks = `<section id="bottlenecks">${fold(`Core Introduction Bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro · <code>intro_outcomes.csv</code></span>`)}
       <p class="lede">Each of these wants a <b>nudge</b>. Asking again would spend a fresh slot for an answer you already have. Tick the row once you have nudged; it comes back after ${B.quiet_days} quiet days.</p>`
-      + tabs('bottlenecks', [{ label: 'All connectors', n: B.count, rows: B.rows, note: `${plural(B.count, 'ask')} · ${esc(B.value_fmt)} · oldest agreement first` }]
-          .concat(B.by_connector.map(c => ({ label: c.connector, n: c.count, rows: B.rows.filter(r => r.connector === c.connector), note: `${plural(c.count, 'ask')} · ${esc(c.value_fmt)}${c.on_roster ? '' : ' · off roster'}` }))),
-        t => `<p class="foot">${t.note}</p><table class="top"><thead><tr><th></th><th>action</th><th>request</th><th>company</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
-          + t.rows.map(r => { const k = nudgeTick(X, r); return `<tr class="${doneClass(state, k)}">${tick(state, k)}<td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`; }).join('')
+      + tabs('bottlenecks', [{ label: 'All connectors', n: B.count, rows: B.rows, note: `${plural(B.count, 'ask')} · oldest agreement first` }]
+          .concat(B.by_connector.map(c => ({ label: c.connector, n: c.count, rows: B.rows.filter(r => r.connector === c.connector), note: `${plural(c.count, 'ask')}${c.on_roster ? '' : ' · off roster'}` }))),
+        t => `<p class="foot">${t.note}</p><table class="top"><thead><tr><th></th><th>action</th><th>request</th><th>company</th><th>value</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
+          + t.rows.map(r => { const k = nudgeTick(X, r); return `<tr class="${doneClass(state, k)}">${tick(state, k)}<td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.value_fmt)}${r.value_source === 'crm' ? ' <span class="foot">CRM</span>' : r.value_source === 'deal' ? ' <span class="foot">latest ask</span>' : ''}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`; }).join('')
           + `</tbody></table>`)
       + (B.nudged.length ? `<p class="foot">Nudged in the last ${B.quiet_days} days, off the list until then: ${B.nudged.map(r => `${co(r)} (${esc(r.connector)}, ${esc(r.nudged_on)}, ${r.days_since_nudged}d ago)`).join(' · ')}.</p>` : '')
       + `</details></section>`;

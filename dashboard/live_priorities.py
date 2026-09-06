@@ -11,7 +11,7 @@ rules (golden/parse.py cues, golden/build_golden.py OFFER_RE, and the
 golden/resolver.py lookup tables) are exported into the payload and applied
 verbatim by the browser, so a dropped .jsonl previews exactly what
 `python3 golden/build_golden.py --threads FILE` would file. And Submit: the
-tick-boxes on Top priorities (an ask sent), Core bottlenecks (a nudge sent) and
+tick-boxes on Top Priorities (an ask sent), Core Introduction Bottlenecks (a nudge sent) and
 the connector pages' "already sitting on" (a nudge or a chase sent) are posted,
 one row each, to the Supabase
 `completions` table with the anon key (insert-only; the
@@ -71,19 +71,19 @@ CONNECTOR_PAGE = "connector-{slug}.html"
 BANDS = [
     ("intake", "Intake: Preview a Routed Request Summary",
      "Does it accept input the build doesn't have yet?",
-     [("route", "Route a request"), ("upload", "Preview an export")]),
+     [("route", "Route a Request"), ("upload", "Preview an Export")]),
     ("orientation", "Orientation: Deal Value by Stage",
      "Is it a single aggregate with no rows?",
-     [("stages", "Deal value by stage")]),
+     [("stages", "Deal Value by Stage")]),
     ("now", "Actionable Routing Steps",
      "Does ticking it change what the queue proposes tomorrow?",
-     [("top", "Top priorities"), ("crm", "CRM Updates")]),
+     [("top", "Top Priorities"), ("crm", "CRM Updates")]),
     ("cycle", "Current Cycle Overview",
      "Does it describe a decision the allocator already made?",
-     [("asks", "Current asks"), ("introduced", "Already introduced"), ("connectors", "Roster Connectors")]),
+     [("asks", "Current Asks"), ("introduced", "Already Introduced"), ("connectors", "Roster Connectors Capacity")]),
     ("stuck", "Not Moving",
      "Does the action belong to someone who isn't reading this page?",
-     [("unrouted", "Unrouted"), ("bottlenecks", "Core bottlenecks")]),
+     [("unrouted", "Suggested Unrouted Company Connectors"), ("bottlenecks", "Core Introduction Bottlenecks")]),
 ]
 # every section in page order; drives the header nav
 SECTIONS = [s for _, _, _, sections in BANDS for s in sections]
@@ -705,13 +705,14 @@ class Live:
             r = self.by_rid.get(o["request_id"], {})
             agreed = parse_date(o["response_date"]) or parse_date(o["asked_date"]) or self.today
             last_nudge = parse_date(r.get("nudged_on", ""))
+            value, source = self.company_value(r["company_id"]) if r.get("company_id") else (usd(r.get("value_usd", "")), "deal")
             row = {
                 "request_id": o["request_id"], **self.company_ref(r.get("company_id", ""), r.get("company_as_written", "")),
                 "connector": o["connector_asked"], "on_roster": o["connector_asked"] in self.roster,
                 "target_title": r.get("target_title", ""), "requested_by": r.get("requested_by", ""),
                 "asked_date": o["asked_date"], "agreed_date": o["response_date"],
                 "days_since_agreed": (self.today - agreed).days,
-                "value_fmt": money(r.get("value_usd", "")), "value_usd": usd(r.get("value_usd", "")),
+                "value_fmt": money(value), "value_usd": value, "value_source": source,
                 "status": r.get("status_as_filed", ""), "action": "nudge",
                 "nudged_on": r.get("nudged_on", ""),
                 "days_since_nudged": (self.today - last_nudge).days if last_nudge else None,
@@ -720,10 +721,8 @@ class Live:
         rows.sort(key=lambda r: -r["days_since_agreed"])
         nudged.sort(key=lambda r: (r["nudged_on"], r["request_id"]))
         by_connector = Counter(r["connector"] for r in rows)
-        return {"rows": rows, "count": len(rows), "value_fmt": money(sum(r["value_usd"] for r in rows)),
-                "nudged": nudged, "quiet_days": NUDGE_QUIET_DAYS,
-                "by_connector": [{"connector": k, "count": n, "on_roster": k in self.roster,
-                                  "value_fmt": money(sum(r["value_usd"] for r in rows if r["connector"] == k))}
+        return {"rows": rows, "count": len(rows), "nudged": nudged, "quiet_days": NUDGE_QUIET_DAYS,
+                "by_connector": [{"connector": k, "count": n, "on_roster": k in self.roster}
                                  for k, n in by_connector.most_common()]}
 
     # -- 6. per-connector -----------------------------------------------------
