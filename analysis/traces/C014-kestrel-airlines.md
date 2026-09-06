@@ -9,13 +9,13 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (5 events, 1 request, as of 2026-09-06)
+## 4. Chronology (5 events, 1 request, newest first, as of 2026-09-06)
 
 ```
-   2026-01-10  intro_requests.csv   Nadia Okonkwo        R1054 raised by Nadia Okonkwo (AE, Industrials): wants Chief Operating Officer, $1,200,000, Low urgency, filed "Routed"
-   2026-01-10  slack_threads.jsonl  Nadia Okonkwo        R1054 slack: "trying to reach Chief Operating Officer at Kestrel Airlines — anyone have a path?"
-   2026-01-10  slack_threads.jsonl  Yusuf Petrossian     R1054 slack: "what's the deal size here?"
    2026-01-13  slack_threads.jsonl  Curtis Hartigan      R1054 slack: "what's the deal size here?"
+   2026-01-10  slack_threads.jsonl  Yusuf Petrossian     R1054 slack: "what's the deal size here?"
+   2026-01-10  slack_threads.jsonl  Nadia Okonkwo        R1054 slack: "trying to reach Chief Operating Officer at Kestrel Airlines — anyone have a path?"
+   2026-01-10  intro_requests.csv   Nadia Okonkwo        R1054 raised by Nadia Okonkwo (AE, Industrials): wants Chief Operating Officer, $1,200,000, Low urgency, filed "Routed"
 
 !! 2025-10-14  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1012  [327 days ago, nothing since]
 ```

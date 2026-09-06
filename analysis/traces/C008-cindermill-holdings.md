@@ -22,28 +22,28 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 strongest path, not where it went: Owen Trask, direct 0.426, at capacity 2/2; R1059 routed to Elena Duvall, R1144 routed to Elena Duvall, R1184 routed to Elena Duvall
 
-## 4. Chronology (17 events, 4 requests, as of 2026-09-06)
+## 4. Chronology (17 events, 4 requests, newest first, as of 2026-09-06)
 
 ```
-   2025-08-17  intro_requests.csv   Curtis Hartigan      R1144 raised by Curtis Hartigan (AE, Financial Services): wants VP Engineering, $400,000, Critical urgency, filed "Open"
-   2025-08-17  slack_threads.jsonl  Curtis Hartigan      R1144 slack: "long shot — Cindermill Mining. Amara Højgaard-Egerton (VP Engineering). Anyone?"
-   2025-08-17  slack_threads.jsonl  Hana Nakashima       R1144 slack: "wrong channel? this feels like a partner ask"
-   2025-08-19  slack_threads.jsonl  Nadia Okonkwo        R1144 slack: "I think their procurement is frozen until Q1"
-
-   2025-09-06  intro_requests.csv   Bertrand Vandermolen R1059 raised by Bertrand Vandermolen (AE, EMEA): wants VP Data & Analytics, $250,000, High urgency, filed "Open"
-   2025-09-06  slack_threads.jsonl  Bertrand Vandermolen R1059 slack: "Cindermill Mining is the target. Our champion at Quillon Pharma used to work with their team, and I think Pemberton Retail is a supplier of theirs. Any path?"
-   2025-09-07  slack_threads.jsonl  Hana Nakashima       R1059 slack: "is this the same as the one from last month?"
-
-   2026-06-23  intro_requests.csv   Yusuf Petrossian     R1015 raised by Yusuf Petrossian (SDR Lead): wants Chief Information Officer, $80,000, High urgency, filed "Stalled"
-   2026-06-23  slack_threads.jsonl  Yusuf Petrossian     R1015 slack: "long shot — Cindermill Mining. Niall Zettergren-Isenberg (Chief Information Officer). Anyone?"
-   2026-06-26  slack_threads.jsonl  Nadia Okonkwo        R1015 slack: "bumping this"
-   2026-06-26  intro_outcomes.csv   Owen Trask           R1015 asked
-   2026-06-27  slack_threads.jsonl  Yusuf Petrossian     R1015 slack: "I think their procurement is frozen until Q1"
-   2026-06-27  slack_threads.jsonl  Imani Mkhize         R1015 slack: "did we not already lose this one?"
 <- 2026-09-06  intro_outcomes.csv   Owen Trask           R1015 never replied (asked 2026-06-26, 72 days ago)
+   2026-06-27  slack_threads.jsonl  Imani Mkhize         R1015 slack: "did we not already lose this one?"
+   2026-06-27  slack_threads.jsonl  Yusuf Petrossian     R1015 slack: "I think their procurement is frozen until Q1"
+   2026-06-26  intro_outcomes.csv   Owen Trask           R1015 asked
+   2026-06-26  slack_threads.jsonl  Nadia Okonkwo        R1015 slack: "bumping this"
+   2026-06-23  slack_threads.jsonl  Yusuf Petrossian     R1015 slack: "long shot — Cindermill Mining. Niall Zettergren-Isenberg (Chief Information Officer). Anyone?"
+   2026-06-23  intro_requests.csv   Yusuf Petrossian     R1015 raised by Yusuf Petrossian (SDR Lead): wants Chief Information Officer, $80,000, High urgency, filed "Stalled"
 
-   2026-07-26  intro_requests.csv   Bertrand Vandermolen R1184 raised by Bertrand Vandermolen (AE, EMEA): wants Chief Digital Officer, $750,000, Critical urgency, filed "Open"
    2026-07-26  slack_threads.jsonl  Bertrand Vandermolen R1184 slack: "long shot — Cindermill Mining. Bo Zettergren-Wexford (Chief Digital Officer). Anyone?"
+   2026-07-26  intro_requests.csv   Bertrand Vandermolen R1184 raised by Bertrand Vandermolen (AE, EMEA): wants Chief Digital Officer, $750,000, Critical urgency, filed "Open"
+
+   2025-09-07  slack_threads.jsonl  Hana Nakashima       R1059 slack: "is this the same as the one from last month?"
+   2025-09-06  slack_threads.jsonl  Bertrand Vandermolen R1059 slack: "Cindermill Mining is the target. Our champion at Quillon Pharma used to work with their team, and I think Pemberton Retail is a supplier of theirs. Any path?"
+   2025-09-06  intro_requests.csv   Bertrand Vandermolen R1059 raised by Bertrand Vandermolen (AE, EMEA): wants VP Data & Analytics, $250,000, High urgency, filed "Open"
+
+   2025-08-19  slack_threads.jsonl  Nadia Okonkwo        R1144 slack: "I think their procurement is frozen until Q1"
+   2025-08-17  slack_threads.jsonl  Hana Nakashima       R1144 slack: "wrong channel? this feels like a partner ask"
+   2025-08-17  slack_threads.jsonl  Curtis Hartigan      R1144 slack: "long shot — Cindermill Mining. Amara Højgaard-Egerton (VP Engineering). Anyone?"
+   2025-08-17  intro_requests.csv   Curtis Hartigan      R1144 raised by Curtis Hartigan (AE, Financial Services): wants VP Engineering, $400,000, Critical urgency, filed "Open"
 
 !! 2025-07-10  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1025  [423 days ago, nothing since]
 ```

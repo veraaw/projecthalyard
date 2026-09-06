@@ -25,28 +25,28 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.060 | 0.187 | Priya Raghunathan (Investor) | alumni | Coretta Bellinger — ex-Redtree Foods (2012-2016), now VP Data & Analytics at Redtree Foods | investor_network.csv: Coretta Bellinger prior_employer=Redtree Foods (2012-2016); connections_raghunathan.csv: connection of Priya Raghunathan since 2014-07-03 |
 | 0.036 | 0.202 | Owen Trask (Investor) | alumni | Niall Grimsby — ex-Redtree Foods (2013-2019), now Chief Data Officer at Redtree Foods | investor_network.csv: Niall Grimsby prior_employer=Redtree Foods (2013-2019); connections_trask.csv: connection of Owen Trask since 2017-11-17 |
 
-## 4. Chronology (18 events, 4 requests, as of 2026-09-06)
+## 4. Chronology (18 events, 4 requests, newest first, as of 2026-09-06)
 
 ```
-   2025-10-22  intro_requests.csv   Curtis Hartigan      R1067 raised by Curtis Hartigan (AE, Financial Services): wants Head of Platform Engineering, $1,200,000, Medium urgency, filed "Open"
-   2025-10-22  slack_threads.jsonl  Curtis Hartigan      R1067 slack: "does anyone know anyone at Redtree Foods? looking for Head of Platform Engineering, ideally warm"
-
-   2025-12-08  intro_requests.csv   Curtis Hartigan      R1135 raised by Curtis Hartigan (AE, Financial Services): wants Chief Digital Officer, $750,000, High urgency, filed "Open"
-   2025-12-08  slack_threads.jsonl  Curtis Hartigan      R1135 slack: "looking for a path to Ilse Oldfield-Dobrescu — email domain is redtreefoods.com, that's all I have"
-   2025-12-13  intro_outcomes.csv   Priya Raghunathan    R1135 asked
-++ 2025-12-16  intro_outcomes.csv   Priya Raghunathan    R1135 replied (3 days after the ask)
 <- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1135 said yes 264 days ago and never forwarded
+++ 2025-12-16  intro_outcomes.csv   Priya Raghunathan    R1135 replied (3 days after the ask)
+   2025-12-13  intro_outcomes.csv   Priya Raghunathan    R1135 asked
+   2025-12-08  slack_threads.jsonl  Curtis Hartigan      R1135 slack: "looking for a path to Ilse Oldfield-Dobrescu — email domain is redtreefoods.com, that's all I have"
+   2025-12-08  intro_requests.csv   Curtis Hartigan      R1135 raised by Curtis Hartigan (AE, Financial Services): wants Chief Digital Officer, $750,000, High urgency, filed "Open"
 
-   2026-03-03  intro_requests.csv   Imani Mkhize         R1003 raised by Imani Mkhize (Enterprise AE, West): wants VP Engineering, $400,000, High urgency, filed "Stalled"
-   2026-03-03  slack_threads.jsonl  Imani Mkhize         R1003 slack: "long shot — Redtree Foods. Tomás Jarrold-Egerton (VP Engineering). Anyone?"
-** 2026-03-03  slack_threads.jsonl  Dana Whitfield       R1003 slack: "I met their VP Enterprise Architecture at a conference last spring, happy to reach out"
-   2026-03-06  slack_threads.jsonl  Nadia Okonkwo        R1003 slack: "bumping this"
-   2026-03-06  intro_outcomes.csv   Dana Whitfield       R1003 asked
-++ 2026-03-08  intro_outcomes.csv   Dana Whitfield       R1003 replied (2 days after the ask)
-++ 2026-03-18  intro_outcomes.csv   Dana Whitfield       R1003 intro sent
-
-   2026-06-03  intro_requests.csv   Bertrand Vandermolen R1074 raised by Bertrand Vandermolen (AE, EMEA): wants VP Data & Analytics, $750,000, High urgency, filed "Stalled"
-   2026-06-03  slack_threads.jsonl  Bertrand Vandermolen R1074 slack: "trying to reach VP Data & Analytics at Redtree Foods — anyone have a path?"
-   2026-06-05  slack_threads.jsonl  Curtis Hartigan      R1074 slack: "did we not already lose this one?"
    2026-06-07  slack_threads.jsonl  Sloane Fairweather   R1074 slack: "is this the same as the one from last month?"
+   2026-06-05  slack_threads.jsonl  Curtis Hartigan      R1074 slack: "did we not already lose this one?"
+   2026-06-03  slack_threads.jsonl  Bertrand Vandermolen R1074 slack: "trying to reach VP Data & Analytics at Redtree Foods — anyone have a path?"
+   2026-06-03  intro_requests.csv   Bertrand Vandermolen R1074 raised by Bertrand Vandermolen (AE, EMEA): wants VP Data & Analytics, $750,000, High urgency, filed "Stalled"
+
+++ 2026-03-18  intro_outcomes.csv   Dana Whitfield       R1003 intro sent
+++ 2026-03-08  intro_outcomes.csv   Dana Whitfield       R1003 replied (2 days after the ask)
+   2026-03-06  intro_outcomes.csv   Dana Whitfield       R1003 asked
+   2026-03-06  slack_threads.jsonl  Nadia Okonkwo        R1003 slack: "bumping this"
+** 2026-03-03  slack_threads.jsonl  Dana Whitfield       R1003 slack: "I met their VP Enterprise Architecture at a conference last spring, happy to reach out"
+   2026-03-03  slack_threads.jsonl  Imani Mkhize         R1003 slack: "long shot — Redtree Foods. Tomás Jarrold-Egerton (VP Engineering). Anyone?"
+   2026-03-03  intro_requests.csv   Imani Mkhize         R1003 raised by Imani Mkhize (Enterprise AE, West): wants VP Engineering, $400,000, High urgency, filed "Stalled"
+
+   2025-10-22  slack_threads.jsonl  Curtis Hartigan      R1067 slack: "does anyone know anyone at Redtree Foods? looking for Head of Platform Engineering, ideally warm"
+   2025-10-22  intro_requests.csv   Curtis Hartigan      R1067 raised by Curtis Hartigan (AE, Financial Services): wants Head of Platform Engineering, $1,200,000, Medium urgency, filed "Open"
 ```

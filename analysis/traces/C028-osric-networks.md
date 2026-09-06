@@ -24,35 +24,35 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 strongest path, not where it went: Priya Raghunathan, offer 0.800, at capacity 3/3; R1028 unrouted (already introduced: Elena Duvall on 2026-04-02 (R1163, meeting booked)), R1170 unrouted (already introduced: Elena Duvall on 2026-04-02 (R1163, meeting booked))
 
-## 4. Chronology (24 events, 4 requests, as of 2026-09-06)
+## 4. Chronology (24 events, 4 requests, newest first, as of 2026-09-06)
 
 ```
-   2025-09-10  intro_requests.csv   Hana Nakashima       R1170 raised by Hana Nakashima (AE, Healthcare): wants SVP Digital, $1,200,000, High urgency, filed "Open"
-   2025-09-10  slack_threads.jsonl  Hana Nakashima       R1170 slack: "any connections into Osric Networks? we're up against a renewal window and I need an intro to SVP Digital"
-
-   2026-01-15  intro_requests.csv   Nadia Okonkwo        R1167 raised by Nadia Okonkwo (AE, Industrials): wants Director of Software Engineering, $250,000, Critical urgency, filed "Stalled"
-   2026-01-15  slack_threads.jsonl  Nadia Okonkwo        R1167 slack: "who do we know at Osric Networks? Director of Software Engineering would be ideal but I'll take anyone senior"
-   2026-01-15  slack_threads.jsonl  Sloane Fairweather   R1167 slack: "bumping this"
-** 2026-01-16  slack_threads.jsonl  Priya Raghunathan    R1167 slack: "I'll take this one — I've got a direct line to their exec team"
-   2026-01-17  slack_threads.jsonl  Imani Mkhize         R1167 slack: "what's the deal size here?"
-   2026-01-17  intro_outcomes.csv   Priya Raghunathan    R1167 asked
-++ 2026-01-21  intro_outcomes.csv   Priya Raghunathan    R1167 replied (4 days after the ask)
-++ 2026-01-31  intro_outcomes.csv   Priya Raghunathan    R1167 intro sent
-++ 2026-01-31  intro_outcomes.csv   Priya Raghunathan    R1167 meeting booked
-
-   2026-03-25  intro_requests.csv   Curtis Hartigan      R1163 raised by Curtis Hartigan (AE, Financial Services): wants Chief Data Officer, $400,000, High urgency, filed "Open"
-   2026-03-25  slack_threads.jsonl  Curtis Hartigan      R1163 slack: "need help getting to Osric Networks. Hana Salcedo-Balogun is the Chief Data Officer there, cold outbound is going nowhere"
-   2026-03-25  slack_threads.jsonl  Curtis Hartigan      R1163 slack: "did we not already lose this one?"
-** 2026-03-27  slack_threads.jsonl  Elena Duvall         R1163 slack: "I met their Chief Data Officer at a conference last spring, happy to reach out"
-   2026-03-27  slack_threads.jsonl  Yusuf Petrossian     R1163 slack: "no idea sorry"
-   2026-03-27  intro_outcomes.csv   Elena Duvall         R1163 asked
-++ 2026-04-01  intro_outcomes.csv   Elena Duvall         R1163 replied (5 days after the ask)
-++ 2026-04-02  intro_outcomes.csv   Elena Duvall         R1163 intro sent
-++ 2026-04-02  intro_outcomes.csv   Elena Duvall         R1163 meeting booked
-++ 2026-04-02  intro_outcomes.csv   Elena Duvall         R1163 opportunity created, $400,000
-
-   2026-07-18  intro_requests.csv   Yusuf Petrossian     R1028 raised by Yusuf Petrossian (SDR Lead): wants Chief Digital Officer, $2,000,000, Critical urgency, filed "Open"
    2026-07-18  slack_threads.jsonl  Yusuf Petrossian     R1028 slack: "Duncastle Hotels introduced us to Calderon Aerospace, but the account I actually need is Osric Networks (Chief Digital Officer)."
+   2026-07-18  intro_requests.csv   Yusuf Petrossian     R1028 raised by Yusuf Petrossian (SDR Lead): wants Chief Digital Officer, $2,000,000, Critical urgency, filed "Open"
+
+++ 2026-04-02  intro_outcomes.csv   Elena Duvall         R1163 opportunity created, $400,000
+++ 2026-04-02  intro_outcomes.csv   Elena Duvall         R1163 meeting booked
+++ 2026-04-02  intro_outcomes.csv   Elena Duvall         R1163 intro sent
+++ 2026-04-01  intro_outcomes.csv   Elena Duvall         R1163 replied (5 days after the ask)
+   2026-03-27  intro_outcomes.csv   Elena Duvall         R1163 asked
+   2026-03-27  slack_threads.jsonl  Yusuf Petrossian     R1163 slack: "no idea sorry"
+** 2026-03-27  slack_threads.jsonl  Elena Duvall         R1163 slack: "I met their Chief Data Officer at a conference last spring, happy to reach out"
+   2026-03-25  slack_threads.jsonl  Curtis Hartigan      R1163 slack: "did we not already lose this one?"
+   2026-03-25  slack_threads.jsonl  Curtis Hartigan      R1163 slack: "need help getting to Osric Networks. Hana Salcedo-Balogun is the Chief Data Officer there, cold outbound is going nowhere"
+   2026-03-25  intro_requests.csv   Curtis Hartigan      R1163 raised by Curtis Hartigan (AE, Financial Services): wants Chief Data Officer, $400,000, High urgency, filed "Open"
+
+++ 2026-01-31  intro_outcomes.csv   Priya Raghunathan    R1167 meeting booked
+++ 2026-01-31  intro_outcomes.csv   Priya Raghunathan    R1167 intro sent
+++ 2026-01-21  intro_outcomes.csv   Priya Raghunathan    R1167 replied (4 days after the ask)
+   2026-01-17  intro_outcomes.csv   Priya Raghunathan    R1167 asked
+   2026-01-17  slack_threads.jsonl  Imani Mkhize         R1167 slack: "what's the deal size here?"
+** 2026-01-16  slack_threads.jsonl  Priya Raghunathan    R1167 slack: "I'll take this one — I've got a direct line to their exec team"
+   2026-01-15  slack_threads.jsonl  Sloane Fairweather   R1167 slack: "bumping this"
+   2026-01-15  slack_threads.jsonl  Nadia Okonkwo        R1167 slack: "who do we know at Osric Networks? Director of Software Engineering would be ideal but I'll take anyone senior"
+   2026-01-15  intro_requests.csv   Nadia Okonkwo        R1167 raised by Nadia Okonkwo (AE, Industrials): wants Director of Software Engineering, $250,000, Critical urgency, filed "Stalled"
+
+   2025-09-10  slack_threads.jsonl  Hana Nakashima       R1170 slack: "any connections into Osric Networks? we're up against a renewal window and I need an intro to SVP Digital"
+   2025-09-10  intro_requests.csv   Hana Nakashima       R1170 raised by Hana Nakashima (AE, Healthcare): wants SVP Digital, $1,200,000, High urgency, filed "Open"
 
 !! 2026-04-19  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1044  [140 days ago, nothing since]
 ```
