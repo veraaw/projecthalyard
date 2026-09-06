@@ -161,6 +161,7 @@ from typing import NamedTuple
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+from golden.clock import as_of  # noqa: E402
 from golden.parse import extract as extract_target  # noqa: E402
 from golden.resolver import Resolver, domain_stem, names_regex, normalize, normalize_strict  # noqa: E402
 
@@ -1786,13 +1787,13 @@ def write_derived(supply: list[dict], allocation: list[dict], companies: list[di
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--as-of", default=date.today().isoformat())
+    ap.add_argument("--as-of", default=as_of().isoformat(), help="the build clock (default: HALYARD_AS_OF, else today, UTC)")
     ap.add_argument("--threads", type=Path, help="a Slack export (.jsonl) to ingest alongside dataset/slack_threads.jsonl")
     ap.add_argument("--completions", choices=["supabase"], help="pull the Supabase completions table into golden/completions.csv first")
     ap.add_argument("--apply", type=Path, metavar="FILE", help="merge a CSV of completions into golden/completions.csv first")
     args = ap.parse_args()
     pull_completions(args.completions, args.apply)
-    today = parse_date(args.as_of) or date.today()
+    today = parse_date(args.as_of) or as_of()
     cycle = today.strftime("%Y-%m")
     # the build clock: the as-of date, at the wall-clock time the run started
     decided_at = datetime.combine(today, datetime.now(timezone.utc).time()).strftime("%Y-%m-%dT%H:%M:%SZ")

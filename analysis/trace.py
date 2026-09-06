@@ -43,6 +43,7 @@ sys.path.insert(0, str(ROOT))
 from golden.build_golden import (INVESTOR_NETWORK, NETWORK_HAIRCUT, NETWORK_OUT, OFFER_RE, OPEN_STATUSES, PRIOR_RATE,  # noqa: E402
                                  REACHABLE_AS_CONNECTOR, STAGES, capacity, delivery_rates, fit, latest_cycle, load_completions,
                                  load_roster, load_threads, path_rank, path_score, stage_of, with_completions)
+from golden.clock import as_of  # noqa: E402
 from golden.resolver import normalize, normalize_strict  # noqa: E402
 from paths import ANALYSIS, DATASET, GOLDEN  # noqa: E402
 
@@ -619,7 +620,7 @@ class Trace:
 def all_traces(today: date | None = None) -> list[dict]:
     """as_dict() for every company with a request, most-requested first."""
     data = Data.load()
-    today = today or date.today()
+    today = today or as_of()
     companies = [c for c in data.companies if int(c["total_requests"] or 0)]
     companies.sort(key=lambda c: (-int(c["total_requests"]), c["company_name"]))
     return [Trace(data, c, today).as_dict() for c in companies]
@@ -635,7 +636,7 @@ def slug(name: str) -> str:
 def write_all(today: date | None = None) -> list[Path]:
     """One trace per company with at least one request -> analysis/traces/."""
     data = Data.load()
-    today = today or date.today()
+    today = today or as_of()
     TRACES.mkdir(exist_ok=True)
     written = []
     for c in data.companies:
@@ -651,9 +652,9 @@ def write_all(today: date | None = None) -> list[Path]:
 def main(argv: list[str]) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("company", nargs="?", help="name, alias, id (C018) or CRM account id (A1050)")
-    ap.add_argument("--as-of", default=date.today().isoformat())
+    ap.add_argument("--as-of", default=as_of().isoformat())
     args = ap.parse_args(argv)
-    today = parse_date(args.as_of) or date.today()
+    today = parse_date(args.as_of) or as_of()
     if not args.company:
         write_all(today)
         return
