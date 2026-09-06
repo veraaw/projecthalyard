@@ -36,6 +36,9 @@ CASES = {
     "person only": "Rafael Kirkbride-Ibarra is the person I need. Pretty sure they're a Chief Information Officer somewhere in Semiconductors.",
     "negative only": "Our champion at Yarrowdale Media used to work with their team",
     "no path": "any connections into Halcyon Grid?",
+    "connect with": "Can we connect with Quillon Pharma?",
+    "warm intro": "looking for a warm intro to Quillon Pharma, COO ideally",
+    "reach with title": "trying to reach Head of Platform Engineering at Thistledown Energy — anyone have a path?",
 }
 
 
@@ -96,6 +99,47 @@ class ParseTargetTest(unittest.TestCase):
         ex = extract("Quillon Pharma is the account. Not Pelham Beverage.", self.res)
         self.assertEqual(ex.target.text, "Quillon Pharma")
         self.assertEqual(self.scores(ex.text)["Pelham Beverage"], -3)
+
+    def test_plain_ask_phrasings_are_recognised(self):
+        for text, cue in [
+            ("Can we connect with Quillon Pharma?", "connect with"),
+            ("connect me to Quillon Pharma please", "connect with"),
+            ("looking for a warm intro to Quillon Pharma, COO ideally", "intro to"),
+            ("any introductions at Quillon Pharma?", "intro to"),
+            ("can someone introduce us to Quillon Pharma", "introduce us to"),
+            ("can we get in front of Quillon Pharma?", "get in front of"),
+            ("does anyone have an in at Quillon Pharma", "an in at"),
+            ("anyone at Quillon Pharma?", "anyone at"),
+            ("who can help us with Quillon Pharma", "help with"),
+            ("want to reach Quillon Pharma", "reach"),
+            ("reach out to Quillon Pharma", "reach"),
+            ("can we get a meeting with Quillon Pharma", "meeting with"),
+            ("any way into Quillon Pharma?", "way into"),
+        ]:
+            with self.subTest(text):
+                ex = extract(text, self.res)
+                self.assertIsNotNone(ex.target, text)
+                self.assertEqual(ex.target.text, "Quillon Pharma")
+                self.assertEqual(ex.target.cue, cue)
+                self.assertEqual(ex.target.resolution.method, "name-exact")
+                self.assertEqual(ex.target_id, self.res.resolve_id("Quillon Pharma"))
+
+    def test_reach_does_not_take_the_title_for_the_company(self):
+        for text, company in [
+            ("trying to reach Head of Platform Engineering at Thistledown Energy — anyone have a path?", "Thistledown Energy"),
+            ("trying to reach Chief Operating Officer at Larchmont Aerospace. I know we sell into Ellerby Semiconductor", "Larchmont Aerospace"),
+            ("trying to reach SVP Digital at Gravenhurst Motors — anyone have a path?", "Gravenhurst Motors"),
+        ]:
+            with self.subTest(text):
+                ex = extract(text, self.res)
+                self.assertEqual(ex.target.text, company)
+                self.assertEqual(ex.target.cue, "trying to reach ... at")
+                self.assertEqual([m.text for m in ex.mentions if m.score > 0], [company])
+
+    def test_past_tense_introduced_stays_negative(self):
+        ex = extract("Quillon Pharma introduced us to Pelham Beverage", self.res)
+        self.assertIsNone(ex.target)
+        self.assertEqual(self.scores(ex.text), {"Quillon Pharma": -1, "Pelham Beverage": -1})
 
     def test_email_domain_resolves_on_domain(self):
         ex = extract("email domain is bexleybio.com", self.res)
