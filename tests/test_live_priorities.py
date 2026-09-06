@@ -30,6 +30,7 @@ import unittest
 from collections import Counter
 from datetime import date
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -188,10 +189,10 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(values, sorted(values, reverse=True), "biggest first")
         self.assertEqual(sum(len(c["request_ids"]) for c in A["all"]), A["allocated"])
         self.assertTrue(all(c["connector"] and c["slug"] and c["batch_id"] for c in A["all"]))
-        self.assertEqual(A["exception_count"], len(alloc) - len(allocated), 56)
+        self.assertEqual(A["exception_count"], len(alloc) - len(allocated), 67)
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
-                         {"no path to this company in the network": 32, "already introduced": 11,
-                          "company unresolved": 8, "capacity exhausted this cycle": 5})
+                         {"no path to this company in the network": 32, "already introduced": 14,
+                          "company unresolved": 9, "capacity exhausted this cycle": 12})
         parked = next(e for e in A["exceptions"] if e["reason"] == "already introduced")
         for r in parked["rows"]:
             self.assertRegex(r["detail"], r"^.+ on \d{4}-\d{2}-\d{2} \(R1\d{3}(, meeting booked)?\)$", "the reason names the intro")
@@ -221,7 +222,7 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(I["days"], bg.INTRO_LIVE_DAYS)
         alloc = read_csv(ROOT / "golden" / "golden_allocation.csv")
         parked = [a for a in alloc if a["exception_reason"].startswith(bg.ALREADY_INTRODUCED)]
-        self.assertEqual(I["requests"], len(parked), 11)
+        self.assertEqual(I["requests"], len(parked), 14)
         self.assertEqual(sorted(rid for r in I["rows"] for rid in r["request_ids"]), sorted(a["request_id"] for a in parked))
         self.assertEqual(I["count"], len({a["company_id"] for a in parked}), "one row per company")
         values = [r["value_usd"] for r in I["rows"]]
@@ -246,10 +247,11 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(parked_cos & fresh, set())
         for m in L.batch_asks:
             self.assertEqual({q["company_id"] for q in m["requests"]} & parked_cos, set(), m["connector"])
-        # Redtree: fizzled, so back in the queue as a retry, with the prior intro named on every surface
+        # Redtree: fizzled, so back in the queue as a retry, with the prior intro named on
+        # every surface; R1003 itself (the request that intro was for) is back alongside
         redtree = [c for b in P["asks"]["batches"] for c in b["companies"] if c["company_id"] == "C045"]
         self.assertEqual(len(redtree), 1)
-        self.assertEqual(sorted(redtree[0]["request_ids"]), ["R1067", "R1074"])
+        self.assertEqual(sorted(redtree[0]["request_ids"]), ["R1003", "R1067", "R1074"])
         retry = redtree[0]["retry"]
         self.assertEqual((retry["connector"], retry["intro_date"], retry["request_id"], retry["requested_by"], retry["meeting_booked"], retry["live"]),
                          ("Dana Whitfield", "2026-03-18", "R1003", "Imani Mkhize", False, False))
@@ -273,6 +275,39 @@ class PayloadTest(unittest.TestCase):
             for c in m["companies"]:
                 self.assertEqual(c["retry"] is not None, c["company_id"] in retried, c["company_name"])
             self.assertEqual(m["message"].count("retry:"), sum(1 for c in m["companies"] if c["retry"]), m["connector"])
+
+    def test_an_asked_request_whose_own_intro_fizzled_is_back_on_the_connectors_page(self):
+        """Apex Holdings (C003): Marcus's 2026-03-11 intro for R1154 never booked a
+        meeting, so R1154 is back in his queue as a retry (not parked behind his
+        own ask), and `sitting on` once the retry ask is logged as sent."""
+        P = self.P
+        marcus = next(c for c in P["connectors"] if c["connector"] == "Marcus Aldridge")
+        q = next(q for q in marcus["queue"] if q["request_id"] == "R1154")
+        self.assertEqual((q["company_id"], q["retry"]["connector"], q["retry"]["intro_date"], q["retry"]["request_id"]),
+                         ("C003", "Marcus Aldridge", "2026-03-11", "R1154"))
+        page = next(c for c in lp.Live(AS_OF).connector_pages() if c["connector"] == "Marcus Aldridge")
+        self.assertIn("R1154", [r["request_id"] for r in page["top"] + page["rest"]])
+        self.assertIn("retry: you introduced Yusuf Petrossian there on 2026-03-11", marcus["batch_ask"]["message"])
+        self.assertNotIn("R1154", [s["request_id"] for s in marcus["sitting_on"]], "not sent yet: queue, not sitting on")
+        self.assertNotIn("R1154", [r["request_id"] for r in P["bottlenecks"]["rows"]], "the old reply is not a nudge")
+        # the retry goes out: an ask_sent completion after the intro files reasked_date
+        # and the request moves from the queue to what Marcus is sitting on
+        reask = {"completion_id": "R1154:ask_sent:2026-09-05", "completed_at": "2026-09-05T10:15:00+00:00", "completed_by": "vera",
+                 "action": bg.ASKED, "request_id": "R1154", "company_id": "", "connector": "Marcus Aldridge", "note": ""}
+        with mock.patch.object(bg, "load_completions", return_value=[reask]):
+            L = lp.Live(AS_OF)
+        o = L.outcome_by_rid["R1154"]
+        self.assertEqual((o["asked_date"], o["reasked_date"]), ("2026-03-05", "2026-09-05"))
+        self.assertFalse(bg.retriable(o, AS_OF), "re-asked, so not queued again")
+        card = L.connector_card("Marcus Aldridge")
+        s = next(s for s in card["sitting_on"] if s["request_id"] == "R1154")
+        self.assertEqual((s["company_id"], s["asked_date"], s["days_since_asked"], s["responded"], s["action"]),
+                         ("C003", "2026-09-05", 0, False, "chase"), "counted from the re-ask, unanswered")
+        self.assertEqual((s["retry"]["request_id"], s["retry"]["intro_date"], s["retry"]["requested_by"]),
+                         ("R1154", "2026-03-11", "Yusuf Petrossian"))
+        self.assertIn("Marcus's 2026-03-11 intro to Yusuf Petrossian went nowhere", s["retry"]["note"])
+        self.assertEqual(card["asked_this_cycle"], marcus["asked_this_cycle"] + 1, "the retry spends a slot this cycle")
+        self.assertEqual([c["asks"] for c in card["cycles"]][-1], [c["asks"] for c in marcus["cycles"]][-1] + 1)
 
     def test_offer_gaps(self):
         O = self.P["offer_gaps"]
@@ -436,7 +471,7 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual((row["reach_type"], row["strength"], row["route_score"], row["outside_focus"]), ("offer", 0.8, 0.0, True))
         self.assertEqual((row["used"], row["capacity"]), (3, 3))
         self.assertEqual(row["routed_to"], ["Tomás Beckett"])
-        self.assertEqual(row["requests"], ["R1136", "R1153"])
+        self.assertEqual(row["requests"], ["R1136", "R1140", "R1153"])
         self.assertEqual(row["href"], f"{lp.TRACE_PAGE}#C018")
         self.assertTrue({"action", "asked_date", "nudged_on"}.isdisjoint(row), "nothing to tick, chase or nudge")
         self.assertEqual([r["strength"] for r in rows], sorted((r["strength"] for r in rows), reverse=True))

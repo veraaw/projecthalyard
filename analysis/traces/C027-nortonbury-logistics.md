@@ -23,7 +23,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.044 | 0.386 | Owen Trask (Investor) | direct | Nadia Ferreira — Program Manager | connections_trask.csv: Nadia Ferreira, Program Manager at Nortonbury Logistics, connected 2024-03-25 |
 | 0.000 | 0.405 | Elena Duvall (Advisor) | direct | Nadia Ferreira — Program Manager | connections_duvall.csv: Nadia Ferreira, Program Manager at Nortonbury Logistics, connected 2025-07-30 |
 
-strongest path, not where it went: Priya Raghunathan, investor 0.720, at capacity 3/3; R1013 routed to Dana Whitfield
+strongest path, not where it went: Priya Raghunathan, investor 0.720, at capacity 3/3; R1013 unrouted (capacity exhausted this cycle)
 
 ## 4. Chronology (13 events, 3 requests, newest first, as of 2026-09-06)
 

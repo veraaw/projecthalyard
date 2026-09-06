@@ -19,6 +19,8 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 |---|---|---|---|---|---|
 | 0.168 | 0.484 | Marcus Aldridge (Advisor) | direct | Astrid Salcedo — VP Data & Analytics | connections_aldridge.csv: Astrid Salcedo, VP Data & Analytics at Apex Logistics Group, connected 2023-11-25 |
 
+strongest path, not where it went: Marcus Aldridge, direct 0.484, at capacity 4/4, holds R1154; R1186 unrouted (capacity exhausted this cycle)
+
 ## 4. Chronology (17 events, 3 requests, newest first, as of 2026-09-06)
 
 ```

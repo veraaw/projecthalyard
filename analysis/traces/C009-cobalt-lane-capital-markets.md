@@ -18,6 +18,8 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.092 | 0.449 | Priya Raghunathan (Investor) | direct | Greta Petrossian — Head of Automation | connections_raghunathan.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2023-11-21 |
 | 0.080 | 0.496 | Tomás Beckett (Internal) | direct | Greta Petrossian — Head of Automation | connections_beckett.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2025-07-17 |
 
+strongest path, not where it went: Tomás Beckett, direct 0.496, at capacity 8/8; R1076 unrouted (already introduced: Tomás Beckett on 2025-11-26 (R1078, meeting booked))
+
 ## 4. Chronology (15 events, 2 requests, newest first, as of 2026-09-06)
 
 ```

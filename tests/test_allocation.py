@@ -4,8 +4,10 @@
 
 The file is the connector history, one row per (cycle, request_id); the
 current allocation is its latest cycle. Within a cycle: one row per live,
-not-yet-asked request; each row is either an allocation (allocated_to +
-batch_id) or an exception (exception_reason), never both and never neither.
+not-yet-asked request, plus one per asked request whose own intro fizzled with
+no re-ask logged since (back as a retry); each row is either an allocation
+(allocated_to + batch_id) or an exception (exception_reason), never both and
+never neither.
 Counts are derived from golden_requests.csv, golden_companies.csv and
 dataset/, never fixed: the request file grows on every merge.
 """
@@ -21,7 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from golden.build_golden import (  # noqa: E402
     ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, INTRO_LIVE_DAYS, OPEN_STATUSES, STALE_ASK, cycle_budget, history_signals,
-    introductions, latest_cycle, load_roster, parse_date,
+    introductions, latest_cycle, load_roster, parse_date, retriable,
 )
 
 G = ROOT / "golden"
@@ -54,9 +56,12 @@ class AllocationTest(unittest.TestCase):
         cls.allocated = [a for a in cls.alloc if a["allocated_to"]]
         cls.exceptions = [a for a in cls.alloc if a["exception_reason"]]
         cls.cycle = cls.alloc[0]["cycle"] if cls.alloc else ""
+        decided = parse_date(cls.alloc[0]["decided_at"]) if cls.alloc else None
+        cls.retry = {o["request_id"] for o in cls.outcomes if decided and retriable(o, decided)}
         # what the allocator should have covered
         cls.live = {rid for rid, r in cls.requests.items()
-                    if r["status_as_filed"] in OPEN_STATUSES and rid not in cls.asked and not r["asked_date"]}
+                    if r["status_as_filed"] in OPEN_STATUSES
+                    and ((rid not in cls.asked and not r["asked_date"]) or rid in cls.retry)}
 
     # ── 1. structure ───────────────────────────────────────────────────
     def test_every_row_has_the_headers_field_count(self):
@@ -109,9 +114,27 @@ class AllocationTest(unittest.TestCase):
         not_live = [a["request_id"] for a in self.alloc
                     if self.requests[a["request_id"]]["status_as_filed"] not in OPEN_STATUSES]
         self.assertEqual(not_live, [], f"not in {sorted(OPEN_STATUSES)}")
-        already = [a["request_id"] for a in self.alloc
-                   if a["request_id"] in self.asked or self.requests[a["request_id"]]["asked_date"]]
+        already = [a["request_id"] for a in self.alloc if a["request_id"] not in self.retry
+                   and (a["request_id"] in self.asked or self.requests[a["request_id"]]["asked_date"])]
         self.assertEqual(already, [], "already asked")
+
+    def test_an_asked_request_comes_back_only_once_its_own_intro_fizzled(self):
+        # The retry rows are exactly the asked requests whose own intro went out,
+        # booked nothing and is older than INTRO_LIVE_DAYS; an ask still waiting
+        # on a reply, or an intro that booked a meeting, stays off the file.
+        decided = parse_date(self.alloc[0]["decided_at"])
+        back = {a["request_id"] for a in self.alloc} & self.asked
+        self.assertTrue(back, "the golden allocation retries at least one asked request")
+        self.assertEqual(back, self.retry & self.live, "every open retry, and nothing filed closed")
+        for o in self.outcomes:
+            if o["request_id"] in back:
+                self.assertEqual(o["intro_sent"], "Y", f"{o['request_id']} back in the queue with no intro sent")
+                self.assertEqual(o["meeting_booked"], "N", f"{o['request_id']} back in the queue after a meeting")
+                self.assertGreater((decided - parse_date(o["intro_date"])).days, INTRO_LIVE_DAYS, o["request_id"])
+        # R1154: Marcus Aldridge's 2026-03-11 Apex Holdings intro never booked, so
+        # the request is back on his plate rather than parked behind his own ask
+        apex = next(a for a in self.alloc if a["request_id"] == "R1154")
+        self.assertEqual((apex["company_id"], apex["allocated_to"]), ("C003", "Marcus Aldridge"))
 
     def test_every_live_request_has_exactly_one_row(self):
         # The other direction: nothing live is skipped. Together with one row
@@ -232,7 +255,8 @@ class AllocationTest(unittest.TestCase):
             with self.subTest(request_id=a["request_id"]):
                 intro = intro_of[a["company_id"]]
                 self.assertTrue(intro["live"])
-                self.assertNotIn(a["request_id"], self.asked, "parked rows are requests never asked themselves")
+                self.assertTrue(a["request_id"] not in self.asked or a["request_id"] in self.retry,
+                                "parked rows are requests never asked themselves, or retries of their own fizzled intro")
                 self.assertEqual(a["allocated_to"], "")
                 self.assertIn(intro["connector"], a["exception_reason"])
                 self.assertIn(intro["intro_date"], a["exception_reason"])

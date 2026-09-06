@@ -31,7 +31,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.000 | 0.332 | Elena Duvall (Advisor) | direct | Priya Fairweather — Head of Platform Engineering | connections_duvall.csv: Priya Fairweather, Head of Platform Engineering at Gravenhurst Motors, connected 2018-07-13 |
 | 0.000 | 0.218 | Elena Duvall (Advisor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_duvall.csv: connection of Elena Duvall since 2018-07-13 |
 
-strongest path, not where it went: Curtis Hartigan, offer 0.800, 0/2 used this cycle; R1143 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)), R1158 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked))
+strongest path, not where it went: Curtis Hartigan, offer 0.800, 0/2 used this cycle; R1143 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)), R1158 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)), R1185 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked))
 
 ## 4. Chronology (56 events, 9 requests, newest first, as of 2026-09-06)
 

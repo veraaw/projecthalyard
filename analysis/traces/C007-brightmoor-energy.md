@@ -20,6 +20,8 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.129 | 0.357 | Elena Duvall (Advisor) | direct | Idris Drummond — Chief Digital Officer | connections_duvall.csv: Idris Drummond, Chief Digital Officer at Brightmoor Energy, connected 2017-07-02 |
 | 0.073 | 0.202 | Elena Duvall (Advisor) | alumni | Idris Drummond — ex-Brightmoor Energy (2015-2018), now Chief Digital Officer at Brightmoor Energy | investor_network.csv: Idris Drummond prior_employer=Brightmoor Energy (2015-2018); connections_duvall.csv: connection of Elena Duvall since 2017-07-02 |
 
+strongest path, not where it went: Elena Duvall, direct 0.357, at capacity 3/3; R1123 unrouted (already introduced: Elena Duvall on 2026-06-17 (R1042, meeting booked))
+
 ## 4. Chronology (33 events, 5 requests, newest first, as of 2026-09-06)
 
 ```
