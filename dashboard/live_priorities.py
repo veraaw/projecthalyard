@@ -79,12 +79,15 @@ BANDS = [
      [("stages", "Deal Value by Stage")]),
     ("now", "Actionable Routing Steps",
      "Does ticking it change what the queue proposes tomorrow?",
-     [("top", "Top Priorities"), ("crm", "CRM Updates")]),
+     [("top", "Top Priorities")]),
     ("cycle", "Current Cycle Overview",
      "Does it describe a decision the allocator already made?",
-     [("asks", "Current Asks"), ("introduced", "Already Introduced"), ("connectors", "Roster Connectors Capacity"),
+     [("asks", "Current Asks"), ("connectors", "Roster Connector Capacity"), ("introduced", "Already Introduced"),
       ("exceptions", "Unrouted Exceptions"), ("unrouted", "Suggested Unrouted Company Connectors"),
       ("bottlenecks", "Core Introduction Bottlenecks")]),
+    ("other", "Other",
+     "Is it admin that fits none of the bands above?",
+     [("crm", "CRM Updates")]),
 ]
 # every section in page order; drives the header nav
 SECTIONS = [s for _, _, _, sections in BANDS for s in sections]
