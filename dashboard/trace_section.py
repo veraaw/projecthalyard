@@ -54,6 +54,7 @@ def fragment() -> str:
 #trace .routebox{{background:var(--blue);color:#fff;padding:22px 28px 20px;margin:22px 0 0;font-family:var(--sans)}}
 #trace .routebox .eyebrow{{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;opacity:.75}}
 #trace .routebox .who{{font-size:30px;font-weight:500;letter-spacing:-.02em;line-height:1.15;margin:6px 0 0}}
+#trace .routebox .who .amp{{font-weight:400;opacity:.6;margin:0 4px}}
 #trace .routebox .why{{font-size:15px;font-weight:400;letter-spacing:0;opacity:.85;margin-left:10px}}
 #trace .routebox .note{{font-size:13.5px;line-height:1.5;margin:12px 0 0;opacity:.9}}
 #trace .routebox .note+.note{{margin-top:4px}}
@@ -127,7 +128,7 @@ def fragment() -> str:
         : cr.why === '{NO_PATH}' ? 'nobody in the network reaches this company' : cr.why === '{UNRESOLVED_ASK}' ? 'everyone who reaches the company is sitting on an ask there' : '',
       cr.not_asked.length ? 'not asked again here: ' + cr.not_asked.join('; ') : '',
     ].filter(Boolean);
-    out += `<div class="routebox"><div class="eyebrow">Currently routing to</div><div class="who">${{cr.connector ? esc(cr.connector) : `nobody <span class="why">${{esc(cr.why.replace(/ \\((.*)\\)$/, ': $1'))}}</span>`}}</div>`
+    out += `<div class="routebox"><div class="eyebrow">Currently routing to</div><div class="who">${{cr.this_cycle.length > 1 ? cr.this_cycle.map(esc).join(' <span class="amp">&amp;</span> ') : cr.connector ? esc(cr.connector) : `nobody <span class="why">${{esc(cr.why.replace(/ \\((.*)\\)$/, ': $1'))}}</span>`}}</div>`
       + routeNotes.map(n => `<p class="note">${{esc(n)}}</p>`).join('') + `</div>`;
 
     out += `<h3>3. Who can reach them</h3>`;
