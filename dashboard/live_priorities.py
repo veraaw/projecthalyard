@@ -594,7 +594,9 @@ class Live:
         rows.sort(key=lambda r: -r["days_since_agreed"])
         by_connector = Counter(r["connector"] for r in rows)
         return {"rows": rows, "count": len(rows), "value_fmt": money(sum(r["value_usd"] for r in rows)),
-                "by_connector": [{"connector": k, "count": n} for k, n in by_connector.most_common()]}
+                "by_connector": [{"connector": k, "count": n, "on_roster": k in self.roster,
+                                  "value_fmt": money(sum(r["value_usd"] for r in rows if r["connector"] == k))}
+                                 for k, n in by_connector.most_common()]}
 
     # -- 6. per-connector -----------------------------------------------------
     def connector_card(self, name: str) -> dict:

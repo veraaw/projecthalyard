@@ -19,6 +19,13 @@ const LP = (function () {
     if (s) s.open = true;
   };
   const get = (o, k, d) => has(o, k) ? o[k] : d;
+  // a row of sub-tab buttons and one panel per button, the first open; wireTabs() makes them switch
+  const tabs = (id, items, panel) => `<div class="subtabs" data-tabs="${id}">${items.map((x, i) => `<button data-i="${i}" class="${i ? '' : 'on'}">${esc(x.label)}${x.n == null ? '' : `<span class="n">${esc(x.n)}</span>`}</button>`).join('')}</div>`
+    + items.map((x, i) => `<div class="tabpanel" data-tabs="${id}" data-i="${i}" ${i ? 'hidden' : ''}>${panel(x, i)}</div>`).join('');
+  const wireTabs = root => root.querySelectorAll('.subtabs').forEach(bar => bar.querySelectorAll('button').forEach(b => b.onclick = () => {
+    bar.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    root.querySelectorAll(`.tabpanel[data-tabs="${bar.dataset.tabs}"]`).forEach(p => p.hidden = p.dataset.i !== b.dataset.i);
+  }));
   const csvCell = v => { const s = String(v ?? ''); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const toCsv = (cols, rows) => [cols.join(',')].concat(rows.map(r => cols.map(c => csvCell(r[c])).join(','))).join('\r\n') + '\r\n';
   function download(name, text) {
@@ -388,13 +395,11 @@ const LP = (function () {
 
     // 3. current asks
     const A = D.asks;
-    out += `<section id="asks"><h2>Current asks <span class="foot">cycle ${esc(A.cycle)} — ${A.allocated} requests allocated in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code></span></h2>`;
-    for (const b of A.batches) {
-      out += `<h3>${esc(b.connector)} <span class="foot">${esc(b.connector_type)} · ${plural(b.size, 'request')} · ${esc(b.value_fmt)} · <code>${esc(b.batch_id)}</code></span></h3>
+    out += `<section id="asks"><h2>Current asks <span class="foot">cycle ${esc(A.cycle)} — ${A.allocated} requests allocated in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code></span></h2>`
+      + tabs('asks', A.batches.map(b => ({ label: b.connector, n: b.size, b })), ({ b }) => `<p class="foot">${esc(b.connector_type)} · ${plural(b.size, 'request')} · ${esc(b.value_fmt)} · one consolidated ask, batch <code>${esc(b.batch_id)}</code></p>
         <table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>why this connector</th></tr></thead><tbody>`
         + b.companies.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td class="foot">${esc(c.why)}</td></tr>`).join('')
-        + `</tbody></table>`;
-    }
+        + `</tbody></table>`);
     out += `<details><summary>${plural(A.exception_count, 'exception')} — not allocated this cycle: ${A.exceptions.map(e => `${e.count} ${esc(e.reason.replace(' to this company in the network', ''))}`).join(', ')}</summary>`;
     for (const e of A.exceptions) {
       out += `<h3>${esc(e.reason)} <span class="foot">${e.count} · ${esc(e.value_fmt)}</span></h3><table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>who</th><th>value</th><th>urgency</th><th>status</th><th>${e.reason.startsWith('capacity') ? 'best path (no slot)' : e.reason.startsWith('company') ? 'as written' : 'note'}</th></tr></thead><tbody>`
@@ -414,16 +419,17 @@ const LP = (function () {
     // 5. bottlenecks
     const B = D.bottlenecks;
     out += `<section id="bottlenecks">${fold(`Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro — ${esc(B.value_fmt)} — from <code>intro_outcomes.csv</code></span>`)}
-      <p class="lede">Each of these is a <b>nudge</b>, not a re-ask: asking again spends a fresh slot for an answer you already have. ${B.by_connector.map(c => `${esc(c.connector)} ${c.count}`).join(' · ')}.</p>
-      <table><thead><tr><th>action</th><th>request</th><th>company</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
-      + B.rows.map(r => `<tr><td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`).join('')
-      + `</tbody></table></details></section>`;
+      <p class="lede">Each of these is a <b>nudge</b>, not a re-ask: asking again spends a fresh slot for an answer you already have.</p>`
+      + tabs('bottlenecks', [{ label: 'All connectors', n: B.count, rows: B.rows, note: `${plural(B.count, 'ask')} · ${esc(B.value_fmt)} · oldest agreement first` }]
+          .concat(B.by_connector.map(c => ({ label: c.connector, n: c.count, rows: B.rows.filter(r => r.connector === c.connector), note: `${plural(c.count, 'ask')} · ${esc(c.value_fmt)}${c.on_roster ? '' : ' · off roster'}` }))),
+        t => `<p class="foot">${t.note}</p><table><thead><tr><th>action</th><th>request</th><th>company</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
+          + t.rows.map(r => `<tr><td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`).join('')
+          + `</tbody></table>`)
+      + `</details></section>`;
 
     // 6. per-connector tabs
-    out += `<section id="connectors"><h2>Connectors <span class="foot">roster, one panel each: queue this cycle, capacity used against stated capacity, delivery rate, what they are already sitting on — the coloured tabs at the top open each connector's own page</span></h2>
-      <div class="subtabs" id="lp-ctabs">${D.connectors.map((c, i) => `<button data-i="${i}" class="${i ? '' : 'on'}">${esc(c.connector)}<span class="n">${c.used}/${c.capacity}</span></button>`).join('')}</div>`;
-    D.connectors.forEach((c, i) => {
-      out += `<div class="cpanel" data-i="${i}" ${i ? 'hidden' : ''}>
+    out += `<section id="connectors"><h2>Connectors <span class="foot">roster, one panel each: queue this cycle, capacity used against stated capacity, delivery rate, what they are already sitting on — the coloured tabs at the top open each connector's own page</span></h2>`
+      + tabs('connectors', D.connectors.map(c => ({ label: c.connector, n: `${c.used}/${c.capacity}`, c })), ({ c }) => `
         <p class="lede">${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''} · <a href="${esc(c.page)}">their top 5 →</a><br><span class="foot">${esc(c.notes)}</span></p>
         <div class="kpis"><div class="kpi"><div class="v">${c.used} / ${c.capacity}</div><div class="l">capacity used this cycle</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated · ${c.idle} idle</div></div>
           <div class="kpi"><div class="v">${Math.round(c.delivery_rate * 100)}%</div><div class="l">delivery rate</div><div class="s">${c.intros_all_time} intros / ${c.asks_all_time} asks, shrunk toward the prior</div></div>
@@ -431,10 +437,8 @@ const LP = (function () {
           <div class="kpi"><div class="v">${c.queue.length}</div><div class="l">in this cycle's ask</div><div class="s">${c.queue.length ? 'one consolidated batch' : 'nothing allocated'}</div></div></div>
         <h3>queue this cycle</h3>` + (c.queue.length ? `<table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>for</th><th>path</th><th class="num">score</th><th>value</th><th>urgency</th></tr></thead><tbody>`
           + c.queue.map(q => `<tr><td class="rid">${esc(q.request_id)}</td><td>${co(q)}</td><td>${esc(q.target_title)}</td><td>${esc(q.requested_by)}</td><td>${esc(q.path_type)}${q.contact ? ` <span class="foot">via ${esc(q.contact)}</span>` : ''}</td><td class="num">${esc(q.route_score)}</td><td>${esc(q.value_fmt)}</td><td>${esc(q.urgency)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing allocated to ${esc(c.connector)} this cycle</p>`)
-        + `<h3>already sitting on</h3>` + sittingTable(c)
-        + `</div>`;
-    });
-    out += `</section>`;
+        + `<h3>already sitting on</h3>` + sittingTable(c))
+      + `</section>`;
 
     // 7. check-ins
     const K = D.checkins;
@@ -475,11 +479,7 @@ const LP = (function () {
 
     // wiring: ticks, connector tabs, downloads, upload
     wireTicks(root, done);
-    const ctabs = root.querySelector('#lp-ctabs');
-    ctabs.querySelectorAll('button').forEach(b => b.onclick = () => {
-      ctabs.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-      root.querySelectorAll('.cpanel').forEach(p => p.hidden = p.dataset.i !== b.dataset.i);
-    });
+    wireTabs(root);
     root.querySelector('#lp-dl-import').onclick = () => download(C.import.filename, C.import.csv);
     root.querySelector('#lp-dl-review').onclick = () => download(C.review.filename, C.review.csv);
 
