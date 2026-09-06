@@ -223,7 +223,10 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(A["exception_count"], len(alloc) - len(allocated), 56)
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
                          {"no path to this company in the network": 28, "already introduced": 10,
-                          "company unresolved": 9, "capacity exhausted this cycle": 9})
+                          "company unresolved": 9, "capacity exhausted this cycle": 10, bg.UNRESOLVED_ASK: 1})
+        held = next(e for e in A["exceptions"] if e["reason"] == bg.UNRESOLVED_ASK)
+        for r in held["rows"]:
+            self.assertRegex(r["detail"], r"agreed on \d{4}-\d{2}-\d{2} \(R1\d{3}\), no intro - nudge|no reply - day \d+ of \d+")
         parked = next(e for e in A["exceptions"] if e["reason"] == "already introduced")
         for r in parked["rows"]:
             self.assertRegex(r["detail"], r"^.+ on \d{4}-\d{2}-\d{2} \(R1\d{3}(, meeting booked)?\)$", "the reason names the intro")
@@ -324,18 +327,25 @@ class PayloadTest(unittest.TestCase):
 
     def test_an_asked_request_whose_own_intro_fizzled_is_back_on_the_connectors_page(self):
         """Apex Holdings (C003): Marcus's 2026-03-11 intro for R1154 never booked a
-        meeting, so R1154 is back in his queue as a retry (not parked behind his
-        own ask), and `sitting on` once the retry ask is logged as sent."""
+        meeting, so R1154 is back in the queue as a retry (not parked behind his
+        own ask). Marcus never answered R1069 there (2025-11-01, past the window),
+        so his path ranks last and the retry goes to Espen, labelled with Marcus's
+        intro; `sitting on` once the retry ask is logged as sent."""
         P = self.P
         marcus = next(c for c in P["connectors"] if c["connector"] == "Marcus Aldridge")
-        q = next(q for q in marcus["queue"] if q["request_id"] == "R1154")
-        self.assertEqual((q["company_id"], q["retry"]["connector"], q["retry"]["intro_date"], q["retry"]["request_id"]),
-                         ("C003", "Marcus Aldridge", "2026-03-11", "R1154"))
-        page = next(c for c in lp.Live(AS_OF).connector_pages() if c["connector"] == "Marcus Aldridge")
-        self.assertIn("R1154", [r["request_id"] for r in page["top"] + page["rest"]])
-        self.assertIn("retry: you introduced Yusuf Petrossian there on 2026-03-11", marcus["batch_ask"]["message"])
+        self.assertNotIn("R1154", [q["request_id"] for q in marcus["queue"]])
+        espen = next(a for a in lp.Live(AS_OF).allocation if a["request_id"] == "R1154")
+        self.assertEqual(espen["allocated_to"], "Espen Rushworth-Oyelaran")
+        q = next(r for r in lp.Live(AS_OF).ranked() if r["request_id"] == "R1154")
+        self.assertEqual((q["company_id"], q["connector"], q["retry"]["connector"], q["retry"]["intro_date"], q["retry"]["request_id"]),
+                         ("C003", "Espen Rushworth-Oyelaran", "Marcus Aldridge", "2026-03-11", "R1154"))
         self.assertNotIn("R1154", [s["request_id"] for s in marcus["sitting_on"]], "not sent yet: queue, not sitting on")
         self.assertNotIn("R1154", [r["request_id"] for r in P["bottlenecks"]["rows"]], "the old reply is not a nudge")
+        paths = lp.Live(AS_OF).ranked_paths("C003")
+        self.assertEqual([(p["connector"], p["hold"], p["askable"]) for p in paths],
+                         [("Espen Rushworth-Oyelaran", "", True), ("Marcus Aldridge", bg.HOLD_LAST, True)],
+                         "the roster path ranks behind the network one: its connector sat on an ask here")
+        self.assertIn("no reply for", paths[1]["reason"])
         # the retry goes out: an ask_sent completion after the intro files reasked_date
         # and the request moves from the queue to what Marcus is sitting on
         reask = {"completion_id": "R1154:ask_sent:2026-09-05", "completed_at": "2026-09-05T10:15:00+00:00", "completed_by": "vera",
@@ -500,7 +510,8 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual((row["reach_type"], row["strength"], row["route_score"], row["outside_focus"]), ("offer", 0.8, 0.0, True))
         used = sum(a["allocated_to"] == "Elena Duvall" for a in live.allocation)
         self.assertEqual((row["used"], row["capacity"]), (used, 3))
-        self.assertEqual(row["routed_to"], ["Tomás Beckett"])
+        self.assertEqual(row["routed_to"], ["Priya Raghunathan"], "Tomás agreed to R1057 there and sent no intro: nudged, not asked again")
+        self.assertEqual(live.held[("Tomás Beckett", "C018")]["hold"], bg.HOLD_NUDGE)
         self.assertEqual(row["requests"], ["R1136", "R1140", "R1153"])
         self.assertEqual(row["href"], f"{lp.TRACE_PAGE}#C018")
         self.assertTrue({"action", "asked_date", "nudged_on"}.isdisjoint(row), "nothing to tick, chase or nudge")
@@ -718,6 +729,42 @@ class ParserParityTest(unittest.TestCase):
             if want != got:
                 bad.append((text, want, got))
         self.assertEqual(bad, [], f"{len(bad)} of {len(texts)} texts parse differently in the browser")
+
+    def test_preview_steps_over_a_connector_with_an_unresolved_ask_as_the_allocator_does(self):
+        """Brightmoor Energy (C007): Elena agreed to R1190 and sent no intro, and she
+        is the only path, so a new request there is an exception unless someone
+        else offers. Kingsmere (C058): Yusuf offered once and is on nudge, so a new
+        offer of his is not a route. Apex (C003): Marcus never answered R1069, long
+        past the window, so he is askable but ranks behind Espen even offering."""
+        held = self.live.held
+        self.assertEqual((held[("Elena Duvall", "C007")]["hold"], held[("Yusuf Petrossian", "C058")]["hold"], held[("Marcus Aldridge", "C003")]["hold"]),
+                         (bg.HOLD_NUDGE, bg.HOLD_NUDGE, bg.HOLD_LAST))
+        ask = lambda rid, text, *replies: {"request_id": rid, "messages": [
+            {"ts": "2026-09-05T10:00:00Z", "user": "Bea Marsh", "text": text},
+            *({"ts": "2026-09-05T10:05:00Z", "user": who, "text": "happy to intro — I know their exec team"} for who in replies)]}
+        threads = [ask("R3001", "who do we know at Brightmoor Energy?"),
+                   ask("R3002", "who do we know at Brightmoor Energy?", "Dana Whitfield"),
+                   ask("R3003", "we need Kingsmere Retail Group", "Yusuf Petrossian"),
+                   ask("R3004", "we need Apex Holdings", "Marcus Aldridge")]
+        pv = {r["request_id"]: r for r in run_node(self.parser, [], threads)["preview"]}
+        P = self.parser
+        self.assertEqual(pv["R3001"]["company_id"], "C007")
+        self.assertEqual((pv["R3001"]["route_to"], pv["R3001"]["path"]), ("", bg.UNRESOLVED_ASK))
+        self.assertEqual(pv["R3001"]["held"], [P["companies"]["C007"]["holds"]["Elena Duvall"]["reason"]])
+        self.assertTrue(any(f.startswith(bg.UNRESOLVED_ASK) and "Elena Duvall agreed on 2026-07-06 (R1190)" in f for f in pv["R3001"]["flags"]))
+        self.assertIsNone(P["companies"]["C007"]["best"])
+        self.assertEqual([p["askable"] for p in P["companies"]["C007"]["paths"]], [False, False])
+        self.assertEqual((pv["R3002"]["route_to"], pv["R3002"]["path"]), ("Dana Whitfield", f"offered in Slack ({P['companies']['C007']['offer_score']['Dana Whitfield']:.2f})"))
+        self.assertEqual((pv["R3003"]["route_to"], pv["R3003"]["offer_by"]), (P["companies"]["C058"]["best"]["connector"], "Yusuf Petrossian"))
+        self.assertNotIn("Yusuf Petrossian", [c["who"] for c in pv["R3003"]["cands"]])
+        self.assertTrue(any(f.startswith("Yusuf Petrossian offers, but") and f.endswith("nudge them instead of asking afresh") for f in pv["R3003"]["flags"]))
+        self.assertEqual(pv["R3004"]["route_to"], "Espen Rushworth-Oyelaran")
+        self.assertEqual([(c["who"], c["hold"]) for c in pv["R3004"]["cands"]],
+                         [("Espen Rushworth-Oyelaran", ""), ("Marcus Aldridge", bg.HOLD_LAST)])
+        self.assertGreater(P["companies"]["C003"]["offer_score"]["Marcus Aldridge"], P["companies"]["C003"]["best"]["score"],
+                           "his offer would outscore the network path; the hold, not the score, ranks him last")
+        for rid in ("R3002", "R3003", "R3004"):
+            self.assertNotIn(bg.UNRESOLVED_ASK, pv[rid]["path"])
 
 
 @unittest.skipUnless(NODE, "node is not installed")

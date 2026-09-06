@@ -10,13 +10,18 @@
 - crm_accounts.csv: two accounts, two owners: A1035 -> Hana Nakashima; A91035 -> Rafael Salcedo
 - R1187: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 1 paths
 
+## Currently routing to: nobody (unresolved ask on every path)
+
+- everyone who reaches the company is sitting on an ask there
+- not asked again here: Priya Raghunathan agreed on 2025-11-03 (R1187), no intro - nudge
+
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Kwame Marchetti-Drummond | slack_threads.jsonl R1187 2025-10-29 Priya Raghunathan: "I know Kwame Marchetti-Drummond there well, happy to intro" |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Kwame Marchetti-Drummond | slack_threads.jsonl R1187 2025-10-29 Priya Raghunathan: "I know Kwame Marchetti-Drummond there well, happy to intro" | Priya Raghunathan agreed on 2025-11-03 (R1187), no intro - nudge |
 
 ## 4. Chronology (10 events, 1 request, newest first, as of 2026-09-06)
 

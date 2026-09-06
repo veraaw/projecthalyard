@@ -5,6 +5,11 @@
 - also goes by: nothing else
 - 5 requests from 4 people wanting 5 different titles: Chief Data Officer | Chief Digital Officer | Chief Operating Officer | Chief Technology Officer | VP Engineering
 
+## Currently routing to: nobody (no path to this company in the network)
+
+- this cycle: R1019, R1161, R1188 unrouted (no path to this company in the network)
+- nobody in the network reaches this company
+
 ## 3. Who can reach them
 
 nobody in the network reaches this company

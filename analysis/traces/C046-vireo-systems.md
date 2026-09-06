@@ -12,16 +12,22 @@
 - R1155: filed "Intro sent" but intro_outcomes.csv has no intro (asked Elena Duvall, intro_sent=N)
 - R1166: filed "Closed - no path" but supply_reach.csv has 4 paths into Vireo Systems
 
+## Currently routing to: Priya Raghunathan
+
+- this cycle: R1055 -> Priya Raghunathan; R1075 -> Amara Brenneman-Fairweather
+- top askable path: Priya Raghunathan, investor via CEO / exec team, route score 0.287, 3/3 capacity used this cycle
+- not asked again here: Elena Duvall agreed on 2025-11-21 (R1166), no intro - nudge
+
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.287 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Vireo Systems, board_seat=True |
-| 0.131 | 0.519 | Elena Duvall (Advisor) | direct | Arjun Cathcart — Head of Developer Productivity | connections_duvall.csv: Arjun Cathcart, Head of Developer Productivity at Vireo Systems, connected 2026-01-23 |
-| 0.120 | 0.496 | Marcus Aldridge (Advisor) | direct | Arjun Cathcart — Head of Developer Productivity | connections_aldridge.csv: Arjun Cathcart, Head of Developer Productivity at Vireo Systems, connected 2025-10-27 |
-| 0.172 | 0.720 | Amara Brenneman-Fairweather (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Amara Brenneman-Fairweather (Growth equity investor), portfolio_company=Vireo Systems, board_seat=False |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.287 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Vireo Systems, board_seat=True |  |
+| 0.120 | 0.496 | Marcus Aldridge (Advisor) | direct | Arjun Cathcart — Head of Developer Productivity | connections_aldridge.csv: Arjun Cathcart, Head of Developer Productivity at Vireo Systems, connected 2025-10-27 |  |
+| 0.172 | 0.720 | Amara Brenneman-Fairweather (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Amara Brenneman-Fairweather (Growth equity investor), portfolio_company=Vireo Systems, board_seat=False |  |
+| 0.131 | 0.519 | Elena Duvall (Advisor) | direct | Arjun Cathcart — Head of Developer Productivity | connections_duvall.csv: Arjun Cathcart, Head of Developer Productivity at Vireo Systems, connected 2026-01-23 | Elena Duvall agreed on 2025-11-21 (R1166), no intro - nudge |
 
 strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3, holds R1055; R1075 routed to Amara Brenneman-Fairweather
 

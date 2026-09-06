@@ -9,15 +9,20 @@
 
 - crm_accounts.csv: two accounts, two owners: A1032 -> Curtis Hartigan; A91032 -> Yusuf Petrossian
 
+## Currently routing to: Owen Trask
+
+- this cycle: R1063 unrouted (capacity exhausted this cycle)
+- the next request goes to the top askable path: Owen Trask, direct via Elena Rushworth, route score 0.041, 2/2 capacity used this cycle; ranked last: Owen Trask asked on 2026-01-07 (R1008), no reply for 242 days - askable, ranked last
+
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.041 | 0.356 | Owen Trask (Investor) | direct | Elena Rushworth — Head of Automation | connections_trask.csv: Elena Rushworth, Head of Automation at Silverbrook Paper, connected 2019-11-27 |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.041 | 0.356 | Owen Trask (Investor) | direct | Elena Rushworth — Head of Automation | connections_trask.csv: Elena Rushworth, Head of Automation at Silverbrook Paper, connected 2019-11-27 | Owen Trask asked on 2026-01-07 (R1008), no reply for 242 days - askable, ranked last |
 
-strongest path, not where it went: Owen Trask, direct 0.356, at capacity 2/2; R1063 unrouted (capacity exhausted this cycle)
+strongest path, not where it went: Owen Trask, direct 0.356, at capacity 2/2, ranked last: Owen Trask asked on 2026-01-07 (R1008), no reply for 242 days - askable, ranked last; R1063 unrouted (capacity exhausted this cycle)
 
 ## 4. Chronology (12 events, 2 requests, newest first, as of 2026-09-06)
 
