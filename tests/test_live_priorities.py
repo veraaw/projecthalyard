@@ -227,6 +227,16 @@ class PayloadTest(unittest.TestCase):
         held = next(e for e in A["exceptions"] if e["reason"] == bg.UNRESOLVED_ASK)
         for r in held["rows"]:
             self.assertRegex(r["detail"], r"agreed on \d{4}-\d{2}-\d{2} \(R1\d{3}\), no intro - nudge|no reply - day \d+ of \d+")
+        # capacity exhausted: the other requests on the account routed this cycle are named
+        capacity = next(e for e in A["exceptions"] if e["reason"] == bg.CAPACITY_EXHAUSTED)
+        routed = {a["request_id"]: a["allocated_to"] for a in allocated}
+        for r in capacity["rows"]:
+            self.assertEqual(r["routed_here"],
+                             [{"request_id": rid, "connector": routed[rid]} for rid in sorted(routed)
+                              if next(a for a in alloc if a["request_id"] == rid)["company_id"] == r["company_id"]])
+        by_rid = {r["request_id"]: r for r in capacity["rows"]}
+        self.assertEqual(by_rid["R1041"]["routed_here"], [{"request_id": "R1024", "connector": "Marcus Aldridge"}])
+        self.assertEqual(by_rid["R1004"]["routed_here"], [], "nothing else on Marchford Clinics routed this cycle")
         parked = next(e for e in A["exceptions"] if e["reason"] == "already introduced")
         for r in parked["rows"]:
             self.assertRegex(r["detail"], r"^.+ on \d{4}-\d{2}-\d{2} \(R1\d{3}(, meeting booked)?\)$", "the reason names the intro")
