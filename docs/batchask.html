@@ -756,7 +756,7 @@ const LP = (function () {
     } : { ...C.priority, connector_score: 0, expected_value: 0, connector_components: null };
     out.status = out.top ? 'routed' : 'no-path';
     out.note = out.top ? '' : `no path on the roster: nobody in the network reaches ${C.company_name}. It would be an exception this cycle unless someone offers.`;
-    if (C.network) out.note = `${C.company_name} is not on file: no CRM account, never requested. The network reaches it${C.path_count ? ` (${plural(C.path_count, 'path')})` : ''}; filing this request creates the company and the next rebuild routes it as ranked below. Create the CRM account (see CRM Updates).${out.note ? ' ' + out.note : ''}`;
+    if (C.network) out.note = `${C.company_name} is not on file: no CRM account, never requested. The network reaches it${C.path_count ? ` (${plural(C.path_count, 'path')})` : ''}; filing this request creates the company and the next rebuild files the paths below, ranked as shown; whether the top connector has a slot that cycle is a separate question (see priority). Create the CRM account (see CRM Updates).${out.note ? ' ' + out.note : ''}`;
     return out;
   }
 
@@ -1267,7 +1267,7 @@ const LP = (function () {
     const flagged = pv.rows.filter(r => r.flags.length).length, offers = pv.rows.filter(r => r.offers.length).length;
     const name = (filename || 'threads.jsonl').replace(/\.[^.]+$/, '');
     let out = `<div class="kpis"><div class="kpi"><div class="v">${pv.count}</div><div class="l">threads</div><div class="s">${pv.rows.filter(r => r.filed).length} already filed</div></div>
-      <div class="kpi"><div class="v">${pv.rows.filter(r => r.company_id).length}</div><div class="l">resolved to a company</div><div class="s">${pv.rows.filter(r => !r.filed && !r.company_id).length} not</div></div>
+      <div class="kpi"><div class="v">${pv.rows.filter(r => r.company_id || r.network).length}</div><div class="l">resolved to a company</div><div class="s">${pv.rows.filter(r => r.network).length ? `${pv.rows.filter(r => r.network).length} not yet on file · ` : ''}${pv.rows.filter(r => !r.filed && !r.company_id && !r.network).length} not</div></div>
       <div class="kpi"><div class="v">${offers}</div><div class="l">with an offer in the replies</div></div>
       <div class="kpi ${flagged ? 'warn' : ''}"><div class="v">${flagged}</div><div class="l">need a human</div></div></div>`;
     // hover on a name: how its expected value was reached, factor by factor, from the payload's numbers
