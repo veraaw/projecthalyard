@@ -658,6 +658,7 @@ class Live:
                 "expected_value": round(request_priority * connector_score, 4),
                 "allocated": bool(a["allocated_to"]),
                 "retry": self.retry_of(cid),
+                "notify": self.owner_notice(a),
             })
         rows.sort(key=lambda r: (-r["expected_value"], r["request_id"]))
         for i, r in enumerate(rows, 1):
@@ -681,8 +682,13 @@ class Live:
         }
 
     def priorities(self) -> dict:
+        """The top TOP_N, then the rest of the ranked queue (folded on the page) with
+        its deal value and how many of it wait only for a slot."""
         rows = self.ranked()
-        return {"top": rows[:TOP_N], "considered": len(rows), "formula": self.formula()}
+        rest = rows[TOP_N:]
+        return {"top": rows[:TOP_N], "rest": rest, "considered": len(rows), "formula": self.formula(),
+                "rest_value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in rest])),
+                "rest_no_slot": sum(1 for r in rest if not r["allocated"])}
 
     # -- 3. current asks ------------------------------------------------------
     def batch_companies(self, rows: list[dict]) -> list[dict]:
