@@ -7,17 +7,18 @@
 
 ## 2. Where the files disagree
 
-- R1169: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 3 paths
+- R1169: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 4 paths
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
 | 0.182 | 0.800 | Bertrand Vandermolen (not on roster) | offer | Chief Information Officer | slack_threads.jsonl R1169 2026-07-10 Bertrand Vandermolen: "I met their Chief Information Officer at a conference last spring, happy to reach out" |
 | 0.164 | 0.460 | Tomás Beckett (Internal) | direct | Bertrand Cardoso — Director of IT | connections_beckett.csv: Bertrand Cardoso, Director of IT at Yarrowdale Media, connected 2024-10-15 |
 | 0.085 | 0.415 | Priya Raghunathan (Investor) | direct | Bertrand Cardoso — Director of IT | connections_raghunathan.csv: Bertrand Cardoso, Director of IT at Yarrowdale Media, connected 2022-11-15 |
+| 0.215 | 0.900 | Hugo Fairweather-Højgaard (investor network) | investor_network (board seat) | CEO / exec team — Northgate Growth board seat | investor_network.csv: Hugo Fairweather-Højgaard (Growth equity investor), portfolio_company=Yarrowdale Media, board_seat=True |
 
 ## 4. Chronology (6 events, 1 request, newest first, as of 2026-09-06)
 
@@ -30,3 +31,11 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
    2026-07-28  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1028
 ```
+
+## 5. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 1 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Hugo Fairweather-Højgaard | Growth equity investor | Northgate Growth | yes | portfolio_company | investor_network path (section 3, 10% haircut) |

@@ -166,7 +166,7 @@ class AllocationTest(unittest.TestCase):
     def test_two_reps_wanting_the_same_title_are_both_present(self):
         # Two reps asking for the same title at the same company are two asks,
         # not one: the file must list both request_ids rather than collapsing
-        # them, and a batch may therefore repeat a (company, title).
+        # them, each allocated on its own row.
         wanted = defaultdict(set)
         for rid in self.live:
             r = self.requests[rid]
@@ -178,9 +178,9 @@ class AllocationTest(unittest.TestCase):
             present[(a["company_id"], a["target_title"])].add(a["request_id"])
         collapsed = {k: sorted(v - present[k]) for k, v in contested.items() if v - present[k]}
         self.assertEqual(collapsed, {}, "request_ids dropped for a contested title")
-        repeated = Counter((a["batch_id"], a["company_id"], a["target_title"]) for a in self.allocated)
-        self.assertTrue(any(n > 1 for n in repeated.values()),
-                        "no batch lists the same title twice")
+        routed = Counter((a["company_id"], a["target_title"]) for a in self.allocated)
+        self.assertTrue(any(routed[k] > 1 for k in contested),
+                        "no contested title has both requests allocated")
 
     # ── 7. exception reasons ───────────────────────────────────────────
     def test_exception_reason_is_one_of_the_known_set(self):

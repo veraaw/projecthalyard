@@ -32,3 +32,11 @@ strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacit
 
 !! 2026-03-01  crm_accounts.csv     Sloane Fairweather   last CRM touch on A1045  [189 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 0 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Priya Raghunathan | Partner, Redtree Capital | Redtree Capital | yes | portfolio_company | on the roster |

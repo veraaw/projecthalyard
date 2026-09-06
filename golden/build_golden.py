@@ -35,7 +35,7 @@ unparseable completed_at or a missing key fails the build.
 
 golden/ is the state; dataset/ is read-only input and is never written.
 
-Writes four CSVs (UTF-8, no BOM, CRLF):
+Writes five CSVs (UTF-8, no BOM, CRLF):
 
   golden/golden_requests.csv   one row per intro request. A rebuild MERGES,
                                it never replaces: the file is read first and
@@ -70,9 +70,18 @@ Writes four CSVs (UTF-8, no BOM, CRLF):
                                alumni and investor (investor_network.csv;
                                board_seat = yes/no is a strength modifier, not
                                a separate type) and offer (someone volunteered
-                               in a Slack thread).
+                               in a Slack thread). investor_network is the
+                               investor path of a person who is in
+                               investor_network.csv but not on the roster: in
+                               our circle, so askable (OFF_ROSTER_CAPACITY,
+                               connector_type "investor network"), but scored
+                               with a NETWORK_HAIRCUT on route_score and
+                               ranked behind every roster path: asked only
+                               when the roster has no path or no capacity.
                                Every askable person (roster, off-roster people
-                               asked in intro_outcomes.csv, Slack volunteers)
+                               asked in intro_outcomes.csv, Slack volunteers,
+                               investor_network.csv people with a portfolio
+                               company in scope)
                                has at least one row: reach_type = "none" if
                                they have no in-scope path. Connector-level
                                facts (type, capacity, delivery_rate,
@@ -106,6 +115,18 @@ Writes four CSVs (UTF-8, no BOM, CRLF):
                                allocated to one connector in a cycle shares
                                one batch_id (one consolidated ask per
                                connector per cycle).
+  golden/network_orbit.csv     one row per (person, company) pair in
+                               investor_network.csv whose portfolio_company or
+                               prior_employer resolves to an in-scope company:
+                               who sits around the company, on the roster or
+                               not. reachable_via = "connector" when the person
+                               is on the roster, else the surnames of the
+                               connectors whose connections_*.csv lists them,
+                               else "investor_network" when the row is their own
+                               portfolio company (the supply_reach.csv path of
+                               that name), else empty (no warm route). A view
+                               for the Company Trace: the file itself is never
+                               scored or allocated; the paths it points at are.
 
 Scope. A company is in scope if it is in crm_accounts.csv or is named as the
 target of any intro request. The set is recomputed on every run; nothing is
@@ -145,6 +166,7 @@ COMPANIES_OUT = OUT / "golden_companies.csv"
 SUPPLY_OUT = OUT / "supply_reach.csv"
 ALLOCATION_OUT = OUT / "golden_allocation.csv"
 COMPLETIONS_OUT = OUT / "completions.csv"
+NETWORK_OUT = OUT / "network_orbit.csv"
 
 REQUEST_COLUMNS = [
     "request_id", "company_id", "company_as_written", "target_title", "requested_by", "request_date",
@@ -180,6 +202,12 @@ SUPPLY_COLUMNS = [
     "contact_title", "observed_date", "offer_age_days", "strength", "in_focus_area", "monthly_capacity",
     "delivery_rate", "idle_capacity", "evidence",
 ]
+
+NETWORK_COLUMNS = [
+    "company_id", "company_name", "person", "role", "fund", "board_seat", "source", "reachable_via",
+]
+NETWORK_SOURCES = ("portfolio_company", "prior_employer")  # the investor_network.csv columns that name a company
+REACHABLE_AS_CONNECTOR = "connector"  # reachable_via for a person who is on the roster themselves
 
 COMPLETION_COLUMNS = [
     "completion_id", "completed_at", "completed_by", "action", "request_id", "company_id", "connector", "note",
@@ -220,8 +248,13 @@ BLOCK_NEVER_ROUTED = "path exists, never routed"  # filed with no routed_to befo
 # a bare name shared by a fund and a customer (Thornbury, Silverbrook, Cobalt Lane,
 # Meridian Peak): golden/resolver.py refuses it; the request gets no company_id
 FUND_COLLISION = "fund-collision"
+# an investor_network.csv person who is not on the roster, reaching their own portfolio
+# company: our circle, not our roster, so the path exists but its route_score takes a haircut
+INVESTOR_NETWORK = "investor_network"
+NETWORK_TYPE = "investor network"  # connector_type of such a person (roster people carry their roster type)
+NETWORK_HAIRCUT = 0.90  # route_score multiplier for investor_network paths
 # reach types that outlast the request they were observed on; offers are request-scoped
-DURABLE_REACH = {"direct", "investor", "alumni"}
+DURABLE_REACH = {"direct", "investor", "alumni", INVESTOR_NETWORK}
 
 # ---------------------------------------------------------------------------
 # routing constants (same weights as halyard/relay)
@@ -823,12 +856,25 @@ def fit(connector: dict, industry: str) -> float:
     return 0.45
 
 
+def network_people(roster: dict) -> set[str]:
+    """Everyone in investor_network.csv who is not on the roster."""
+    return {inv["person"].strip() for inv in read_csv(DATASET / "investor_network.csv")} - set(roster)
+
+
+def connector_type(roster: dict, network: set[str], name: str) -> str:
+    r = roster.get(name)
+    if r:
+        return r["type"]
+    return NETWORK_TYPE if name in network else "not on roster"
+
+
 def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
                  request_company: dict[str, Company | None], threads: dict[str, dict]) -> list[dict]:
     """One row per way into an in-scope company. Sources that name a company
     outside the CRM + requested set produce no row."""
     rows: list[dict] = []
     person_to_connectors: dict[str, list[tuple[str, dict]]] = defaultdict(list)
+    network = network_people(roster)
 
     def emit(connector: str, company: Company, kind: str, contact: str, title: str,
              observed: str, strength: float, evidence: str, offer_age: int | None = None,
@@ -842,7 +888,7 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
             focus = "unknown"
         rows.append({
             "connector": connector,
-            "connector_type": r["type"] if r else "not on roster",
+            "connector_type": connector_type(roster, network, connector),
             "company_id": company.company_id,
             "company_name": company.name,
             "reach_type": kind,
@@ -854,7 +900,7 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
             "strength": f"{strength:.3f}",
             "in_focus_area": focus,
             "monthly_capacity": capacity(roster, connector),
-            "delivery_rate": f"{rates[connector]:.3f}",
+            "delivery_rate": f"{rates.get(connector, PRIOR_RATE):.3f}",
             "evidence": evidence,
         })
 
@@ -870,14 +916,16 @@ def build_supply(reg: Registry, roster: dict, rates: dict, today: date,
                  f"{r['connections_file']}: {c['name']}, {c['title']} at {c['company']}, connected {c['connected_on']}")
 
     # investor: a roster investor's fund holds a position (board seat strengthens it);
+    # investor_network: the same for a person off the roster (the haircut is applied in
+    # path_score, not here, so strength reads the same as a roster investor's);
     # alumni: a connection's prior employer
     for inv in read_csv(DATASET / "investor_network.csv"):
-        person = inv["person"]
-        if inv["portfolio_company"] and person in roster:
+        person = inv["person"].strip()
+        if inv["portfolio_company"]:
             company, _ = reg.resolve_in_scope(inv["portfolio_company"])
             if company is not None:
                 seat = inv["board_seat"].lower() == "true"
-                emit(person, company, "investor", "CEO / exec team",
+                emit(person, company, "investor" if person in roster else INVESTOR_NETWORK, "CEO / exec team",
                      f"{inv['fund']} {'board seat' if seat else 'portfolio company'}", "",
                      BOARD_SEAT_STRENGTH if seat else PATH_BASE["investor"],
                      f"investor_network.csv: {person} ({inv['role']}), portfolio_company={inv['portfolio_company']}, board_seat={inv['board_seat']}",
@@ -929,13 +977,13 @@ def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[di
         if a["allocated_to"]:
             allocated[a["allocated_to"]] += 1
 
+    network = network_people(roster)
     askable = set(roster) | {o["connector_asked"] for o in outcomes if o["connector_asked"]}
     askable |= {m["user"] for th in threads.values() for m in th["offers"]}
     for name in sorted(askable - set(paths)):
-        r = roster.get(name)
         rows.append({
             "connector": name,
-            "connector_type": r["type"] if r else "not on roster",
+            "connector_type": connector_type(roster, network, name),
             "company_id": "",
             "company_name": "",
             "reach_type": "none",
@@ -953,6 +1001,52 @@ def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[di
 
     for r in rows:
         r["idle_capacity"] = cycle_budget(roster, fatigue, r["connector"]) - allocated[r["connector"]]
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# network orbit: who else sits around a company, from investor_network.csv
+# ---------------------------------------------------------------------------
+def build_network_orbit(reg: Registry, roster: dict) -> list[dict]:
+    """One row per (person, company) pair in investor_network.csv, for every
+    person in the file (on the roster or not), through the same resolver the
+    supply side uses. Rows naming a company outside the in-scope set are
+    dropped. A view, not a source: nothing here feeds supply_reach.csv or the
+    allocator; reachable_via = investor_network names the supply row build_supply
+    already emitted for an off-roster person's own portfolio company."""
+    known_to: dict[str, set[str]] = defaultdict(set)  # person -> connector surnames whose export lists them
+    for name, r in roster.items():
+        surname = name.split()[-1]
+        for c in read_csv(DATASET / r["connections_file"]):
+            known_to[c["name"]].add(surname)
+    rows = []
+    for inv in read_csv(DATASET / "investor_network.csv"):
+        person = inv["person"].strip()
+        for source in NETWORK_SOURCES:
+            if not inv[source]:
+                continue
+            company, _ = reg.resolve(inv[source])
+            if company is None:
+                continue
+            if person in roster:
+                via = REACHABLE_AS_CONNECTOR
+            elif known_to.get(person):
+                via = MULTI.join(sorted(known_to[person]))
+            elif source == "portfolio_company" and reg.resolve_in_scope(inv[source])[0] is not None:
+                via = INVESTOR_NETWORK
+            else:
+                via = ""
+            rows.append({
+                "company_id": company.company_id,
+                "company_name": company.name,
+                "person": person,
+                "role": inv["role"],
+                "fund": inv["fund"],
+                "board_seat": "yes" if source == "portfolio_company" and inv["board_seat"].strip().lower() == "true" else "no",
+                "source": source,
+                "reachable_via": via,
+            })
+    rows.sort(key=lambda r: (r["company_id"], r["board_seat"] != "yes", r["reachable_via"] == "", r["person"], r["source"]))
     return rows
 
 
@@ -989,20 +1083,30 @@ def load_threads(extra: Path | None = None) -> dict[str, dict]:
 
 
 def best_route(paths: list[dict], roster: dict, rates: dict, industry: str, exclude_connector: str = "") -> tuple[dict | None, float]:
-    best, best_score = None, 0.0
+    best, best_rank, best_score = None, None, 0.0
     for p in paths:
         if p["connector"] == exclude_connector:
             continue
-        score = path_score(p, roster, rates, industry)
-        if score > best_score:
-            best, best_score = p, score
+        rank = path_rank(p, roster, rates, industry)
+        if rank[1] < 0 and (best_rank is None or rank < best_rank):
+            best, best_rank, best_score = p, rank, -rank[1]
     return best, best_score
 
 
 def path_score(p: dict, roster: dict, rates: dict, industry: str) -> float:
+    """strength x focus fit x delivery rate, the allocator's sort key; an
+    investor_network path (our circle, not our roster) then takes NETWORK_HAIRCUT."""
     r = roster.get(p["connector"])
     f = fit(r, industry) if r else 0.7
-    return float(p["strength"]) * f * rates.get(p["connector"], PRIOR_RATE)
+    score = float(p["strength"]) * f * rates.get(p["connector"], PRIOR_RATE)
+    return score * NETWORK_HAIRCUT if p["reach_type"] == INVESTOR_NETWORK else score
+
+
+def path_rank(p: dict, roster: dict, rates: dict, industry: str) -> tuple[int, float]:
+    """The allocator's sort key, ascending: roster paths before investor_network
+    ones, then by route score. The roster is asked first; our wider network fills
+    in only when no roster path exists or every one is out of capacity."""
+    return (int(p["reach_type"] == INVESTOR_NETWORK), -path_score(p, roster, rates, industry))
 
 
 def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company: dict[str, list[dict]],
@@ -1021,8 +1125,9 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     cycle) instead of being allocated or falling through to the next
     connector. A request on a company whose intro is still live
     (introductions) is parked (ALREADY_INTRODUCED, naming the intro) rather
-    than asked afresh: the rep who received the intro extends it. Once every
-    connector with a path is spent the request becomes an exception. Requests
+    than asked afresh: the rep who received the intro extends it. Roster paths
+    are tried before investor_network ones whatever their scores (path_rank).
+    Once every connector with a path is spent the request becomes an exception. Requests
     allocated to the same connector share a batch_id: one consolidated ask."""
     cycle = today.strftime("%Y-%m")
     fatigue, stale, proposed = signals
@@ -1061,9 +1166,8 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
         if company is None:
             row["exception_reason"] = "company unresolved"
             continue
-        scored = sorted(((path_score(p, roster, rates, industry), p) for p in paths),
-                        key=lambda t: -t[0])
-        scored = [(sc, p) for sc, p in scored if sc > 0]
+        scored = [(-rank[1], p) for rank, p in sorted(((path_rank(p, roster, rates, industry), p) for p in paths),
+                                                       key=lambda t: t[0]) if rank[1] < 0]
         if scored:
             best_sc, best = scored[0]
             row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {best_sc:.2f})"
@@ -1299,7 +1403,7 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
                     route_reason = "asked; no known path from this connector to the company"
                     review.append("asked with no known path")
                 alt, alt_sc = best_route(paths, roster, rates, industry, exclude_connector=routed_to)
-                if alt and alt_sc > (sc or 0):
+                if alt and (bp is None or path_rank(alt, roster, rates, industry) < path_rank(bp, roster, rates, industry)):
                     route_reason += f"; stronger path existed via {alt['connector']} ({alt['reach_type']}, {alt_sc:.2f})"
         elif rid in allocation:
             a = allocation[rid]
@@ -1595,6 +1699,8 @@ def main() -> None:
     all_alloc, prior_cycles, prior_rows, replaced = merge_allocation(history, alloc_rows, cycle)
     companies = build_companies(reg, supply, read_csv(REQUESTS_OUT), today, outcomes, completions)
     write_derived(supply, all_alloc, companies)
+    orbit = build_network_orbit(reg, roster)
+    write_csv(NETWORK_OUT, NETWORK_COLUMNS, orbit)
 
     if completions:
         kinds = Counter(c["action"] for c in completions)
@@ -1608,6 +1714,9 @@ def main() -> None:
     print(f"golden_companies.csv  {len(companies)} rows (rebuilt)")
     print(f"supply_reach.csv      {len(supply)} rows (rebuilt): "
           + ", ".join(f"{k} {n}" for k, n in sorted(Counter(s['reach_type'] for s in supply).items())))
+    print(f"network_orbit.csv     {len(orbit)} rows (rebuilt) across {len({r['company_id'] for r in orbit})} companies: "
+          + ", ".join(f"{k} {n}" for k, n in sorted(Counter(r['source'] for r in orbit).items()))
+          + f"; {sum(1 for r in orbit if not r['reachable_via'])} with no warm route")
     n_alloc = sum(1 for a in alloc_rows if a["allocated_to"])
     reasons = Counter(a["exception_reason"].split(":")[0] for a in alloc_rows if a["exception_reason"])
     print(f"golden_allocation.csv {len(all_alloc)} rows in {prior_cycles + 1} cycles ({prior_rows} rows from "

@@ -8,11 +8,11 @@
 ## 2. Where the files disagree
 
 - crm_accounts.csv: two accounts, two owners: A1024 -> Nadia Okonkwo; A91024 -> Imani Mkhize
-- R1124: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 4 paths
+- R1124: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 6 paths
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
@@ -20,6 +20,8 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Chief Operating Officer | slack_threads.jsonl R1124 2025-11-10 Priya Raghunathan: "I met their Chief Operating Officer at a conference last spring, happy to reach out" |
 | 0.128 | 0.300 | Dana Whitfield (Internal) | direct | Freya Havercamp — Staff Engineer | connections_whitfield.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2020-12-25 |
 | 0.069 | 0.337 | Priya Raghunathan (Investor) | direct | Freya Havercamp — Staff Engineer | connections_raghunathan.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2022-05-16 |
+| 0.172 | 0.720 | Arjun Fairweather-Brenneman (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Arjun Fairweather-Brenneman (Growth equity investor), portfolio_company=Hollowbrook Grocers, board_seat=False |
+| 0.172 | 0.720 | Priya Dobrescu-Prendergast (investor network) | investor_network | CEO / exec team — Thornbury Equity portfolio company | investor_network.csv: Priya Dobrescu-Prendergast (Private equity investor), portfolio_company=Hollowbrook Grocers, board_seat=False |
 
 strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3, holds R1084, R1159; R1065 routed to Dana Whitfield
 
@@ -49,3 +51,13 @@ strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacit
 
 !! 2026-05-16  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1024  [113 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+3 people from investor_network.csv, 2 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Priya Raghunathan | Partner, Redtree Capital | Redtree Capital | yes | portfolio_company | on the roster |
+| Arjun Fairweather-Brenneman | Growth equity investor | Redtree Capital | no | portfolio_company | investor_network path (section 3, 10% haircut) |
+| Priya Dobrescu-Prendergast | Private equity investor | Thornbury Equity | no | portfolio_company | investor_network path (section 3, 10% haircut) |

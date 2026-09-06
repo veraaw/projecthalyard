@@ -7,7 +7,7 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
@@ -19,8 +19,9 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.049 | 0.426 | Owen Trask (Investor) | direct | Leandro Brenneman — Director of Software Engineering | connections_trask.csv: Leandro Brenneman, Director of Software Engineering at Cindermill Mining, connected 2023-10-26 |
 | 0.038 | 0.330 | Owen Trask (Investor) | direct | Bertrand Glückstein — Chief Data Officer | connections_trask.csv: Bertrand Glückstein, Chief Data Officer at Cindermill Mining, connected 2015-05-17 |
 | 0.021 | 0.187 | Owen Trask (Investor) | alumni | Bertrand Glückstein — ex-Cindermill Mining (2011-2016), now Chief Data Officer at Cindermill Mining | investor_network.csv: Bertrand Glückstein prior_employer=Cindermill Mining (2011-2016); connections_trask.csv: connection of Owen Trask since 2015-05-17 |
+| 0.172 | 0.720 | Camille Merriweather-Balogun (investor network) | investor_network | CEO / exec team — Silverbrook Capital portfolio company | investor_network.csv: Camille Merriweather-Balogun (Venture capital investor), portfolio_company=Cindermill Mining, board_seat=False |
 
-strongest path, not where it went: Owen Trask, direct 0.426, at capacity 2/2; R1059 routed to Elena Duvall, R1144 routed to Elena Duvall, R1184 routed to Elena Duvall
+strongest path, not where it went: Camille Merriweather-Balogun, investor_network 0.720, 0/2 used this cycle; R1059 routed to Elena Duvall, R1144 routed to Elena Duvall, R1184 routed to Elena Duvall
 
 ## 4. Chronology (17 events, 4 requests, newest first, as of 2026-09-06)
 
@@ -47,3 +48,12 @@ strongest path, not where it went: Owen Trask, direct 0.426, at capacity 2/2; R1
 
 !! 2025-07-10  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1025  [423 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+2 people from investor_network.csv, 1 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Bertrand Glückstein | Operator (work history) |  | no | prior_employer | via Duvall, Trask |
+| Camille Merriweather-Balogun | Venture capital investor | Silverbrook Capital | no | portfolio_company | investor_network path (section 3, 10% haircut) |

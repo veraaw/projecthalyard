@@ -7,18 +7,18 @@
 
 ## 2. Where the files disagree
 
-- R1108: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 8 paths
+- R1108: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 9 paths
 - R1115: filed "Intro sent" but intro_outcomes.csv has no row at all
-- R1115: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 8 paths
+- R1115: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 9 paths
 - R1115: Priya Raghunathan offered in slack_threads.jsonl on 2026-02-20 ("their Head of Platform reports to someone I've known for a decade, leave it with me") but intro_outcomes.csv never asked them
-- R1122: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 8 paths
+- R1122: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 9 paths
 - R1149: filed "Routed" but intro_outcomes.csv says Priya Raghunathan sent the intro on 2026-05-23
-- R1160: filed "Closed - no path" but supply_reach.csv has 8 paths into Gravenhurst Motors
+- R1160: filed "Closed - no path" but supply_reach.csv has 9 paths into Gravenhurst Motors
 - R1185: filed "Stalled" but intro_outcomes.csv says Priya Raghunathan sent the intro on 2026-02-22
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
@@ -30,6 +30,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.038 | 0.187 | Priya Raghunathan (Investor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_raghunathan.csv: connection of Priya Raghunathan since 2016-11-20 |
 | 0.000 | 0.332 | Elena Duvall (Advisor) | direct | Priya Fairweather — Head of Platform Engineering | connections_duvall.csv: Priya Fairweather, Head of Platform Engineering at Gravenhurst Motors, connected 2018-07-13 |
 | 0.000 | 0.218 | Elena Duvall (Advisor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_duvall.csv: connection of Elena Duvall since 2018-07-13 |
+| 0.172 | 0.720 | Amara Brenneman-Fairweather (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Amara Brenneman-Fairweather (Growth equity investor), portfolio_company=Gravenhurst Motors, board_seat=False |
 
 strongest path, not where it went: Curtis Hartigan, offer 0.800, 0/2 used this cycle; R1143 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)), R1158 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked))
 
@@ -67,7 +68,7 @@ strongest path, not where it went: Curtis Hartigan, offer 0.800, 0/2 used this c
    2026-05-26  slack_threads.jsonl  Imani Mkhize         R1160 slack: "adding Bertrand Vandermolen who might know"
    2026-05-26  slack_threads.jsonl  Bertrand Vandermolen R1160 slack: "no idea sorry"
    2026-05-22  slack_threads.jsonl  Bertrand Vandermolen R1160 slack: "any connections into Gravenhurst Motors? we're up against a renewal window and I need an intro to Director of Software Engineering"
-!! 2026-05-22  intro_requests.csv   Bertrand Vandermolen R1160 raised by Bertrand Vandermolen (AE, EMEA): wants Director of Software Engineering, $150,000, High urgency, filed "Closed - no path"  [8 paths in supply_reach.csv]
+!! 2026-05-22  intro_requests.csv   Bertrand Vandermolen R1160 raised by Bertrand Vandermolen (AE, EMEA): wants Director of Software Engineering, $150,000, High urgency, filed "Closed - no path"  [9 paths in supply_reach.csv]
 
 ++ 2026-05-23  intro_outcomes.csv   Priya Raghunathan    R1149 opportunity created, $80,000
 ++ 2026-05-23  intro_outcomes.csv   Priya Raghunathan    R1149 meeting booked
@@ -102,3 +103,13 @@ strongest path, not where it went: Curtis Hartigan, offer 0.800, 0/2 used this c
 
 !! 2026-01-07  crm_accounts.csv     Sloane Fairweather   last CRM touch on A1041  [242 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+3 people from investor_network.csv, 1 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Amara Brenneman-Fairweather | Growth equity investor | Redtree Capital | no | portfolio_company | investor_network path (section 3, 10% haircut) |
+| Priya Fairweather | Operator (work history) |  | no | prior_employer | via Duvall, Raghunathan |
+| Priya Raghunathan | Partner, Redtree Capital | Redtree Capital | no | portfolio_company | on the roster |

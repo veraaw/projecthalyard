@@ -73,3 +73,11 @@ strongest path, not where it went: Yusuf Petrossian, offer 0.800, at capacity 2/
    2025-12-26  slack_threads.jsonl  Nadia Okonkwo        R1128 slack: "who do we know at Kingsmere Retail Group? VP Enterprise Architecture would be ideal but I'll take anyone senior"
    2025-12-26  intro_requests.csv   Nadia Okonkwo        R1128 raised by Nadia Okonkwo (AE, Industrials): wants VP Enterprise Architecture, $80,000, Critical urgency, filed "Routed"
 ```
+
+## 5. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 0 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Kofi Mkhize | Operator (work history) |  | no | prior_employer | via Beckett, Trask |

@@ -97,3 +97,12 @@ strongest path, not where it went: Elena Duvall, offer 0.800, at capacity 3/3, H
 
 !! 2026-05-14  crm_accounts.csv     Imani Mkhize         last CRM touch on A1050  [115 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+2 people from investor_network.csv, 0 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Amara Thackeray | Operator (work history) |  | no | prior_employer | via Raghunathan, Whitfield |
+| Ingrid Marchetti | Operator (work history) |  | no | prior_employer | via Trask, Whitfield |

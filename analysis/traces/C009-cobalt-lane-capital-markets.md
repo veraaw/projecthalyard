@@ -11,12 +11,13 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
 | 0.092 | 0.449 | Priya Raghunathan (Investor) | direct | Greta Petrossian — Head of Automation | connections_raghunathan.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2023-11-21 |
 | 0.080 | 0.496 | Tomás Beckett (Internal) | direct | Greta Petrossian — Head of Automation | connections_beckett.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2025-07-17 |
+| 0.172 | 0.720 | Malik Thackeray-Okonkwo (investor network) | investor_network | CEO / exec team — Meridian Peak Partners portfolio company | investor_network.csv: Malik Thackeray-Okonkwo (Private equity investor), portfolio_company=Cobalt Lane Capital Markets, board_seat=False |
 
 ## 4. Chronology (15 events, 2 requests, newest first, as of 2026-09-06)
 
@@ -39,3 +40,11 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 !! 2025-11-27  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1038  [283 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 1 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Malik Thackeray-Okonkwo | Private equity investor | Meridian Peak Partners | no | portfolio_company | investor_network path (section 3, 10% haircut) |
