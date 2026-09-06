@@ -238,7 +238,7 @@ FOLLOW_UPS = (NUDGED, CHASED)  # both advance nudged_on
 ALLOCATION_COLUMNS = [
     "cycle", "request_id", "decided_at", "company_id", "company_name", "target_title", "value_usd",
     "urgency_declared", "request_date", "status_as_filed", "allocated_to", "batch_id", "batch_size",
-    "path_type", "contact_name", "route_score", "exception_reason", "best_path_if_unbudgeted",
+    "path_type", "contact_name", "route_score", "exception_reason", "best_path_if_unbudgeted", "notify_owner",
 ]
 
 MULTI = " | "  # delimiter for multi-value cells (never a comma)
@@ -286,6 +286,10 @@ NETWORK_TYPE = "investor network"  # connector_type of such a person (roster peo
 NETWORK_HAIRCUT = 0.90  # route_score multiplier for investor_network paths
 # reach types that outlast the request they were observed on; offers are request-scoped
 DURABLE_REACH = {"direct", "investor", "alumni", INVESTOR_NETWORK}
+# notify_owner: an allocated request on an account this far along, made by someone other
+# than its owner, carries the owner's name (every owner, MULTI-joined, when duplicate
+# accounts disagree) so the AE gets a heads-up. A flag only: it never changes the routing.
+NOTIFY_STAGES = {"Negotiation", "Pilot", "Evaluation"}
 
 # ---------------------------------------------------------------------------
 # routing constants (same weights as halyard/relay)
@@ -1325,6 +1329,19 @@ def hold_paths(paths: list[dict], held: dict[tuple[str, str], dict], company_id:
     return clean + last, sorted(skipped.values(), key=hold_rank)
 
 
+def owner_to_notify(company: Company, requested_by: str) -> str:
+    """The account owner(s) owed a heads-up about a request on their company:
+    blank unless the CRM stage is in NOTIFY_STAGES and the requester is not one
+    of the owners. Both owners are listed when duplicate accounts disagree."""
+    s = company.survivor
+    if not s or s["stage"] not in NOTIFY_STAGES:
+        return ""
+    owners = sorted({a["owner"] for a in company.accounts if a["owner"]})
+    if not owners or requested_by in owners:
+        return ""
+    return MULTI.join(owners)
+
+
 def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company: dict[str, list[dict]],
              resolved: dict[str, dict], today: date, decided_at: str, signals: HistorySignals) -> dict[str, dict]:
     """request_id -> allocation row for every live request not yet asked,
@@ -1397,7 +1414,7 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
             "request_date": facts["request_date"],
             "status_as_filed": facts["status_as_filed"],
             "allocated_to": "", "batch_id": "", "batch_size": "", "path_type": "", "contact_name": "",
-            "route_score": "", "exception_reason": "", "best_path_if_unbudgeted": "",
+            "route_score": "", "exception_reason": "", "best_path_if_unbudgeted": "", "notify_owner": "",
         }
         out[rid] = row
         if company is None:
@@ -1435,6 +1452,7 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
                 "path_type": p["reach_type"],
                 "contact_name": p["contact_name"],
                 "route_score": f"{sc:.3f}",
+                "notify_owner": owner_to_notify(company, facts["requested_by"]),
             })
             break
         else:
