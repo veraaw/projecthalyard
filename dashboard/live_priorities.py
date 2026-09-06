@@ -193,7 +193,12 @@ class Live:
         self.rates = bg.delivery_rates(self.roster, self.outcomes, self.threads)
         self.cycle = self.allocation[0]["cycle"] if self.allocation else today.strftime("%Y-%m")
         self.fatigue = bg.history_signals(self.history, self.outcomes, today).fatigue
-        self.intro_state = bg.introductions(self.outcomes, {r["request_id"]: r["company_id"] for r in self.requests}, today)
+        open_since: dict[str, list[str]] = defaultdict(list)
+        for r in self.requests:
+            if r["company_id"] and r["status_as_filed"] in bg.OPEN_STATUSES:
+                open_since[r["company_id"]].append(r["request_date"])
+        self.intro_state = bg.introductions(self.outcomes, {r["request_id"]: r["company_id"] for r in self.requests},
+                                            today, open_since)
         self.batch_asks = batch_ask.compose(self.history, self.requests, self.roster, outcomes=self.outcomes)
         self.traceable = {t["company_id"] for t in all_traces(today)}
         self._ranked: list[dict] | None = None
@@ -344,12 +349,12 @@ class Live:
 
     def retry_note(self, i: dict) -> dict:
         when = i["intro_date"] or "an undated"
-        age = f"{i['days']} days" if i["days"] is not None else "since"
-        return {**i, "note": f"{i['connector'].split()[0]}'s {when} intro to {i['requested_by'] or 'the requester'} went nowhere: no meeting in {age}"}
+        return {**i, "note": f"{i['connector'].split()[0]}'s {when} intro to {i['requested_by'] or 'the requester'} went nowhere: {i['outcome']}"}
 
     def retry_of(self, cid: str) -> dict | None:
-        """Set when the company's last intro fizzled (no meeting, older than
-        INTRO_LIVE_DAYS): a fresh ask on it is a retry and is labelled as one."""
+        """Set when the company's last intro fizzled (no meeting after INTRO_LIVE_DAYS,
+        or a meeting with no opportunity after as long while newer requests wait):
+        a fresh ask on it is a retry and is labelled as one."""
         i = self.prior_intro(cid)
         if not i or i["live"]:
             return None
@@ -656,8 +661,8 @@ class Live:
     # -- 3b. already introduced: extend the intro, don't ask afresh -------------
     def introduced(self) -> dict:
         """Live requests the allocator parked because the company already has a live
-        intro (build_golden.ALREADY_INTRODUCED: a meeting booked, or sent within
-        INTRO_LIVE_DAYS). One row per company; the action is the rep who received
+        intro (build_golden.ALREADY_INTRODUCED: sent within INTRO_LIVE_DAYS, or a
+        meeting booked that has not stalled). One row per company; the action is the rep who received
         that intro asking their contact for the other names, not a connector ask.
         `retries` are the companies whose last intro fizzled and are back in the
         queue this cycle, labelled so the ask reads as a second attempt."""

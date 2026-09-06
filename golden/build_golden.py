@@ -209,7 +209,8 @@ OFF_ROSTER_CAPACITY = 2  # monthly asks assumed for anyone askable who is not on
 FATIGUE_DAYS = 60  # asks proposed to a connector in this trailing window count against their capacity
 CAPACITY_EXHAUSTED = "capacity exhausted this cycle"
 STALE_ASK = "already proposed, no outcome logged"  # exception_reason prefix: '<STALE_ASK>: <connector> in <cycle>'
-INTRO_LIVE_DAYS = 60  # an intro this recent (or one that booked a meeting) is still in play: nobody is asked afresh
+INTRO_LIVE_DAYS = 60  # an intro this recent is still in play, as is a meeting until it has gone this long without an opportunity
+                      # while newer requests wait on the company: nobody is asked afresh
 # exception_reason prefix: '<ALREADY_INTRODUCED>: <connector> on <intro_date> (<request_id>[, meeting booked])'
 ALREADY_INTRODUCED = "already introduced"
 # contradicts_log: status_as_filed vs intro_outcomes.csv
@@ -807,15 +808,25 @@ def history_signals(history: list[dict], outcomes: list[dict], today: date) -> H
 
 def intro_of(o: dict, today: date) -> dict | None:
     """The intro an outcome row logged, or None. `live` while it booked a meeting
-    or went out within INTRO_LIVE_DAYS; otherwise it has fizzled."""
+    or went out within INTRO_LIVE_DAYS; otherwise it has fizzled. `outcome` says
+    where it stands, in words. The log has no meeting date, so a meeting's age
+    is counted from the intro."""
     if o["intro_sent"].strip() != "Y":
         return None
     d = parse_date(o["intro_date"] or "")
     days = (today - d).days if d else None
     booked = o["meeting_booked"].strip() == "Y"
+    opportunity = o["opportunity_created"].strip() == "Y"
+    since = f"in {days} days" if days is not None else "yet"
+    if opportunity:
+        outcome = "opportunity created"
+    elif booked:
+        outcome = f"meeting booked, no opportunity {since}"
+    else:
+        outcome = f"no meeting {since}"
     return {
         "request_id": o["request_id"], "connector": o["connector_asked"], "intro_date": o["intro_date"],
-        "days": days, "meeting_booked": booked,
+        "days": days, "meeting_booked": booked, "opportunity": opportunity, "outcome": outcome,
         "live": booked or (days is not None and days <= INTRO_LIVE_DAYS),
     }
 
@@ -827,17 +838,33 @@ def retriable(o: dict, today: date) -> bool:
     return i is not None and not i["live"] and not o.get("reasked_date", "")
 
 
-def introductions(outcomes: list[dict], company_of: dict[str, str], today: date) -> dict[str, dict]:
+def meeting_stalled(i: dict, requested_after: list[str]) -> bool:
+    """A meeting that has not become an opportunity within INTRO_LIVE_DAYS while
+    requests filed after the intro wait on the company: the intro no longer
+    holds the company, those requests go back in the queue."""
+    return (i["meeting_booked"] and not i["opportunity"]
+            and i["days"] is not None and i["days"] > INTRO_LIVE_DAYS
+            and any(d > i["intro_date"] for d in requested_after))
+
+
+def introductions(outcomes: list[dict], company_of: dict[str, str], today: date,
+                  open_since: dict[str, list[str]] | None = None) -> dict[str, dict]:
     """company_id -> the intro that governs new asks on the company. An intro is
     `live` while it booked a meeting or went out within INTRO_LIVE_DAYS: the rep
-    who received it extends it, nobody is asked afresh. With no live intro the
-    newest one has fizzled and is named so the next ask reads as a retry.
-    Companies with no intro sent are absent."""
+    who received it extends it, nobody is asked afresh. A meeting stops holding
+    the company once it has gone INTRO_LIVE_DAYS without an opportunity and
+    `open_since` (company_id -> request_date of each open request) shows
+    requests filed after it (meeting_stalled). With no live intro the newest
+    one has fizzled and is named so the next ask reads as a retry. Companies
+    with no intro sent are absent."""
+    open_since = open_since or {}
     by_company: dict[str, list[dict]] = defaultdict(list)
     for o in outcomes:
         cid = company_of.get(o["request_id"], "")
         i = intro_of(o, today) if cid else None
         if i:
+            if meeting_stalled(i, open_since.get(cid, [])):
+                i = {**i, "live": False}
             by_company[cid].append(i)
     out = {}
     for cid, intros in by_company.items():
@@ -1070,7 +1097,9 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     cycle) instead of being allocated or falling through to the next
     connector. A request on a company whose intro is still live
     (introductions) is parked (ALREADY_INTRODUCED, naming the intro) rather
-    than asked afresh: the rep who received the intro extends it. Once every
+    than asked afresh: the rep who received the intro extends it. A meeting
+    that has gone INTRO_LIVE_DAYS without an opportunity stops parking the
+    requests filed after it (meeting_stalled): they are asked as retries. Once every
     connector with a path is spent the request becomes an exception. Requests
     allocated to the same connector share a batch_id: one consolidated ask."""
     cycle = today.strftime("%Y-%m")
@@ -1081,7 +1110,12 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
 
     asked = {o["request_id"] for o in outcomes}
     retry = {o["request_id"] for o in outcomes if retriable(o, today)}
-    introduced = introductions(outcomes, {rid: rq["company"].company_id for rid, rq in resolved.items() if rq["company"]}, today)
+    open_since: dict[str, list[str]] = defaultdict(list)
+    for rq in resolved.values():
+        if rq["company"] and rq["facts"]["status_as_filed"] in OPEN_STATUSES:
+            open_since[rq["company"].company_id].append(rq["facts"]["request_date"])
+    introduced = introductions(outcomes, {rid: rq["company"].company_id for rid, rq in resolved.items() if rq["company"]},
+                               today, open_since)
     live = [(rid, rq) for rid, rq in resolved.items()
             if rq["facts"]["status_as_filed"] in OPEN_STATUSES and (rid not in asked or rid in retry)]
     live.sort(key=lambda t: (URGENCY_RANK.get(t[1]["facts"]["urgency_declared"], 9),
