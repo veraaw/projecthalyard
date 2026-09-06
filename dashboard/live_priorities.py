@@ -55,7 +55,7 @@ CONNECTOR_PAGE = "connector-{slug}.html"
 SECTIONS = [
     ("upload", "Preview an export"), ("route", "Route a request"), ("stages", "Deal value by stage"), ("top", "Top priorities"),
     ("asks", "Current asks"), ("offers", "Offered, needs response"), ("bottlenecks", "Bottlenecks"),
-    ("connectors", "Connectors"), ("checkins", "Check-ins"), ("unrouted", "Unrouted"), ("crm", "CRM gaps"),
+    ("connectors", "Connectors"), ("checkins", "Check-ins"), ("unrouted", "Unrouted"), ("crm", "CRM Updates"),
 ]
 THREADS_COMMAND = "python3 golden/build_golden.py --threads {file} && python3 build.py"
 

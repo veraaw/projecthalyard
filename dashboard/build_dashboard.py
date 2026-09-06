@@ -451,6 +451,14 @@ img{{max-width:100%}}
 .fview[hidden]{{display:none}}
 /* live priorities */
 #lp h2 .foot{{display:block;font-weight:400;margin-top:2px}}
+#lp details.fold{{margin:0}}
+#lp .fold summary{{display:flex;align-items:flex-start;gap:16px;margin:0}}
+#lp .fold summary::before{{content:none}}
+#lp .fold summary h2{{flex:1}}
+#lp .fold summary::after{{content:"▾";color:var(--mute);font-size:24px;line-height:1.1;padding-top:2px;transform:rotate(-90deg);transition:transform .15s}}
+#lp .fold[open] summary::after{{transform:none}}
+#lp .fold summary:hover::after{{color:var(--ink)}}
+#lp .fold[open] summary{{margin-bottom:6px}}
 #lp .lede{{font-size:15.5px}}
 #lp q{{quotes:"\\201C" "\\201D";font-family:var(--serif);font-style:italic}}
 #lp b.warn,#lp .warn{{color:var(--warn)}}

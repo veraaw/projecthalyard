@@ -83,6 +83,14 @@ img{max-width:100%}
 .fview[hidden]{display:none}
 /* live priorities */
 #lp h2 .foot{display:block;font-weight:400;margin-top:2px}
+#lp details.fold{margin:0}
+#lp .fold summary{display:flex;align-items:flex-start;gap:16px;margin:0}
+#lp .fold summary::before{content:none}
+#lp .fold summary h2{flex:1}
+#lp .fold summary::after{content:"▾";color:var(--mute);font-size:24px;line-height:1.1;padding-top:2px;transform:rotate(-90deg);transition:transform .15s}
+#lp .fold[open] summary::after{transform:none}
+#lp .fold summary:hover::after{color:var(--ink)}
+#lp .fold[open] summary{margin-bottom:6px}
 #lp .lede{font-size:15.5px}
 #lp q{quotes:"\201C" "\201D";font-family:var(--serif);font-style:italic}
 #lp b.warn,#lp .warn{color:var(--warn)}
@@ -165,6 +173,12 @@ const LP = (function () {
   const co = ref => ref && ref.href ? `<a href="${esc(ref.href)}">${esc(ref.company_name)}</a>` : esc(ref ? ref.company_name : '');
   const plural = (n, w) => `${n} ${n === 1 ? w : w.endsWith('y') ? w.slice(0, -1) + 'ies' : w.endsWith('ch') ? w + 'es' : w + 's'}`;
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  // a section that starts closed: the h2 is the summary, the arrow toggles the body
+  const fold = h2 => `<details class="fold"><summary><h2>${h2}</h2></summary>`;
+  const openFoldAt = root => {
+    const s = location.hash.length > 1 && root.querySelector(`${location.hash} > details.fold`);
+    if (s) s.open = true;
+  };
   const get = (o, k, d) => has(o, k) ? o[k] : d;
   const csvCell = v => { const s = String(v ?? ''); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const toCsv = (cols, rows) => [cols.join(',')].concat(rows.map(r => cols.map(c => csvCell(r[c])).join(','))).join('\r\n') + '\r\n';
@@ -331,7 +345,7 @@ const LP = (function () {
           } else {
             const name = tg.is_domain ? domainStem(tg.text) : tg.text;
             const known = get(P.known_no_crm, resolver.normStrict(name), '') || get(P.known_no_crm, resolver.normLoose(name), '');
-            if (known) { row.company_id = known; row.resolved_by = 'matches a company on file that has no CRM account'; human.push('no CRM account — create one (see What the CRM is missing)'); }
+            if (known) { row.company_id = known; row.resolved_by = 'matches a company on file that has no CRM account'; human.push('no CRM account — create one (see CRM Updates)'); }
             else { row.resolved_by = 'new company — the build creates it with no domain and no CRM account'; human.push('new company: no CRM account, no domain — confirm the spelling'); }
           }
         }
@@ -560,11 +574,11 @@ const LP = (function () {
 
     // 5. bottlenecks
     const B = D.bottlenecks;
-    out += `<section id="bottlenecks"><h2>Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro — ${esc(B.value_fmt)} — from <code>intro_outcomes.csv</code></span></h2>
+    out += `<section id="bottlenecks">${fold(`Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro — ${esc(B.value_fmt)} — from <code>intro_outcomes.csv</code></span>`)}
       <p class="lede">Each of these is a <b>nudge</b>, not a re-ask: asking again spends a fresh slot for an answer you already have. ${B.by_connector.map(c => `${esc(c.connector)} ${c.count}`).join(' · ')}.</p>
       <table><thead><tr><th>action</th><th>request</th><th>company</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
       + B.rows.map(r => `<tr><td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`).join('')
-      + `</tbody></table></section>`;
+      + `</tbody></table></details></section>`;
 
     // 6. per-connector tabs
     out += `<section id="connectors"><h2>Connectors <span class="foot">roster, one panel each: queue this cycle, capacity used against stated capacity, delivery rate, what they are already sitting on — the coloured tabs at the top open each connector's own page</span></h2>
@@ -585,15 +599,15 @@ const LP = (function () {
 
     // 7. check-ins
     const K = D.checkins;
-    out += `<section id="checkins"><h2>Overdue a check-in <span class="foot">${plural(K.count, 'company')} with requests and a CRM account; ${K.both} failed both tests</span></h2>
+    out += `<section id="checkins">${fold(`Overdue a check-in <span class="foot">${plural(K.count, 'company')} with requests and a CRM account; ${K.both} failed both tests</span>`)}
       <p class="lede">Two tests, ${K.days} days each: has anyone touched the CRM account, and has anyone asked a connector for an intro. A company failing both is being neither sold to nor networked into.</p>
       <table><thead><tr><th>company</th><th>owner</th><th>stage</th><th>CRM last_touch_date</th><th>last intro ask</th><th>failed</th><th>live</th></tr></thead><tbody>`
       + K.rows.map(r => `<tr><td>${co(r)}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage)}</td><td class="date">${esc(r.last_touch_date || 'never')}${r.touch_days != null ? ` <span class="foot">${r.touch_days}d</span>` : ''}</td><td class="date">${esc(r.last_ask_date || 'never')}${r.ask_days != null ? ` <span class="foot">${r.ask_days}d</span>` : ''}</td><td>${r.failed.map(f => `<b class="${r.failed.length === 2 ? 'warn' : ''}">${esc(f)}</b>`).join(' + ')}</td><td>${r.live_requests ? `${r.live_requests} · ${esc(r.live_value_fmt)}` : '—'}</td></tr>`).join('')
-      + `</tbody></table></section>`;
+      + `</tbody></table></details></section>`;
 
     // 8. unrouted in focus
     const U = D.unrouted, F = U.finding;
-    out += `<section id="unrouted"><h2>Unrouted company asks, per connector <span class="foot">${U.unrouted_companies} companies with live requests nobody is allocated to, matched to each connector's stated focus areas</span></h2>
+    out += `<section id="unrouted">${fold(`Unrouted company asks, per connector <span class="foot">${U.unrouted_companies} companies with live requests nobody is allocated to, matched to each connector's stated focus areas</span>`)}
       <p class="lede">In-focus asks convert at <b>${esc(F.in_focus_pct)}</b> versus ${esc(F.out_focus_pct)} outside, yet only ${F.in_focus_asks} of ${F.total_asks} asks landed in focus. These are the names that finding points at.</p>`;
     for (const c of U.per_connector) {
       out += `<h3>${esc(c.connector)} <span class="foot">${c.focus.map(esc).join(', ')} · ${plural(c.count, 'company')} · ${esc(c.value_fmt)} · ${c.idle} idle slots</span></h3>`;
@@ -601,11 +615,11 @@ const LP = (function () {
         + c.companies.map(x => `<tr><td>${co(x)}<br><span class="foot">${x.request_ids.map(esc).join(', ')}</span></td><td>${esc(x.industry)}</td><td>${x.wanted.map(esc).join('<br>')}</td><td>${x.waiting.map(esc).join('<br>')}</td><td>${esc(x.value_fmt)}</td><td class="foot">${x.reasons.map(esc).join('; ')}</td><td class="${x.has_path ? '' : 'foot'}">${esc(x.path)}</td></tr>`).join('') + `</tbody></table>`
         : `<p class="empty">no unrouted company in ${esc(c.connector)}'s focus areas</p>`;
     }
-    out += `</section>`;
+    out += `</details></section>`;
 
     // 9. CRM
     const C = D.crm;
-    out += `<section id="crm"><h2>What the CRM is missing <span class="foot">${C.groups.map(g => `${g.count} ${esc(g.group)}`).join(' · ')}</span></h2>
+    out += `<section id="crm">${fold(`CRM Updates <span class="foot">${C.groups.map(g => `${g.count} ${esc(g.group)}`).join(' · ')}</span>`)}
       <div class="dl"><button id="lp-dl-import">Download ${esc(C.import.filename)}</button><span>${plural(C.import.count, 'account')} to create, importer-shaped columns only (<code>${C.import.columns.map(esc).join(', ')}</code>). It can be uploaded straight into the CRM.</span></div>
       <div class="dl"><button id="lp-dl-review" class="secondary">Download ${esc(C.review.filename)}</button><span>${plural(C.review.count, 'recommendation')} (${C.review.groups.map(g => `${g.count} ${esc(g.group)}`).join(', ')}), every row <code>status = ${esc(C.status)}</code>. Merges and owner conflicts are recommended, never executed — ownership is compensation.</span></div>`;
     for (const g of C.groups) {
@@ -614,9 +628,11 @@ const LP = (function () {
         + g.rows.map(r => `<tr><td>${co(r)}<br><span class="foot">${r.request_ids.map(esc).join(', ')}</span></td><td class="rid">${esc(r.crm_account_ids || '—')}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage || '—')}</td><td><b>${esc(r.action)}</b></td><td class="foot">${esc(r.why)}<br>${esc(r.evidence)}</td><td class="num">${esc(r.value_fmt)}</td></tr>`).join('') + `</tbody></table>`
         : `<p class="empty">nothing to do</p>`;
     }
-    out += `</section>`;
+    out += `</details></section>`;
 
     root.innerHTML = out;
+    openFoldAt(root);
+    window.addEventListener('hashchange', () => openFoldAt(root));
 
     // wiring: ticks, connector tabs, downloads, upload
     wireTicks(root, done);
@@ -658,7 +674,7 @@ const LP = (function () {
     else if (!C) target = `${esc(T.text)} <span class="foot">— not a company the build knows</span> ${cue(T)}`;
     else target = `${co(C)} <span class="foot">${esc(C.company_id)} · ${C.crm ? `${esc(T.method)} ${T.confidence.toFixed(2)}` : 'on file, no CRM account'}${T.is_domain || T.text !== C.company_name ? ` from “${esc(T.text)}”` : ''}</span> ${cue(T)}`;
     if (!C) account = x.status === 'refused' ? `<i>${x.candidates.filter(c => c.kind === 'company').length ? 'two records answer to this name' : '—'}</i>` : `<b class="warn">no CRM record</b>`;
-    else if (!C.crm) account = `<b class="warn">no CRM record</b> <span class="foot">— the company is on file from earlier asks; create the account (see What the CRM is missing)</span>`;
+    else if (!C.crm) account = `<b class="warn">no CRM record</b> <span class="foot">— the company is on file from earlier asks; create the account (see CRM Updates)</span>`;
     else account = `${esc(C.stage)} · ${esc(C.industry || 'no industry')} · ${esc(C.owner || 'nobody')} · ${C.arr_fmt ? esc(C.arr_fmt) + ' ARR potential' : 'no ARR potential on file'}${C.stage === 'Closed Lost' ? ' · <b class="warn">Closed Lost — reopen it or close the request</b>' : ''}`;
     const others = x.others.length
       ? x.others.map(o => `<b>${esc(o.text)}</b> <span class="foot">${o.name && o.name !== o.text ? `(${esc(o.name)}) ` : ''}${esc(o.why)}</span>`).join('<br>')

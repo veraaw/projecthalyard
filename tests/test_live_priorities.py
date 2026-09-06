@@ -337,6 +337,10 @@ class PayloadTest(unittest.TestCase):
         boot = js.split("function boot(")[1].split("function renderPreview(")[0]
         self.assertEqual([sid for sid, _ in lp.SECTIONS], re.findall(r'<section id="([^"]+)"', boot),
                          "SECTIONS is the header nav; it must list every section boot() renders, in order")
+        folded = re.findall(r'<section id="([^"]+)">\$\{fold\(', boot)
+        self.assertEqual(folded, ["bottlenecks", "checkins", "unrouted", "crm"], "the long tables start collapsed")
+        self.assertIn("CRM Updates <span", boot)
+        self.assertNotIn("What the CRM is missing", js)
 
 
 class FunnelWindowTest(unittest.TestCase):
