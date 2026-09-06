@@ -95,7 +95,7 @@ def fragment() -> str:
       return [...by].map(([who, qs]) => `${{who}}: ${{qs.map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}}`).join(', ')}}`).join('\\n');
     }};
     let out = `<h2 class="co">${{esc(t.company_name)}} <span class="foot">${{esc(t.company_id)}}${{h.crm_account_ids ? ' · ' + esc(h.crm_account_ids) : ''}}${{h.domain ? ' · ' + esc(h.domain) : ''}}</span></h2>`;
-    out += `<p class="aka">${{h.also_known_as.length ? 'also goes by ' + h.also_known_as.map(esc).join(' · ') : 'no other spellings on file'}}${{h.duplicate_accounts && h.duplicate_accounts !== 'no' ? ' · duplicate accounts: ' + esc(h.duplicate_accounts) : ''}}</p>`;
+    out += `<p class="aka">${{h.also_known_as.length ? 'Also goes by ' + h.also_known_as.map(esc).join(' · ') : 'No other spellings on file'}}${{h.duplicate_accounts && h.duplicate_accounts !== 'no' ? ' · Duplicate accounts: ' + esc(h.duplicate_accounts) : ''}}</p>`;
     const rt = h.routing, cr = t.route, top = cr.top;
     // this cycle's allocation grouped by destination, each request saying whether it is a first ask or a retry
     const byWho = new Map();
@@ -103,47 +103,47 @@ def fragment() -> str:
     const sent = cr.live.filter(a => a.allocated_to), retries = sent.filter(a => a.retry).length, firsts = sent.length - retries;
     const nRetries = `${{retries}} ${{retries === 1 ? 'retry' : 'retries'}}`;
     const cycleSub = sent.length ? [firsts ? plural(firsts, 'first ask') : '', retries ? nRetries : '', `→ ${{plural(cr.this_cycle.length, 'connector')}}`].filter(Boolean).join(' · ')
-      : cr.live.length ? 'nothing goes out this cycle' : 'no live request this cycle';
+      : cr.live.length ? 'Nothing goes out this cycle' : 'No live request this cycle';
     const cycleHover = [`Routed this cycle (${{plural(sent.length, 'request')}} → ${{plural(cr.this_cycle.length, 'connector')}}${{retries ? `, ${{nRetries}}` : ''}})`,
       ...(cr.live.length ? [...byWho].map(([who, rows]) => `${{who}}: ${{rows.map(a => `${{a.request_id}} (${{a.retry || 'first ask'}})`).join(', ')}}`) : ['no live request this cycle']),
       '', `Awaiting the ask in the log (${{rt.counts.routed || 0}}): routed, nobody asked yet`,
       journey(h.request_rows.filter(q => q.stage === 'routed')) || 'no request sits at routed'].join('\\n');
-    out += `<div class="kpis">${{kpi(cap(rt.furthest), 'routing stage', [rt.booked ? `intro ${{rt.booked.intro_date || 'undated'}} · ${{rt.booked.request_id}} · ${{rt.booked.connector}}` : '', rt.latest && rt.latest !== rt.furthest ? 'latest ask: ' + rt.latest : ''].filter(Boolean).join(' · '))}}${{kpi(h.stage || '?', 'CRM stage', h.industry)}}${{kpi(h.owner || 'none', 'CRM owner')}}${{kpi(h.value.value_usd, 'deal value', h.value.source, h.value.by_request.filter(q => q.value_usd).map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}}: ${{q.value_usd}}`).join('\\n') || 'no request carries a deal value')}}${{kpi(h.requests, 'requests', '', h.request_rows.map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}} · ${{q.requested_by || 'unattributed'}} · ${{q.stage}} (filed "${{q.status}}")`).join('\\n'))}}${{kpi(h.people, 'people asking', '', people(h.request_rows))}}${{kpi(sent.length, 'routed this cycle', cycleSub, cycleHover)}}${{kpi(h.titles.length, 'different titles wanted', h.titles.join(' · '))}}</div>`;
+    out += `<div class="kpis">${{kpi(cap(rt.furthest), 'routing stage', [rt.booked ? `intro ${{rt.booked.intro_date || 'undated'}} · ${{rt.booked.request_id}} · ${{rt.booked.connector}}` : '', rt.latest && rt.latest !== rt.furthest ? 'Latest ask: ' + rt.latest : ''].filter(Boolean).join(' · '))}}${{kpi(h.stage || '?', 'CRM stage', h.industry)}}${{kpi(h.owner || 'None', 'CRM owner')}}${{kpi(h.value.value_usd, 'deal value', h.value.source, h.value.by_request.filter(q => q.value_usd).map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}}: ${{q.value_usd}}`).join('\\n') || 'no request carries a deal value')}}${{kpi(h.requests, 'requests', '', h.request_rows.map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}} · ${{q.requested_by || 'unattributed'}} · ${{q.stage}} (filed "${{q.status}}")`).join('\\n'))}}${{kpi(h.people, 'people asking', '', people(h.request_rows))}}${{kpi(sent.length, 'routed this cycle', cycleSub, cycleHover)}}${{kpi(h.titles.length, 'different titles wanted', h.titles.join(' · '))}}</div>`;
 
     if (t.disagreements.length) {{
-      out += `<h3>2. Where the files disagree</h3>` + t.disagreements.map(d => `<div class="finding warn">${{esc(d)}}</div>`).join('');
+      out += `<h3>2. Where the Files Disagree</h3>` + t.disagreements.map(d => `<div class="finding warn">${{esc(d)}}</div>`).join('');
     }}
 
     // where the company's requests go now: this cycle's rows, else the allocator's first askable path
     const rlabel = rows => rows.map(a => a.request_id + (a.retry ? ' (retry)' : '')).join(', ');
     const routeNotes = [
-      cr.live.length ? 'this cycle: ' + [...byWho].map(([who, rows]) => who.startsWith('unrouted') ? `${{rlabel(rows)}} ${{who}}` : `${{rlabel(rows)}} → ${{who}}`).join('; ') : '',
-      top ? `${{cr.this_cycle.length ? 'top askable path' : cr.live.length ? 'nothing goes out this cycle; the top askable path is' : 'the next request goes to the top askable path'}}: ${{top.connector}}, ${{top.reach_type}} via ${{top.contact_name || '?'}}, route score ${{top.route_score.toFixed(3)}}${{top.capacity ? `, ${{top.capacity}} capacity used this cycle` : ''}}${{top.ranked_last ? `; ranked last: ${{top.ranked_last}}` : ''}}`
-        : cr.why === '{NO_PATH}' ? 'nobody in the network reaches this company' : cr.why === '{UNRESOLVED_ASK}' ? 'everyone who reaches the company is sitting on an ask there' : '',
-      cr.not_asked.length ? 'not asked again here: ' + cr.not_asked.join('; ') : '',
+      cr.live.length ? 'This cycle: ' + [...byWho].map(([who, rows]) => who.startsWith('unrouted') ? `${{rlabel(rows)}} ${{who}}` : `${{rlabel(rows)}} → ${{who}}`).join('; ') : '',
+      top ? `${{cr.this_cycle.length ? 'Top askable path' : cr.live.length ? 'Nothing goes out this cycle; the top askable path is' : 'The next request goes to the top askable path'}}: ${{top.connector}}, ${{top.reach_type}} via ${{top.contact_name || '?'}}, route score ${{top.route_score.toFixed(3)}}${{top.capacity ? `, ${{top.capacity}} capacity used this cycle` : ''}}${{top.ranked_last ? `; ranked last: ${{top.ranked_last}}` : ''}}`
+        : cr.why === '{NO_PATH}' ? 'Nobody in the network reaches this company' : cr.why === '{UNRESOLVED_ASK}' ? 'Everyone who reaches the company is sitting on an ask there' : '',
+      cr.not_asked.length ? 'Not asked again here: ' + cr.not_asked.join('; ') : '',
     ].filter(Boolean);
     out += `<h3 class="route">Currently routing to: ${{cr.connector ? esc(cr.connector) : `<b class="none">nobody</b> <span class="foot">(${{esc(cr.why.replace(/ \\((.*)\\)$/, ': $1'))}})</span>`}}</h3>`
       + routeNotes.map(n => `<p class="foot">${{esc(n)}}</p>`).join('');
 
-    out += `<h3>3. Who can reach them</h3>`;
-    if (!t.reach.length) out += `<p class="empty">nobody in the network reaches this company</p>`;
+    out += `<h3>3. Who Can Reach Them</h3>`;
+    if (!t.reach.length) out += `<p class="empty">Nobody in the network reaches this company</p>`;
     else {{
       const maxScore = Math.max(...t.reach.map(p => p.route_score)) || 1, maxRaw = Math.max(...t.reach.map(p => p.strength)) || 1;
       const haircut = t.reach.some(p => p.reach_type.startsWith('{INVESTOR_NETWORK}')) ? `; {INVESTOR_NETWORK} rows (our network, not our roster) take a {round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score` : '';
-      out += `<p class="foot">in the allocator's order: the tiers below, then route score = strength × focus fit × delivery rate within each${{haircut}}; strength is the raw path alone</p>`;
+      out += `<p class="foot">In the allocator's order: the tiers below, then route score = strength × focus fit × delivery rate within each${{haircut}}; strength is the raw path alone.</p>`;
       // the allocator's order is tiers first, route score within each: one labelled section row per tier
       const tierRow = (label, n) => `<tr class="tier"><td colspan="7">${{esc(label)}}<span class="foot">${{plural(n, 'path')}}</span></td></tr>`;
-      out += `<table><thead><tr><th>route score</th><th>strength</th><th>connector</th><th>reach</th><th>contact</th><th>evidence</th><th>unresolved ask</th></tr></thead><tbody>` +
+      out += `<table><thead><tr><th>Route score</th><th>Strength</th><th>Connector</th><th>Reach</th><th>Contact</th><th>Evidence</th><th>Unresolved ask</th></tr></thead><tbody>` +
         t.reach.map((p, i) => (i === 0 || p.tier !== t.reach[i - 1].tier ? tierRow(p.tier, t.reach.filter(q => q.tier === p.tier).length) : '')
           + `<tr${{p.askable ? '' : ' class="held"'}}><td class="score"><span class="bar" style="width:${{Math.round(90 * p.route_score / maxScore)}}px"></span>${{p.route_score.toFixed(3)}}</td><td class="raw" title="fit ${{p.fit}} × delivery rate ${{p.rate}}"><span class="bar raw" style="width:${{Math.round(90 * p.strength / maxRaw)}}px"></span>${{p.strength.toFixed(3)}}</td><td>${{esc(p.connector)}} <span class="foot">${{esc(p.connector_type)}}</span></td><td>${{esc(p.reach_type)}}</td><td>${{esc([p.contact_name, p.contact_title].filter(Boolean).join(', ') || '?')}}</td><td class="foot">${{esc(p.evidence)}}</td><td class="hold">${{p.unresolved_ask ? esc(p.unresolved_ask) + (p.askable ? ' · ranked last' : ' · not asked again here') : ''}}</td></tr>`
-          + (p.bypass ? `<tr class="bypass"><td colspan="7"><b>{BYPASS_LABEL}:</b> ${{esc(p.bypass)}}</td></tr>` : '')).join('') +
+          + (p.bypass ? `<tr class="bypass"><td colspan="7"><b>{BYPASS_LABEL[:1].upper() + BYPASS_LABEL[1:]}:</b> ${{esc(p.bypass)}}</td></tr>` : '')).join('') +
         `</tbody></table>`;
     }}
 
     const nEv = t.chronology.reduce((a, b) => a + b.length, 0);
-    out += `<h3>4. Chronology: ${{plural(nEv, 'event')}}, ${{plural(h.requests, 'request')}}, newest first, as of ${{esc(t.as_of)}}</h3>`;
-    out += `<p class="legend">markers <b class="missed">&lt;-</b>missed <b class="worked">++</b>worked <b class="offer">**</b>offer <b class="warning">!!</b>warning${{nEv > 12 ? ' · the table scrolls' : ''}}</p>`;
-    out += `<table class="tall nopage"><thead><tr><th></th><th>date</th><th>source</th><th>who</th><th>what happened</th></tr></thead><tbody>`;
+    out += `<h3>4. Chronology <span class="foot">${{plural(nEv, 'event')}}, ${{plural(h.requests, 'request')}}, newest first, as of ${{esc(t.as_of)}}</span></h3>`;
+    out += `<p class="legend">Markers: <b class="missed">&lt;-</b>missed <b class="worked">++</b>worked <b class="offer">**</b>offer <b class="warning">!!</b>warning${{nEv > 12 ? ' · the table scrolls' : ''}}</p>`;
+    out += `<table class="tall nopage"><thead><tr><th></th><th>Date</th><th>Source</th><th>Who</th><th>What happened</th></tr></thead><tbody>`;
     t.chronology.forEach((block, i) => {{
       if (i) out += `<tr class="gap"><td colspan="5"></td></tr>`;
       block.forEach(e => {{
@@ -156,9 +156,9 @@ def fragment() -> str:
     if (t.orbit.length) {{
       const cold = t.orbit.filter(r => !r.reachable_via).length, net = t.orbit.filter(r => r.reachable_via === '{INVESTOR_NETWORK}').length;
       out += `<h3>5. Additional Investor and Operator Network</h3>`;
-      out += `<p class="foot">${{t.orbit.length}} ${{t.orbit.length === 1 ? 'person' : 'people'}} from investor_network.csv, ${{net}} askable as {INVESTOR_NETWORK} paths, ${{cold}} with no warm path · a view of section 3 and the roster's exports: nothing here is scored or allocated on its own</p>`;
-      out += `<table><thead><tr><th>person</th><th>role</th><th>fund</th><th>board seat</th><th>source</th><th>warm path</th></tr></thead><tbody>` +
-        t.orbit.map(r => `<tr class="${{r.reachable_via ? '' : 'cold'}}"><td>${{esc(r.person)}}</td><td class="foot">${{esc(r.role)}}</td><td>${{esc(r.fund)}}</td><td class="seat">${{r.board_seat ? 'yes' : ''}}</td><td class="src">${{esc(r.source)}}</td><td class="route">${{esc(r.route)}}</td></tr>`).join('') +
+      out += `<p class="foot">${{t.orbit.length}} ${{t.orbit.length === 1 ? 'person' : 'people'}} from investor_network.csv, ${{net}} askable as {INVESTOR_NETWORK} paths, ${{cold}} with no warm path · A view of section 3 and the roster's exports: nothing here is scored or allocated on its own.</p>`;
+      out += `<table><thead><tr><th>Person</th><th>Role</th><th>Fund</th><th>Board seat</th><th>Source</th><th>Warm path</th></tr></thead><tbody>` +
+        t.orbit.map(r => `<tr class="${{r.reachable_via ? '' : 'cold'}}"><td>${{esc(r.person)}}</td><td class="foot">${{esc(r.role)}}</td><td>${{esc(r.fund)}}</td><td class="seat">${{r.board_seat ? 'Yes' : ''}}</td><td class="src">${{esc(r.source)}}</td><td class="route">${{esc(r.route)}}</td></tr>`).join('') +
         `</tbody></table>`;
     }}
     body.innerHTML = out;
@@ -179,7 +179,7 @@ def fragment() -> str:
     const hits = filter(q.value);
     if (count) count.textContent = q.value.trim() ? `${{hits.length}} of ${{T.length}}` : `${{T.length}}`;
     matches.innerHTML = hits.map(t => `<a href="#${{esc(t.company_id)}}" data-id="${{esc(t.company_id)}}">${{esc(t.company_name)}}<span class="n">${{t.header.requests}}</span></a>`).join('')
-      || `<p class="empty">no company matches</p>`;
+      || `<p class="empty">No company matches</p>`;
     matches.querySelectorAll('a').forEach(a => a.onclick = e => {{ e.preventDefault(); render(T.find(t => t.company_id === a.dataset.id)); }});
     const exact = hits.find(t => norm(t.company_name) === norm(q.value) || t.company_id.toLowerCase() === q.value.trim().toLowerCase());
     if (exact) render(exact);
