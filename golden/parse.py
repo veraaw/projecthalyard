@@ -24,13 +24,24 @@ spellings (companies on file with no CRM account). Such a mention scores +1
 only when no cue fired positively and it is the sole company named that way;
 two or more bare names, or a bare name beside cue-scored ones, score 0 and
 leave the decision to the cues or to a human.
+
+The cues also read a name written in any case ("who do we know at thornbury",
+"need an intro at harrowgate health"): up to four words after the cue, and the
+resolver says how many of them are the company, so "we need apex at scale"
+still asks for Apex.
+
+A message that is nothing but a few words ("thornbury", "apex?") is handed to
+the resolver whole when nothing else fired: it is a mention when the resolver
+knows what to make of it, a match or a refusal with candidates alike, so a
+bare spelling nobody filed still comes back as the company, or as the
+fund-or-customer question, rather than as no company named.
 """
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
 
-from golden.resolver import Resolution, Resolver
+from golden.resolver import Resolution, Resolver, domain_stem, normalize
 
 # A company span: capitalised words, stopping at punctuation or a lowercase word.
 _CO = r"[A-Z][A-Za-z0-9&'-]*(?:[ \t]+[A-Z][A-Za-z0-9&'-]*)*"
@@ -76,10 +87,26 @@ CUES: list[tuple[str, re.Pattern, int]] = [
 ]
 _CUES = [(label, re.compile(pat), score) for label, pat, score in CUES]
 
+# The same cues over a span in any case ("who do we know at thornbury"): up to
+# four words after the cue, of which the resolver decides how many are the
+# company, longest first. Only cues that lead with their phrase; a span-first
+# cue ("X is the target") and a list cue have no lowercase form.
+_ANY = r"[A-Za-z0-9&'-]+(?:[ \t]+[A-Za-z0-9&'-]+){0,3}"
+_WORD = re.compile(r"[A-Za-z0-9&'-]+")
+LOWER_CUES: list[tuple[str, str, int]] = [
+    (label, pat.replace(f"(?P<co>{_CO})", f"(?P<co>{_ANY})"), score) for label, pat, score in CUES
+    if not pat.startswith(_NOT) and f"(?P<co>{_CO})" in pat
+]
+_LOWER_CUES = [(label, re.compile(pat), score) for label, pat, score in LOWER_CUES]
+
 DOMAIN_CUE = "email domain"
 DOMAIN_SCORE = 3
 KNOWN_CUE = "known company name"
 KNOWN_SCORE = 1
+BARE_CUE = "the whole message"
+BARE_SCORE = 1
+_BARE = re.compile(r"^[^A-Za-z0-9]*(?P<co>[A-Za-z0-9&'-]+(?:[ \t]+[A-Za-z0-9&'-]+){0,4})[^A-Za-z0-9]*$")
+_UNRESOLVED = ("unmatched", "empty")
 _DOMAIN = re.compile(r"\b(?:https?://)?(?:www\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|co\.uk|ai|io|net|org|co))\b", re.I)
 
 # The title wanted, when the message names one: a C-suite title in full or as
@@ -120,6 +147,20 @@ class Extraction:
         return self.target.company_id if self.target else ""
 
 
+def _is_company(resolver: Resolver, part: str, known: re.Pattern | None) -> bool:
+    """A span in any case is a company when it is a known spelling entire, or when the
+    resolver reads it as the start of a name it knows — a match or a refusal with
+    candidates alike — rather than a run of words that happens to contain one."""
+    if known is not None and known.fullmatch(part):
+        return True
+    r = resolver.resolve(part)
+    if r.method in _UNRESOLVED:
+        return False
+    loose = normalize(part)
+    ents = r.candidates or ([r.entity] if r.entity else [])
+    return bool(ents) and all(any(k.startswith(loose) for k in [*map(normalize, e.names), domain_stem(e.domain)]) for e in ents)
+
+
 def extract(text: str, resolver: Resolver | None = None, known: re.Pattern | None = None) -> Extraction:
     text = text or ""
     if known is None and resolver is not None:
@@ -138,6 +179,20 @@ def extract(text: str, resolver: Resolver | None = None, known: re.Pattern | Non
                     seen[key] = Mention(part, label, score, key[0])
                 start = key[0] + len(part)
 
+    if resolver is not None:
+        starts = {x.start for x in seen.values()}
+        for label, pat, score in _LOWER_CUES:
+            for m in pat.finditer(text):
+                start, span = m.start("co"), m.group("co")
+                if start in starts:
+                    continue
+                for w in reversed(list(_WORD.finditer(span))):
+                    part = span[:w.end()]
+                    if _is_company(resolver, part, known):
+                        seen[(start, part)] = Mention(part, label, score, start)
+                        starts.add(start)
+                        break
+
     for m in _DOMAIN.finditer(text):
         dom = m.group(1).lower()
         key = (m.start(1), dom)
@@ -152,6 +207,11 @@ def extract(text: str, resolver: Resolver | None = None, known: re.Pattern | Non
         score = KNOWN_SCORE if len(found) == 1 and not positive else 0
         for m in found:
             seen[(m.start(), m.group())] = Mention(m.group(), KNOWN_CUE, score, m.start())
+
+    if resolver is not None and not seen:
+        m = _BARE.match(text)
+        if m and _is_company(resolver, m.group("co"), known):
+            seen[(m.start("co"), m.group("co"))] = Mention(m.group("co"), BARE_CUE, BARE_SCORE, m.start("co"))
 
     mentions = sorted(seen.values(), key=lambda x: x.start)
     if resolver is not None:
