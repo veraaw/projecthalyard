@@ -45,10 +45,11 @@
 #ia .names{margin:4px 0 0;padding-left:16px;font-size:12px;columns:2}
 #ia .names li{break-inside:avoid}
 #ia .chart{position:relative;margin:8px 0 4px}
+#ia svg{max-width:100%;height:auto}
 #ia svg text{font-size:10px;fill:#6f6d6a;font-family:inherit}
 #ia .axis line,#ia .axis path{stroke:#a8a49f}
 #ia .rule{stroke:var(--ink);stroke-dasharray:3 2}
-#ia .facets{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
+#ia .facets{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(360px,100%),1fr));gap:12px}
 #ia .facet{border:1px solid var(--line);padding:8px}
 #ia .facet h4{margin:0 0 4px;font-size:12px;font-weight:500}
 #ia .mx{display:inline-grid;grid-template-columns:auto 1fr 1fr;gap:4px;margin:6px 32px 12px 0;vertical-align:top}
@@ -68,6 +69,15 @@
 #ia-panel .close{float:right;border:none;background:#191919;color:#fff;padding:4px 10px;cursor:pointer;font:inherit;font-size:13px}
 #ia-panel h3{margin-top:0}
 #ia .small{font-size:11px;color:var(--muted)}
+@media(max-width:720px){
+  #ia .ia-main{padding:16px 14px 48px}
+  #ia h3,#ia .tile .t,#ia code{overflow-wrap:anywhere}
+  #ia .sides{flex-direction:column;gap:8px}
+  #ia .names{columns:1}
+  #ia .mx{margin-right:0}
+  #ia .mx div{min-width:0;padding:8px 6px}
+  #ia-panel{padding:14px 14px}
+}
 </style>
 <div class="ia-main">
 <h1>Integrity audit — <code>dataset/</code></h1>
