@@ -1267,7 +1267,7 @@ live_page = f"""{head("Live Data Dashboard")}
 </script>
 
 <section id="requesters">
-  <h2>Requesters: the SDR and the seven AEs</h2>
+  <h2>Requesters: The SDR and the Seven AEs</h2>
   <p class="lede">Every request on file grouped by <code>requested_by</code>, in order of asks. Accounts are the distinct companies behind a requester's asks after entity resolution, so asking twice for the same company counts one account, and its CRM <code>arr_potential_usd</code> counts once. Intro rate is intros sent over every request filed, routed or not. Urgency is what the requester declared in <code>urgency</code>.</p>
   <div class="kpis">
     {kpi(len(req_rows), "requesters", f"{sum(1 for b in req_rows if b['kind'] == 'SDR')} SDR · {sum(1 for b in req_rows if b['kind'] == 'AE')} AEs")}
