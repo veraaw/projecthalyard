@@ -184,6 +184,23 @@ class GoldenTest(unittest.TestCase):
         offers = [x for x in self.reach if x["reach_type"] == "offer"]
         self.assertEqual(len(offers), 15)
 
+    def test_no_path_blocked_reason_says_who_was_tried(self):
+        """'no path in the roster or investor network' only when supply_reach has
+        nothing for the company; 'no path on the roster' only when what it has is
+        all off-roster."""
+        roster = set(bg.load_roster())
+        reach = defaultdict(list)
+        for x in self.reach:
+            reach[x["company_id"]].append(x["connector"])
+        by_reason = defaultdict(list)
+        for r in self.requests:
+            by_reason[r["blocked_reason"]].append(r)
+        self.assertTrue(by_reason[bg.BLOCK_NO_PATH])
+        self.assertTrue(by_reason[bg.BLOCK_NO_ROSTER_PATH])
+        self.assertEqual([r["request_id"] for r in by_reason[bg.BLOCK_NO_PATH] if reach[r["company_id"]]], [])
+        self.assertEqual([r["request_id"] for r in by_reason[bg.BLOCK_NO_ROSTER_PATH]
+                          if not reach[r["company_id"]] or any(n in roster for n in reach[r["company_id"]])], [])
+
 
 if __name__ == "__main__":
     unittest.main()

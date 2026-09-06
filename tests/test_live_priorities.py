@@ -750,7 +750,10 @@ class ThreadsIngestTest(unittest.TestCase):
         self.assertIn("4 appended", out)
         rows = {r["request_id"]: r for r in read_csv(self.requests)}
         self.assertEqual(len(rows), len(self.before) + 4)
-        self.assertEqual(rows["R1034"], self.before["R1034"], "a thread for a filed request changes no filed fact")
+        filed = lambda r: {k: v for k, v in r.items() if k != "blocked_reason"}
+        self.assertEqual(filed(rows["R1034"]), filed(self.before["R1034"]), "a thread for a filed request changes no filed fact")
+        self.assertEqual(rows["R1034"]["blocked_reason"], bg.BLOCK_NO_PATH,
+                         "the uploaded thread replaces the one carrying the only (off-roster) offer, so the recomputed block widens")
 
         for rid, first in (("R2001", NEW_THREADS[0]), ("R2002", NEW_THREADS[1]), ("R2003", NEW_THREADS[2]), ("R2004", NEW_THREADS[3])):
             r = rows[rid]
