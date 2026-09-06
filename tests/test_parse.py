@@ -47,6 +47,14 @@ CASES = {
     "two bare names": "harrowgate health or quillon pharma, whichever is easier",
     "cue beats bare name": "can we connect with Quillon Pharma? harrowgate health is already a customer",
     "bare no-CRM name": "how about kingsmere retail group",
+    "whole message, fund or customer": "thornbury",
+    "whole message, ambiguous": "Apex?",
+    "whole message, prefix": "harrowgate",
+    "whole message, unknown": "thanks all",
+    "lowercase after cue": "who do we know at thornbury",
+    "lowercase after cue, trimmed": "we need apex at scale",
+    "lowercase no-CRM after cue": "any connections into kingsmere retail group?",
+    "lowercase negation": "intro to thornbury, not thornbury equity",
     "network-only company": "Looking for a warm path into Zenner Foods",
     "bare network-only name": "how about xanthe labs",
 }
@@ -243,6 +251,33 @@ class ParseTargetTest(unittest.TestCase):
         ex = extract("Quillon Pharma introduced us to Pelham Beverage", self.res)
         self.assertIsNone(ex.target)
 
+    def test_whole_message_goes_to_the_resolver(self):
+        for text, method, cands in [("thornbury", "fund-or-customer", 2), ("Thornbury?", "fund-or-customer", 2),
+                                    ("— apex", "ambiguous", 2), ("harrowgate", "name-prefix", 1)]:
+            with self.subTest(text):
+                ex = extract(text, self.res)
+                self.assertEqual(ex.target.cue, gp.BARE_CUE)
+                self.assertEqual(ex.target.text, text.strip("—? "))
+                self.assertEqual(ex.target.resolution.method, method)
+                self.assertEqual(len(ex.target.resolution.candidates), cands)
+        self.assertEqual(ex.target_id, "C018")
+        for text in ["thanks all", "hello", "a large logistics business", "", "who do we know at the moment"]:
+            self.assertEqual(extract(text, self.res).mentions, [], text)
+
+    def test_cue_reads_a_lowercase_name(self):
+        ex = extract("who do we know at thornbury", self.res)
+        self.assertEqual((ex.target.text, ex.target.cue, ex.target.score), ("thornbury", "who do we know at", 2))
+        self.assertEqual(ex.target.resolution.method, "fund-or-customer")
+        ex = extract("we need apex at scale", self.res)
+        self.assertEqual((ex.target.text, ex.target.resolution.method), ("apex", "ambiguous"))
+        ex = extract("need an intro at harrowgate health, cto ideally", self.res)
+        self.assertEqual((ex.target.text, ex.target_id), ("harrowgate health", "C018"))
+        ex = extract("intro to thornbury, not thornbury equity", self.res)
+        self.assertEqual({m.text: m.score for m in ex.mentions}, {"thornbury": 2, "thornbury equity": -3})
+        self.assertEqual(ex.target.text, "thornbury")
+        self.assertEqual(extract("we need help", self.res).mentions, [])
+        self.assertEqual(extract("who do we know at thornbury").mentions, [], "no resolver, no lowercase span")
+
     def test_known_names_do_not_match_inside_words(self):
         self.assertEqual(extract("the apexlogisticsgroupies are in town", self.res).mentions, [])
 
@@ -272,7 +307,8 @@ class ExportedRulesTest(unittest.TestCase):
         cls.js_extract = {t: r for t, r in zip(cls.texts, js["extracted"])}
 
     def python_top(self, cid):
-        p, _ = bg.best_route(self.live.paths.get(cid, []), self.live.roster, self.live.rates, self.live.industry(cid))
+        p, _ = bg.best_route(self.live.paths.get(cid, []), self.live.roster, self.live.rates, self.live.industry(cid),
+                             held=self.live.held, company_id=cid)
         return (p["connector"], p["reach_type"], p["contact_name"]) if p else None
 
     def test_cue_table_is_parse_py_verbatim(self):
@@ -294,6 +330,11 @@ class ExportedRulesTest(unittest.TestCase):
                          ["Quillon Pharma", "Xanthe Labs", "Zenner Foods"])
         self.assertEqual(self.P["known_cue"], gp.KNOWN_CUE)
         self.assertEqual(self.P["known_score"], gp.KNOWN_SCORE)
+        lower = [(c["label"], c["source"], c["score"]) for c in self.P["lower_cues"]]
+        self.assertEqual(lower, [(label, pat.replace("(?P<", "(?<"), score) for label, pat, score in gp.LOWER_CUES])
+        self.assertTrue(lower and all(label in {c[0] for c in gp.CUES} for label, _, _ in lower))
+        self.assertEqual(self.P["bare"]["source"], gp._BARE.pattern.replace("(?P<", "(?<"))
+        self.assertEqual((self.P["bare_cue"], self.P["bare_score"]), (gp.BARE_CUE, gp.BARE_SCORE))
 
     def test_resolver_index_covers_every_entity(self):
         R = self.P["resolver"]
@@ -318,10 +359,18 @@ class ExportedRulesTest(unittest.TestCase):
             self.assertEqual(e["owner"], c["owner"])
             self.assertEqual(len(e["paths"]), len(self.live.paths.get(cid, [])))
             for p in e["paths"]:
-                for k in ("connector", "contact", "title", "evidence", "strength", "fit", "rate", "score", "reason"):
+                for k in ("connector", "contact", "title", "evidence", "strength", "fit", "rate", "score", "reason", "hold", "askable"):
                     self.assertIn(k, p)
-            keys = [(p["reach_type"] == bg.INVESTOR_NETWORK, -p["score"]) for p in e["paths"]]
-            self.assertEqual(keys, sorted(keys), f"{cid}: roster paths first, then by route score")
+                u = self.live.held.get((p["connector"], cid))
+                self.assertEqual(p["hold"], u["hold"] if u else "")
+                self.assertEqual(p["askable"], u is None or u["hold"] == bg.HOLD_LAST)
+            # askable paths first in the allocator's order, a connector who never answered an old ask
+            # here behind them, then the paths of anyone whose unresolved ask rules them out
+            keys = [(not p["askable"], p["hold"] == bg.HOLD_LAST, p["reach_type"] == bg.INVESTOR_NETWORK, -p["score"]) for p in e["paths"]]
+            self.assertEqual(keys, sorted(keys), f"{cid}: roster paths first, then by route score, held connectors behind")
+            if e["best"]:
+                self.assertIn(e["best"]["hold"], ("", bg.HOLD_LAST))
+                self.assertEqual(e["best"]["connector"], next(p["connector"] for p in e["paths"] if p["askable"]))
 
     def test_network_only_companies_are_exported(self):
         """A company the network reaches but nobody has filed is in the payload under a

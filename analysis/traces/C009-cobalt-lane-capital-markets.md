@@ -9,15 +9,20 @@
 
 - R1076: filed "Open" but intro_outcomes.csv says Tomás Beckett sent the intro on 2026-02-07
 
+## Currently routing to: Priya Raghunathan
+
+- this cycle: R1076 -> Priya Raghunathan
+- top askable path: Priya Raghunathan, direct via Greta Petrossian, route score 0.092, 3/3 capacity used this cycle
+
 ## 3. Who can reach them
 
 ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.092 | 0.449 | Priya Raghunathan (Investor) | direct | Greta Petrossian — Head of Automation | connections_raghunathan.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2023-11-21 |
-| 0.080 | 0.496 | Tomás Beckett (Internal) | direct | Greta Petrossian — Head of Automation | connections_beckett.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2025-07-17 |
-| 0.172 | 0.720 | Malik Thackeray-Okonkwo (investor network) | investor_network | CEO / exec team — Meridian Peak Partners portfolio company | investor_network.csv: Malik Thackeray-Okonkwo (Private equity investor), portfolio_company=Cobalt Lane Capital Markets, board_seat=False |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.092 | 0.449 | Priya Raghunathan (Investor) | direct | Greta Petrossian — Head of Automation | connections_raghunathan.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2023-11-21 |  |
+| 0.080 | 0.496 | Tomás Beckett (Internal) | direct | Greta Petrossian — Head of Automation | connections_beckett.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2025-07-17 |  |
+| 0.172 | 0.720 | Malik Thackeray-Okonkwo (investor network) | investor_network | CEO / exec team — Meridian Peak Partners portfolio company | investor_network.csv: Malik Thackeray-Okonkwo (Private equity investor), portfolio_company=Cobalt Lane Capital Markets, board_seat=False |  |
 
 why not #1: Malik Thackeray-Okonkwo investor network, roster asked first -> R1076 to Priya Raghunathan
 

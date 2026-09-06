@@ -9,15 +9,20 @@
 
 - R1111: filed "Intro sent" but intro_outcomes.csv has no row at all
 
+## Currently routing to: Marcus Aldridge
+
+- this cycle: R1001 -> Marcus Aldridge
+- top askable path: Marcus Aldridge, direct via Sabine Dellinger, route score 0.171, 2/4 capacity used this cycle
+
 ## 3. Who can reach them
 
 ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.171 | 0.492 | Marcus Aldridge (Advisor) | direct | Sabine Dellinger — Chief Data Officer | connections_aldridge.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2022-12-23 |
-| 0.088 | 0.546 | Tomás Beckett (Internal) | direct | Sabine Dellinger — Chief Data Officer | connections_beckett.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2024-11-09 |
-| 0.172 | 0.720 | Ravi Underhill-Halloran (investor network) | investor_network | CEO / exec team — Blackwood Ventures portfolio company | investor_network.csv: Ravi Underhill-Halloran (Venture capital investor), portfolio_company=Vantage Ridge Utilities, board_seat=False |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.171 | 0.492 | Marcus Aldridge (Advisor) | direct | Sabine Dellinger — Chief Data Officer | connections_aldridge.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2022-12-23 |  |
+| 0.088 | 0.546 | Tomás Beckett (Internal) | direct | Sabine Dellinger — Chief Data Officer | connections_beckett.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2024-11-09 |  |
+| 0.172 | 0.720 | Ravi Underhill-Halloran (investor network) | investor_network | CEO / exec team — Blackwood Ventures portfolio company | investor_network.csv: Ravi Underhill-Halloran (Venture capital investor), portfolio_company=Vantage Ridge Utilities, board_seat=False |  |
 
 why not #1: Ravi Underhill-Halloran investor network, roster asked first -> R1001 to Marcus Aldridge
 

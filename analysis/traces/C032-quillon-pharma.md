@@ -10,27 +10,31 @@
 - R1178: filed "Closed - no path" but supply_reach.csv has 15 paths into Quillon Pharma
 - R1198: filed "Closed - no path" but supply_reach.csv has 15 paths into Quillon Pharma
 
+## Currently routing to: Tomás Beckett
+
+- the next request goes to the top askable path: Tomás Beckett, direct via Renata Petrossian, route score 0.096, 3/8 capacity used this cycle
+
 ## 3. Who can reach them
 
 ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.096 | 0.600 | Tomás Beckett (Internal) | direct | Renata Petrossian — Chief Data Officer | connections_beckett.csv: Renata Petrossian, Chief Data Officer at Quillon Pharma, connected 2026-10-13 |
-| 0.089 | 0.573 | Marcus Aldridge (Advisor) | direct | Renata Petrossian — Chief Data Officer | connections_aldridge.csv: Renata Petrossian, Chief Data Officer at Quillon Pharma, connected 2025-02-05 |
-| 0.062 | 0.546 | Owen Trask (Investor) | direct | Mei Ferreira — Chief Information Officer | connections_trask.csv: Mei Ferreira, Chief Information Officer at Quillon Pharma, connected 2024-08-05 |
-| 0.061 | 0.300 | Priya Raghunathan (Investor) | direct | Casper Bellinger — VP Enterprise Architecture | connections_raghunathan.csv: Casper Bellinger, VP Enterprise Architecture at Quillon Pharma, connected 2015-11-21 |
-| 0.047 | 0.300 | Marcus Aldridge (Advisor) | direct | Casper Bellinger — VP Enterprise Architecture | connections_aldridge.csv: Casper Bellinger, VP Enterprise Architecture at Quillon Pharma, connected 2014-02-24 |
-| 0.038 | 0.187 | Priya Raghunathan (Investor) | alumni | Casper Bellinger — ex-Quillon Pharma (2012-2017), now VP Enterprise Architecture at Quillon Pharma | investor_network.csv: Casper Bellinger prior_employer=Quillon Pharma (2012-2017); connections_raghunathan.csv: connection of Priya Raghunathan since 2015-11-21 |
-| 0.029 | 0.187 | Marcus Aldridge (Advisor) | alumni | Casper Bellinger — ex-Quillon Pharma (2012-2017), now VP Enterprise Architecture at Quillon Pharma | investor_network.csv: Casper Bellinger prior_employer=Quillon Pharma (2012-2017); connections_aldridge.csv: connection of Marcus Aldridge since 2014-02-24 |
-| 0.028 | 0.248 | Owen Trask (Investor) | direct | Kian Merriweather — VP Engineering | connections_trask.csv: Kian Merriweather, VP Engineering at Quillon Pharma, connected 2016-12-15 |
-| 0.021 | 0.187 | Owen Trask (Investor) | alumni | Kian Merriweather — ex-Quillon Pharma (2012-2018), now VP Engineering at Quillon Pharma | investor_network.csv: Kian Merriweather prior_employer=Quillon Pharma (2012-2018); connections_trask.csv: connection of Owen Trask since 2016-12-15 |
-| 0.000 | 0.519 | Elena Duvall (Advisor) | direct | Mei Ferreira — Chief Information Officer | connections_duvall.csv: Mei Ferreira, Chief Information Officer at Quillon Pharma, connected 2023-05-10 |
-| 0.000 | 0.269 | Elena Duvall (Advisor) | direct | Kian Merriweather — VP Engineering | connections_duvall.csv: Kian Merriweather, VP Engineering at Quillon Pharma, connected 2017-10-15 |
-| 0.000 | 0.202 | Elena Duvall (Advisor) | alumni | Kian Merriweather — ex-Quillon Pharma (2012-2018), now VP Engineering at Quillon Pharma | investor_network.csv: Kian Merriweather prior_employer=Quillon Pharma (2012-2018); connections_duvall.csv: connection of Elena Duvall since 2017-10-15 |
-| 0.172 | 0.720 | Matteo Ferreira-Yarrow (investor network) | investor_network | CEO / exec team — Ironvale Partners portfolio company | investor_network.csv: Matteo Ferreira-Yarrow (Private equity investor), portfolio_company=Quillon Pharma, board_seat=False |
-| 0.172 | 0.720 | Otto Cathcart-Brenneman (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Otto Cathcart-Brenneman (Venture capital investor), portfolio_company=Quillon Pharma, board_seat=False |
-| 0.172 | 0.720 | Xiomara Achterberg-Norrington (investor network) | investor_network | CEO / exec team — Northgate Growth portfolio company | investor_network.csv: Xiomara Achterberg-Norrington (Growth equity investor), portfolio_company=Quillon Pharma, board_seat=False |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.096 | 0.600 | Tomás Beckett (Internal) | direct | Renata Petrossian — Chief Data Officer | connections_beckett.csv: Renata Petrossian, Chief Data Officer at Quillon Pharma, connected 2026-10-13 |  |
+| 0.089 | 0.573 | Marcus Aldridge (Advisor) | direct | Renata Petrossian — Chief Data Officer | connections_aldridge.csv: Renata Petrossian, Chief Data Officer at Quillon Pharma, connected 2025-02-05 |  |
+| 0.062 | 0.546 | Owen Trask (Investor) | direct | Mei Ferreira — Chief Information Officer | connections_trask.csv: Mei Ferreira, Chief Information Officer at Quillon Pharma, connected 2024-08-05 |  |
+| 0.061 | 0.300 | Priya Raghunathan (Investor) | direct | Casper Bellinger — VP Enterprise Architecture | connections_raghunathan.csv: Casper Bellinger, VP Enterprise Architecture at Quillon Pharma, connected 2015-11-21 |  |
+| 0.047 | 0.300 | Marcus Aldridge (Advisor) | direct | Casper Bellinger — VP Enterprise Architecture | connections_aldridge.csv: Casper Bellinger, VP Enterprise Architecture at Quillon Pharma, connected 2014-02-24 |  |
+| 0.038 | 0.187 | Priya Raghunathan (Investor) | alumni | Casper Bellinger — ex-Quillon Pharma (2012-2017), now VP Enterprise Architecture at Quillon Pharma | investor_network.csv: Casper Bellinger prior_employer=Quillon Pharma (2012-2017); connections_raghunathan.csv: connection of Priya Raghunathan since 2015-11-21 |  |
+| 0.029 | 0.187 | Marcus Aldridge (Advisor) | alumni | Casper Bellinger — ex-Quillon Pharma (2012-2017), now VP Enterprise Architecture at Quillon Pharma | investor_network.csv: Casper Bellinger prior_employer=Quillon Pharma (2012-2017); connections_aldridge.csv: connection of Marcus Aldridge since 2014-02-24 |  |
+| 0.028 | 0.248 | Owen Trask (Investor) | direct | Kian Merriweather — VP Engineering | connections_trask.csv: Kian Merriweather, VP Engineering at Quillon Pharma, connected 2016-12-15 |  |
+| 0.021 | 0.187 | Owen Trask (Investor) | alumni | Kian Merriweather — ex-Quillon Pharma (2012-2018), now VP Engineering at Quillon Pharma | investor_network.csv: Kian Merriweather prior_employer=Quillon Pharma (2012-2018); connections_trask.csv: connection of Owen Trask since 2016-12-15 |  |
+| 0.000 | 0.519 | Elena Duvall (Advisor) | direct | Mei Ferreira — Chief Information Officer | connections_duvall.csv: Mei Ferreira, Chief Information Officer at Quillon Pharma, connected 2023-05-10 |  |
+| 0.000 | 0.269 | Elena Duvall (Advisor) | direct | Kian Merriweather — VP Engineering | connections_duvall.csv: Kian Merriweather, VP Engineering at Quillon Pharma, connected 2017-10-15 |  |
+| 0.000 | 0.202 | Elena Duvall (Advisor) | alumni | Kian Merriweather — ex-Quillon Pharma (2012-2018), now VP Engineering at Quillon Pharma | investor_network.csv: Kian Merriweather prior_employer=Quillon Pharma (2012-2018); connections_duvall.csv: connection of Elena Duvall since 2017-10-15 |  |
+| 0.172 | 0.720 | Matteo Ferreira-Yarrow (investor network) | investor_network | CEO / exec team — Ironvale Partners portfolio company | investor_network.csv: Matteo Ferreira-Yarrow (Private equity investor), portfolio_company=Quillon Pharma, board_seat=False |  |
+| 0.172 | 0.720 | Otto Cathcart-Brenneman (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Otto Cathcart-Brenneman (Venture capital investor), portfolio_company=Quillon Pharma, board_seat=False |  |
+| 0.172 | 0.720 | Xiomara Achterberg-Norrington (investor network) | investor_network | CEO / exec team — Northgate Growth portfolio company | investor_network.csv: Xiomara Achterberg-Norrington (Growth equity investor), portfolio_company=Quillon Pharma, board_seat=False |  |
 
 ## 4. Chronology (10 events, 2 requests, newest first, as of 2026-09-06)
 

@@ -5,6 +5,11 @@
 - also goes by: nothing else
 - 3 requests from 3 people wanting 3 different titles: Chief Digital Officer | Head of Platform Engineering | SVP Digital
 
+## Currently routing to: nobody (no path to this company in the network)
+
+- this cycle: R1007, R1127, R1177 unrouted (no path to this company in the network)
+- nobody in the network reaches this company
+
 ## 3. Who can reach them
 
 nobody in the network reaches this company

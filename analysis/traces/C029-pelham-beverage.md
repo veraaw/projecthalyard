@@ -10,13 +10,18 @@
 - R1176: filed "Stalled" but intro_outcomes.csv says Imani Mkhize sent the intro on 2026-04-19
 - R1176: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 1 paths
 
+## Currently routing to: Imani Mkhize
+
+- this cycle: R1047, R1200 unrouted (already introduced)
+- the next request goes to the top askable path: Imani Mkhize, offer via ?, route score 0.262, 0/2 capacity used this cycle
+
 ## 3. Who can reach them
 
 ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.262 | 0.800 | Imani Mkhize (not on roster) | offer | Head of Platform | slack_threads.jsonl R1176 2026-04-05 Imani Mkhize: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.262 | 0.800 | Imani Mkhize (not on roster) | offer | Head of Platform | slack_threads.jsonl R1176 2026-04-05 Imani Mkhize: "their Head of Platform reports to someone I've known for a decade, leave it with me" |  |
 
 why not #1: parked on live intro (R1176, Imani Mkhize, 2026-04-19, meeting booked): R1047, R1200
 

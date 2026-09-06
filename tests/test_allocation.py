@@ -24,8 +24,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from golden.build_golden import (  # noqa: E402
-    ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, INTRO_LIVE_DAYS, OPEN_STATUSES, STALE_ASK, URGENCY_RANK, cycle_budget,
-    history_signals, intro_of, introductions, is_lead, latest_cycle, load_roster, meeting_stalled, parse_date, retriable,
+    ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, HOLD_LAST, HOLD_NUDGE, HOLD_WINDOW, INTRO_LIVE_DAYS, OPEN_STATUSES,
+    STALE_ASK, UNANSWERED_ASK_DAYS, UNRESOLVED_ASK, URGENCY_RANK, cycle_budget, history_signals, hold_reason, intro_of,
+    introductions, is_lead, latest_cycle, load_roster, meeting_stalled, parse_date, path_rank, retriable, unresolved_asks,
 )
 
 G = ROOT / "golden"
@@ -34,9 +35,10 @@ D = ROOT / "dataset"
 NO_PATH = "no path to this company in the network"
 UNRESOLVED = "company unresolved"
 ALWAYS_PRESENT = {NO_PATH, UNRESOLVED}
-# STALE_ASK needs a prior cycle, ALREADY_INTRODUCED a live intro and CAPACITY_EXHAUSTED more
-# companies asked for than the roster has slots, so any of them may be absent
-KNOWN_EXCEPTIONS = ALWAYS_PRESENT | {STALE_ASK, ALREADY_INTRODUCED, CAPACITY_EXHAUSTED}
+# STALE_ASK needs a prior cycle, ALREADY_INTRODUCED a live intro, CAPACITY_EXHAUSTED more
+# companies asked for than the roster has slots and UNRESOLVED_ASK a company whose every
+# path is held by an unresolved ask, so any of them may be absent
+KNOWN_EXCEPTIONS = ALWAYS_PRESENT | {STALE_ASK, ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, UNRESOLVED_ASK}
 BATCH_COLUMNS = ("batch_id", "batch_size", "path_type", "route_score")
 
 
@@ -63,6 +65,10 @@ class AllocationTest(unittest.TestCase):
         cls.cycle = cls.alloc[0]["cycle"] if cls.alloc else ""
         decided = parse_date(cls.alloc[0]["decided_at"]) if cls.alloc else None
         cls.retry = {o["request_id"] for o in cls.outcomes if decided and retriable(o, decided)}
+        cls.supply = defaultdict(list)
+        for p in rows(G / "supply_reach.csv"):
+            if p["reach_type"] != "none":
+                cls.supply[p["company_id"]].append(p)
         # what the allocator should have covered
         cls.live = {rid for rid, r in cls.requests.items()
                     if r["status_as_filed"] in OPEN_STATUSES
@@ -137,9 +143,13 @@ class AllocationTest(unittest.TestCase):
                 self.assertEqual(o["meeting_booked"], "N", f"{o['request_id']} back in the queue after a meeting")
                 self.assertGreater((decided - parse_date(o["intro_date"])).days, INTRO_LIVE_DAYS, o["request_id"])
         # R1154: Marcus Aldridge's 2026-03-11 Apex Holdings intro never booked, so
-        # the request is back on his plate rather than parked behind his own ask
+        # the request is back in the queue rather than parked behind his own ask.
+        # It is not back on his plate: R1069 (Apex, 2025-11-01) is an ask he never
+        # answered, so he ranks behind every other path into Apex (HOLD_LAST).
         apex = next(a for a in self.alloc if a["request_id"] == "R1154")
-        self.assertEqual((apex["company_id"], apex["allocated_to"]), ("C003", "Marcus Aldridge"))
+        self.assertEqual(apex["company_id"], "C003")
+        self.assertTrue(apex["allocated_to"], apex["exception_reason"])
+        self.assertNotEqual(apex["allocated_to"], "Marcus Aldridge")
 
     def test_every_live_request_has_exactly_one_row(self):
         # The other direction: nothing live is skipped. Together with one row
@@ -280,7 +290,7 @@ class AllocationTest(unittest.TestCase):
                     self.assertEqual(a["best_path_if_unbudgeted"], "")
                 elif a["exception_reason"].startswith(ALREADY_INTRODUCED):
                     self.assertTrue(a["company_id"])  # parked on the company's intro, path or no path
-                else:  # capacity exhausted, or already proposed: a path exists and is named
+                else:  # capacity exhausted, already proposed or every path held: a path exists and is named
                     self.assertNotEqual(self.companies[a["company_id"]]["paths_available"], "0")
                     self.assertTrue(a["best_path_if_unbudgeted"])
         no_company = [a["request_id"] for a in self.alloc
@@ -328,6 +338,69 @@ class AllocationTest(unittest.TestCase):
             self.assertGreater((decided - parse_date(intro["intro_date"])).days, INTRO_LIVE_DAYS, a["request_id"])
             if intro["meeting_booked"]:
                 self.assertTrue(meeting_stalled(intro, open_since[a["company_id"]]), a["request_id"])
+
+    # ── 8b. a connector sitting on an unresolved ask at the company ──────────
+    def test_an_unresolved_ask_holds_the_connectors_paths_into_the_company(self):
+        """A connector with an unresolved ask at a company is not asked there
+        afresh: never while they agreed and sent no intro (HOLD_NUDGE: nudge
+        them), not for UNANSWERED_ASK_DAYS while they never replied
+        (HOLD_WINDOW: chase them), and after that only behind every path with
+        no such ask (HOLD_LAST). A request whose every path is held is an
+        exception naming each ask."""
+        decided = parse_date(self.alloc[0]["decided_at"])
+        company_of = {rid: r["company_id"] for rid, r in self.requests.items()}
+        held = unresolved_asks(self.outcomes, company_of, decided)
+        self.assertTrue(held)
+        kinds = Counter(u["hold"] for u in held.values())
+        self.assertTrue(kinds[HOLD_NUDGE] and kinds[HOLD_LAST], "the dataset has agreed-and-silent and long-unanswered asks")
+        for (connector, cid), u in held.items():
+            with self.subTest(connector=connector, company_id=cid):
+                o = next(o for o in self.outcomes if o["request_id"] == u["request_id"])
+                self.assertEqual((o["connector_asked"], company_of[o["request_id"]], o["intro_sent"]), (connector, cid, "N"))
+                if u["hold"] == HOLD_NUDGE:
+                    self.assertEqual(o["responded"], "Y")
+                else:
+                    self.assertEqual(o["responded"], "N")
+                    days = (decided - parse_date(o["asked_date"])).days
+                    self.assertEqual(u["hold"], HOLD_WINDOW if days <= UNANSWERED_ASK_DAYS else HOLD_LAST)
+                # every other outcome of the pair binds no harder than the one chosen
+                for other in self.outcomes:
+                    if other["connector_asked"] == connector and company_of[other["request_id"]] == cid \
+                            and other["intro_sent"] == "N" and other["responded"] == "Y":
+                        self.assertEqual(u["hold"], HOLD_NUDGE, f"{other['request_id']} was agreed to")
+        # the allocation honours the holds
+        exceptions = [a for a in self.exceptions if a["exception_reason"].startswith(UNRESOLVED_ASK)]
+        for a in self.alloc:
+            if not a["company_id"] or a["exception_reason"].startswith(ALREADY_INTRODUCED):
+                continue
+            with self.subTest(request_id=a["request_id"]):
+                u = held.get((a["allocated_to"], a["company_id"])) if a["allocated_to"] else None
+                if u is not None:
+                    self.assertEqual(u["hold"], HOLD_LAST, f"asked afresh while {hold_reason(u)}")
+                    industry = self.companies[a["company_id"]]["industry"]
+                    clean = [p for p in self.supply[a["company_id"]] if (p["connector"], a["company_id"]) not in held
+                             and path_rank(p, self.roster_full, {}, industry)[1] < 0]
+                    for p in clean:
+                        self.assertLessEqual(int(p["idle_capacity"] or 0), 0, f"{p['connector']} had a clean path and a slot")
+                if a in exceptions:
+                    self.assertEqual(a["allocated_to"], "")
+                    paths = {p["connector"] for p in self.supply[a["company_id"]]}
+                    self.assertTrue(paths)
+                    for who in paths:
+                        u = held[(who, a["company_id"])]
+                        self.assertIn(u["hold"], (HOLD_NUDGE, HOLD_WINDOW))
+                        self.assertIn(hold_reason(u), a["exception_reason"])
+        # Brightmoor Energy: Elena agreed to R1190 and never sent the intro; hers
+        # is the only path, so R1123 waits on the nudge instead of a fresh ask
+        r1123 = next(a for a in self.alloc if a["request_id"] == "R1123")
+        self.assertIn("Elena Duvall agreed on", r1123["exception_reason"])
+        self.assertTrue(r1123["exception_reason"].startswith(UNRESOLVED_ASK))
+        # Hollowbrook Grocers: Priya never answered R1124 (well past the window), so
+        # she ranks behind Dana Whitfield's clean path even though hers scores higher
+        hollowbrook = [a for a in self.alloc if a["company_id"] == "C019"]
+        self.assertTrue(hollowbrook)
+        self.assertEqual(held[("Priya Raghunathan", "C019")]["hold"], HOLD_LAST)
+        self.assertEqual({a["allocated_to"] for a in hollowbrook}, {"Dana Whitfield"})
 
     # ── 9. a meeting that went nowhere stops holding the company ──────────────
     def test_a_stalled_meeting_releases_the_requests_filed_after_it(self):

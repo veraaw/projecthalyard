@@ -5,14 +5,19 @@
 - also goes by: nothing else
 - 1 request from 1 person wanting 1 different title: Chief Operating Officer
 
+## Currently routing to: Espen Rushworth-Oyelaran
+
+- this cycle: R1054 -> Espen Rushworth-Oyelaran
+- top askable path: Espen Rushworth-Oyelaran, investor_network via CEO / exec team, route score 0.215, 2/2 capacity used this cycle
+
 ## 3. Who can reach them
 
 ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.215 | 0.900 | Espen Rushworth-Oyelaran (investor network) | investor_network (board seat) | CEO / exec team — Silverbrook Capital board seat | investor_network.csv: Espen Rushworth-Oyelaran (Venture capital investor), portfolio_company=Kestrel Airlines, board_seat=True |
-| 0.215 | 0.900 | Wren Petrossian-Norrington (investor network) | investor_network (board seat) | CEO / exec team — Silverbrook Capital board seat | investor_network.csv: Wren Petrossian-Norrington (Venture capital investor), portfolio_company=Kestrel Airlines, board_seat=True |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.215 | 0.900 | Espen Rushworth-Oyelaran (investor network) | investor_network (board seat) | CEO / exec team — Silverbrook Capital board seat | investor_network.csv: Espen Rushworth-Oyelaran (Venture capital investor), portfolio_company=Kestrel Airlines, board_seat=True |  |
+| 0.215 | 0.900 | Wren Petrossian-Norrington (investor network) | investor_network (board seat) | CEO / exec team — Silverbrook Capital board seat | investor_network.csv: Wren Petrossian-Norrington (Venture capital investor), portfolio_company=Kestrel Airlines, board_seat=True |  |
 
 ## 4. Chronology (5 events, 1 request, newest first, as of 2026-09-06)
 

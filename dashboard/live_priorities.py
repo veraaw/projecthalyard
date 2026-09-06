@@ -198,8 +198,9 @@ class Live:
         for r in self.requests:
             if r["company_id"] and r["status_as_filed"] in bg.OPEN_STATUSES:
                 open_since[r["company_id"]].append(r["request_date"])
-        self.intro_state = bg.introductions(self.outcomes, {r["request_id"]: r["company_id"] for r in self.requests},
-                                            today, open_since)
+        company_of = {r["request_id"]: r["company_id"] for r in self.requests}
+        self.intro_state = bg.introductions(self.outcomes, company_of, today, open_since)
+        self.held = bg.unresolved_asks(self.outcomes, company_of, today)
         self.batch_asks = batch_ask.compose(self.history, self.requests, self.roster, outcomes=self.outcomes)
         self.traceable = {t["company_id"] for t in all_traces(today)}
         self._ranked: list[dict] | None = None
@@ -265,16 +266,39 @@ class Live:
     def ranked_paths(self, cid: str) -> list[dict]:
         """Every path into a company from supply_reach.csv, in the allocator's order
         (bg.path_rank: roster before investor_network, then route score = strength x
-        focus fit x delivery rate), each with the one line of reasoning the route
+        focus fit x delivery rate; then bg.hold_paths: a connector who never
+        answered an ask here more than UNANSWERED_ASK_DAYS ago behind everyone,
+        and one who agreed and sent no intro, or has not answered yet, last of
+        all and not askable), each with the one line of reasoning the route
         panel shows."""
-        return self.rank_paths(self.paths.get(cid, []), self.industry(cid))
+        return self.rank_paths(self.paths.get(cid, []), self.industry(cid), cid)
 
-    def rank_paths(self, rows: list[dict], ind: str) -> list[dict]:
+    def hold_of(self, connector: str, cid: str) -> dict | None:
+        """The unresolved ask that holds a connector's paths into a company, as the
+        page shows it: {hold, reason, request_id, days}; None when nothing does."""
+        u = self.held.get((connector, cid)) if cid else None
+        if u is None:
+            return None
+        return {"hold": u["hold"], "reason": bg.hold_reason(u), "request_id": u["request_id"], "days": u["days"],
+                "askable": u["hold"] == bg.HOLD_LAST}
+
+    def holds(self, cid: str) -> dict[str, dict]:
+        """connector -> hold_of for everyone sitting on an unresolved ask at the
+        company, path or no path (an offer in a thread is a path too)."""
+        return {n: self.hold_of(n, c) for (n, c) in self.held if c == cid}
+
+    def rank_paths(self, rows: list[dict], ind: str, cid: str = "") -> list[dict]:
         """ranked_paths for any supply_reach.csv-shaped rows (a company's, or a
-        network-only company's from network_only_companies)."""
+        network-only company's from network_only_companies). Askable paths first,
+        in the order the allocator tries them; the paths of a connector whose
+        unresolved ask here rules them out follow, flagged askable = False."""
+        ordered = sorted(rows, key=lambda p: bg.path_rank(p, self.roster, self.rates, ind))
+        askable, skipped = bg.hold_paths(ordered, self.held, cid) if cid else (ordered, [])
+        out_of_play = {u["connector"] for u in skipped}
         out = []
-        for p in sorted(rows, key=lambda p: bg.path_rank(p, self.roster, self.rates, ind)):
+        for p in askable + [p for p in ordered if p["connector"] in out_of_play]:
             n = p["connector"]
+            hold = self.hold_of(n, cid)
             fit, rate = self.fit(n, ind), self.rate(n)
             r = self.roster.get(n)
             when = (p["observed_date"] or "")[:7]
@@ -311,7 +335,8 @@ class Live:
                 "score": round(score, 3), "in_focus": p["in_focus_area"], "idle": idle, "capacity": cap,
                 "capacity_left": round(capacity_left, 3), "connector_score": round(score * capacity_left, 3),
                 "evidence": p["evidence"], "label": bg.path_label(p),
-                "reason": f"{via} · delivers {round(rate * 100)}% of asks · {focus}",
+                "reason": f"{via} · delivers {round(rate * 100)}% of asks · {focus}" + (f" · {hold['reason']}" if hold else ""),
+                "hold": hold["hold"] if hold else "", "askable": hold is None or hold["askable"],
             })
         return out
 
@@ -581,7 +606,7 @@ class Live:
                 connector = a["best_path_if_unbudgeted"].split(" (")[0]
                 p = max((x for x in self.paths.get(cid, []) if x["connector"] == connector),
                         key=lambda x: float(x["strength"]), default=None)
-                capacity_left, capacity_note = 0.0, "capacity exhausted this cycle"
+                capacity_left, capacity_note = 0.0, a["exception_reason"].partition(": ")[0]
             else:
                 continue
             if p is None:
@@ -787,8 +812,14 @@ class Live:
     def bottlenecks(self) -> dict:
         """Asks the connector agreed to and never delivered. One nudged in the last
         NUDGE_QUIET_DAYS (golden_requests.nudged_on, from completions.csv) is
-        listed under `nudged` instead and comes back when the quiet period ends."""
+        listed under `nudged` instead and comes back when the quiet period ends.
+        `blocking` lists the live requests at the company this ask left with no
+        askable path (the allocator's unresolved-ask exceptions)."""
         rows, nudged = [], []
+        blocked = defaultdict(list)
+        for a in self.allocation:
+            if a["exception_reason"].startswith(bg.UNRESOLVED_ASK):
+                blocked[a["company_id"]].append(a["request_id"])
         for o in self.outcomes:
             if o["responded"] != "Y" or o["intro_sent"] == "Y":
                 continue
@@ -806,6 +837,7 @@ class Live:
                 "status": r.get("status_as_filed", ""), "action": "nudge",
                 "nudged_on": r.get("nudged_on", ""),
                 "days_since_nudged": (self.today - last_nudge).days if last_nudge else None,
+                "blocking": sorted(blocked.get(r.get("company_id", ""), [])),
             }
             (nudged if last_nudge and 0 <= (self.today - last_nudge).days < NUDGE_QUIET_DAYS else rows).append(row)
         rows.sort(key=lambda r: -r["days_since_agreed"])
@@ -983,6 +1015,9 @@ class Live:
                     by_co[a["company_id"]].append(a)
             companies = []
             for cid, group in by_co.items():
+                hold = self.hold_of(name, cid)
+                if hold and not hold["askable"]:
+                    continue   # their unresolved ask here is on the nudge or chase queue, not a new ask
                 own = [p for p in self.paths.get(cid, []) if p["connector"] == name]
                 companies.append({
                     **self.company_ref(cid), "industry": self.industry(cid),
@@ -1118,15 +1153,18 @@ class Live:
         for cid, c in self.companies.items():
             ind = c["industry"]
             paths = self.ranked_paths(cid)
-            best = paths[0] if paths else None
+            best = next((p for p in paths if p["askable"]), None)
             acct = next((self.accounts[a] for a in bar(c["crm_account_ids"]) if a in self.accounts), None)
             companies[cid] = {
                 **self.company_ref(cid), "industry": ind, "stage": c["stage"], "crm": bool(c["crm_account_ids"]),
                 "owner": c["owner"], "arr_fmt": money(usd(acct["arr_potential_usd"])) if acct else "",
                 "paths": paths, "path_count": len(paths), "priority": self.route_priority(cid),
+                # who is sitting on an unresolved ask here, path or no path: the preview
+                # skips them (or ranks them last) whether they have a path or offer in a thread
+                "holds": self.holds(cid),
                 "best": {"connector": best["connector"], "reach_type": best["reach_type"], "contact": best["contact"],
                          "score": best["score"], "label": best["label"], "strength": best["strength"], "fit": best["fit"],
-                         "rate": best["rate"], "capacity_left": best["capacity_left"]} if best else None,
+                         "rate": best["rate"], "capacity_left": best["capacity_left"], "hold": best["hold"]} if best else None,
                 "offer_score": {n: round(bg.PATH_BASE["offer"] * self.fit(n, ind) * self.rate(n), 3) for n in askable},
                 "offer_fit": {n: round(self.fit(n, ind), 2) for n in askable},
                 "offer_score_unknown": round(bg.PATH_BASE["offer"] * 0.7 * bg.PRIOR_RATE, 3),
@@ -1138,18 +1176,22 @@ class Live:
                 "company_id": "", "company_name": net["name"], "href": "", "network": True, "names": net["names"],
                 "industry": "", "stage": "", "crm": False, "owner": "", "arr_fmt": "",
                 "paths": paths[:NETWORK_PATHS_SHOWN], "path_count": len(paths), "priority": self.route_priority(key),
+                "holds": {},
                 "best": {"connector": best["connector"], "reach_type": best["reach_type"], "contact": best["contact"],
                          "score": best["score"], "label": best["label"], "strength": best["strength"], "fit": best["fit"],
-                         "rate": best["rate"], "capacity_left": best["capacity_left"]} if best else None,
+                         "rate": best["rate"], "capacity_left": best["capacity_left"], "hold": ""} if best else None,
                 "offer_score": {n: round(bg.PATH_BASE["offer"] * 0.7 * self.rate(n), 3) for n in askable},
                 "offer_fit": {n: 0.7 for n in askable},
                 "offer_score_unknown": round(bg.PATH_BASE["offer"] * 0.7 * bg.PRIOR_RATE, 3),
             }
         return {
             "cues": [{"label": label, **js_regex(pat), "score": score} for label, pat, score in gp._CUES],
+            "lower_cues": [{"label": label, **js_regex(pat), "score": score} for label, pat, score in gp._LOWER_CUES],
+            "word": js_regex(gp._WORD),
             "split": js_regex(gp._SPLIT), "domain": js_regex(gp._DOMAIN), "title": js_regex(gp.TITLE_RE),
             "domain_cue": gp.DOMAIN_CUE, "domain_score": gp.DOMAIN_SCORE,
             "known": js_regex(self.known_regex(res)), "known_cue": gp.KNOWN_CUE, "known_score": gp.KNOWN_SCORE,
+            "bare": js_regex(gp._BARE), "bare_cue": gp.BARE_CUE, "bare_score": gp.BARE_SCORE,
             "offer": js_regex(bg.OFFER_RE), "noise": js_regex(bg.NOISE_RE),
             "offer_title": js_regex(bg._OFFER_TITLE_RE), "offer_person": js_regex(bg._OFFER_PERSON_RE),
             "resolver": {

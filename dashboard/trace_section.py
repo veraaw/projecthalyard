@@ -11,7 +11,7 @@ clicking a company swaps the rendered trace in place. Opens on the most-requeste
 import json
 
 from analysis.trace import BYPASS_LABEL, all_traces
-from golden.build_golden import INVESTOR_NETWORK, NETWORK_HAIRCUT
+from golden.build_golden import INVESTOR_NETWORK, NETWORK_HAIRCUT, NO_PATH
 
 MARK_LABEL = {"<-": "missed", "++": "worked", "**": "offer", "!!": "warning", "  ": ""}
 
@@ -46,6 +46,10 @@ def fragment() -> str:
 #trace td.score,#trace td.raw{{white-space:nowrap;font-variant-numeric:tabular-nums}}
 #trace tr.bypass td{{color:var(--mute);font-size:13px;border-top:none;padding-top:0}}
 #trace tr.bypass b{{color:var(--ink);font-weight:600}}
+#trace tr.held td{{color:var(--mute)}} #trace tr.held .bar{{opacity:.35}}
+#trace td.hold{{font-size:13px;color:var(--mute);max-width:260px}}
+#trace .route{{margin:18px 0 0}} #trace .route .foot{{margin:4px 0 0}}
+#trace .route b.none{{color:var(--warn)}}
 #trace tr.cold td{{color:var(--mute)}}
 #trace tr.cold td.route{{font-style:italic}}
 #trace td.seat{{font-family:var(--mono);font-weight:600;white-space:nowrap}}
@@ -96,15 +100,29 @@ def fragment() -> str:
       out += `<h3>2. Where the files disagree</h3>` + t.disagreements.map(d => `<div class="finding warn">${{esc(d)}}</div>`).join('');
     }}
 
+    // where the company's requests go now: this cycle's rows, else the allocator's first askable path
+    const cr = t.route, top = cr.top;
+    const byWho = new Map();
+    for (const a of cr.live) {{ const k = a.allocated_to || `unrouted (${{a.exception_reason.split(': ')[0]}})`; if (!byWho.has(k)) byWho.set(k, []); byWho.get(k).push(a.request_id); }}
+    const routeNotes = [
+      cr.live.length ? 'this cycle: ' + [...byWho].map(([who, rids]) => who.startsWith('unrouted') ? `${{rids.join(', ')}} ${{who}}` : `${{rids.join(', ')}} → ${{who}}`).join('; ') : '',
+      top ? `${{cr.this_cycle.length ? 'top askable path' : 'the next request goes to the top askable path'}}: ${{top.connector}}, ${{top.reach_type}} via ${{top.contact_name || '?'}}, route score ${{top.route_score.toFixed(3)}}${{top.capacity ? `, ${{top.capacity}} capacity used this cycle` : ''}}${{top.ranked_last ? `; ranked last: ${{top.ranked_last}}` : ''}}`
+        : cr.why === '{NO_PATH}' ? 'nobody in the network reaches this company' : cr.why ? 'everyone who reaches the company is sitting on an ask there' : '',
+      cr.not_asked.length ? 'not asked again here: ' + cr.not_asked.join('; ') : '',
+    ].filter(Boolean);
+    out += `<h3 class="route">Currently routing to: ${{cr.connector ? esc(cr.connector) : `<b class="none">nobody</b> <span class="foot">(${{esc(cr.why)}})</span>`}}</h3>`
+      + routeNotes.map(n => `<p class="foot">${{esc(n)}}</p>`).join('');
+
     out += `<h3>3. Who can reach them</h3>`;
     if (!t.reach.length) out += `<p class="empty">nobody in the network reaches this company</p>`;
     else {{
       const maxScore = Math.max(...t.reach.map(p => p.route_score)) || 1, maxRaw = Math.max(...t.reach.map(p => p.strength)) || 1;
       const haircut = t.reach.some(p => p.reach_type.startsWith('{INVESTOR_NETWORK}')) ? `; {INVESTOR_NETWORK} rows (our network, not our roster) rank below every roster path and take a {round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score` : '';
-      out += `<p class="foot">ranked by route score = strength × focus fit × delivery rate, the allocator's sort key${{haircut}}; strength is the raw path alone</p>`;
-      out += `<table><thead><tr><th>route score</th><th>strength</th><th>connector</th><th>reach</th><th>contact</th><th>evidence</th></tr></thead><tbody>` +
-        t.reach.map(p => `<tr><td class="score"><span class="bar" style="width:${{Math.round(90 * p.route_score / maxScore)}}px"></span>${{p.route_score.toFixed(3)}}</td><td class="raw" title="fit ${{p.fit}} × delivery rate ${{p.rate}}"><span class="bar raw" style="width:${{Math.round(90 * p.strength / maxRaw)}}px"></span>${{p.strength.toFixed(3)}}</td><td>${{esc(p.connector)}} <span class="foot">${{esc(p.connector_type)}}</span></td><td>${{esc(p.reach_type)}}</td><td>${{esc([p.contact_name, p.contact_title].filter(Boolean).join(', ') || '?')}}</td><td class="foot">${{esc(p.evidence)}}</td></tr>`
-          + (p.bypass ? `<tr class="bypass"><td colspan="6"><b>{BYPASS_LABEL}:</b> ${{esc(p.bypass)}}</td></tr>` : '')).join('') +
+      const holds = t.reach.some(p => p.hold) ? `; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)` : '';
+      out += `<p class="foot">ranked by route score = strength × focus fit × delivery rate, the allocator's sort key${{haircut}}${{holds}}; strength is the raw path alone</p>`;
+      out += `<table><thead><tr><th>route score</th><th>strength</th><th>connector</th><th>reach</th><th>contact</th><th>evidence</th><th>unresolved ask</th></tr></thead><tbody>` +
+        t.reach.map(p => `<tr${{p.askable ? '' : ' class="held"'}}><td class="score"><span class="bar" style="width:${{Math.round(90 * p.route_score / maxScore)}}px"></span>${{p.route_score.toFixed(3)}}</td><td class="raw" title="fit ${{p.fit}} × delivery rate ${{p.rate}}"><span class="bar raw" style="width:${{Math.round(90 * p.strength / maxRaw)}}px"></span>${{p.strength.toFixed(3)}}</td><td>${{esc(p.connector)}} <span class="foot">${{esc(p.connector_type)}}</span></td><td>${{esc(p.reach_type)}}</td><td>${{esc([p.contact_name, p.contact_title].filter(Boolean).join(', ') || '?')}}</td><td class="foot">${{esc(p.evidence)}}</td><td class="hold">${{p.unresolved_ask ? esc(p.unresolved_ask) + (p.askable ? ' · ranked last' : ' · not asked again here') : ''}}</td></tr>`
+          + (p.bypass ? `<tr class="bypass"><td colspan="7"><b>{BYPASS_LABEL}:</b> ${{esc(p.bypass)}}</td></tr>` : '')).join('') +
         `</tbody></table>`;
     }}
 

@@ -9,20 +9,25 @@
 
 - crm_accounts.csv: two accounts, two owners: A1020 -> Sloane Fairweather; A91020 -> Yusuf Petrossian
 
+## Currently routing to: Dana Whitfield
+
+- the next request goes to the top askable path: Dana Whitfield, direct via Sunniva Højgaard, route score 0.064, 3/6 capacity used this cycle
+- not asked again here: Tomás Beckett agreed on 2025-12-28 (R1104), no intro - nudge
+
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
 
-| route score | strength | connector | reach | contact | evidence |
-|---|---|---|---|---|---|
-| 0.064 | 0.330 | Dana Whitfield (Internal) | direct | Sunniva Højgaard — Chief Digital Officer | connections_whitfield.csv: Sunniva Højgaard, Chief Digital Officer at Ellerby Semiconductor, connected 2014-07-24 |
-| 0.053 | 0.330 | Tomás Beckett (Internal) | direct | Sunniva Højgaard — Chief Digital Officer | connections_beckett.csv: Sunniva Højgaard, Chief Digital Officer at Ellerby Semiconductor, connected 2016-10-23 |
-| 0.036 | 0.187 | Dana Whitfield (Internal) | alumni | Sunniva Højgaard — ex-Ellerby Semiconductor (2013-2015), now Chief Digital Officer at Ellerby Semiconductor | investor_network.csv: Sunniva Højgaard prior_employer=Ellerby Semiconductor (2013-2015); connections_whitfield.csv: connection of Dana Whitfield since 2014-07-24 |
-| 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Sunniva Højgaard — ex-Ellerby Semiconductor (2013-2015), now Chief Digital Officer at Ellerby Semiconductor | investor_network.csv: Sunniva Højgaard prior_employer=Ellerby Semiconductor (2013-2015); connections_beckett.csv: connection of Tomás Beckett since 2016-10-23 |
-| 0.215 | 0.900 | Bertrand Achterberg-Quillane (investor network) | investor_network (board seat) | CEO / exec team — Ashgrove Capital board seat | investor_network.csv: Bertrand Achterberg-Quillane (Venture capital investor), portfolio_company=Ellerby Semiconductor, board_seat=True |
-| 0.172 | 0.720 | Freya Oldfield-Ibarra (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Freya Oldfield-Ibarra (Venture capital investor), portfolio_company=Ellerby Semiconductor, board_seat=False |
-| 0.172 | 0.720 | Matteo Ferreira-Yarrow (investor network) | investor_network | CEO / exec team — Ironvale Partners portfolio company | investor_network.csv: Matteo Ferreira-Yarrow (Private equity investor), portfolio_company=Ellerby Semiconductor, board_seat=False |
-| 0.172 | 0.720 | Otto Højgaard-Ferreira (investor network) | investor_network | CEO / exec team — Cobalt Lane Ventures portfolio company | investor_network.csv: Otto Højgaard-Ferreira (Venture capital investor), portfolio_company=Ellerby Semiconductor, board_seat=False |
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
+| 0.064 | 0.330 | Dana Whitfield (Internal) | direct | Sunniva Højgaard — Chief Digital Officer | connections_whitfield.csv: Sunniva Højgaard, Chief Digital Officer at Ellerby Semiconductor, connected 2014-07-24 |  |
+| 0.036 | 0.187 | Dana Whitfield (Internal) | alumni | Sunniva Højgaard — ex-Ellerby Semiconductor (2013-2015), now Chief Digital Officer at Ellerby Semiconductor | investor_network.csv: Sunniva Højgaard prior_employer=Ellerby Semiconductor (2013-2015); connections_whitfield.csv: connection of Dana Whitfield since 2014-07-24 |  |
+| 0.215 | 0.900 | Bertrand Achterberg-Quillane (investor network) | investor_network (board seat) | CEO / exec team — Ashgrove Capital board seat | investor_network.csv: Bertrand Achterberg-Quillane (Venture capital investor), portfolio_company=Ellerby Semiconductor, board_seat=True |  |
+| 0.172 | 0.720 | Freya Oldfield-Ibarra (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Freya Oldfield-Ibarra (Venture capital investor), portfolio_company=Ellerby Semiconductor, board_seat=False |  |
+| 0.172 | 0.720 | Matteo Ferreira-Yarrow (investor network) | investor_network | CEO / exec team — Ironvale Partners portfolio company | investor_network.csv: Matteo Ferreira-Yarrow (Private equity investor), portfolio_company=Ellerby Semiconductor, board_seat=False |  |
+| 0.172 | 0.720 | Otto Højgaard-Ferreira (investor network) | investor_network | CEO / exec team — Cobalt Lane Ventures portfolio company | investor_network.csv: Otto Højgaard-Ferreira (Venture capital investor), portfolio_company=Ellerby Semiconductor, board_seat=False |  |
+| 0.053 | 0.330 | Tomás Beckett (Internal) | direct | Sunniva Højgaard — Chief Digital Officer | connections_beckett.csv: Sunniva Højgaard, Chief Digital Officer at Ellerby Semiconductor, connected 2016-10-23 | Tomás Beckett agreed on 2025-12-28 (R1104), no intro - nudge |
+| 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Sunniva Højgaard — ex-Ellerby Semiconductor (2013-2015), now Chief Digital Officer at Ellerby Semiconductor | investor_network.csv: Sunniva Højgaard prior_employer=Ellerby Semiconductor (2013-2015); connections_beckett.csv: connection of Tomás Beckett since 2016-10-23 | Tomás Beckett agreed on 2025-12-28 (R1104), no intro - nudge |
 
 ## 4. Chronology (9 events, 1 request, newest first, as of 2026-09-06)
 

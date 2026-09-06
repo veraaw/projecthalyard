@@ -5,6 +5,11 @@
 - also goes by: nothing else
 - 1 request from 1 person wanting 1 different title: VP Enterprise Architecture
 
+## Currently routing to: nobody (no path to this company in the network)
+
+- this cycle: R1099 unrouted (no path to this company in the network)
+- nobody in the network reaches this company
+
 ## 3. Who can reach them
 
 nobody in the network reaches this company

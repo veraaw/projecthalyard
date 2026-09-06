@@ -36,7 +36,8 @@ process.stdin.on('end', () => {
   });
   const preview = threads ? LP.previewThreads(threads, parser).rows.map(r => ({
     request_id: r.request_id, company_id: r.company_id, network: r.network, company_name: r.company_name,
-    offer_by: r.offer_by, route_to: r.route_to, path: r.path, flags: r.flags,
+    offer_by: r.offer_by, route_to: r.route_to, path: r.path, flags: r.flags, held: r.held,
+    cands: r.cands.map(c => ({ who: c.who, hold: c.hold })),
   })) : [];
   process.stdout.write(JSON.stringify({ extracted, routed, preview }));
 });
