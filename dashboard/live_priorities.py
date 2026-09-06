@@ -422,12 +422,19 @@ class Live:
         i = self.intro_state.get(cid)
         if not i:
             return None
+        return self.with_parties(i)
+
+    def with_parties(self, i: dict) -> dict:
+        """The intro plus the rep it was for and who at the company it was meant to
+        reach: the person named in the raw ask, else the title asked for."""
         r = self.by_rid.get(i["request_id"], {})
-        return {**i, "requested_by": r.get("requested_by", ""), "target_title": r.get("target_title", "")}
+        return {**i, "requested_by": r.get("requested_by", ""), "target_title": r.get("target_title", ""),
+                "target_person": self.raw.get(i["request_id"], {}).get("target_person_raw", "").strip()}
 
     def retry_note(self, i: dict) -> dict:
         when = i["intro_date"] or "an undated"
-        return {**i, "note": f"{i['connector'].split()[0]}'s {when} intro to {i['requested_by'] or 'the requester'} went nowhere: {i['outcome']}"}
+        target = i["target_person"] or (f"their {i['target_title']}" if i["target_title"] else "someone there")
+        return {**i, "note": f"{i['connector'].split()[0]}'s {when} intro of {i['requested_by'] or 'the requester'} to {target} went nowhere: {i['outcome']}"}
 
     def retry_of(self, cid: str) -> dict | None:
         """Set when the company's last intro fizzled (no meeting after INTRO_LIVE_DAYS,
@@ -444,8 +451,7 @@ class Live:
         i = bg.intro_of(o, self.today)
         if not i or i["live"]:
             return None
-        r = self.by_rid.get(o["request_id"], {})
-        return self.retry_note({**i, "requested_by": r.get("requested_by", ""), "target_title": r.get("target_title", "")})
+        return self.retry_note(self.with_parties(i))
 
     def live_requesters(self, cid: str) -> list[str]:
         return sorted({r["requested_by"] for r in self.by_company.get(cid, [])
