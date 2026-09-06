@@ -80,20 +80,20 @@
 }
 </style>
 <div class="ia-main">
-<h1>Integrity audit — <code>dataset/</code></h1>
+<h1>Integrity Audit — <code>dataset/</code></h1>
 <p class="sub" id="ia-subtitle"></p>
 <p class="legend">
-<span><i class="sw sev-high"></i>high — impossible / broken reference</span>
-<span><i class="sw sev-medium"></i>medium — suspicious, needs eyeballing</span>
-<span><i class="sw sev-info"></i>info — asymmetry that may be expected</span>
-<span><i class="sw sev-zero"></i>zero findings</span>
+<span><i class="sw sev-high"></i>High — impossible / broken reference</span>
+<span><i class="sw sev-medium"></i>Medium — suspicious, needs eyeballing</span>
+<span><i class="sw sev-info"></i>Info — asymmetry that may be expected</span>
+<span><i class="sw sev-zero"></i>Zero findings</span>
 <span class="small">Colour encodes severity only. Every number is clickable.</span>
 </p>
 
 <h2>1. Scorecard</h2>
 <div class="tiles" id="ia-tiles"></div>
 
-<h2>2. Referential integrity</h2>
+<h2>2. Referential Integrity</h2>
 <div id="ia-joins"></div>
 
 <h2>3. Temporal</h2>
@@ -108,7 +108,7 @@
 <div id="ia-examples"></div>
 </div>
 
-<aside id="ia-panel"><button class="close" onclick="closePanel()">close</button><div id="ia-panel-body"></div></aside>
+<aside id="ia-panel"><button class="close" onclick="closePanel()">Close</button><div id="ia-panel-body"></div></aside>
 
 <script id="ia-data" type="application/json">/*__DATA__*/</script>
 <script>
@@ -135,7 +135,7 @@ function rowsFor(file, keys) {
   return rows.filter(r => want.has(String(r[pk]).trim()));
 }
 function renderTable(file, rows, cols, limit) {
-  if (!rows.length) return '<p class="none">no rows</p>';
+  if (!rows.length) return '<p class="none">No rows</p>';
   const pk = R.files[file].primary_key;
   const show = [pk, ...cols.filter(c => c !== pk)];
   const hl = new Set(cols);
@@ -144,7 +144,7 @@ function renderTable(file, rows, cols, limit) {
     h += "<tr>" + show.map(c => `<td class="${hl.has(c) && c !== pk ? "hl" : ""}">${esc(r[c] ?? "")}</td>`).join("") + "</tr>";
   }
   h += "</tbody></table>";
-  if (limit && rows.length > limit) h += `<p class="small">showing ${limit} of ${rows.length}</p>`;
+  if (limit && rows.length > limit) h += `<p class="small">Showing ${limit} of ${rows.length}</p>`;
   return h;
 }
 function openPanel(title, html) {
@@ -165,9 +165,9 @@ function showCheck(id) {
     const keys = list.map(f => f.row_key);
     const cols = [...new Set(list.flatMap(f => Object.keys(f.fields)))].sort();
     h += `<h4>${esc(file)} — ${list.length} row(s)</h4>`;
-    h += `<table><thead><tr><th>row_key</th><th>detail</th></tr></thead><tbody>` +
+    h += `<table><thead><tr><th>Row key</th><th>Detail</th></tr></thead><tbody>` +
       list.map(f => `<tr><td>${esc(f.row_key)}</td><td>${esc(f.detail)}</td></tr>`).join("") + "</tbody></table>";
-    h += "<details><summary class=\"small\">full rows (implicated columns highlighted)</summary>" + renderTable(file, rowsFor(file, keys), cols) + "</details>";
+    h += "<details><summary class=\"small\">Full rows (implicated columns highlighted)</summary>" + renderTable(file, rowsFor(file, keys), cols) + "</details>";
   }
   openPanel(id, h);
 }
@@ -204,7 +204,7 @@ el("ia-joins").innerHTML = D.joins.map(j => {
   const matchedKeysL = keysOf(L.file, L.column, [...new Set(D.rows[L.file].map(r => r[L.column].trim()))].filter(v => !L.orphans.includes(v)));
   const matchedKeysR = keysOf(Rt.file, Rt.column, [...new Set(D.rows[Rt.file].map(r => r[Rt.column].trim()))].filter(v => !Rt.orphans.includes(v)));
   const nameList = (side, sev) => {
-    if (!side.orphans.length) return `<p class="none">no ${side.file}.${side.column} values missing from the other side</p>`;
+    if (!side.orphans.length) return `<p class="none">No ${side.file}.${side.column} values missing from the other side</p>`;
     if (side.orphans.length >= 20) return `<p class="small">${side.orphans.length} distinct values — too many to list inline; ${numCheck(side.check_id, "open the list")}.</p>`;
     return `<ul class="names">` + side.orphans.map(v => {
       const keys = keysOf(side.file, side.column, [v]);
@@ -255,7 +255,7 @@ const COLOR = {high: "#9f2d00", medium: "#b58200", info: "#2200ff", zero: "#c9c5
 el("ia-lags").innerHTML = D.lags.map(l => {
   const c = CHECK[l.check_id];
   const vals = l.values;
-  if (!vals.length) return `<h3>${esc(l.title)}</h3><p class="none">no rows carry both dates</p>`;
+  if (!vals.length) return `<h3>${esc(l.title)}</h3><p class="none">No rows carry both dates</p>`;
   const lo = Math.min(0, ...vals.map(v => v.days)), hi = Math.max(0, ...vals.map(v => v.days));
   const bins = [];
   for (let d = lo; d <= hi; d++) {
@@ -273,7 +273,7 @@ el("ia-lags").innerHTML = D.lags.map(l => {
 // date histogram: monthly bins, common x-axis across all series, faceted by file+column
 (function () {
   const all = D.date_series.flatMap(s => s.dates);
-  if (!all.length) { el("ia-dates").innerHTML = '<p class="none">no dates</p>'; return; }
+  if (!all.length) { el("ia-dates").innerHTML = '<p class="none">No dates</p>'; return; }
   const ym = d => d.slice(0, 7);
   const months = [];
   let [y, m] = ym(all.reduce((a, b) => a < b ? a : b)).split("-").map(Number);
@@ -320,7 +320,7 @@ el("ia-matrices").innerHTML = D.matrices.map(mx => {
   return `<div class="mx"><div></div><div class="hd">${esc(mx.date)} present</div><div class="hd">${esc(mx.date)} empty</div>` +
     `<div class="hd">${esc(mx.flag)} = Y</div>${cell("YY", false)}${cell("YN", true)}` +
     `<div class="hd">${esc(mx.flag)} = N</div>${cell("NY", true)}${cell("NN", false)}` +
-    `<div></div><div class="small" style="grid-column:span 2">impossible cells: ${numCheck(mx.check_id, `${c.count} of ${c.denominator}`)}</div></div>`;
+    `<div></div><div class="small" style="grid-column:span 2">Impossible cells: ${numCheck(mx.check_id, `${c.count} of ${c.denominator}`)}</div></div>`;
 }).join("");
 
 /* ---- 5. examples ---- */

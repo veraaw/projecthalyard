@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Halyard · company trace</title>
+<title>Halyard · Company Trace</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <style>
 :root{--ink:#191919;--mute:#6f6d6a;--blue:#2200ff;--line:rgba(0,0,0,.09);--bg:#f7f6f5;--surface:#ffffff;--warn:#9f2d00;--navy:#17293f;--baton:#c4763e;
@@ -50,6 +50,8 @@ main{max-width:1240px;margin:0 auto;padding:28px 40px 72px}
 section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:calc(var(--topbar,140px) + 16px)}
 h2{margin:0 0 6px;font-size:22px}
 h3{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
+h3 .foot{font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px}
+h3 code{text-transform:none;letter-spacing:0;font-size:11.5px}
 details{margin-top:26px}
 summary{cursor:pointer;list-style:none;margin-bottom:10px}
 summary::-webkit-details-marker{display:none}
@@ -62,6 +64,7 @@ details[open] summary::before{content:"− "}
 .kpi.warn .v{color:var(--warn)}
 .kpi .v.words{font-size:20px;padding-top:6px;color:var(--mute)}
 .kpi .l{margin-top:6px;font-weight:500;font-size:13px}
+.kpi .l::first-letter,.kpi .s::first-letter,.strip .l::first-letter,.empty::first-letter{text-transform:uppercase}
 .kpi .s{color:var(--mute);font-size:12px;margin-top:2px}
 table{border-collapse:collapse;width:100%;font-size:14px;font-family:var(--sans);font-variant-numeric:tabular-nums}
 .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -141,7 +144,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 #lp .masthead .strip .cell{padding:10px 12px 8px}
 #lp .masthead .strip .v{font-size:20px}
 #lp .masthead .strip .n{font-size:12px}
-#lp .masthead .strip .l{margin-top:4px;font-size:11px}
+#lp .masthead .strip .l{margin-top:4px;font-size:12px}
 #lp .masthead details.note{margin:8px 0 0}
 #lp .masthead details.note summary{margin:0;font-size:12.5px;color:var(--mute)}
 #lp .masthead details.note p{margin:6px 0 0}
@@ -154,7 +157,6 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 #lp .fold[open]>summary::after{transform:none}
 #lp .fold>summary:hover::after{color:var(--ink)}
 #lp .fold[open]>summary{margin-bottom:6px}
-#lp .lede{font-size:15.5px}
 #lp q{quotes:"\201C" "\201D";font-family:var(--serif);font-style:italic}
 #lp b.warn,#lp .warn{color:var(--warn)}
 #lp td.rid,#lp td.date{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
@@ -166,7 +168,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 #lp .strip .cell{background:var(--surface);padding:14px 16px 12px;font-family:var(--sans)}
 #lp .strip .v{font-size:26px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 #lp .strip .n{color:var(--mute);font-size:12.5px;margin-top:2px}
-#lp .strip .l{margin-top:8px;font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+#lp .strip .l{margin-top:8px;font-size:13px;font-weight:500;color:var(--ink)}
 @media(max-width:900px){#lp .strip{grid-template-columns:repeat(3,1fr)}}
 #lp table.top td.order{color:var(--mute)}
 #lp table.top td.ev{font-size:18px;font-weight:500;color:var(--blue)}
@@ -272,7 +274,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 }
 </style></head>
 <body>
-<div class="topbar"><div class="mastrow"><a class="mast" href="livedata.html"><svg class="logo" width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="7" fill="#17293f"/><rect x="9" y="9" width="3.4" height="22" fill="#fff"/><rect x="27.6" y="9" width="3.4" height="22" fill="#fff"/><path d="M12.4 26.4 27.6 14.6" stroke="#c4763e" stroke-width="3"/></svg><span class="t"><b>Halyard Baton</b> / intro routing console</span></a><span class="built">built 2026-09-06</span></div><div class="tabs"><a href="livepriorities.html">Live Priorities</a><a href="batchask.html">Batched-Ask for Connectors</a><a href="companytrace.html" class="on">Company Trace</a><a href="livedata.html">Live Data Dashboard</a><a href="halyardscoping.html">Raw Sept Data Dashboard</a></div></div><button class="totop" type="button" title="Back to top" aria-label="Back to top">&uarr;</button>
+<div class="topbar"><div class="mastrow"><a class="mast" href="livedata.html"><svg class="logo" width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="7" fill="#17293f"/><rect x="9" y="9" width="3.4" height="22" fill="#fff"/><rect x="27.6" y="9" width="3.4" height="22" fill="#fff"/><path d="M12.4 26.4 27.6 14.6" stroke="#c4763e" stroke-width="3"/></svg><span class="t"><b>Halyard Baton</b> / intro routing console</span></a><span class="built">Built 2026-09-06</span></div><div class="tabs"><a href="livepriorities.html">Live Priorities</a><a href="batchask.html">Batched-Ask for Connectors</a><a href="companytrace.html" class="on">Company Trace</a><a href="livedata.html">Live Data Dashboard</a><a href="halyardscoping.html">Raw Sept Data Dashboard</a></div></div><button class="totop" type="button" title="Back to top" aria-label="Back to top">&uarr;</button>
 <script>
 // this script sits in the top bar, ahead of <main>, so it waits for the rest of the page to parse
 document.addEventListener('DOMContentLoaded', function () {
@@ -307,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var box = t.parentElement, q = '', p = 0, all = false;
     var barEl = document.createElement('div');
     barEl.className = 'pager';
-    barEl.innerHTML = '<input type="search" placeholder="filter rows" aria-label="filter rows"><span class="pg-l"></span><span class="pg-b"></span><button type="button" class="pg-all"></button>';
+    barEl.innerHTML = '<input type="search" placeholder="Filter rows" aria-label="Filter rows"><span class="pg-l"></span><span class="pg-b"></span><button type="button" class="pg-all"></button>';
     box.parentNode.insertBefore(barEl, box.nextSibling);
     var label = barEl.querySelector('.pg-l'), nums = barEl.querySelector('.pg-b'), allBtn = barEl.querySelector('.pg-all');
     var draw = function () {
@@ -318,8 +320,8 @@ document.addEventListener('DOMContentLoaded', function () {
       var shown = all ? hits : hits.slice(p * PAGE, (p + 1) * PAGE);
       shown.forEach(function (r) { r.hidden = false; });
       var of = q ? ' matching' : '';
-      label.textContent = !hits.length ? 'no rows match' : all || hits.length <= PAGE ? hits.length + of + ' rows'
-        : 'rows ' + (p * PAGE + 1) + '–' + (p * PAGE + shown.length) + ' of ' + hits.length + of;
+      label.textContent = !hits.length ? 'No rows match' : all || hits.length <= PAGE ? hits.length + of + ' rows'
+        : 'Rows ' + (p * PAGE + 1) + '–' + (p * PAGE + shown.length) + ' of ' + hits.length + of;
       nums.innerHTML = '';
       if (!all && n > 1) {
         var mk = function (txt, to, dis, on) {
@@ -417,8 +419,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 <header>
-  <h1>Company trace: the full history of one company</h1>
-  <p>What <code>analysis/trace.py</code> prints, for any of the 48 companies with a request · sources: <code>dataset/</code>, <code>golden/</code> · built 2026-09-06</p>
+  <h1>Company Trace</h1>
+  <p>The full history of one company: what <code>analysis/trace.py</code> prints, for any of the 48 companies with a request · Sources: <code>dataset/</code>, <code>golden/</code> · Built 2026-09-06</p>
 </header>
 <div class="layout">
 <aside class="side"><div class="side-h">Companies <span class="foot" id="trace-count"></span></div><input id="trace-q" type="search" placeholder="Search: name, alias, C018, A1050" autocomplete="off" spellcheck="false" aria-label="Search companies"><nav class="toc" id="trace-matches"></nav></aside>
@@ -494,7 +496,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return [...by].map(([who, qs]) => `${who}: ${qs.map(q => `${q.request_id} ${q.date} ${q.target_title || '?'}`).join(', ')}`).join('\n');
     };
     let out = `<h2 class="co">${esc(t.company_name)} <span class="foot">${esc(t.company_id)}${h.crm_account_ids ? ' · ' + esc(h.crm_account_ids) : ''}${h.domain ? ' · ' + esc(h.domain) : ''}</span></h2>`;
-    out += `<p class="aka">${h.also_known_as.length ? 'also goes by ' + h.also_known_as.map(esc).join(' · ') : 'no other spellings on file'}${h.duplicate_accounts && h.duplicate_accounts !== 'no' ? ' · duplicate accounts: ' + esc(h.duplicate_accounts) : ''}</p>`;
+    out += `<p class="aka">${h.also_known_as.length ? 'Also goes by ' + h.also_known_as.map(esc).join(' · ') : 'No other spellings on file'}${h.duplicate_accounts && h.duplicate_accounts !== 'no' ? ' · Duplicate accounts: ' + esc(h.duplicate_accounts) : ''}</p>`;
     const rt = h.routing, cr = t.route, top = cr.top;
     // this cycle's allocation grouped by destination, each request saying whether it is a first ask or a retry
     const byWho = new Map();
@@ -502,47 +504,47 @@ document.addEventListener('DOMContentLoaded', function () {
     const sent = cr.live.filter(a => a.allocated_to), retries = sent.filter(a => a.retry).length, firsts = sent.length - retries;
     const nRetries = `${retries} ${retries === 1 ? 'retry' : 'retries'}`;
     const cycleSub = sent.length ? [firsts ? plural(firsts, 'first ask') : '', retries ? nRetries : '', `→ ${plural(cr.this_cycle.length, 'connector')}`].filter(Boolean).join(' · ')
-      : cr.live.length ? 'nothing goes out this cycle' : 'no live request this cycle';
+      : cr.live.length ? 'Nothing goes out this cycle' : 'No live request this cycle';
     const cycleHover = [`Routed this cycle (${plural(sent.length, 'request')} → ${plural(cr.this_cycle.length, 'connector')}${retries ? `, ${nRetries}` : ''})`,
       ...(cr.live.length ? [...byWho].map(([who, rows]) => `${who}: ${rows.map(a => `${a.request_id} (${a.retry || 'first ask'})`).join(', ')}`) : ['no live request this cycle']),
       '', `Awaiting the ask in the log (${rt.counts.routed || 0}): routed, nobody asked yet`,
       journey(h.request_rows.filter(q => q.stage === 'routed')) || 'no request sits at routed'].join('\n');
-    out += `<div class="kpis">${kpi(cap(rt.furthest), 'routing stage', [rt.booked ? `intro ${rt.booked.intro_date || 'undated'} · ${rt.booked.request_id} · ${rt.booked.connector}` : '', rt.latest && rt.latest !== rt.furthest ? 'latest ask: ' + rt.latest : ''].filter(Boolean).join(' · '))}${kpi(h.stage || '?', 'CRM stage', h.industry)}${kpi(h.owner || 'none', 'CRM owner')}${kpi(h.value.value_usd, 'deal value', h.value.source, h.value.by_request.filter(q => q.value_usd).map(q => `${q.request_id} ${q.date} ${q.target_title || '?'}: ${q.value_usd}`).join('\n') || 'no request carries a deal value')}${kpi(h.requests, 'requests', '', h.request_rows.map(q => `${q.request_id} ${q.date} ${q.target_title || '?'} · ${q.requested_by || 'unattributed'} · ${q.stage} (filed "${q.status}")`).join('\n'))}${kpi(h.people, 'people asking', '', people(h.request_rows))}${kpi(sent.length, 'routed this cycle', cycleSub, cycleHover)}${kpi(rt.counts.closed || 0, 'closed — no path', 'filed closed, not asked', journey(h.request_rows.filter(q => q.stage === 'closed')) || 'no request filed Closed - no path')}${kpi(h.titles.length, 'different titles wanted', h.titles.join(' · '))}</div>`;
+    out += `<div class="kpis">${kpi(cap(rt.furthest), 'routing stage', [rt.booked ? `intro ${rt.booked.intro_date || 'undated'} · ${rt.booked.request_id} · ${rt.booked.connector}` : '', rt.latest && rt.latest !== rt.furthest ? 'Latest ask: ' + rt.latest : ''].filter(Boolean).join(' · '))}${kpi(h.stage || '?', 'CRM stage', h.industry)}${kpi(h.owner || 'None', 'CRM owner')}${kpi(h.value.value_usd, 'deal value', h.value.source, h.value.by_request.filter(q => q.value_usd).map(q => `${q.request_id} ${q.date} ${q.target_title || '?'}: ${q.value_usd}`).join('\n') || 'no request carries a deal value')}${kpi(h.requests, 'requests', '', h.request_rows.map(q => `${q.request_id} ${q.date} ${q.target_title || '?'} · ${q.requested_by || 'unattributed'} · ${q.stage} (filed "${q.status}")`).join('\n'))}${kpi(h.people, 'people asking', '', people(h.request_rows))}${kpi(sent.length, 'routed this cycle', cycleSub, cycleHover)}${kpi(rt.counts.closed || 0, 'closed — no path', 'Filed closed, not asked', journey(h.request_rows.filter(q => q.stage === 'closed')) || 'no request filed Closed - no path')}${kpi(h.titles.length, 'different titles wanted', h.titles.join(' · '))}</div>`;
 
     if (t.disagreements.length) {
-      out += `<h3>2. Where the files disagree</h3>` + t.disagreements.map(d => `<div class="finding warn">${esc(d)}</div>`).join('');
+      out += `<h3>2. Where the Files Disagree</h3>` + t.disagreements.map(d => `<div class="finding warn">${esc(d)}</div>`).join('');
     }
 
     // where the company's requests go now: this cycle's rows, else the allocator's first askable path
     const rlabel = rows => rows.map(a => a.request_id + (a.retry ? ' (retry)' : '')).join(', ');
     const routeNotes = [
-      cr.live.length ? 'this cycle: ' + [...byWho].map(([who, rows]) => who.startsWith('unrouted') ? `${rlabel(rows)} ${who}` : `${rlabel(rows)} → ${who}`).join('; ') : '',
-      top ? `${cr.this_cycle.length ? 'top askable path' : cr.live.length ? 'nothing goes out this cycle; the top askable path is' : 'the next request goes to the top askable path'}: ${top.connector}, ${top.reach_type} via ${top.contact_name || '?'}, route score ${top.route_score.toFixed(3)}${top.capacity ? `, ${top.capacity} capacity used this cycle` : ''}${top.ranked_last ? `; ranked last: ${top.ranked_last}` : ''}`
-        : cr.why === 'no path to this company in the network' ? 'nobody in the network reaches this company' : cr.why === 'unresolved ask on every path' ? 'everyone who reaches the company is sitting on an ask there' : '',
-      cr.not_asked.length ? 'not asked again here: ' + cr.not_asked.join('; ') : '',
+      cr.live.length ? 'This cycle: ' + [...byWho].map(([who, rows]) => who.startsWith('unrouted') ? `${rlabel(rows)} ${who}` : `${rlabel(rows)} → ${who}`).join('; ') : '',
+      top ? `${cr.this_cycle.length ? 'Top askable path' : cr.live.length ? 'Nothing goes out this cycle; the top askable path is' : 'The next request goes to the top askable path'}: ${top.connector}, ${top.reach_type} via ${top.contact_name || '?'}, route score ${top.route_score.toFixed(3)}${top.capacity ? `, ${top.capacity} capacity used this cycle` : ''}${top.ranked_last ? `; ranked last: ${top.ranked_last}` : ''}`
+        : cr.why === 'no path to this company in the network' ? 'Nobody in the network reaches this company' : cr.why === 'unresolved ask on every path' ? 'Everyone who reaches the company is sitting on an ask there' : '',
+      cr.not_asked.length ? 'Not asked again here: ' + cr.not_asked.join('; ') : '',
     ].filter(Boolean);
     out += `<h3 class="route">Currently routing to: ${cr.connector ? esc(cr.connector) : `<b class="none">nobody</b> <span class="foot">(${esc(cr.why.replace(/ \((.*)\)$/, ': $1'))})</span>`}</h3>`
       + routeNotes.map(n => `<p class="foot">${esc(n)}</p>`).join('');
 
-    out += `<h3>3. Who can reach them</h3>`;
-    if (!t.reach.length) out += `<p class="empty">nobody in the network reaches this company</p>`;
+    out += `<h3>3. Who Can Reach Them</h3>`;
+    if (!t.reach.length) out += `<p class="empty">Nobody in the network reaches this company</p>`;
     else {
       const maxScore = Math.max(...t.reach.map(p => p.route_score)) || 1, maxRaw = Math.max(...t.reach.map(p => p.strength)) || 1;
       const haircut = t.reach.some(p => p.reach_type.startsWith('investor_network')) ? `; investor_network rows (our network, not our roster) take a 10% haircut on route score` : '';
-      out += `<p class="foot">in the allocator's order: the tiers below, then route score = strength × focus fit × delivery rate within each${haircut}; strength is the raw path alone</p>`;
+      out += `<p class="foot">In the allocator's order: the tiers below, then route score = strength × focus fit × delivery rate within each${haircut}; strength is the raw path alone.</p>`;
       // the allocator's order is tiers first, route score within each: one labelled section row per tier
       const tierRow = (label, n) => `<tr class="tier"><td colspan="7">${esc(label)}<span class="foot">${plural(n, 'path')}</span></td></tr>`;
-      out += `<table><thead><tr><th>route score</th><th>strength</th><th>connector</th><th>reach</th><th>contact</th><th>evidence</th><th>unresolved ask</th></tr></thead><tbody>` +
+      out += `<table><thead><tr><th>Route score</th><th>Strength</th><th>Connector</th><th>Reach</th><th>Contact</th><th>Evidence</th><th>Unresolved ask</th></tr></thead><tbody>` +
         t.reach.map((p, i) => (i === 0 || p.tier !== t.reach[i - 1].tier ? tierRow(p.tier, t.reach.filter(q => q.tier === p.tier).length) : '')
           + `<tr${p.askable ? '' : ' class="held"'}><td class="score"><span class="bar" style="width:${Math.round(90 * p.route_score / maxScore)}px"></span>${p.route_score.toFixed(3)}</td><td class="raw" title="fit ${p.fit} × delivery rate ${p.rate}"><span class="bar raw" style="width:${Math.round(90 * p.strength / maxRaw)}px"></span>${p.strength.toFixed(3)}</td><td>${esc(p.connector)} <span class="foot">${esc(p.connector_type)}</span></td><td>${esc(p.reach_type)}</td><td>${esc([p.contact_name, p.contact_title].filter(Boolean).join(', ') || '?')}</td><td class="foot">${esc(p.evidence)}</td><td class="hold">${p.unresolved_ask ? esc(p.unresolved_ask) + (p.askable ? ' · ranked last' : ' · not asked again here') : ''}</td></tr>`
-          + (p.bypass ? `<tr class="bypass"><td colspan="7"><b>why not #1:</b> ${esc(p.bypass)}</td></tr>` : '')).join('') +
+          + (p.bypass ? `<tr class="bypass"><td colspan="7"><b>Why not #1:</b> ${esc(p.bypass)}</td></tr>` : '')).join('') +
         `</tbody></table>`;
     }
 
     const nEv = t.chronology.reduce((a, b) => a + b.length, 0);
-    out += `<h3>4. Chronology: ${plural(nEv, 'event')}, ${plural(h.requests, 'request')}, newest first, as of ${esc(t.as_of)}</h3>`;
-    out += `<p class="legend">markers <b class="missed">&lt;-</b>missed <b class="worked">++</b>worked <b class="offer">**</b>offer <b class="warning">!!</b>warning${nEv > 12 ? ' · the table scrolls' : ''}</p>`;
-    out += `<table class="tall nopage"><thead><tr><th></th><th>date</th><th>source</th><th>who</th><th>what happened</th></tr></thead><tbody>`;
+    out += `<h3>4. Chronology <span class="foot">${plural(nEv, 'event')}, ${plural(h.requests, 'request')}, newest first, as of ${esc(t.as_of)}</span></h3>`;
+    out += `<p class="legend">Markers: <b class="missed">&lt;-</b>missed <b class="worked">++</b>worked <b class="offer">**</b>offer <b class="warning">!!</b>warning${nEv > 12 ? ' · the table scrolls' : ''}</p>`;
+    out += `<table class="tall nopage"><thead><tr><th></th><th>Date</th><th>Source</th><th>Who</th><th>What happened</th></tr></thead><tbody>`;
     t.chronology.forEach((block, i) => {
       if (i) out += `<tr class="gap"><td colspan="5"></td></tr>`;
       block.forEach(e => {
@@ -555,9 +557,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (t.orbit.length) {
       const cold = t.orbit.filter(r => !r.reachable_via).length, net = t.orbit.filter(r => r.reachable_via === 'investor_network').length;
       out += `<h3>5. Additional Investor and Operator Network</h3>`;
-      out += `<p class="foot">${t.orbit.length} ${t.orbit.length === 1 ? 'person' : 'people'} from investor_network.csv, ${net} askable as investor_network paths, ${cold} with no warm path · a view of section 3 and the roster's exports: nothing here is scored or allocated on its own</p>`;
-      out += `<table><thead><tr><th>person</th><th>role</th><th>fund</th><th>board seat</th><th>source</th><th>warm path</th></tr></thead><tbody>` +
-        t.orbit.map(r => `<tr class="${r.reachable_via ? '' : 'cold'}"><td>${esc(r.person)}</td><td class="foot">${esc(r.role)}</td><td>${esc(r.fund)}</td><td class="seat">${r.board_seat ? 'yes' : ''}</td><td class="src">${esc(r.source)}</td><td class="route">${esc(r.route)}</td></tr>`).join('') +
+      out += `<p class="foot">${t.orbit.length} ${t.orbit.length === 1 ? 'person' : 'people'} from investor_network.csv, ${net} askable as investor_network paths, ${cold} with no warm path · A view of section 3 and the roster's exports: nothing here is scored or allocated on its own.</p>`;
+      out += `<table><thead><tr><th>Person</th><th>Role</th><th>Fund</th><th>Board seat</th><th>Source</th><th>Warm path</th></tr></thead><tbody>` +
+        t.orbit.map(r => `<tr class="${r.reachable_via ? '' : 'cold'}"><td>${esc(r.person)}</td><td class="foot">${esc(r.role)}</td><td>${esc(r.fund)}</td><td class="seat">${r.board_seat ? 'Yes' : ''}</td><td class="src">${esc(r.source)}</td><td class="route">${esc(r.route)}</td></tr>`).join('') +
         `</tbody></table>`;
     }
     body.innerHTML = out;
@@ -578,7 +580,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const hits = filter(q.value);
     if (count) count.textContent = q.value.trim() ? `${hits.length} of ${T.length}` : `${T.length}`;
     matches.innerHTML = hits.map(t => `<a href="#${esc(t.company_id)}" data-id="${esc(t.company_id)}">${esc(t.company_name)}<span class="n">${t.header.requests}</span></a>`).join('')
-      || `<p class="empty">no company matches</p>`;
+      || `<p class="empty">No company matches</p>`;
     matches.querySelectorAll('a').forEach(a => a.onclick = e => { e.preventDefault(); render(T.find(t => t.company_id === a.dataset.id)); });
     const exact = hits.find(t => norm(t.company_name) === norm(q.value) || t.company_id.toLowerCase() === q.value.trim().toLowerCase());
     if (exact) render(exact);

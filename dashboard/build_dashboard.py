@@ -195,7 +195,7 @@ def pct(a, b, digits=0):
 
 def funnel_table(stg):
     n = [c for _, c in stg]
-    return table(["Stage", "Count", "of requests", "step conversion"],
+    return table(["Stage", "Count", "Of requests", "Step conversion"],
                  [(name, c, pct(c, n[0]), pct(c, n[i - 1]) if i else "—") for i, (name, c) in enumerate(stg)])
 
 
@@ -218,8 +218,8 @@ ov_body += f'<tr class="total"><td>Total</td><td></td><td class="num">{ov_n}</td
 ov_body += "".join(
     f'<tr class="ratio"><td colspan="3">{esc(label)}</td><td class="num">{value:.1%}</td></tr>'
     for label, value in ratios(overview))
-overview_table = ('<table class="fo"><thead><tr><th>Category</th><th>Funnel Dropoff</th>'
-                  '<th class="num"># Requests</th><th class="num">% Total</th></tr></thead>'
+overview_table = ('<table class="fo"><thead><tr><th>Category</th><th>Funnel dropoff</th>'
+                  '<th class="num">Requests</th><th class="num">% of total</th></tr></thead>'
                   f'<tbody>{ov_body}</tbody></table>')
 
 # --------------------------------------------------------------------------- additional data cuts
@@ -247,9 +247,9 @@ def demand_chart(dm, div_id):
     top = dm["companies"][:20]
     fig = go.Figure()
     fig.add_bar(y=[b["name"] for b in top][::-1], x=[b["routed"] for b in top][::-1],
-                name="routed to a connector", orientation="h", marker_color=theme.ACCENT)
+                name="Routed to a connector", orientation="h", marker_color=theme.ACCENT)
     fig.add_bar(y=[b["name"] for b in top][::-1], x=[b["requests"] - b["routed"] for b in top][::-1],
-                name="never routed", orientation="h", marker_color=theme.NEUTRAL)
+                name="Never routed", orientation="h", marker_color=theme.NEUTRAL)
     fig.update_layout(barmode="stack", height=560, autosize=True, margin=dict(l=10, r=20, t=10, b=30),
                       **theme.PLOTLY_LAYOUT)
     fig.update_layout(legend=dict(orientation="h", y=1.04, x=0), xaxis=dict(title="asks"), yaxis=dict(automargin=True))
@@ -293,10 +293,10 @@ for i in range(len(weeks)):
     req_n = sum(w[1] for w in window)
     roll.append(sum(w[3] for w in window) / req_n if req_n else None)
 trend_fig = go.Figure()
-trend_fig.add_bar(x=[w[0] for w in weeks], y=[w[1] for w in weeks], name="requests filed",
+trend_fig.add_bar(x=[w[0] for w in weeks], y=[w[1] for w in weeks], name="Requests filed",
                   marker_color=theme.NEUTRAL)
-trend_fig.add_bar(x=[w[0] for w in weeks], y=[w[3] for w in weeks], name="intros sent", marker_color=theme.ACCENT)
-trend_fig.add_scatter(x=[w[0] for w in weeks], y=roll, name="completion rate (4-week rolling)",
+trend_fig.add_bar(x=[w[0] for w in weeks], y=[w[3] for w in weeks], name="Intros sent", marker_color=theme.ACCENT)
+trend_fig.add_scatter(x=[w[0] for w in weeks], y=roll, name="Completion rate (4-week rolling)",
                       yaxis="y2", mode="lines", line=dict(color=theme.WARN, width=2))
 trend_fig.update_layout(barmode="overlay", height=380, autosize=True, margin=dict(l=10, r=10, t=10, b=30),
                         **theme.PLOTLY_LAYOUT)
@@ -314,14 +314,14 @@ monthly_table = table(["Month", "Requests", "Routed", "Intros sent", "Completion
 cycles = connector_cycles(TODAY)
 cyc_rows = cycles["rows"]
 cyc_fig = go.Figure()
-cyc_fig.add_bar(x=[r["cycle"] for r in cyc_rows], y=[r["used"] for r in cyc_rows], name="roster slots used",
+cyc_fig.add_bar(x=[r["cycle"] for r in cyc_rows], y=[r["used"] for r in cyc_rows], name="Roster slots used",
                 marker_color=theme.NEUTRAL)
-cyc_fig.add_bar(x=[r["cycle"] for r in cyc_rows], y=[r["intros"] for r in cyc_rows], name="intros made",
+cyc_fig.add_bar(x=[r["cycle"] for r in cyc_rows], y=[r["intros"] for r in cyc_rows], name="Intros made",
                 marker_color=theme.ACCENT)
 cyc_fig.add_scatter(x=[r["cycle"] for r in cyc_rows], y=[r["intros_cumulative"] for r in cyc_rows],
-                    name="cumulative intros", mode="lines+markers", line=dict(color=theme.WARN, width=2))
+                    name="Cumulative intros", mode="lines+markers", line=dict(color=theme.WARN, width=2))
 cyc_fig.add_scatter(x=[r["cycle"] for r in cyc_rows], y=[r["capacity_pct"] for r in cyc_rows],
-                    name="capacity used", yaxis="y2", mode="lines", line=dict(color=theme.BATON, width=2, dash="dot"))
+                    name="Capacity used", yaxis="y2", mode="lines", line=dict(color=theme.BATON, width=2, dash="dot"))
 cyc_fig.update_layout(barmode="overlay", height=380, autosize=True, margin=dict(l=10, r=10, t=10, b=30),
                       **theme.PLOTLY_LAYOUT)
 cyc_fig.update_layout(legend=dict(orientation="h", y=1.08, x=0),
@@ -431,6 +431,8 @@ main{{max-width:1240px;margin:0 auto;padding:28px 40px 72px}}
 section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:calc(var(--topbar,140px) + 16px)}}
 h2{{margin:0 0 6px;font-size:22px}}
 h3{{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}}
+h3 .foot{{font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px}}
+h3 code{{text-transform:none;letter-spacing:0;font-size:11.5px}}
 details{{margin-top:26px}}
 summary{{cursor:pointer;list-style:none;margin-bottom:10px}}
 summary::-webkit-details-marker{{display:none}}
@@ -443,6 +445,7 @@ details[open] summary::before{{content:"− "}}
 .kpi.warn .v{{color:var(--warn)}}
 .kpi .v.words{{font-size:20px;padding-top:6px;color:var(--mute)}}
 .kpi .l{{margin-top:6px;font-weight:500;font-size:13px}}
+.kpi .l::first-letter,.kpi .s::first-letter,.strip .l::first-letter,.empty::first-letter{{text-transform:uppercase}}
 .kpi .s{{color:var(--mute);font-size:12px;margin-top:2px}}
 table{{border-collapse:collapse;width:100%;font-size:14px;font-family:var(--sans);font-variant-numeric:tabular-nums}}
 .tscroll{{overflow-x:auto;-webkit-overflow-scrolling:touch}}
@@ -522,7 +525,7 @@ nav.bands a.band{{font-weight:600;font-size:12px;text-transform:uppercase;letter
 #lp .masthead .strip .cell{{padding:10px 12px 8px}}
 #lp .masthead .strip .v{{font-size:20px}}
 #lp .masthead .strip .n{{font-size:12px}}
-#lp .masthead .strip .l{{margin-top:4px;font-size:11px}}
+#lp .masthead .strip .l{{margin-top:4px;font-size:12px}}
 #lp .masthead details.note{{margin:8px 0 0}}
 #lp .masthead details.note summary{{margin:0;font-size:12.5px;color:var(--mute)}}
 #lp .masthead details.note p{{margin:6px 0 0}}
@@ -535,7 +538,6 @@ nav.bands a.band{{font-weight:600;font-size:12px;text-transform:uppercase;letter
 #lp .fold[open]>summary::after{{transform:none}}
 #lp .fold>summary:hover::after{{color:var(--ink)}}
 #lp .fold[open]>summary{{margin-bottom:6px}}
-#lp .lede{{font-size:15.5px}}
 #lp q{{quotes:"\\201C" "\\201D";font-family:var(--serif);font-style:italic}}
 #lp b.warn,#lp .warn{{color:var(--warn)}}
 #lp td.rid,#lp td.date{{font-family:var(--mono);font-size:12.5px;white-space:nowrap}}
@@ -547,7 +549,7 @@ nav.bands a.band{{font-weight:600;font-size:12px;text-transform:uppercase;letter
 #lp .strip .cell{{background:var(--surface);padding:14px 16px 12px;font-family:var(--sans)}}
 #lp .strip .v{{font-size:26px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}}
 #lp .strip .n{{color:var(--mute);font-size:12.5px;margin-top:2px}}
-#lp .strip .l{{margin-top:8px;font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}}
+#lp .strip .l{{margin-top:8px;font-size:13px;font-weight:500;color:var(--ink)}}
 @media(max-width:900px){{#lp .strip{{grid-template-columns:repeat(3,1fr)}}}}
 #lp table.top td.order{{color:var(--mute)}}
 #lp table.top td.ev{{font-size:18px;font-weight:500;color:var(--blue)}}
@@ -746,7 +748,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var box = t.parentElement, q = '', p = 0, all = false;
     var barEl = document.createElement('div');
     barEl.className = 'pager';
-    barEl.innerHTML = '<input type="search" placeholder="filter rows" aria-label="filter rows"><span class="pg-l"></span><span class="pg-b"></span><button type="button" class="pg-all"></button>';
+    barEl.innerHTML = '<input type="search" placeholder="Filter rows" aria-label="Filter rows"><span class="pg-l"></span><span class="pg-b"></span><button type="button" class="pg-all"></button>';
     box.parentNode.insertBefore(barEl, box.nextSibling);
     var label = barEl.querySelector('.pg-l'), nums = barEl.querySelector('.pg-b'), allBtn = barEl.querySelector('.pg-all');
     var draw = function () {
@@ -757,8 +759,8 @@ document.addEventListener('DOMContentLoaded', function () {
       var shown = all ? hits : hits.slice(p * PAGE, (p + 1) * PAGE);
       shown.forEach(function (r) { r.hidden = false; });
       var of = q ? ' matching' : '';
-      label.textContent = !hits.length ? 'no rows match' : all || hits.length <= PAGE ? hits.length + of + ' rows'
-        : 'rows ' + (p * PAGE + 1) + '\u2013' + (p * PAGE + shown.length) + ' of ' + hits.length + of;
+      label.textContent = !hits.length ? 'No rows match' : all || hits.length <= PAGE ? hits.length + of + ' rows'
+        : 'Rows ' + (p * PAGE + 1) + '\u2013' + (p * PAGE + shown.length) + ' of ' + hits.length + of;
       nums.innerHTML = '';
       if (!all && n > 1) {
         var mk = function (txt, to, dis, on) {
@@ -857,7 +859,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>"""
 
 
-built = f"built {TODAY.isoformat()}"
+built = f"Built {TODAY.isoformat()}"
 
 
 def head(title):
@@ -867,37 +869,37 @@ def head(title):
             f'<script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>\n{theme.FONT_LINK}\n{STYLE}</head>')
 
 
-raw_page = f"""{head("raw Sept data dashboard")}
+raw_page = f"""{head("Raw Sept Data Dashboard")}
 <body>
 {tabs(RAW_HTML)}
 <header>
-  <h1>Raw Sept data: scoping and verification</h1>
-  <p>200 warm-intro requests · Aug 2025 to Jul 2026 · source: the September exports in <code>dataset/</code>, as filed · {built}</p>
+  <h1>Raw Sept Data Dashboard</h1>
+  <p>Scoping and verification of 200 warm-intro requests · Aug 2025 to Jul 2026 · Source: the September exports in <code>dataset/</code>, as filed · {built}</p>
 </header>
 <div class="layout">
-{sidebar([("#flow", "File flow", ""), ("#overview", "Funnel overview", ""), ("#joins", "Joins", ""), ("#targets", "Target people", ""),
-          ("#timing", "Timing", ""), ("#scoping", "Slack threads", ""), ("#quality", "Flags &amp; coverage", ""), ("#verify", "CSV profile", ""),
-          ("#integrity", "Integrity audit", "")])}
+{sidebar([("#flow", "File Flow", ""), ("#overview", "Funnel Overview", ""), ("#joins", "Joins", ""), ("#targets", "Target People", ""),
+          ("#timing", "Timing", ""), ("#scoping", "Slack Threads", ""), ("#quality", "Flags &amp; Coverage", ""), ("#verify", "CSV Profile", ""),
+          ("#integrity", "Integrity Audit", "")])}
 <main>
 
 <p class="lede part-lede">Computed directly from the exports in <code>dataset/</code>: intro requests and outcomes, CRM accounts, connection lists, roster and Slack threads, as filed. The <a href="{LIVE_HTML}">Live Data Dashboard</a> tab shows the same requests after entity resolution.</p>
 
 <section id="flow">
-  <h2>How the files connect</h2>
+  <h2>How the Files Connect</h2>
   <p class="lede">An intro request moves from Slack to a logged outcome; the four reference tables feed the routing step by name/company text only, and <code>request_id</code> is the sole real key.</p>
   <img src="routing_flow.png" alt="Intro-request routing flow across the CSV files" style="display:block;max-width:720px;width:100%;margin:0 auto">
   <p class="foot">Source: <code>analysis/routing/routing_flow.mmd</code>; narrative in <code>analysis/routing/routing_flow.md</code>.</p>
 </section>
 
 <section id="overview">
-  <h2>Funnel overview</h2>
+  <h2>Funnel Overview</h2>
   <p class="lede">Every request drops out at the first stage it fails, so the eight buckets partition all {ov_n} requests. Unrouted requests split on whether the target company appears in <code>dataset/connections_*.csv</code>; a target counts as identifiable when a company can be recovered from <code>target_company_raw</code>, the company names in <code>raw_ask</code>, or an email domain in <code>raw_ask</code>.</p>
   {overview_table}
   <p class="foot">Buckets and ratios: <code>dashboard/funnel_overview.py</code> (also prints the table standalone).</p>
 </section>
 
 <section id="joins">
-  <h2>Scoped joins</h2>
+  <h2>Scoped Joins</h2>
   <p class="lede">Every entity link measured in both directions at the loosest normalization tier (lowercase, punctuation and legal suffixes stripped), from <code>analysis/joins/join_rates.md</code>. "Left matched" is the share of distinct left-hand values that find a counterpart.</p>
   <div class="kpis">
     {kpi(len(joins["perfect"]), "joins clean in both directions", f"of {len(joins['joins'])} links measured")}
@@ -925,7 +927,7 @@ raw_page = f"""{head("raw Sept data dashboard")}
 </section>
 
 <section id="targets">
-  <h2>Target people: does the named individual exist anywhere?</h2>
+  <h2>Target People: Does the Named Individual Exist Anywhere?</h2>
   <p class="lede">{targets["named"]} of {targets["requests"]} requests name a person in <code>target_person_raw</code> ({targets["blank"]} leave it blank). Each name was looked up in every other file in <code>dataset/</code>.</p>
   <div class="kpis">
     {kpi(f"0 / {targets['distinct']}", "named targets found anywhere", "across connections, investors, roster, CRM owners, Slack")}
@@ -949,7 +951,7 @@ raw_page = f"""{head("raw Sept data dashboard")}
 </section>
 
 <section id="timing">
-  <h2>Routing time and completion</h2>
+  <h2>Routing Time and Completion</h2>
   <p class="lede">Completion is defined as <code>intro_sent = Y</code>. Latency is measured from <code>request_date</code> to <code>asked_date</code> (routing) and to <code>intro_date</code> (delivery).</p>
   <div class="kpis">
     {kpi(f"{timing['mean_to_ask']:.1f} d", "mean request -> connector asked", f"median {timing['median_to_ask']:.0f} d over {len(timing['to_ask'])} routed requests")}
@@ -973,7 +975,7 @@ raw_page = f"""{head("raw Sept data dashboard")}
 </section>
 
 <section id="scoping">
-  <h2>Scoping: what happens in <code>#intro-requests</code></h2>
+  <h2>Scoping: What Happens in <code>#intro-requests</code></h2>
   <p class="lede">From <code>dataset/slack_threads.jsonl</code>: {len(threads)} threads, {sum(len(t["messages"]) for t in threads)} messages, {len(replies)} replies. Full write-up in <code>analysis/slack/slack_thread_findings.md</code>.</p>
   <div class="kpis">
     {kpi(f"{canned_total/len(replies):.0%}", "of replies are canned", f"{len(masked)} distinct texts after name masking")}
@@ -1009,12 +1011,12 @@ raw_page = f"""{head("raw Sept data dashboard")}
     </div>
   </div>
   <h3>Offers to help with no logged ask</h3>
-  {table(["request_id", "Offered by", "deal_value_usd", "Request status", "Reply"],
+  {table(["Request", "Offered by", "Deal value (USD)", "Request status", "Reply"],
          [(rid, m["user"], f"{float(requests[rid]['deal_value_usd']):,.0f}", requests[rid]["status"], m["text"]) for rid, m in offers_unlogged])}
 </section>
 
 <section id="quality">
-  <h2>Flags, statuses and outcome coverage</h2>
+  <h2>Flags, Statuses and Outcome Coverage</h2>
   <p class="lede">Whether <code>path_found_flag</code> and <code>status</code> carry information, and whether <code>intro_outcomes.csv</code> is a deliberate subset of <code>intro_requests.csv</code> or a coverage hole.</p>
   <div class="kpis">
     {kpi(f"{(noise['flags']['(blank)'] + noise['flags']['Unknown'])/len(requests):.0%}", "of path_found_flag is blank or Unknown", f"{noise['flags']['(blank)']} blank · {noise['flags']['Unknown']} Unknown")}
@@ -1024,7 +1026,7 @@ raw_page = f"""{head("raw Sept data dashboard")}
   </div>
   <div class="grid2">
     <div>
-      <h3>path_found_flag x status</h3>
+      <h3><code>path_found_flag</code> × <code>status</code></h3>
       {matrix_table}
       <h3>What the flag actually predicts</h3>
       {reality_table}
@@ -1038,7 +1040,7 @@ raw_page = f"""{head("raw Sept data dashboard")}
       {contradiction_table}
     </div>
   </div>
-  <h3>intro_outcomes vs intro_requests: subset or coverage hole?</h3>
+  <h3><code>intro_outcomes</code> vs <code>intro_requests</code>: subset or coverage hole?</h3>
   <div class="grid2">
     <div>
       {coverage_table}
@@ -1052,7 +1054,7 @@ raw_page = f"""{head("raw Sept data dashboard")}
 </section>
 
 <section id="verify">
-  <h2>Verification: CSV inventory profile</h2>
+  <h2>Verification: CSV Inventory Profile</h2>
   <p class="lede">From <code>analysis/profile/profile.md</code> (generated by <code>analysis/profile/profile_csvs.py</code>): {len(inventory)} CSV files, {sum(r for _, r, _, _ in inventory):,} data rows, {len(flags)} column-level flags.</p>
   <div class="kpis">
     {kpi(len(inventory), "CSV files profiled", f"{sum(r for _, r, _, _ in inventory):,} rows")}
@@ -1094,24 +1096,24 @@ raw_page = f"""{head("raw Sept data dashboard")}
 </body></html>
 """
 
-live_page = f"""{head("live data dashboard")}
+live_page = f"""{head("Live Data Dashboard")}
 <body>
 {tabs(LIVE_HTML)}
 <header>
-  <h1>Live data: funnel, accounts and connectors</h1>
-  <p>The same {len(requests)} requests after entity resolution · source: <code>golden/</code>, rebuilt from <code>dataset/</code> by <code>python3 build.py</code> · {built}</p>
+  <h1>Live Data Dashboard</h1>
+  <p>Funnel, accounts and connectors: the same {len(requests)} requests after entity resolution · Source: <code>golden/</code>, rebuilt from <code>dataset/</code> by <code>python3 build.py</code> · {built}</p>
 </header>
 <div class="layout">
-{sidebar([("#funnel", "Funnel", ""), ("#accounts", "Accounts", ""), ("#connectors", "Connectors", ""), ("#cycles", "Intros by cycle", "")])}
+{sidebar([("#funnel", "Funnel", ""), ("#accounts", "Accounts", ""), ("#connectors", "Connectors", ""), ("#cycles", "Intros by Cycle", "")])}
 <main>
 
 <p class="lede part-lede">Computed from <code>golden/</code> (<code>golden_requests.csv</code>, <code>golden_companies.csv</code>, <code>supply_reach.csv</code>) after entity resolution, so companies are counted by identity rather than by how the name was typed.</p>
 
 <section id="funnel">
-  <h2>Where the requests go</h2>
+  <h2>Where the Requests Go</h2>
   <p class="lede">From <code>golden/golden_requests.csv</code>. Node labels show how many requests survive each step. Pipeline $ is deliberately omitted: the same <code>deal_value_usd</code> would be re-counted at every stage a request passes through.</p>
   <div class="seg" id="funnel-toggle" data-scope="funnel" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
-  <span class="foot" id="funnel-window" data-all="every request on file, {stages_first} to {stages_last}" data-12m="requests dated {ROLLING_SINCE} or later ({counts_12m[0]} of {counts[0]}), rolling from the build date">every request on file, {stages_first} to {stages_last}</span>
+  <span class="foot" id="funnel-window" data-all="Every request on file, {stages_first} to {stages_last}" data-12m="Requests dated {ROLLING_SINCE} or later ({counts_12m[0]} of {counts[0]}), rolling from the build date">Every request on file, {stages_first} to {stages_last}</span>
   <div class="fview" data-view="12m" hidden>
   {funnel_kpis(counts_12m)}
   {sankey_div_12m}
@@ -1148,7 +1150,7 @@ live_page = f"""{head("live data dashboard")}
 </section>
 
 <section id="accounts">
-  <h2>Account-level demand</h2>
+  <h2>Account-Level Demand</h2>
   <p class="lede">Asks per company after entity resolution ({len(demand["companies"])} distinct companies behind {len(requests) - unresolvable_asks} of {len(requests)} requests, from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked. The {unresolvable_asks} asks that resolve to no company are grouped by why rather than by the name written.</p>
   <div class="kpis">
     {kpi(len(demand["companies"]), "distinct companies requested", f"{demand['repeat_share']:.0%} of asks are for a repeat company")}
@@ -1160,7 +1162,7 @@ live_page = f"""{head("live data dashboard")}
     <div id="demand-views">
       <h3>Top 20 companies by asks</h3>
       <div class="seg" id="demand-toggle" data-scope="demand-views" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
-      <span class="foot" id="demand-views-window" data-all="every request on file, {stages_first} to {stages_last}" data-12m="requests dated {ROLLING_SINCE} or later ({demand_12m['asks']} of {demand['asks']} asks, {len(demand_12m['companies'])} companies), rolling from the build date">every request on file, {stages_first} to {stages_last}</span>
+      <span class="foot" id="demand-views-window" data-all="Every request on file, {stages_first} to {stages_last}" data-12m="Requests dated {ROLLING_SINCE} or later ({demand_12m['asks']} of {demand['asks']} asks, {len(demand_12m['companies'])} companies), rolling from the build date">Every request on file, {stages_first} to {stages_last}</span>
       <div class="fview" data-view="12m" hidden>{demand_div_12m}</div>
       <div class="fview" data-view="all">{demand_div}</div>
     </div>
@@ -1198,7 +1200,7 @@ live_page = f"""{head("live data dashboard")}
 </script>
 
 <section id="connectors">
-  <h2>Connectors: the six on the roster</h2>
+  <h2>Connectors: The Six on the Roster</h2>
   <p class="lede">Funnel per connector from <code>intro_outcomes.csv</code>, with the stated capacity and free-text note from <code>dataset/connector_roster.csv</code>. An ask is "in focus area" when the resolved company's CRM industry is one of the connector's stated focus areas.</p>
   <div class="kpis">
     {kpi(f"{connectors['in_focus']} / {connectors['asked']}", "asks inside the stated focus area", f"over {connectors['months']} months")}
@@ -1223,7 +1225,7 @@ live_page = f"""{head("live data dashboard")}
 </section>
 
 <section id="cycles">
-  <h2>Intros by cycle</h2>
+  <h2>Intros by Cycle</h2>
   <p class="lede">Every connector summed, one row per cycle (a calendar month, the allocator's unit) from the first ask on file to the current cycle {cycles["cycle"]}. Asks by <code>asked_date</code> and intros by <code>intro_date</code> from <code>intro_outcomes.csv</code>; capacity used is roster asks against the roster's stated monthly capacity of {cycles["roster_capacity"]} in <code>connector_roster.csv</code>. The current cycle counts this build's allocation as slots used, since those asks are about to go out. Each connector's own record is on their tab under Live Priorities.</p>
   <div class="kpis">
     {kpi(cycles["current"]["intros"], "intros made this cycle", f"{cycles['cycle']} · {cyc_prev[-1]['intros'] if cyc_prev else 0} in {cyc_prev[-1]['cycle'] if cyc_prev else 'the cycle before'}")}
@@ -1258,14 +1260,14 @@ live_page = f"""{head("live data dashboard")}
 trace_page = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Halyard · company trace</title>
+<title>Halyard · Company Trace</title>
 {theme.FONT_LINK}
 {STYLE}</head>
 <body>
 {tabs(TRACE_HTML)}
 <header>
-  <h1>Company trace: the full history of one company</h1>
-  <p>What <code>analysis/trace.py</code> prints, for any of the 48 companies with a request · sources: <code>dataset/</code>, <code>golden/</code> · {built}</p>
+  <h1>Company Trace</h1>
+  <p>The full history of one company: what <code>analysis/trace.py</code> prints, for any of the 48 companies with a request · Sources: <code>dataset/</code>, <code>golden/</code> · {built}</p>
 </header>
 <div class="layout">
 {sidebar(title=f'Companies <span class="foot" id="trace-count"></span>', body=trace_sidebar())}
@@ -1280,12 +1282,12 @@ trace_page = f"""<!doctype html>
 </body></html>
 """
 
-priorities_page = f"""{head("live priorities")}
+priorities_page = f"""{head("Live Priorities")}
 <body>
 {tabs(PRIORITIES_HTML)}
 <header>
-  <h1>Live priorities: what to do next, and who does it</h1>
-  <p>Every number here is computed by <code>dashboard/live_priorities.py</code> from <code>golden/</code> and <code>dataset/</code> at build time and written into the page; the browser only renders it. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
+  <h1>Live Priorities</h1>
+  <p>What to do next, and who does it. Every number here is computed by <code>dashboard/live_priorities.py</code> from <code>golden/</code> and <code>dataset/</code> at build time and written into the page; the browser only renders it. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
 </header>
 <div class="layout">
 {sidebar([x for bid, title, _, sections in PRIORITIES_BANDS
@@ -1299,12 +1301,12 @@ priorities_page = f"""{head("live priorities")}
 """
 
 
-batch_page = f"""{head("batched-ask for connectors")}
+batch_page = f"""{head("Batched-Ask for Connectors")}
 <body>
 {tabs(BATCH_HTML)}
 <header>
-  <h1>Batched-Ask for Connectors: one message per connector, this cycle's batch</h1>
-  <p>Each connector's allocated requests from <code>golden/golden_allocation.csv</code>, drafted as a single plain-text ask by <code>dashboard/batch_ask.py</code> at build time with the wording in <code>config/batch_ask_templates.json</code>. Copy, send, then tick <i>ask sent</i> on <a href="{PRIORITIES_HTML}#connectors">Live Priorities</a> or the connector's page. Copying writes nothing. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
+  <h1>Batched-Ask for Connectors</h1>
+  <p>One message per connector, this cycle's batch. Each connector's allocated requests from <code>golden/golden_allocation.csv</code>, drafted as a single plain-text ask by <code>dashboard/batch_ask.py</code> at build time with the wording in <code>config/batch_ask_templates.json</code>. Copy, send, then tick <i>ask sent</i> on <a href="{PRIORITIES_HTML}#connectors">Live Priorities</a> or the connector's page. Copying writes nothing. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
 </header>
 <div class="layout">
 {sidebar(title="Connectors")}
@@ -1323,8 +1325,8 @@ def connector_page(c, frag):
 <body>
 {tabs(c["page"])}
 <header>
-  <h1>{esc(c["connector"])}: top {len(c["top"])}, then the longer list</h1>
-  <p>{who} · {len(c["top"]) + len(c["rest"])} live requests routed to them this cycle, ranked by the same expected value as <a href="{PRIORITIES_HTML}#top">Live Priorities</a>; computed by <code>dashboard/live_priorities.py</code> at build time, rendered by the browser. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
+  <h1>{esc(c["connector"])}</h1>
+  <p>Top {len(c["top"])}, then the longer list · {who} · {len(c["top"]) + len(c["rest"])} live requests routed to them this cycle, ranked by the same expected value as <a href="{PRIORITIES_HTML}#top">Live Priorities</a>; computed by <code>dashboard/live_priorities.py</code> at build time, rendered by the browser. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
 </header>
 <div class="layout">
 {sidebar()}
