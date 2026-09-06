@@ -63,12 +63,17 @@ with open(GOLDEN_REQUESTS, newline="", encoding="utf-8-sig") as _f:
 stages_first, stages_last = _dates[0][:7], _dates[-1][:7]
 
 
+def plot(fig, div_id):
+    html = pio.to_html(fig, include_plotlyjs=False, full_html=False, div_id=div_id,
+                       config={"displayModeBar": False, "responsive": True})
+    return f'<div class="tscroll plot">{html}</div>'
+
+
 def sankey(stg, div_id):
     fig = build_figure(stg)
     fig.update_layout(width=None, height=560, autosize=True, title=None,
                       margin=dict(l=10, r=10, t=20, b=20), paper_bgcolor="rgba(0,0,0,0)")
-    return pio.to_html(fig, include_plotlyjs=False, full_html=False, div_id=div_id,
-                       config={"displayModeBar": False, "responsive": True})
+    return plot(fig, div_id)
 
 
 sankey_div = sankey(stages, "sankey")
@@ -241,8 +246,7 @@ demand_fig.update_layout(barmode="stack", height=560, autosize=True, margin=dict
                          **theme.PLOTLY_LAYOUT)
 demand_fig.update_layout(legend=dict(orientation="h", y=1.04, x=0),
                          xaxis=dict(title="asks"), yaxis=dict(automargin=True))
-demand_div = pio.to_html(demand_fig, include_plotlyjs=False, full_html=False, div_id="demand",
-                         config={"displayModeBar": False, "responsive": True})
+demand_div = plot(demand_fig, "demand")
 demand_rows = [(b["name"], b["industry"] or ("—" if b["in_crm"] else "no CRM record"), b["requests"], b["routed"], b["requests"] - b["routed"],
                 len(b["requesters"]), b["paths"], usd(b["value"])) for b in demand_top]
 demand_rows += [(b["name"], "unresolvable", b["requests"], b["routed"], b["requests"] - b["routed"],
@@ -289,8 +293,7 @@ trend_fig.update_layout(legend=dict(orientation="h", y=1.08, x=0),
                         xaxis=dict(title="week of request"), yaxis=dict(title="requests"),
                         yaxis2=dict(overlaying="y", side="right", tickformat=".0%", range=[0, 1],
                                     title="completion rate", showgrid=False))
-trend_div = pio.to_html(trend_fig, include_plotlyjs=False, full_html=False, div_id="trend",
-                        config={"displayModeBar": False, "responsive": True})
+trend_div = plot(trend_fig, "trend")
 monthly_rows = [(month, n, a, i, f"{i/n:.0%}", f"{lat:.1f} d" if lat is not None else "—")
                 for month, n, a, i, lat in timing["monthly"]]
 monthly_table = table(["Month", "Requests", "Routed", "Intros sent", "Completion rate", "Mean days to ask"],
@@ -314,8 +317,7 @@ cyc_fig.update_layout(legend=dict(orientation="h", y=1.08, x=0),
                       xaxis=dict(title="cycle", type="category"), yaxis=dict(title="asks / intros"),
                       yaxis2=dict(overlaying="y", side="right", tickformat=".0%", rangemode="tozero",
                                   title="capacity used", showgrid=False))
-cyc_div = pio.to_html(cyc_fig, include_plotlyjs=False, full_html=False, div_id="cycles-chart",
-                      config={"displayModeBar": False, "responsive": True})
+cyc_div = plot(cyc_fig, "cycles-chart")
 
 
 def cycle_cell(r):
@@ -369,8 +371,7 @@ contradiction_table = ('<table><thead><tr><th>Contradiction</th><th class="num">
 coverage_table = table(["Status in intro_requests.csv", "Requests with no outcome row"],
                        [(status, n) for status, n in coverage["by_status"]])
 
-reply_div = pio.to_html(reply_fig, include_plotlyjs=False, full_html=False, div_id="replies",
-                        config={"displayModeBar": False, "responsive": True})
+reply_div = plot(reply_fig, "replies")
 
 STYLE = f"""<style>
 :root{{--ink:{theme.INK};--mute:{theme.MUTE};--blue:{theme.ACCENT};--line:{theme.LINE};--bg:{theme.PAPER};--surface:{theme.SURFACE};--warn:{theme.WARN};--navy:{theme.NAVY};--baton:{theme.BATON};
@@ -387,7 +388,7 @@ nav a{{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}}
 nav a:hover{{color:var(--blue)}}
 .part-lede{{margin-bottom:24px}}
 main{{max-width:1240px;margin:0 auto;padding:28px 40px 72px}}
-section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:190px}}
+section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:calc(var(--topbar,140px) + 16px)}}
 h2{{margin:0 0 6px;font-size:22px}}
 h3{{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}}
 details{{margin-top:26px}}
@@ -403,6 +404,7 @@ details[open] summary::before{{content:"− "}}
 .kpi .l{{margin-top:6px;font-weight:500;font-size:13px}}
 .kpi .s{{color:var(--mute);font-size:12px;margin-top:2px}}
 table{{border-collapse:collapse;width:100%;font-size:14px;font-family:var(--sans);font-variant-numeric:tabular-nums}}
+.tscroll{{overflow-x:auto;-webkit-overflow-scrolling:touch}}
 th,td{{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}}
 th{{color:var(--mute);font-weight:500;font-size:12.5px;border-bottom-color:var(--ink)}}
 td:nth-child(n+2):not(:last-child).num,th.num{{text-align:right}}
@@ -416,6 +418,7 @@ table.cycles td.date{{font-family:var(--mono);font-size:12.5px;white-space:nowra
 table.cycles tr.now td{{background:{theme.rgba(theme.BATON, 0.08)};font-weight:500}}
 table.cycles tr.now td .foot{{font-weight:400}}
 .grid2{{display:grid;grid-template-columns:1fr 1fr;gap:32px}}
+.grid2>*{{min-width:0}}
 @media(max-width:900px){{.grid2{{grid-template-columns:1fr}}}}
 .finding{{border-left:2px solid var(--blue);padding:6px 16px;margin:12px 0;background:var(--bg)}}
 .finding.warn{{border-color:var(--warn)}}
@@ -506,6 +509,49 @@ img{{max-width:100%}}
 #lp .route-note.ok{{border-color:var(--blue)}}
 #lp .ev{{font-size:18px;font-weight:500;color:var(--blue)}}
 #lp #route td.path{{white-space:nowrap}}
+/* phones */
+@media(max-width:720px){{
+  html{{-webkit-text-size-adjust:100%}}
+  body{{font-size:15px}}
+  code{{overflow-wrap:anywhere}}
+  header{{padding:20px 16px 18px}}
+  header h1{{font-size:26px}}
+  header p{{font-size:14px}}
+  nav a{{display:inline-block;margin:0 14px 6px 0}}
+  main{{padding:16px 10px 64px}}
+  section{{padding:18px 14px;margin-bottom:14px}}
+  h2{{font-size:20px}}
+  h3{{margin-top:22px}}
+  .lede{{font-size:15px}}
+  .kpis{{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}}
+  .kpi{{padding:12px 12px 10px}}
+  .kpi .v{{font-size:24px}}
+  table{{font-size:13px;min-width:var(--tmin,0)}}
+  th,td{{padding:7px 8px}}
+  .grid2{{gap:20px}}
+  .finding{{padding:6px 12px}}
+  .mastrow{{padding:8px 16px 7px}}
+  .mastrow .built{{display:none}}
+  .mast .t{{font-size:15px}}
+  .tabs,.tabs.people{{flex-wrap:nowrap;overflow-x:auto;padding-left:16px;padding-right:16px;scrollbar-width:none}}
+  .tabs::-webkit-scrollbar{{display:none}}
+  .tabs a,.tabs.people a,.tabs.people .lbl{{flex:none;white-space:nowrap;margin-bottom:0}}
+  .tabs a{{padding:8px 12px}}
+  .plotly-graph-div{{min-width:600px}}
+  .totop{{right:14px;bottom:14px;width:40px;height:40px}}
+  #lp .strip{{grid-template-columns:repeat(2,1fr)}}
+  #lp .strip .cell{{padding:12px 12px 10px}}
+  #lp .strip .v{{font-size:22px}}
+  #lp .fold summary{{gap:10px}}
+  #lp .ask{{flex-direction:column}}
+  #lp .ask button{{align-self:flex-start}}
+  #lp .dl{{flex-direction:column;gap:6px}}
+  #lp .dl span{{padding-top:0}}
+  #lp dl.route{{grid-template-columns:1fr;gap:2px 0}}
+  #lp dl.route dt{{padding-top:10px}}
+  #lp dl.route dt:first-child{{padding-top:0}}
+  #lp .drop{{padding:20px 14px}}
+}}
 </style>"""
 
 RAW_HTML, LIVE_HTML, TRACE_HTML = "halyardscoping.html", "livedata.html", "companytrace.html"
@@ -540,11 +586,13 @@ def tabs(active):
                      for c, _ in connector_pages)
     return (f'<div class="topbar"><div class="mastrow">{MASTHEAD}<span class="built">{built}</span></div>'
             f'<div class="tabs">{pages}</div>'
-            + (f'<div class="tabs people"><span class="lbl">Live Priorities · by connector</span>{people}</div>' if people_row
-               else '<style>section{scroll-margin-top:110px}</style>')
+            + (f'<div class="tabs people"><span class="lbl">Live Priorities · by connector</span>{people}</div>' if people_row else '')
             + f'</div>{TOTOP}')
 
 
+# Back-to-top button; the topbar's height as --topbar so anchors land below it; every table
+# in a horizontally scrolling wrapper (the wide ones overflow a phone screen); and on a narrow
+# screen the tab rows scroll sideways, so bring the active tab into view.
 TOTOP = """<button class="totop" type="button" title="Back to top" aria-label="Back to top">&uarr;</button>
 <script>
 (function () {
@@ -553,6 +601,32 @@ TOTOP = """<button class="totop" type="button" title="Back to top" aria-label="B
   window.addEventListener('scroll', show, { passive: true });
   show();
   b.onclick = function () { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+
+  var bar = document.querySelector('.topbar');
+  var fit = function () { document.documentElement.style.setProperty('--topbar', bar.offsetHeight + 'px'); };
+  fit();
+  window.addEventListener('resize', fit);
+  window.addEventListener('load', fit);
+
+  var wrap = function () {
+    document.querySelectorAll('table').forEach(function (t) {
+      if (t.parentElement.classList.contains('tscroll')) return;
+      var row = t.querySelector('tr'), cols = 0;
+      if (row) for (var i = 0; i < row.cells.length; i++) cols += row.cells[i].colSpan;
+      t.style.setProperty('--tmin', Math.min(cols * 130, 1100) + 'px');
+      var d = document.createElement('div');
+      d.className = 'tscroll';
+      t.parentNode.insertBefore(d, t);
+      d.appendChild(t);
+    });
+  };
+  wrap();
+  new MutationObserver(wrap).observe(document.body, { childList: true, subtree: true });
+
+  bar.querySelectorAll('.tabs').forEach(function (row) {
+    var on = row.querySelector('a.on, a.parent');
+    if (on && row.scrollWidth > row.clientWidth) row.scrollLeft = on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2;
+  });
 })();
 </script>"""
 

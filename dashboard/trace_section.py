@@ -42,6 +42,7 @@ def fragment() -> str:
 #trace .legend b.missed{{color:var(--warn)}} #trace .legend b.worked{{color:#1d6b2a}} #trace .legend b.offer{{color:var(--blue)}} #trace .legend b.warning{{color:var(--warn)}}
 #trace td.order{{font-family:var(--mono);color:var(--mute)}}
 #trace .empty{{color:var(--mute);font-style:italic}}
+@media(max-width:720px){{#trace .search{{flex-wrap:wrap}} #trace .search input{{flex-basis:100%;max-width:none}} #trace h2.co{{font-size:22px}}}}
 </style>
 <div class="search">
   <input id="trace-q" type="search" placeholder="Search a company — name, alias, C018, A1050…" autocomplete="off" spellcheck="false">

@@ -18,7 +18,7 @@ nav a{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}
 nav a:hover{color:var(--blue)}
 .part-lede{margin-bottom:24px}
 main{max-width:1240px;margin:0 auto;padding:28px 40px 72px}
-section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:190px}
+section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:calc(var(--topbar,140px) + 16px)}
 h2{margin:0 0 6px;font-size:22px}
 h3{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
 details{margin-top:26px}
@@ -34,6 +34,7 @@ details[open] summary::before{content:"− "}
 .kpi .l{margin-top:6px;font-weight:500;font-size:13px}
 .kpi .s{color:var(--mute);font-size:12px;margin-top:2px}
 table{border-collapse:collapse;width:100%;font-size:14px;font-family:var(--sans);font-variant-numeric:tabular-nums}
+.tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
 th{color:var(--mute);font-weight:500;font-size:12.5px;border-bottom-color:var(--ink)}
 td:nth-child(n+2):not(:last-child).num,th.num{text-align:right}
@@ -47,6 +48,7 @@ table.cycles td.date{font-family:var(--mono);font-size:12.5px;white-space:nowrap
 table.cycles tr.now td{background:rgba(196,118,62,0.08);font-weight:500}
 table.cycles tr.now td .foot{font-weight:400}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.grid2>*{min-width:0}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
 .finding{border-left:2px solid var(--blue);padding:6px 16px;margin:12px 0;background:var(--bg)}
 .finding.warn{border-color:var(--warn)}
@@ -137,6 +139,49 @@ img{max-width:100%}
 #lp .route-note.ok{border-color:var(--blue)}
 #lp .ev{font-size:18px;font-weight:500;color:var(--blue)}
 #lp #route td.path{white-space:nowrap}
+/* phones */
+@media(max-width:720px){
+  html{-webkit-text-size-adjust:100%}
+  body{font-size:15px}
+  code{overflow-wrap:anywhere}
+  header{padding:20px 16px 18px}
+  header h1{font-size:26px}
+  header p{font-size:14px}
+  nav a{display:inline-block;margin:0 14px 6px 0}
+  main{padding:16px 10px 64px}
+  section{padding:18px 14px;margin-bottom:14px}
+  h2{font-size:20px}
+  h3{margin-top:22px}
+  .lede{font-size:15px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .kpi{padding:12px 12px 10px}
+  .kpi .v{font-size:24px}
+  table{font-size:13px;min-width:var(--tmin,0)}
+  th,td{padding:7px 8px}
+  .grid2{gap:20px}
+  .finding{padding:6px 12px}
+  .mastrow{padding:8px 16px 7px}
+  .mastrow .built{display:none}
+  .mast .t{font-size:15px}
+  .tabs,.tabs.people{flex-wrap:nowrap;overflow-x:auto;padding-left:16px;padding-right:16px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs a,.tabs.people a,.tabs.people .lbl{flex:none;white-space:nowrap;margin-bottom:0}
+  .tabs a{padding:8px 12px}
+  .plotly-graph-div{min-width:600px}
+  .totop{right:14px;bottom:14px;width:40px;height:40px}
+  #lp .strip{grid-template-columns:repeat(2,1fr)}
+  #lp .strip .cell{padding:12px 12px 10px}
+  #lp .strip .v{font-size:22px}
+  #lp .fold summary{gap:10px}
+  #lp .ask{flex-direction:column}
+  #lp .ask button{align-self:flex-start}
+  #lp .dl{flex-direction:column;gap:6px}
+  #lp .dl span{padding-top:0}
+  #lp dl.route{grid-template-columns:1fr;gap:2px 0}
+  #lp dl.route dt{padding-top:10px}
+  #lp dl.route dt:first-child{padding-top:0}
+  #lp .drop{padding:20px 14px}
+}
 </style></head>
 <body>
 <div class="topbar"><div class="mastrow"><a class="mast" href="livedata.html"><svg class="logo" width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="7" fill="#17293f"/><rect x="9" y="9" width="3.4" height="22" fill="#fff"/><rect x="27.6" y="9" width="3.4" height="22" fill="#fff"/><path d="M12.4 26.4 27.6 14.6" stroke="#c4763e" stroke-width="3"/></svg><span class="t"><b>Halyard Baton</b> / intro routing console</span></a><span class="built">built 2026-09-06</span></div><div class="tabs"><a href="livepriorities.html">Live Priorities</a><a href="companytrace.html" class="on">Company Trace</a><a href="livedata.html">Live Data Dashboard</a><a href="halyardscoping.html">Raw Sept Data Dashboard</a></div><div class="tabs people"><span class="lbl">Live Priorities · by connector</span><a href="connector-marcus-aldridge.html">Marcus Aldridge<span class="n">8</span></a><a href="connector-dana-whitfield.html">Dana Whitfield<span class="n">6</span></a><a href="connector-priya-raghunathan.html">Priya Raghunathan<span class="n">8</span></a><a href="connector-tomas-beckett.html">Tomás Beckett<span class="n">8</span></a><a href="connector-elena-duvall.html">Elena Duvall<span class="n">3</span></a><a href="connector-owen-trask.html">Owen Trask<span class="n">3</span></a><a href="connector-imani-mkhize.html">Imani Mkhize<span class="n">2</span></a><a href="connector-curtis-hartigan.html">Curtis Hartigan<span class="n">2</span></a><a href="connector-yusuf-petrossian.html">Yusuf Petrossian<span class="n">2</span></a><a href="connector-nadia-okonkwo.html">Nadia Okonkwo<span class="n">1</span></a></div></div><button class="totop" type="button" title="Back to top" aria-label="Back to top">&uarr;</button>
@@ -147,6 +192,32 @@ img{max-width:100%}
   window.addEventListener('scroll', show, { passive: true });
   show();
   b.onclick = function () { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+
+  var bar = document.querySelector('.topbar');
+  var fit = function () { document.documentElement.style.setProperty('--topbar', bar.offsetHeight + 'px'); };
+  fit();
+  window.addEventListener('resize', fit);
+  window.addEventListener('load', fit);
+
+  var wrap = function () {
+    document.querySelectorAll('table').forEach(function (t) {
+      if (t.parentElement.classList.contains('tscroll')) return;
+      var row = t.querySelector('tr'), cols = 0;
+      if (row) for (var i = 0; i < row.cells.length; i++) cols += row.cells[i].colSpan;
+      t.style.setProperty('--tmin', Math.min(cols * 130, 1100) + 'px');
+      var d = document.createElement('div');
+      d.className = 'tscroll';
+      t.parentNode.insertBefore(d, t);
+      d.appendChild(t);
+    });
+  };
+  wrap();
+  new MutationObserver(wrap).observe(document.body, { childList: true, subtree: true });
+
+  bar.querySelectorAll('.tabs').forEach(function (row) {
+    var on = row.querySelector('a.on, a.parent');
+    if (on && row.scrollWidth > row.clientWidth) row.scrollLeft = on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2;
+  });
 })();
 </script>
 <header>
@@ -181,6 +252,7 @@ img{max-width:100%}
 #trace .legend b.missed{color:var(--warn)} #trace .legend b.worked{color:#1d6b2a} #trace .legend b.offer{color:var(--blue)} #trace .legend b.warning{color:var(--warn)}
 #trace td.order{font-family:var(--mono);color:var(--mute)}
 #trace .empty{color:var(--mute);font-style:italic}
+@media(max-width:720px){#trace .search{flex-wrap:wrap} #trace .search input{flex-basis:100%;max-width:none} #trace h2.co{font-size:22px}}
 </style>
 <div class="search">
   <input id="trace-q" type="search" placeholder="Search a company — name, alias, C018, A1050…" autocomplete="off" spellcheck="false">
