@@ -555,7 +555,7 @@ nav.bands a.band{{font-weight:600;font-size:12px;text-transform:uppercase;letter
 #lp table.top tr.quiet td{{color:var(--mute)}}
 #lp table.top tr.owned td{{color:var(--mute)}}
 #lp table.top .tick{{width:16px;height:16px;accent-color:var(--blue)}}
-#lp .parts .c{{border-bottom:1px dotted var(--mute);cursor:help}}
+#lp .parts .c,#lp table.preview .c{{border-bottom:1px dotted var(--mute);cursor:help}}
 #lp th .fm{{font-weight:400;font-size:11px;text-transform:none;letter-spacing:0}}
 #lp .formula{{margin-top:14px;padding:12px 16px;background:var(--bg);border-left:2px solid var(--blue)}}
 #lp .formula p{{margin:0 0 6px}}

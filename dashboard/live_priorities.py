@@ -1062,8 +1062,10 @@ class Live:
                 "owner": c["owner"], "arr_fmt": money(usd(acct["arr_potential_usd"])) if acct else "",
                 "paths": paths, "priority": self.route_priority(cid),
                 "best": {"connector": best["connector"], "reach_type": best["reach_type"], "contact": best["contact"],
-                         "score": best["score"], "label": best["label"]} if best else None,
+                         "score": best["score"], "label": best["label"], "strength": best["strength"], "fit": best["fit"],
+                         "rate": best["rate"], "capacity_left": best["capacity_left"]} if best else None,
                 "offer_score": {n: round(bg.PATH_BASE["offer"] * self.fit(n, ind) * self.rate(n), 3) for n in askable},
+                "offer_fit": {n: round(self.fit(n, ind), 2) for n in askable},
                 "offer_score_unknown": round(bg.PATH_BASE["offer"] * 0.7 * bg.PRIOR_RATE, 3),
             }
         return {
@@ -1086,6 +1088,9 @@ class Live:
             # an offer on a company the build has never seen: no industry, so fit is 0.7 for everyone
             "offer_score_no_industry": {n: round(bg.PATH_BASE["offer"] * 0.7 * self.rate(n), 3) for n in askable},
             "offer_score_unknown": round(bg.PATH_BASE["offer"] * 0.7 * bg.PRIOR_RATE, 3),
+            # the factors behind those scores, so the preview can show its arithmetic
+            "offer_base": bg.PATH_BASE["offer"], "unknown_fit": 0.7, "prior_rate": bg.PRIOR_RATE,
+            "off_roster_capacity": bg.OFF_ROSTER_CAPACITY, "no_crm_weight": NO_CRM_WEIGHT,
             "filed": {r["request_id"]: {**self.company_ref(r["company_id"], r["company_as_written"]), "status": r["status_as_filed"],
                                         "asked": r["request_id"] in self.outcome_by_rid} for r in self.requests},
             "companies": companies,
@@ -1096,7 +1101,7 @@ class Live:
                                "rate": round(self.rate(n), 3)} for n in askable},
             "command": THREADS_COMMAND,
             "preview_columns": ["request_id", "posted", "requested_by", "company_as_written", "company_id", "company_name",
-                                "resolved_by", "offer_by", "offer_text", "route_to", "path", "needs_human", "raw_ask"],
+                                "resolved_by", "offer_by", "offer_text", "route_to", "path", "expected_value", "needs_human", "raw_ask"],
         }
 
     # -- everything ---------------------------------------------------------------
