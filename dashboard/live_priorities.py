@@ -67,12 +67,27 @@ PAGE = "livepriorities.html"
 BATCH_PAGE = "batchask.html"
 TRACE_PAGE = "companytrace.html"
 CONNECTOR_PAGE = "connector-{slug}.html"
-# section ids as rendered by live_priorities.js boot(), in page order; drives the header nav
-SECTIONS = [
-    ("upload", "Preview an export"), ("route", "Route a request"), ("stages", "Deal value by stage"), ("top", "Top priorities"),
-    ("asks", "Current asks"), ("connectors", "Roster Connectors"), ("offers", "Offered, needs response"),
-    ("bottlenecks", "Bottlenecks"), ("checkins", "Check-ins"), ("unrouted", "Unrouted"), ("crm", "CRM Updates"),
+# the page reads top to bottom in five bands: (id, title, membership test, sections). Each band's
+# sections are (section id, nav label) as rendered by live_priorities.js boot(), in page order.
+BANDS = [
+    ("intake", "Intake: Preview a Routed Request Summary",
+     "does it accept input the build doesn't have yet?",
+     [("route", "Route a request"), ("upload", "Preview an export")]),
+    ("orientation", "Orientation: Deal Value by Stage",
+     "is it a single aggregate with no rows?",
+     [("stages", "Deal value by stage")]),
+    ("now", "Actionable Now",
+     "does ticking it change what the queue proposes tomorrow?",
+     [("top", "Top priorities"), ("offers", "Already offered"), ("bottlenecks", "Core bottlenecks"), ("crm", "CRM Updates")]),
+    ("cycle", "Current Cycle Overview",
+     "does it describe a decision the allocator already made?",
+     [("asks", "Current asks"), ("connectors", "Roster Connectors")]),
+    ("stuck", "Not Moving",
+     "does the action belong to someone who isn't reading this page?",
+     [("unrouted", "Unrouted"), ("checkins", "Check-ins")]),
 ]
+# every section in page order; drives the header nav
+SECTIONS = [s for _, _, _, sections in BANDS for s in sections]
 THREADS_COMMAND = "python3 golden/build_golden.py --threads {file} && python3 build.py"
 
 # "Route a live request" presets: real message shapes, one per thing the router must get right
@@ -564,7 +579,7 @@ class Live:
                     "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
                 })
             out.append({
-                "batch_id": batch_id, "connector": connector,
+                "batch_id": batch_id, "connector": connector, "slug": slug(connector),
                 "connector_type": self.connector_facts.get(connector, {}).get("type", ""),
                 "size": len(rows), "value_fmt": money(sum(usd(a["value_usd"]) for a in rows)),
                 "companies": companies,
@@ -822,7 +837,8 @@ class Live:
                     "path": bg.path_label(max(own, key=lambda p: float(p["strength"]))) if own else "no known path — ask them if they know anyone",
                 })
             companies.sort(key=lambda c: (not c["has_path"], -c["value_usd"]))
-            per.append({"connector": name, "focus": sorted(r["focus"]), "idle": self.connector_facts.get(name, {}).get("idle", 0),
+            per.append({"connector": name, "page": CONNECTOR_PAGE.format(slug=slug(name)), "focus": sorted(r["focus"]),
+                        "idle": self.connector_facts.get(name, {}).get("idle", 0),
                         "companies": companies, "count": len(companies),
                         "value_fmt": money(sum(c["value_usd"] for c in companies))})
         return {
@@ -973,7 +989,9 @@ class Live:
     # -- everything ---------------------------------------------------------------
     def payload(self) -> dict:
         return {
-            "as_of": self.today.isoformat(), "cycle": self.cycle, "trace_page": TRACE_PAGE,
+            "as_of": self.today.isoformat(), "cycle": self.cycle, "trace_page": TRACE_PAGE, "batch_page": BATCH_PAGE,
+            "bands": [{"id": bid, "title": title, "test": test, "sections": [sid for sid, _ in sections]}
+                      for bid, title, test, sections in BANDS],
             "stages": self.stages(), "priorities": self.priorities(), "asks": self.asks(),
             "offer_gaps": self.offer_gaps(), "bottlenecks": self.bottlenecks(), "connectors": self.connectors(),
             "checkins": self.checkins(), "unrouted": self.unrouted(), "crm": self.crm(), "parser": self.parser(),
