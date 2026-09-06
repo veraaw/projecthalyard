@@ -12,12 +12,14 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.452 | Priya Raghunathan (Investor) | direct | Camille Fairweather — VP Engineering | connections_raghunathan.csv: Camille Fairweather, VP Engineering at Calderon Aerospace, connected 2026-08-05 |
-| 0.448 | Elena Duvall (Advisor) | direct | Sabine Underhill — VP Enterprise Architecture | connections_duvall.csv: Sabine Underhill, VP Enterprise Architecture at Calderon Aerospace, connected 2022-08-26 |
-| 0.431 | Marcus Aldridge (Advisor) | direct | Camille Fairweather — VP Engineering | connections_aldridge.csv: Camille Fairweather, VP Engineering at Calderon Aerospace, connected 2025-10-19 |
-| 0.423 | Owen Trask (Investor) | direct | Sabine Underhill — VP Enterprise Architecture | connections_trask.csv: Sabine Underhill, VP Enterprise Architecture at Calderon Aerospace, connected 2021-12-24 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.144 | 0.452 | Priya Raghunathan (Investor) | direct | Camille Fairweather — VP Engineering | connections_raghunathan.csv: Camille Fairweather, VP Engineering at Calderon Aerospace, connected 2026-08-05 |
+| 0.113 | 0.448 | Elena Duvall (Advisor) | direct | Sabine Underhill — VP Enterprise Architecture | connections_duvall.csv: Sabine Underhill, VP Enterprise Architecture at Calderon Aerospace, connected 2022-08-26 |
+| 0.105 | 0.431 | Marcus Aldridge (Advisor) | direct | Camille Fairweather — VP Engineering | connections_aldridge.csv: Camille Fairweather, VP Engineering at Calderon Aerospace, connected 2025-10-19 |
+| 0.075 | 0.423 | Owen Trask (Investor) | direct | Sabine Underhill — VP Enterprise Architecture | connections_trask.csv: Sabine Underhill, VP Enterprise Architecture at Calderon Aerospace, connected 2021-12-24 |
 
 ## 4. Chronology (11 events, 2 requests, as of 2026-09-06)
 

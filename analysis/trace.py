@@ -7,8 +7,9 @@
                                                          # request -> analysis/traces/
 
 Five sections: the header (identity, request counts and the routing stage), where the files
-disagree (skipped when they don't), who can reach them (supply_reach.csv by
-strength), the chronology (every event from intro_requests.csv,
+disagree (skipped when they don't), who can reach them (supply_reach.csv ranked
+by route score = strength x focus fit x delivery rate, the allocator's own sort
+key, with the reason the top row did not take every live request), the chronology (every event from intro_requests.csv,
 slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, oldest first)
 and next steps, one row per person, cheapest action first.
 
@@ -33,7 +34,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.build_golden import OFFER_RE, OPEN_STATUSES, STAGES, latest_cycle, load_completions, stage_of, with_completions  # noqa: E402
+from golden.build_golden import (OFFER_RE, OPEN_STATUSES, PRIOR_RATE, STAGES, capacity, delivery_rates, fit, latest_cycle,  # noqa: E402
+                                 load_completions, load_roster, load_threads, path_score, stage_of, with_completions)
 from golden.resolver import normalize, normalize_strict  # noqa: E402
 from paths import ANALYSIS, DATASET, GOLDEN  # noqa: E402
 
@@ -89,6 +91,7 @@ class Data:
     roster: dict[str, dict]
     outcome_by_rid: dict[str, dict]  # the ask log as the build reads it (completions applied), one row per request
     alloc_by_rid: dict[str, dict]    # the current cycle's allocation by request_id
+    rates: dict[str, float]          # delivery rate per connector, as the allocator scores them
 
     @classmethod
     def load(cls) -> "Data":
@@ -97,6 +100,8 @@ class Data:
         for o in logged:
             outcomes[o["request_id"]].append(o)
         allocation = latest_cycle(read_csv(GOLDEN / "golden_allocation.csv"))
+        roster = load_roster()
+        as_read = with_completions(logged, load_completions())
         threads = {}
         with open(DATASET / SOURCES["slack"], encoding="utf-8") as fh:
             for line in fh:
@@ -112,9 +117,10 @@ class Data:
             accounts={a["account_id"]: a for a in read_csv(DATASET / SOURCES["crm"])},
             supply=read_csv(GOLDEN / "supply_reach.csv"),
             allocation=allocation,
-            roster={r["name"]: r for r in read_csv(DATASET / "connector_roster.csv")},
-            outcome_by_rid={o["request_id"]: o for o in with_completions(logged, load_completions())},
+            roster=roster,
+            outcome_by_rid={o["request_id"]: o for o in as_read},
             alloc_by_rid={a["request_id"]: a for a in allocation},
+            rates=delivery_rates(roster, as_read, load_threads()),
         )
 
 
@@ -185,11 +191,12 @@ class Trace:
         self.requests = sorted((r for r in data.requests if r["company_id"] == self.cid),
                                key=lambda r: (r["request_date"], r["request_id"]))
         self.request_ids = [r["request_id"] for r in self.requests]
+        # ranked as the allocator ranks them: route score first, raw strength breaks ties
         self.paths = sorted((p for p in data.supply if p["company_id"] == self.cid and p["reach_type"] != "none"),
-                            key=lambda p: -float(p["strength"]))
+                            key=lambda p: (-self.route_score(p), -float(p["strength"])))
         self.accounts = [data.accounts[a] for a in split_bar(company["crm_account_ids"]) if a in data.accounts]
-        self.allocated = {a["request_id"]: a for a in data.allocation
-                          if a["company_id"] == self.cid and a["allocated_to"]}
+        self.live = [a for a in data.allocation if a["company_id"] == self.cid]
+        self.allocated = {a["request_id"]: a for a in self.live if a["allocated_to"]}
 
     # -- helpers --------------------------------------------------------------
     def spellings(self) -> list[str]:
@@ -230,6 +237,53 @@ class Trace:
     def stage_of(self, r: dict) -> str:
         rid = r["request_id"]
         return stage_of(r, self.d.outcome_by_rid.get(rid), self.d.alloc_by_rid.get(rid))
+
+    def fit_of(self, connector: str) -> float:
+        r = self.d.roster.get(connector)
+        return fit(r, self.c["industry"]) if r else 0.7
+
+    def rate_of(self, connector: str) -> float:
+        return self.d.rates.get(connector, PRIOR_RATE)
+
+    def route_score(self, p: dict) -> float:
+        """strength x focus fit x delivery rate: what build_golden.allocate sorts on."""
+        return path_score(p, self.d.roster, self.d.rates, self.c["industry"])
+
+    def strongest(self) -> dict | None:
+        """The path with the highest raw strength: the row that reads as #1 when
+        the table is sorted by strength alone."""
+        return max(self.paths, key=lambda p: float(p["strength"])) if self.paths else None
+
+    def bypass(self) -> str:
+        """Why the strongest path did not take every live request this cycle:
+        'Elena Duvall, offer 0.800, at capacity 3/3, Healthcare is outside her
+        focus (route score 0.000); R1136 routed to Dana Whitfield, R1153 to Tomás Beckett'.
+        Read off the roster, supply_reach.csv and this cycle's golden_allocation.csv
+        rows for the company (never best_path_if_unbudgeted, which is sparse).
+        Empty when there is no path, nothing is live this cycle, or the strongest
+        path holds every live request."""
+        top = self.strongest()
+        if top is None or not self.live:
+            return ""
+        who = top["connector"]
+        elsewhere = [a for a in self.live if a["allocated_to"] != who]
+        if not elsewhere:
+            return ""
+        cap = capacity(self.d.roster, who)
+        used = cap - int(top["idle_capacity"] or 0)
+        why = []
+        if cap and used >= cap:
+            why.append(f"at capacity {used}/{cap}")
+        elif cap:
+            why.append(f"{used}/{cap} used this cycle")
+        if self.fit_of(who) <= 0:
+            why.append(f"{self.c['industry']} is outside their focus (route score {self.route_score(top):.3f})")
+        went = [f"{a['request_id']} routed to {a['allocated_to']}" if a["allocated_to"]
+                else f"{a['request_id']} unrouted" + (f" ({a['exception_reason']})" if a["exception_reason"] else "")
+                for a in sorted(elsewhere, key=lambda a: a["request_id"])]
+        holds = sorted(a["request_id"] for a in self.live if a["allocated_to"] == who)
+        return (f"{who}, {top['reach_type']} {float(top['strength']):.3f}, " + ", ".join(why)
+                + (f", holds {', '.join(holds)}" if holds else "") + "; " + ", ".join(went))
 
     def routing(self) -> dict:
         """Where the company sits in the routing funnel: the furthest stage any of
@@ -330,12 +384,16 @@ class Trace:
     def reach(self) -> list[str]:
         if not self.paths:
             return ["nobody in the network reaches this company"]
-        out = ["| strength | connector | reach | contact | evidence |", "|---|---|---|---|---|"]
+        out = ["ranked by route score = strength x focus fit x delivery rate, the allocator's sort key", "",
+               "| route score | strength | connector | reach | contact | evidence |", "|---|---|---|---|---|---|"]
         for p in self.paths:
             contact = " — ".join(x for x in (p["contact_name"], p["contact_title"]) if x) or "?"
             reach = p["reach_type"] + (" (board seat)" if p["board_seat"] == "yes" else "")
-            out.append(f"| {float(p['strength']):.3f} | {p['connector']} ({p['connector_type']}) | {reach} "
-                       f"| {contact} | {p['evidence']} |")
+            out.append(f"| {self.route_score(p):.3f} | {float(p['strength']):.3f} | {p['connector']} ({p['connector_type']}) "
+                       f"| {reach} | {contact} | {p['evidence']} |")
+        why = self.bypass()
+        if why:
+            out += ["", f"strongest path, not where it went: {why}"]
         return out
 
     # -- section 4 --------------------------------------------------------------
@@ -545,9 +603,12 @@ class Trace:
                 "titles": sorted({r["target_title"] for r in self.requests if r["target_title"]}),
             },
             "disagreements": [d[2:] for d in self.disagreements()],
-            "reach": [{"strength": float(p["strength"]), "connector": p["connector"], "connector_type": p["connector_type"],
+            "reach": [{"route_score": round(self.route_score(p), 3), "strength": float(p["strength"]),
+                       "fit": round(self.fit_of(p["connector"]), 2), "rate": round(self.rate_of(p["connector"]), 3),
+                       "connector": p["connector"], "connector_type": p["connector_type"],
                        "reach_type": p["reach_type"] + (" (board seat)" if p["board_seat"] == "yes" else ""),
-                       "contact_name": p["contact_name"], "contact_title": p["contact_title"], "evidence": p["evidence"]}
+                       "contact_name": p["contact_name"], "contact_title": p["contact_title"], "evidence": p["evidence"],
+                       "bypass": self.bypass() if p is self.strongest() else ""}
                       for p in self.paths],
             "as_of": self.today.isoformat(),
             "chronology": [[{"mark": e.mark, "date": e.when.isoformat(), "source": e.source, "who": e.who, "what": e.what,

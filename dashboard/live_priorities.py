@@ -716,6 +716,37 @@ class Live:
             } for a in queue],
         }
 
+    def strongest_elsewhere(self, name: str) -> list[dict]:
+        """Read-only: companies where this connector holds the strongest raw path
+        in supply_reach.csv yet none of the company's live requests routed to
+        them this cycle. Nothing here was asked of them (that is `sitting_on`,
+        from intro_outcomes.csv), so there is nothing to tick; it says where a
+        volunteered or strong path went unused and why: capacity, or a focus
+        area they decline outside of."""
+        cap = bg.capacity(self.roster, name)
+        used = cap - self.connector_facts.get(name, {}).get("idle", cap)
+        live: dict[str, list[dict]] = defaultdict(list)
+        for a in self.allocation:
+            live[a["company_id"]].append(a)
+        out = []
+        for cid, rows in live.items():
+            paths = [p for p in self.paths.get(cid, []) if p["reach_type"] != "none"]
+            if not paths:
+                continue
+            top = max(paths, key=lambda p: float(p["strength"]))
+            if top["connector"] != name or any(a["allocated_to"] == name for a in rows):
+                continue
+            fit = self.fit(name, self.industry(cid))
+            out.append({
+                **self.company_ref(cid, top["company_name"]), "reach_type": top["reach_type"],
+                "strength": round(float(top["strength"]), 3), "route_score": round(float(top["strength"]) * fit * self.rate(name), 3),
+                "outside_focus": fit <= 0, "industry": self.industry(cid), "used": used, "capacity": cap,
+                "requests": sorted(a["request_id"] for a in rows),
+                "routed_to": sorted({a["allocated_to"] for a in rows if a["allocated_to"]}),
+                "unrouted": sum(1 for a in rows if not a["allocated_to"]),
+            })
+        return sorted(out, key=lambda x: (-x["strength"], x["company_name"]))
+
     def batch_ask(self, name: str) -> dict | None:
         """The connector's drafted message for the current cycle, or None when
         nothing routes to them."""
@@ -750,7 +781,8 @@ class Live:
 
     def connector_pages(self) -> list[dict]:
         """One page per connector: their top 5 by expected value, then the rest of
-        their ranked list, then what they are already sitting on."""
+        their ranked list, what they are already sitting on, and (read-only) the
+        companies where their path is the strongest but did not route to them."""
         out = []
         for name in self.connector_names():
             mine = [dict(r, rank_here=i) for i, r in enumerate((r for r in self.ranked() if r["connector"] == name), 1)]
@@ -759,6 +791,7 @@ class Live:
                 "top": mine[:TOP_N], "rest": mine[TOP_N:], "ranked_count": len(mine),
                 "ranked_value_fmt": money(sum(usd(self.by_rid[r["request_id"]]["value_usd"]) for r in mine)),
                 "no_slot": sum(1 for r in mine if not r["allocated"]),
+                "strongest_elsewhere": self.strongest_elsewhere(name),
                 "formula": self.formula(), "completions": self.completion_export(), "as_of": self.today.isoformat(),
             })
         return out

@@ -13,15 +13,19 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.800 | Yusuf Petrossian (not on roster) | offer | exec team | slack_threads.jsonl R1066 2026-06-27 Yusuf Petrossian: "I'll take this one — I've got a direct line to their exec team" |
-| 0.484 | Dana Whitfield (Internal) | direct | Saoirse Quillane — VP Data & Analytics | connections_whitfield.csv: Saoirse Quillane, VP Data & Analytics at Kingsmere Retail Group, connected 2023-12-11 |
-| 0.434 | Priya Raghunathan (Investor) | direct | Saoirse Quillane — VP Data & Analytics | connections_raghunathan.csv: Saoirse Quillane, VP Data & Analytics at Kingsmere Retail Group, connected 2021-10-27 |
-| 0.248 | Owen Trask (Investor) | direct | Kofi Mkhize — VP Engineering | connections_trask.csv: Kofi Mkhize, VP Engineering at Kingsmere Retail Group, connected 2016-05-20 |
-| 0.248 | Tomás Beckett (Internal) | direct | Kofi Mkhize — VP Engineering | connections_beckett.csv: Kofi Mkhize, VP Engineering at Kingsmere Retail Group, connected 2016-03-26 |
-| 0.187 | Owen Trask (Investor) | alumni | Kofi Mkhize — ex-Kingsmere Retail Group (2012-2019), now VP Engineering at Kingsmere Retail Group | investor_network.csv: Kofi Mkhize prior_employer=Kingsmere Retail Group (2012-2019); connections_trask.csv: connection of Owen Trask since 2016-05-20 |
-| 0.187 | Tomás Beckett (Internal) | alumni | Kofi Mkhize — ex-Kingsmere Retail Group (2012-2019), now VP Engineering at Kingsmere Retail Group | investor_network.csv: Kofi Mkhize prior_employer=Kingsmere Retail Group (2012-2019); connections_beckett.csv: connection of Tomás Beckett since 2016-03-26 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.182 | 0.800 | Yusuf Petrossian (not on roster) | offer | exec team | slack_threads.jsonl R1066 2026-06-27 Yusuf Petrossian: "I'll take this one — I've got a direct line to their exec team" |
+| 0.145 | 0.484 | Dana Whitfield (Internal) | direct | Saoirse Quillane — VP Data & Analytics | connections_whitfield.csv: Saoirse Quillane, VP Data & Analytics at Kingsmere Retail Group, connected 2023-12-11 |
+| 0.138 | 0.434 | Priya Raghunathan (Investor) | direct | Saoirse Quillane — VP Data & Analytics | connections_raghunathan.csv: Saoirse Quillane, VP Data & Analytics at Kingsmere Retail Group, connected 2021-10-27 |
+| 0.062 | 0.248 | Tomás Beckett (Internal) | direct | Kofi Mkhize — VP Engineering | connections_beckett.csv: Kofi Mkhize, VP Engineering at Kingsmere Retail Group, connected 2016-03-26 |
+| 0.047 | 0.187 | Tomás Beckett (Internal) | alumni | Kofi Mkhize — ex-Kingsmere Retail Group (2012-2019), now VP Engineering at Kingsmere Retail Group | investor_network.csv: Kofi Mkhize prior_employer=Kingsmere Retail Group (2012-2019); connections_beckett.csv: connection of Tomás Beckett since 2016-03-26 |
+| 0.044 | 0.248 | Owen Trask (Investor) | direct | Kofi Mkhize — VP Engineering | connections_trask.csv: Kofi Mkhize, VP Engineering at Kingsmere Retail Group, connected 2016-05-20 |
+| 0.033 | 0.187 | Owen Trask (Investor) | alumni | Kofi Mkhize — ex-Kingsmere Retail Group (2012-2019), now VP Engineering at Kingsmere Retail Group | investor_network.csv: Kofi Mkhize prior_employer=Kingsmere Retail Group (2012-2019); connections_trask.csv: connection of Owen Trask since 2016-05-20 |
+
+strongest path, not where it went: Yusuf Petrossian, offer 0.800, at capacity 2/2, holds R1006, R1128; R1070 routed to Dana Whitfield, R1193 routed to Dana Whitfield
 
 ## 4. Chronology (35 events, 8 requests, as of 2026-09-06)
 

@@ -12,9 +12,11 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.800 | Imani Mkhize (not on roster) | offer | Head of Platform | slack_threads.jsonl R1176 2026-04-05 Imani Mkhize: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.262 | 0.800 | Imani Mkhize (not on roster) | offer | Head of Platform | slack_threads.jsonl R1176 2026-04-05 Imani Mkhize: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
 
 ## 4. Chronology (17 events, 3 requests, as of 2026-09-06)
 

@@ -12,12 +12,16 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Hollowbrook Grocers, board_seat=True |
-| 0.800 | Priya Raghunathan (Investor) | offer | Chief Operating Officer | slack_threads.jsonl R1124 2025-11-10 Priya Raghunathan: "I met their Chief Operating Officer at a conference last spring, happy to reach out" |
-| 0.337 | Priya Raghunathan (Investor) | direct | Freya Havercamp — Staff Engineer | connections_raghunathan.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2022-05-16 |
-| 0.300 | Dana Whitfield (Internal) | direct | Freya Havercamp — Staff Engineer | connections_whitfield.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2020-12-25 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.184 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Hollowbrook Grocers, board_seat=True |
+| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Chief Operating Officer | slack_threads.jsonl R1124 2025-11-10 Priya Raghunathan: "I met their Chief Operating Officer at a conference last spring, happy to reach out" |
+| 0.128 | 0.300 | Dana Whitfield (Internal) | direct | Freya Havercamp — Staff Engineer | connections_whitfield.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2020-12-25 |
+| 0.069 | 0.337 | Priya Raghunathan (Investor) | direct | Freya Havercamp — Staff Engineer | connections_raghunathan.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2022-05-16 |
+
+strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3, holds R1084, R1159; R1065 routed to Dana Whitfield
 
 ## 4. Chronology (18 events, 4 requests, as of 2026-09-06)
 

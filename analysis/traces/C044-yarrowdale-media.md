@@ -11,11 +11,13 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.800 | Bertrand Vandermolen (not on roster) | offer | Chief Information Officer | slack_threads.jsonl R1169 2026-07-10 Bertrand Vandermolen: "I met their Chief Information Officer at a conference last spring, happy to reach out" |
-| 0.460 | Tomás Beckett (Internal) | direct | Bertrand Cardoso — Director of IT | connections_beckett.csv: Bertrand Cardoso, Director of IT at Yarrowdale Media, connected 2024-10-15 |
-| 0.415 | Priya Raghunathan (Investor) | direct | Bertrand Cardoso — Director of IT | connections_raghunathan.csv: Bertrand Cardoso, Director of IT at Yarrowdale Media, connected 2022-11-15 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.182 | 0.800 | Bertrand Vandermolen (not on roster) | offer | Chief Information Officer | slack_threads.jsonl R1169 2026-07-10 Bertrand Vandermolen: "I met their Chief Information Officer at a conference last spring, happy to reach out" |
+| 0.164 | 0.460 | Tomás Beckett (Internal) | direct | Bertrand Cardoso — Director of IT | connections_beckett.csv: Bertrand Cardoso, Director of IT at Yarrowdale Media, connected 2024-10-15 |
+| 0.085 | 0.415 | Priya Raghunathan (Investor) | direct | Bertrand Cardoso — Director of IT | connections_raghunathan.csv: Bertrand Cardoso, Director of IT at Yarrowdale Media, connected 2022-11-15 |
 
 ## 4. Chronology (6 events, 1 request, as of 2026-09-06)
 

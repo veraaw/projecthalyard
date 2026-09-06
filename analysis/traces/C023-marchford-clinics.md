@@ -12,11 +12,15 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.519 | Marcus Aldridge (Advisor) | direct | Kofi Jarrold — Chief Information Officer | connections_aldridge.csv: Kofi Jarrold, Chief Information Officer at Marchford Clinics, connected 2023-09-18 |
-| 0.310 | Owen Trask (Investor) | direct | Teodor Zubkov — Program Manager | connections_trask.csv: Teodor Zubkov, Program Manager at Marchford Clinics, connected 2020-05-24 |
-| 0.310 | Priya Raghunathan (Investor) | direct | Teodor Zubkov — Program Manager | connections_raghunathan.csv: Teodor Zubkov, Program Manager at Marchford Clinics, connected 2020-12-24 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.081 | 0.519 | Marcus Aldridge (Advisor) | direct | Kofi Jarrold — Chief Information Officer | connections_aldridge.csv: Kofi Jarrold, Chief Information Officer at Marchford Clinics, connected 2023-09-18 |
+| 0.063 | 0.310 | Priya Raghunathan (Investor) | direct | Teodor Zubkov — Program Manager | connections_raghunathan.csv: Teodor Zubkov, Program Manager at Marchford Clinics, connected 2020-12-24 |
+| 0.035 | 0.310 | Owen Trask (Investor) | direct | Teodor Zubkov — Program Manager | connections_trask.csv: Teodor Zubkov, Program Manager at Marchford Clinics, connected 2020-05-24 |
+
+strongest path, not where it went: Marcus Aldridge, direct 0.519, at capacity 4/4; R1004 unrouted (capacity exhausted this cycle), R1142 unrouted (capacity exhausted this cycle)
 
 ## 4. Chronology (31 events, 6 requests, as of 2026-09-06)
 

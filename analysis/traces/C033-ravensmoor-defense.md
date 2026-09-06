@@ -16,9 +16,11 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.800 | Owen Trask (Investor) | offer | Head of Platform | slack_threads.jsonl R1109 2025-10-26 Owen Trask: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.091 | 0.800 | Owen Trask (Investor) | offer | Head of Platform | slack_threads.jsonl R1109 2025-10-26 Owen Trask: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
 
 ## 4. Chronology (17 events, 4 requests, as of 2026-09-06)
 

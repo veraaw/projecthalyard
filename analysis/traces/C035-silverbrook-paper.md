@@ -11,9 +11,13 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.356 | Owen Trask (Investor) | direct | Elena Rushworth — Head of Automation | connections_trask.csv: Elena Rushworth, Head of Automation at Silverbrook Paper, connected 2019-11-27 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.041 | 0.356 | Owen Trask (Investor) | direct | Elena Rushworth — Head of Automation | connections_trask.csv: Elena Rushworth, Head of Automation at Silverbrook Paper, connected 2019-11-27 |
+
+strongest path, not where it went: Owen Trask, direct 0.356, at capacity 2/2; R1063 unrouted (capacity exhausted this cycle)
 
 ## 4. Chronology (12 events, 2 requests, as of 2026-09-06)
 
