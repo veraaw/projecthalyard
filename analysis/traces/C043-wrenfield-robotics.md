@@ -11,17 +11,24 @@
 
 ## Currently routing to: Matteo Ferreira-Yarrow
 
-- this cycle: R1018, R1156 -> Matteo Ferreira-Yarrow; R1195 unrouted (capacity exhausted this cycle)
+- this cycle: R1018, R1156 (retry) -> Matteo Ferreira-Yarrow; R1195 unrouted (capacity exhausted this cycle)
 - top askable path: Priya Raghunathan, direct via Saoirse Prendergast, route score 0.130, 3/3 capacity used this cycle
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (2 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.130 | 0.285 | Priya Raghunathan (Investor) | direct | Saoirse Prendergast — Head of Platform Engineering | connections_raghunathan.csv: Saoirse Prendergast, Head of Platform Engineering at Wrenfield Robotics, connected 2014-01-26 |  |
 | 0.085 | 0.187 | Priya Raghunathan (Investor) | alumni | Saoirse Prendergast — ex-Wrenfield Robotics (2012-2015), now Head of Platform Engineering at Wrenfield Robotics | investor_network.csv: Saoirse Prendergast prior_employer=Wrenfield Robotics (2012-2015); connections_raghunathan.csv: connection of Priya Raghunathan since 2014-01-26 |  |
+
+**investor_network - asked when no roster path is left** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.172 | 0.720 | Matteo Ferreira-Yarrow (investor network) | investor_network | CEO / exec team — Ironvale Partners portfolio company | investor_network.csv: Matteo Ferreira-Yarrow (Private equity investor), portfolio_company=Wrenfield Robotics, board_seat=False |  |
 
 why not #1: Matteo Ferreira-Yarrow at capacity 2/2 (holds R1018, R1156) -> R1195 unrouted (capacity exhausted)

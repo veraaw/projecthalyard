@@ -36,6 +36,7 @@ import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime
+from itertools import groupby
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -43,8 +44,8 @@ sys.path.insert(0, str(ROOT))
 from golden.build_golden import (ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, HOLD_LAST, INVESTOR_NETWORK, NETWORK_HAIRCUT,  # noqa: E402
                                  NETWORK_OUT, NO_PATH, OFFER_RE, OPEN_STATUSES, PRIOR_RATE, REACHABLE_AS_CONNECTOR, STAGES,
                                  STALE_ASK, UNRESOLVED_ASK, best_route, capacity, delivery_rates, fit, hold_paths, hold_reason,
-                                 latest_cycle, load_completions, load_roster, load_threads, path_rank, path_score, stage_of,
-                                 unresolved_asks, with_completions)
+                                 intro_of, latest_cycle, load_completions, load_roster, load_threads, path_rank, path_score,
+                                 stage_of, unresolved_asks, with_completions)
 from golden.clock import as_of  # noqa: E402
 from golden.resolver import normalize, normalize_strict  # noqa: E402
 from paths import ANALYSIS, DATASET, GOLDEN  # noqa: E402
@@ -55,6 +56,11 @@ NO_WARM_PATH = "no warm path"  # the orbit table's label for a person no connect
 
 MISSED, WORKED, OFFER, WARN, PLAIN = "<-", "++", "**", "!!", "  "
 BYPASS_LABEL = "why not #1"
+# section 3 sits in the allocator's order, which is these groups then route score within each
+TIERS = ("roster - asked first",
+         f"{INVESTOR_NETWORK} - asked when no roster path is left",
+         "askable, ranked last - an ask here went unanswered past the window",
+         "not asked again here - an unresolved ask (nudge or chase) owns it")
 
 SOURCES = {
     "requests": "intro_requests.csv",
@@ -118,6 +124,12 @@ def short_reason(reason: str) -> str:
     if reason.startswith(UNRESOLVED_ASK):
         return UNRESOLVED_ASK
     return reason
+
+
+def flat_reason(reason: str) -> str:
+    """short_reason() with its parenthetical unwrapped, for a spot already in
+    parentheses: 'parked on live intro (R1122, X, 2026-08-10)' -> 'parked on live intro: R1122, X, 2026-08-10'."""
+    return re.sub(r" \((.*)\)$", r": \1", reason)
 
 
 @dataclass
@@ -292,18 +304,38 @@ class Trace:
         u = self.hold_of(p["connector"])
         return u is None or u["hold"] == HOLD_LAST
 
+    def tier_of(self, p: dict) -> int:
+        """Index into TIERS: which group of the allocator's order the path sits in."""
+        u = self.hold_of(p["connector"])
+        if u is None:
+            return int(p["reach_type"] == INVESTOR_NETWORK)
+        return 2 if u["hold"] == HOLD_LAST else 3
+
+    def retry_of(self, rid: str) -> str:
+        """Why a request the log already shows asked is back in this cycle's queue:
+        its intro fizzled (retriable). Empty for a first ask."""
+        o = self.d.outcome_by_rid.get(rid)
+        i = intro_of(o, self.today) if o else None
+        if not i:
+            return ""
+        return f"retry: intro by {i['connector']} on {i['intro_date'] or '?'} fizzled, {i['outcome']}"
+
     def current_route(self) -> dict:
         """Who this company's requests are routed to now. `connector` is where this
         cycle's live requests went (golden_allocation.csv; the one with most of them
-        when they split), else the allocator's first askable path - `top`, best_route
-        with the unresolved asks held, capacity aside - which is where the next
-        request goes. Empty when nobody is askable, and `why` says so: no path, or
-        an unresolved ask on every one. `not_asked` names the connectors stepped
-        over and why; `live` is this cycle's rows, where capacity has had its say."""
+        when they split). When the cycle has live requests and none went anywhere,
+        nobody is routed and `why` is the exception holding them (parked on a live
+        intro, capacity, ...). With nothing live it is the allocator's first askable
+        path - `top`, best_route with the unresolved asks held, capacity aside -
+        which is where the next request goes; empty when nobody is askable, and
+        `why` says so: no path, or an unresolved ask on every one. `not_asked`
+        names the connectors stepped over and why; `live` is this cycle's rows,
+        where capacity has had its say, each saying whether it is a retry."""
         p, score = best_route(self.paths, self.d.roster, self.d.rates, self.c["industry"], held=self.held, company_id=self.cid)
         _, skipped = hold_paths(self.paths, self.held, self.cid)
         live = sorted(self.live, key=lambda a: request_number(a["request_id"]))
         routed = Counter(a["allocated_to"] for a in live if a["allocated_to"])
+        unrouted = Counter(short_reason(a["exception_reason"]) for a in live if not a["allocated_to"])
         top = None
         if p:
             u = self.hold_of(p["connector"])
@@ -311,35 +343,48 @@ class Trace:
             top = {"connector": p["connector"], "reach_type": p["reach_type"], "contact_name": p["contact_name"],
                    "route_score": round(score, 3), "ranked_last": hold_reason(u) if u else "",
                    "capacity": f"{cap - int(p['idle_capacity'] or 0)}/{cap}" if cap else ""}
+        if routed:
+            connector, why = routed.most_common(1)[0][0], ""
+        elif unrouted:
+            connector, why = "", unrouted.most_common(1)[0][0]
+        elif p:
+            connector, why = p["connector"], ""
+        else:
+            connector, why = "", UNRESOLVED_ASK if skipped else NO_PATH
         return {
-            "connector": routed.most_common(1)[0][0] if routed else (p["connector"] if p else ""),
+            "connector": connector,
             "this_cycle": [who for who, _ in routed.most_common()],
             "top": top,
-            "why": "" if p or routed else (UNRESOLVED_ASK if skipped else NO_PATH),
+            "why": why,
             "not_asked": [hold_reason(s) for s in skipped],
-            "live": [{"request_id": a["request_id"], "allocated_to": a["allocated_to"], "exception_reason": a["exception_reason"]}
+            "live": [{"request_id": a["request_id"], "allocated_to": a["allocated_to"], "exception_reason": a["exception_reason"],
+                      "retry": self.retry_of(a["request_id"])}
                      for a in live],
         }
 
     def route_lines(self) -> list[str]:
         """current_route() as the markdown reads it."""
         rt = self.current_route()
-        out = [f"## Currently routing to: {rt['connector'] or 'nobody (' + rt['why'] + ')'}", ""]
+        out = [f"## Currently routing to: {rt['connector'] or 'nobody (' + flat_reason(rt['why']) + ')'}", ""]
         if rt["live"]:
             by_who = defaultdict(list)
             for a in rt["live"]:
-                by_who[a["allocated_to"] or f"unrouted ({a['exception_reason'].partition(': ')[0]})"].append(a["request_id"])
+                by_who[a["allocated_to"] or f"unrouted ({a['exception_reason'].partition(': ')[0]})"].append(
+                    a["request_id"] + (" (retry)" if a["retry"] else ""))
             out.append("- this cycle: " + "; ".join(f"{', '.join(rids)} -> {who}" if not who.startswith("unrouted") else f"{', '.join(rids)} {who}"
                                                    for who, rids in by_who.items()))
         top = rt["top"]
         if top:
-            out.append(f"- {'top askable path' if rt['this_cycle'] else 'the next request goes to the top askable path'}: "
+            lead = ("top askable path" if rt["this_cycle"]
+                    else "nothing goes out this cycle; the top askable path is" if rt["live"]
+                    else "the next request goes to the top askable path")
+            out.append(f"- {lead}: "
                        f"{top['connector']}, {top['reach_type']} via {top['contact_name'] or '?'}, route score {top['route_score']:.3f}"
                        + (f", {top['capacity']} capacity used this cycle" if top["capacity"] else "")
                        + (f"; ranked last: {top['ranked_last']}" if top["ranked_last"] else ""))
         elif rt["why"] == NO_PATH:
             out.append("- nobody in the network reaches this company")
-        elif rt["why"]:
+        elif rt["why"] == UNRESOLVED_ASK:
             out.append("- everyone who reaches the company is sitting on an ask there")
         if rt["not_asked"]:
             out.append("- not asked again here: " + "; ".join(rt["not_asked"]))
@@ -534,20 +579,19 @@ class Trace:
     def reach(self) -> list[str]:
         if not self.paths:
             return ["nobody in the network reaches this company"]
-        note = (f"; {INVESTOR_NETWORK} rows rank below every roster path and take a "
-                f"{round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score"
+        note = (f"; {INVESTOR_NETWORK} rows rank below every roster path and take a {round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score"
                 if any(p["reach_type"] == INVESTOR_NETWORK for p in self.paths) else "")
-        note += ("; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again "
-                 "(agreed with no intro: nudge; unanswered inside the window: chase)"
-                 if any(self.hold_of(p["connector"]) for p in self.paths) else "")
-        out = [f"ranked by route score = strength x focus fit x delivery rate, the allocator's sort key{note}", "",
-               "| route score | strength | connector | reach | contact | evidence | unresolved ask |", "|---|---|---|---|---|---|---|"]
-        for p in self.paths:
-            contact = " — ".join(x for x in (p["contact_name"], p["contact_title"]) if x) or "?"
-            reach = p["reach_type"] + (" (board seat)" if p["board_seat"] == "yes" else "")
-            u = self.hold_of(p["connector"])
-            out.append(f"| {self.route_score(p):.3f} | {float(p['strength']):.3f} | {p['connector']} ({p['connector_type']}) "
-                       f"| {reach} | {contact} | {p['evidence']} | {hold_reason(u) if u else ''} |")
+        out = [f"in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each{note}"]
+        for tier, group in groupby(self.paths, key=self.tier_of):
+            paths = list(group)
+            out += ["", f"**{TIERS[tier]}** ({len(paths)} path{'s' if len(paths) != 1 else ''})", "",
+                    "| route score | strength | connector | reach | contact | evidence | unresolved ask |", "|---|---|---|---|---|---|---|"]
+            for p in paths:
+                contact = " — ".join(x for x in (p["contact_name"], p["contact_title"]) if x) or "?"
+                reach = p["reach_type"] + (" (board seat)" if p["board_seat"] == "yes" else "")
+                u = self.hold_of(p["connector"])
+                out.append(f"| {self.route_score(p):.3f} | {float(p['strength']):.3f} | {p['connector']} ({p['connector_type']}) "
+                           f"| {reach} | {contact} | {p['evidence']} | {hold_reason(u) if u else ''} |")
         why = self.bypass()
         if why:
             out += ["", f"{BYPASS_LABEL}: {why}"]
@@ -719,6 +763,7 @@ class Trace:
                        "reach_type": p["reach_type"] + (" (board seat)" if p["board_seat"] == "yes" else ""),
                        "contact_name": p["contact_name"], "contact_title": p["contact_title"], "evidence": p["evidence"],
                        "hold": (self.hold_of(p["connector"]) or {}).get("hold", ""), "askable": self.askable(p),
+                       "tier": TIERS[self.tier_of(p)],
                        "unresolved_ask": hold_reason(self.hold_of(p["connector"])) if self.hold_of(p["connector"]) else "",
                        "bypass": self.bypass() if p is self.strongest() else ""}
                       for p in self.paths],

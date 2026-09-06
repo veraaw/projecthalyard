@@ -16,13 +16,20 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each
+
+**roster - asked first** (3 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.113 | 0.448 | Elena Duvall (Advisor) | direct | Sabine Underhill — VP Enterprise Architecture | connections_duvall.csv: Sabine Underhill, VP Enterprise Architecture at Calderon Aerospace, connected 2022-08-26 |  |
 | 0.105 | 0.431 | Marcus Aldridge (Advisor) | direct | Camille Fairweather — VP Engineering | connections_aldridge.csv: Camille Fairweather, VP Engineering at Calderon Aerospace, connected 2025-10-19 |  |
 | 0.075 | 0.423 | Owen Trask (Investor) | direct | Sabine Underhill — VP Enterprise Architecture | connections_trask.csv: Sabine Underhill, VP Enterprise Architecture at Calderon Aerospace, connected 2021-12-24 |  |
+
+**askable, ranked last - an ask here went unanswered past the window** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.144 | 0.452 | Priya Raghunathan (Investor) | direct | Camille Fairweather — VP Engineering | connections_raghunathan.csv: Camille Fairweather, VP Engineering at Calderon Aerospace, connected 2026-08-05 | Priya Raghunathan asked on 2026-02-15 (R1068), no reply for 203 days - askable, ranked last |
 
 ## 4. Chronology (11 events, 2 requests, newest first, as of 2026-09-06)

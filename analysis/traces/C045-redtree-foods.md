@@ -12,13 +12,15 @@
 
 ## Currently routing to: Dana Whitfield
 
-- this cycle: R1003, R1067, R1074 -> Dana Whitfield
+- this cycle: R1003 (retry), R1067, R1074 -> Dana Whitfield
 - top askable path: Dana Whitfield, offer via ?, route score 0.240, 6/6 capacity used this cycle
 - not asked again here: Priya Raghunathan agreed on 2025-12-16 (R1135), no intro - nudge
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (5 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
@@ -27,7 +29,17 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.063 | 0.357 | Owen Trask (Investor) | direct | Niall Grimsby — Chief Data Officer | connections_trask.csv: Niall Grimsby, Chief Data Officer at Redtree Foods, connected 2017-11-17 |  |
 | 0.060 | 0.248 | Marcus Aldridge (Advisor) | alumni | Niall Grimsby — ex-Redtree Foods (2013-2019), now Chief Data Officer at Redtree Foods | investor_network.csv: Niall Grimsby prior_employer=Redtree Foods (2013-2019); connections_aldridge.csv: connection of Marcus Aldridge since 2020-02-25 |  |
 | 0.036 | 0.202 | Owen Trask (Investor) | alumni | Niall Grimsby — ex-Redtree Foods (2013-2019), now Chief Data Officer at Redtree Foods | investor_network.csv: Niall Grimsby prior_employer=Redtree Foods (2013-2019); connections_trask.csv: connection of Owen Trask since 2017-11-17 |  |
+
+**investor_network - asked when no roster path is left** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.172 | 0.720 | Renata Halloran-Quillane (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Renata Halloran-Quillane (Growth equity investor), portfolio_company=Redtree Foods, board_seat=False |  |
+
+**not asked again here - an unresolved ask (nudge or chase) owns it** (3 paths)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.229 | 0.720 | Priya Raghunathan (Investor) | investor | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Redtree Foods, board_seat=False | Priya Raghunathan agreed on 2025-12-16 (R1135), no intro - nudge |
 | 0.098 | 0.308 | Priya Raghunathan (Investor) | direct | Coretta Bellinger — VP Data & Analytics | connections_raghunathan.csv: Coretta Bellinger, VP Data & Analytics at Redtree Foods, connected 2014-07-03 | Priya Raghunathan agreed on 2025-12-16 (R1135), no intro - nudge |
 | 0.060 | 0.187 | Priya Raghunathan (Investor) | alumni | Coretta Bellinger — ex-Redtree Foods (2012-2016), now VP Data & Analytics at Redtree Foods | investor_network.csv: Coretta Bellinger prior_employer=Redtree Foods (2012-2016); connections_raghunathan.csv: connection of Priya Raghunathan since 2014-07-03 | Priya Raghunathan agreed on 2025-12-16 (R1135), no intro - nudge |

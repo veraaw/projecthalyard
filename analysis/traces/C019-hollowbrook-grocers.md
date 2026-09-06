@@ -17,13 +17,25 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (1 path)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.128 | 0.300 | Dana Whitfield (Internal) | direct | Freya Havercamp — Staff Engineer | connections_whitfield.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2020-12-25 |  |
+
+**investor_network - asked when no roster path is left** (2 paths)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.172 | 0.720 | Arjun Fairweather-Brenneman (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Arjun Fairweather-Brenneman (Growth equity investor), portfolio_company=Hollowbrook Grocers, board_seat=False |  |
 | 0.172 | 0.720 | Priya Dobrescu-Prendergast (investor network) | investor_network | CEO / exec team — Thornbury Equity portfolio company | investor_network.csv: Priya Dobrescu-Prendergast (Private equity investor), portfolio_company=Hollowbrook Grocers, board_seat=False |  |
+
+**askable, ranked last - an ask here went unanswered past the window** (3 paths)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.184 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Hollowbrook Grocers, board_seat=True | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last |
 | 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Chief Operating Officer | slack_threads.jsonl R1124 2025-11-10 Priya Raghunathan: "I met their Chief Operating Officer at a conference last spring, happy to reach out" | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last |
 | 0.069 | 0.337 | Priya Raghunathan (Investor) | direct | Freya Havercamp — Staff Engineer | connections_raghunathan.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2022-05-16 | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last |
