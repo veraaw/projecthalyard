@@ -1,11 +1,12 @@
 """The "Company Trace" tab, docs/companytrace.html (built by dashboard/build_dashboard.py).
 
-    from dashboard.trace_section import fragment
-    html = fragment()          # <div> with a search box + the five trace sections, rendered client-side
+    from dashboard.trace_section import fragment, sidebar
+    aside = sidebar()          # search box + the company list, for the page's left rail
+    html = fragment()          # the five trace sections, rendered client-side
 
 Every company trace (analysis/trace.py, `Trace.as_dict()`) is embedded as JSON;
-a search box matches on id, name, alias, or CRM account id and swaps the
-rendered trace in place. Opens on the most-requested company.
+the search box filters the company list on id, name, alias, or CRM account id and
+clicking a company swaps the rendered trace in place. Opens on the most-requested company.
 """
 import json
 
@@ -14,19 +15,18 @@ from analysis.trace import all_traces
 MARK_LABEL = {"<-": "missed", "++": "worked", "**": "offer", "!!": "warning", "  ": ""}
 
 
+def sidebar() -> str:
+    """The left rail's contents: the search box and the company list the script fills in."""
+    return ('<input id="trace-q" type="search" placeholder="Search: name, alias, C018, A1050" autocomplete="off" spellcheck="false" aria-label="Search companies">'
+            '<nav class="toc" id="trace-matches"></nav>')
+
+
 def fragment() -> str:
     traces = all_traces()
     payload = json.dumps(traces, ensure_ascii=False).replace("</", "<\\/")
     return f"""
 <style>
-#trace .search{{display:flex;gap:12px;align-items:center;margin:12px 0 4px}}
-#trace .search input{{flex:1;max-width:460px;font:15px var(--sans);padding:9px 12px;border:1px solid var(--ink);background:var(--surface);color:var(--ink);outline:none}}
-#trace .search input:focus{{border-color:var(--blue)}}
-#trace .matches{{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 18px;min-height:30px}}
-#trace .matches button{{font:13px var(--sans);padding:5px 10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}}
-#trace .matches button:hover,#trace .matches button.on{{border-color:var(--blue);color:var(--blue)}}
-#trace .matches .n{{color:var(--mute);margin-left:5px}}
-#trace h2.co{{font-size:26px;margin:18px 0 2px}}
+#trace h2.co{{font-size:26px;margin:0 0 2px}}
 #trace .aka{{color:var(--mute);font-size:14px;margin:0 0 10px}}
 #trace table td.mark{{font-family:var(--mono);font-weight:600;width:28px;white-space:nowrap}}
 #trace tr.missed td.mark,#trace tr.missed td.what{{color:var(--warn)}}
@@ -46,13 +46,8 @@ def fragment() -> str:
 #trace td.score,#trace td.raw{{white-space:nowrap;font-variant-numeric:tabular-nums}}
 #trace tr.bypass td{{color:var(--mute);font-size:13px;border-top:none;padding-top:0}}
 #trace tr.bypass b{{color:var(--ink);font-weight:600}}
-@media(max-width:720px){{#trace .search{{flex-wrap:wrap}} #trace .search input{{flex-basis:100%;max-width:none}} #trace h2.co{{font-size:22px}}}}
+@media(max-width:720px){{#trace h2.co{{font-size:22px}}}}
 </style>
-<div class="search">
-  <input id="trace-q" type="search" placeholder="Search a company — name, alias, C018, A1050…" autocomplete="off" spellcheck="false">
-  <span class="foot" id="trace-count"></span>
-</div>
-<div class="matches" id="trace-matches"></div>
 <div id="trace-body"></div>
 <script id="trace-data" type="application/json">{payload}</script>
 <script>
@@ -93,15 +88,15 @@ def fragment() -> str:
       const maxScore = t.reach[0].route_score || 1, maxRaw = Math.max(...t.reach.map(p => p.strength)) || 1;
       out += `<p class="foot">ranked by route score = strength × focus fit × delivery rate, the allocator's sort key; strength is the raw path alone</p>`;
       out += `<table><thead><tr><th>route score</th><th>strength</th><th>connector</th><th>reach</th><th>contact</th><th>evidence</th></tr></thead><tbody>` +
-        t.reach.map(p => `<tr><td class="score"><span class="bar" style="width:${{Math.round(90 * p.route_score / maxScore)}}px"></span>${{p.route_score.toFixed(3)}}</td><td class="raw" title="fit ${{p.fit}} × delivery rate ${{p.rate}}"><span class="bar raw" style="width:${{Math.round(90 * p.strength / maxRaw)}}px"></span>${{p.strength.toFixed(3)}}</td><td>${{esc(p.connector)}} <span class="foot">${{esc(p.connector_type)}}</span></td><td>${{esc(p.reach_type)}}</td><td>${{esc([p.contact_name, p.contact_title].filter(Boolean).join(' — ') || '?')}}</td><td class="foot">${{esc(p.evidence)}}</td></tr>`
+        t.reach.map(p => `<tr><td class="score"><span class="bar" style="width:${{Math.round(90 * p.route_score / maxScore)}}px"></span>${{p.route_score.toFixed(3)}}</td><td class="raw" title="fit ${{p.fit}} × delivery rate ${{p.rate}}"><span class="bar raw" style="width:${{Math.round(90 * p.strength / maxRaw)}}px"></span>${{p.strength.toFixed(3)}}</td><td>${{esc(p.connector)}} <span class="foot">${{esc(p.connector_type)}}</span></td><td>${{esc(p.reach_type)}}</td><td>${{esc([p.contact_name, p.contact_title].filter(Boolean).join(', ') || '?')}}</td><td class="foot">${{esc(p.evidence)}}</td></tr>`
           + (p.bypass ? `<tr class="bypass"><td colspan="6"><b>strongest path, not where it went:</b> ${{esc(p.bypass)}}</td></tr>` : '')).join('') +
         `</tbody></table>`;
     }}
 
     const nEv = t.chronology.reduce((a, b) => a + b.length, 0);
-    out += `<h3>4. Chronology — ${{plural(nEv, 'event')}}, ${{plural(h.requests, 'request')}}, oldest first, as of ${{esc(t.as_of)}}</h3>`;
-    out += `<p class="legend">markers <b class="missed">&lt;-</b>missed <b class="worked">++</b>worked <b class="offer">**</b>offer <b class="warning">!!</b>warning</p>`;
-    out += `<table><thead><tr><th></th><th>date</th><th>source</th><th>who</th><th>what happened</th></tr></thead><tbody>`;
+    out += `<h3>4. Chronology: ${{plural(nEv, 'event')}}, ${{plural(h.requests, 'request')}}, oldest first, as of ${{esc(t.as_of)}}</h3>`;
+    out += `<p class="legend">markers <b class="missed">&lt;-</b>missed <b class="worked">++</b>worked <b class="offer">**</b>offer <b class="warning">!!</b>warning${{nEv > 12 ? ' · the table scrolls' : ''}}</p>`;
+    out += `<table class="tall nopage"><thead><tr><th></th><th>date</th><th>source</th><th>who</th><th>what happened</th></tr></thead><tbody>`;
     t.chronology.forEach((block, i) => {{
       if (i) out += `<tr class="gap"><td colspan="5"></td></tr>`;
       block.forEach(e => {{
@@ -114,31 +109,41 @@ def fragment() -> str:
     out += `<h3>5. Next steps, by person, cheapest first</h3>`;
     if (!t.next_steps.length) out += `<p class="empty">nobody needs to do anything</p>`;
     else out += `<table><thead><tr><th>#</th><th>who</th><th>role</th><th>action</th><th>why</th><th>requests</th></tr></thead><tbody>` +
-      t.next_steps.map((s, i) => `<tr><td class="order">${{i + 1}}</td><td>${{esc(s.who)}}</td><td class="foot">${{esc(s.role)}}</td><td><b>${{esc(s.action)}}</b></td><td>${{esc(s.why)}}</td><td class="rid">${{esc(s.request_ids.join(', ') || '—')}}</td></tr>`).join('') +
+      t.next_steps.map((s, i) => `<tr><td class="order">${{i + 1}}</td><td>${{esc(s.who)}}</td><td class="foot">${{esc(s.role)}}</td><td><b>${{esc(s.action)}}</b></td><td>${{esc(s.why)}}</td><td class="rid">${{esc(s.request_ids.join(', ') || 'none')}}</td></tr>`).join('') +
       `</tbody></table>`;
     body.innerHTML = out;
-    matches.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.id === current));
+    mark();
+  }}
+
+  function mark() {{
+    let on = null;
+    matches.querySelectorAll('a').forEach(a => {{ const is = a.dataset.id === current; a.classList.toggle('on', is); if (is) on = a; }});
+    const side = matches.closest('.side');
+    if (on && side && side.scrollHeight > side.clientHeight) {{
+      const top = on.offsetTop - side.offsetTop;
+      if (top < side.scrollTop + 20 || top > side.scrollTop + side.clientHeight - 40) side.scrollTop = top - side.clientHeight / 2;
+    }}
   }}
 
   function update() {{
     const hits = filter(q.value);
-    count.textContent = `${{hits.length}} of ${{T.length}} companies`;
-    matches.innerHTML = hits.slice(0, 12).map(t => `<button data-id="${{esc(t.company_id)}}">${{esc(t.company_name)}}<span class="n">${{t.header.requests}}</span></button>`).join('')
-      + (hits.length > 12 ? `<span class="foot" style="align-self:center">+${{hits.length - 12}} more — keep typing</span>` : '');
-    matches.querySelectorAll('button').forEach(b => b.onclick = () => render(T.find(t => t.company_id === b.dataset.id)));
+    if (count) count.textContent = q.value.trim() ? `${{hits.length}} of ${{T.length}}` : `${{T.length}}`;
+    matches.innerHTML = hits.map(t => `<a href="#${{esc(t.company_id)}}" data-id="${{esc(t.company_id)}}">${{esc(t.company_name)}}<span class="n">${{t.header.requests}}</span></a>`).join('')
+      || `<p class="empty">no company matches</p>`;
+    matches.querySelectorAll('a').forEach(a => a.onclick = e => {{ e.preventDefault(); render(T.find(t => t.company_id === a.dataset.id)); }});
     const exact = hits.find(t => norm(t.company_name) === norm(q.value) || t.company_id.toLowerCase() === q.value.trim().toLowerCase());
     if (exact) render(exact);
     else if (hits.length === 1) render(hits[0]);
     else if (!hits.some(t => t.company_id === current) && hits.length) render(hits[0]);
-    else matches.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.id === current));
+    else mark();
   }}
   q.addEventListener('input', update);
   // #C018 (a link from another tab) opens that company; the hash is kept in step so the view is shareable
   function fromHash() {{
     const id = decodeURIComponent(location.hash.slice(1));
     const t = id && T.find(t => t.company_id === id);
-    if (t) q.value = t.company_id;
-    update();
+    if (t) {{ q.value = ''; update(); render(t); }}
+    else update();
   }}
   window.addEventListener('hashchange', fromHash);
   fromHash();

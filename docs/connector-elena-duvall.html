@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Halyard — Elena Duvall</title>
+<title>Halyard · Elena Duvall</title>
 <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <style>
@@ -19,6 +19,35 @@ nav a{margin-right:18px;color:var(--ink);text-decoration:none;font-size:14px}
 nav a:hover{color:var(--blue)}
 .part-lede{margin-bottom:24px}
 main{max-width:1240px;margin:0 auto;padding:28px 40px 72px}
+/* the left rail: a sticky list of the page's sections, highlighted as you scroll */
+.layout{display:grid;grid-template-columns:224px minmax(0,1fr);gap:0 36px;max-width:1560px;margin:0 auto;padding:0 40px;align-items:start}
+.layout>main{max-width:none;margin:0;padding:28px 0 72px}
+.side{position:sticky;top:var(--topbar,140px);max-height:calc(100vh - var(--topbar,140px));overflow-y:auto;padding:30px 0 40px;font-family:var(--sans);scrollbar-width:thin}
+.side .side-h{margin:0 0 10px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.side .side-h .foot{font-weight:400;letter-spacing:0;text-transform:none;margin-left:6px;font-size:11.5px}
+.side input[type=search]{width:100%;font:13px var(--sans);padding:7px 10px;margin:0 0 10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);outline:none}
+.side input[type=search]:focus{border-color:var(--blue)}
+.toc{display:flex;flex-direction:column}
+.toc a{display:block;margin:0;padding:5px 12px;border-left:2px solid var(--line);color:var(--mute);text-decoration:none;font-size:13.5px;line-height:1.35}
+.toc a:hover{color:var(--ink)}
+.toc a.on{color:var(--ink);border-left-color:var(--blue);font-weight:500}
+.toc a.band{margin-top:14px;padding-left:0;border-left-color:transparent;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--baton)}
+.toc a.band:first-child{margin-top:0}
+.toc a .n{float:right;margin-left:8px;color:var(--mute);font-size:11.5px;font-variant-numeric:tabular-nums}
+.toc .empty{color:var(--mute);font-style:italic;font-size:13px;padding:5px 12px}
+/* long tables: 20 rows at a time, with a filter box; .tall tables scroll inside a fixed height instead */
+.pager{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:10px 0 4px;font-family:var(--sans);font-size:12.5px;color:var(--mute)}
+.pager input{font:inherit;padding:5px 9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);min-width:170px}
+.pager input:focus{outline:none;border-color:var(--blue)}
+.pager .pg-b{display:inline-flex;gap:3px;align-items:center}
+.pager .pg-b span{padding:0 4px}
+.pager button{font:inherit;padding:4px 9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;min-width:30px}
+.pager button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager button.pg-all{margin-left:auto}
+.pager button[hidden]{display:none}
+.tscroll.tall{max-height:min(70vh,640px);overflow-y:auto}
+.tscroll.tall thead th{position:sticky;top:0;z-index:1;background:var(--surface);border-bottom-color:transparent;box-shadow:inset 0 -1px 0 var(--ink)}
 section{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:calc(var(--topbar,140px) + 16px)}
 h2{margin:0 0 6px;font-size:22px}
 h3{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
@@ -51,6 +80,20 @@ table.cycles tr.now td .foot{font-weight:400}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:32px}
 .grid2>*{min-width:0}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+@media(max-width:1100px){
+  .layout{display:block;padding:0}
+  .layout>main{padding:24px 40px 72px}
+  .side{position:static;max-height:none;overflow:visible;padding:12px 40px 0;border-bottom:1px solid var(--line);background:var(--bg)}
+  .side .side-h{display:none}
+  .side input[type=search]{max-width:360px}
+  .toc{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;gap:2px;scrollbar-width:none}
+  .toc::-webkit-scrollbar{display:none}
+  .toc a{flex:none;white-space:nowrap;border-left:0;border-bottom:2px solid transparent;padding:6px 10px}
+  .toc a.on{border-bottom-color:var(--blue)}
+  .toc a.band{margin:0 0 0 12px;padding:8px 6px 6px 0}
+  .toc a.band:first-child{margin-left:0}
+  .toc a .n{float:none}
+}
 .finding{border-left:2px solid var(--blue);padding:6px 16px;margin:12px 0;background:var(--bg)}
 .finding.warn{border-color:var(--warn)}
 .finding b{display:block;font-family:var(--sans);font-weight:500;font-size:14px;margin-bottom:2px}
@@ -142,7 +185,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 #lp .subtabs button.on{color:var(--ink);background:var(--surface);border-color:var(--line) var(--line) var(--surface)}
 #lp .dl{display:flex;gap:16px;align-items:flex-start;margin:14px 0;font-size:14px;font-family:var(--sans)}
 #lp .dl span{color:var(--mute);padding-top:6px}
-#lp button:not(.subtabs button){font-family:var(--sans);font-size:14px;font-weight:500;background:var(--blue);color:#fff;border:1px solid var(--blue);padding:8px 16px;cursor:pointer;white-space:nowrap}
+#lp button:not(.subtabs button):not(.pager button){font-family:var(--sans);font-size:14px;font-weight:500;background:var(--blue);color:#fff;border:1px solid var(--blue);padding:8px 16px;cursor:pointer;white-space:nowrap}
 #lp button.secondary{background:var(--surface);color:var(--ink);border-color:var(--ink)}
 #lp .submitbar{position:sticky;bottom:0;z-index:5;display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:0 -2px;padding:12px 18px;background:var(--surface);border-top:2px solid var(--blue);box-shadow:0 -6px 18px rgba(0,0,0,.08);font-family:var(--sans);font-size:14px}
 #lp .submitbar[hidden]{display:none}
@@ -184,7 +227,8 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
   header h1{font-size:26px}
   header p{font-size:14px}
   nav a{display:inline-block;margin:0 14px 6px 0}
-  main{padding:16px 10px 64px}
+  main,.layout>main{padding:16px 10px 64px}
+  .side{padding:10px 16px 0}
   section{padding:18px 14px;margin-bottom:14px}
   h2{font-size:20px}
   h3{margin-top:22px}
@@ -223,7 +267,8 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 <body>
 <div class="topbar"><div class="mastrow"><a class="mast" href="livedata.html"><svg class="logo" width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="7" fill="#17293f"/><rect x="9" y="9" width="3.4" height="22" fill="#fff"/><rect x="27.6" y="9" width="3.4" height="22" fill="#fff"/><path d="M12.4 26.4 27.6 14.6" stroke="#c4763e" stroke-width="3"/></svg><span class="t"><b>Halyard Baton</b> / intro routing console</span></a><span class="built">built 2026-09-06</span></div><div class="tabs"><a href="livepriorities.html" class="parent">Live Priorities</a><a href="batchask.html">Batched-Ask for Connectors</a><a href="companytrace.html">Company Trace</a><a href="livedata.html">Live Data Dashboard</a><a href="halyardscoping.html">Raw Sept Data Dashboard</a></div><div class="tabs people"><span class="lbl">Live Priorities · by connector</span><a href="connector-marcus-aldridge.html">Marcus Aldridge<span class="n">8</span></a><a href="connector-dana-whitfield.html">Dana Whitfield<span class="n">6</span></a><a href="connector-priya-raghunathan.html">Priya Raghunathan<span class="n">8</span></a><a href="connector-tomas-beckett.html">Tomás Beckett<span class="n">8</span></a><a href="connector-elena-duvall.html" class="on">Elena Duvall<span class="n">3</span></a><a href="connector-owen-trask.html">Owen Trask<span class="n">3</span></a><a href="connector-imani-mkhize.html">Imani Mkhize<span class="n">2</span></a><a href="connector-curtis-hartigan.html">Curtis Hartigan<span class="n">2</span></a><a href="connector-yusuf-petrossian.html">Yusuf Petrossian<span class="n">2</span></a><a href="connector-nadia-okonkwo.html">Nadia Okonkwo<span class="n">1</span></a></div></div><button class="totop" type="button" title="Back to top" aria-label="Back to top">&uarr;</button>
 <script>
-(function () {
+// this script sits in the top bar, ahead of <main>, so it waits for the rest of the page to parse
+document.addEventListener('DOMContentLoaded', function () {
   var b = document.querySelector('.totop');
   var show = function () { b.classList.toggle('show', window.scrollY > 400); };
   window.addEventListener('scroll', show, { passive: true });
@@ -236,31 +281,140 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
   window.addEventListener('resize', fit);
   window.addEventListener('load', fit);
 
+  var PAGE = 20, MIN_ROWS = 25;
+  var pages = function (n, p) {
+    if (n <= 7) { var all = []; for (var i = 0; i < n; i++) all.push(i); return all; }
+    var keep = {}, out = [];
+    [0, 1, n - 2, n - 1, p - 1, p, p + 1].forEach(function (i) { if (i >= 0 && i < n) keep[i] = true; });
+    for (var j = 0; j < n; j++) {
+      if (keep[j]) out.push(j);
+      else if (out[out.length - 1] !== -1) out.push(-1);
+    }
+    return out;
+  };
+  var pager = function (t) {
+    if (t.dataset.pager || t.classList.contains('nopage') || !t.tBodies.length) return;
+    var rows = Array.prototype.slice.call(t.tBodies[0].rows);
+    if (rows.length < MIN_ROWS) return;
+    t.dataset.pager = '1';
+    var box = t.parentElement, q = '', p = 0, all = false;
+    var barEl = document.createElement('div');
+    barEl.className = 'pager';
+    barEl.innerHTML = '<input type="search" placeholder="filter rows" aria-label="filter rows"><span class="pg-l"></span><span class="pg-b"></span><button type="button" class="pg-all"></button>';
+    box.parentNode.insertBefore(barEl, box.nextSibling);
+    var label = barEl.querySelector('.pg-l'), nums = barEl.querySelector('.pg-b'), allBtn = barEl.querySelector('.pg-all');
+    var draw = function () {
+      var hits = rows.filter(function (r) { return !q || r.textContent.toLowerCase().indexOf(q) >= 0; });
+      var n = Math.max(1, Math.ceil(hits.length / PAGE));
+      if (p >= n) p = n - 1;
+      rows.forEach(function (r) { r.hidden = true; });
+      var shown = all ? hits : hits.slice(p * PAGE, (p + 1) * PAGE);
+      shown.forEach(function (r) { r.hidden = false; });
+      var of = q ? ' matching' : '';
+      label.textContent = !hits.length ? 'no rows match' : all || hits.length <= PAGE ? hits.length + of + ' rows'
+        : 'rows ' + (p * PAGE + 1) + '–' + (p * PAGE + shown.length) + ' of ' + hits.length + of;
+      nums.innerHTML = '';
+      if (!all && n > 1) {
+        var mk = function (txt, to, dis, on) {
+          var x = document.createElement('button');
+          x.type = 'button'; x.textContent = txt; x.disabled = !!dis; if (on) x.className = 'on';
+          x.onclick = function () { p = to; draw(); };
+          nums.appendChild(x);
+        };
+        mk('‹', p - 1, p === 0);
+        pages(n, p).forEach(function (i) {
+          if (i < 0) { var s = document.createElement('span'); s.textContent = '…'; nums.appendChild(s); }
+          else mk(String(i + 1), i, false, i === p);
+        });
+        mk('›', p + 1, p === n - 1);
+      }
+      allBtn.hidden = hits.length <= PAGE;
+      allBtn.textContent = all ? 'Show ' + PAGE + ' at a time' : 'Show all ' + hits.length;
+    };
+    barEl.querySelector('input').addEventListener('input', function (e) { q = e.target.value.trim().toLowerCase(); p = 0; draw(); });
+    allBtn.onclick = function () { all = !all; p = 0; draw(); };
+    draw();
+  };
+
   var wrap = function () {
     document.querySelectorAll('table').forEach(function (t) {
-      if (t.parentElement.classList.contains('tscroll')) return;
-      var row = t.querySelector('tr'), cols = 0;
-      if (row) for (var i = 0; i < row.cells.length; i++) cols += row.cells[i].colSpan;
-      t.style.setProperty('--tmin', Math.min(cols * 130, 1100) + 'px');
-      var d = document.createElement('div');
-      d.className = 'tscroll';
-      t.parentNode.insertBefore(d, t);
-      d.appendChild(t);
+      if (!t.parentElement.classList.contains('tscroll')) {
+        var row = t.querySelector('tr'), cols = 0;
+        if (row) for (var i = 0; i < row.cells.length; i++) cols += row.cells[i].colSpan;
+        t.style.setProperty('--tmin', Math.min(cols * 130, 1100) + 'px');
+        var d = document.createElement('div');
+        d.className = 'tscroll' + (t.classList.contains('tall') ? ' tall' : '');
+        t.parentNode.insertBefore(d, t);
+        d.appendChild(t);
+      }
+      pager(t);
     });
   };
+
+  var toc = document.querySelector('.side nav.toc'), main = document.querySelector('main'), tocKey = '';
+  var heading = function (s) {
+    var h = s.querySelector('h2');
+    if (!h) return '';
+    var c = h.cloneNode(true);
+    c.querySelectorAll('.foot').forEach(function (f) { f.remove(); });
+    return c.textContent.trim();
+  };
+  var fillToc = function () {
+    if (!toc || !toc.hasAttribute('data-auto') || !main) return;
+    var items = [];
+    main.querySelectorAll('section[id]').forEach(function (s) { var t = heading(s); if (t) items.push([s.id, t]); });
+    var key = items.join('|');
+    if (key === tocKey) return;
+    tocKey = key;
+    toc.innerHTML = '';
+    items.forEach(function (it) {
+      var a = document.createElement('a');
+      a.href = '#' + it[0]; a.textContent = it[1];
+      toc.appendChild(a);
+    });
+    spy();
+  };
+  var spy = function () {
+    if (!toc) return;
+    var links = Array.prototype.filter.call(toc.querySelectorAll('a[href^="#"]:not(.band)'), function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+    if (!links.length) return;
+    var line = bar.offsetHeight + 40, on = links[0];
+    links.forEach(function (a) {
+      var el = document.getElementById(a.getAttribute('href').slice(1));
+      if (el.getBoundingClientRect().top <= line) on = a;
+    });
+    if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 2) on = links[links.length - 1];
+    links.forEach(function (a) { a.classList.toggle('on', a === on); });
+    var side = toc.closest('.side');
+    if (side && side.scrollHeight > side.clientHeight) {
+      var top = on.offsetTop - side.offsetTop;
+      if (top < side.scrollTop + 20 || top > side.scrollTop + side.clientHeight - 40) side.scrollTop = top - side.clientHeight / 2;
+    } else if (toc.scrollWidth > toc.clientWidth) toc.scrollLeft = on.offsetLeft - (toc.clientWidth - on.offsetWidth) / 2;
+  };
+  var pending = false;
+  window.addEventListener('scroll', function () {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(function () { pending = false; spy(); });
+  }, { passive: true });
+  window.addEventListener('load', spy);
+
   wrap();
-  new MutationObserver(wrap).observe(document.body, { childList: true, subtree: true });
+  fillToc();
+  new MutationObserver(function () { wrap(); fillToc(); }).observe(document.body, { childList: true, subtree: true });
 
   bar.querySelectorAll('.tabs').forEach(function (row) {
     var on = row.querySelector('a.on, a.parent');
     if (on && row.scrollWidth > row.clientWidth) row.scrollLeft = on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2;
   });
-})();
+});
 </script>
 <header>
-  <h1>Elena Duvall — top 3, then the longer list</h1>
+  <h1>Elena Duvall: top 3, then the longer list</h1>
   <p>Advisor (former COO, industrial manufacturing) · Advisor · 3 live requests routed to them this cycle, ranked by the same expected value as <a href="livepriorities.html#top">Live Priorities</a>; computed by <code>dashboard/live_priorities.py</code> at build time, rendered by the browser. Every company name opens its <a href="companytrace.html">Company Trace</a> · built 2026-09-06</p>
 </header>
+<div class="layout">
+<aside class="side"><div class="side-h">On this page</div><nav class="toc" data-auto></nav></aside>
 <main>
 
 <div id="lp"></div>
@@ -439,34 +593,34 @@ const LP = (function () {
       if (filed) {
         Object.assign(row, { filed: true, company_id: filed.company_id, company_name: filed.company_name, href: filed.href,
                              resolved_by: `already filed (${filed.status}); filed facts are kept, only new offers land` });
-        if (filed.asked) human.push('already asked — an offer in the thread changes nothing');
+        if (filed.asked) human.push('already asked, so an offer in the thread changes nothing');
       } else {
         const ex = extract(first.text || '', P, resolver);
         row.mentions = ex.mentions;
         const tg = ex.target;
-        if (!tg) { row.resolved_by = 'no company named in the ask'; human.push('no company named — the build files it with no company_id'); }
+        if (!tg) { row.resolved_by = 'no company named in the ask'; human.push('no company named, so the build files it with no company_id'); }
         else {
           row.company_as_written = tg.text;
           const r = tg.resolution;
           if (r.entity_id && r.kind === 'company') {
             Object.assign(row, { company_id: r.entity_id, resolved_by: `${r.method} (${r.confidence.toFixed(2)})` });
           } else if (r.entity_id && r.kind === 'fund') {
-            row.resolved_by = `${r.method}: names the fund ${r.name}, not a customer`;
-            human.push(`"${tg.text}" is an investor fund — the build would file a new company under that name`);
+            row.resolved_by = `${r.method}: names the fund ${r.name} rather than a customer`;
+            human.push(`"${tg.text}" is an investor fund, so the build would file a new company under that name`);
           } else if (r.method === 'fund-or-customer' || r.method === 'ambiguous') {
             row.resolved_by = `${r.method}: ${r.candidates.map(c => `${c.id} ${c.name} (${c.kind})`).join(' | ')}`;
-            human.push(r.method === 'fund-or-customer' ? 'bare name is a fund and a customer — ask the requester which' : 'ambiguous between two companies — pick one');
+            human.push(r.method === 'fund-or-customer' ? 'bare name is both a fund and a customer, ask the requester which' : 'ambiguous between two companies, pick one');
           } else {
             const name = tg.is_domain ? domainStem(tg.text) : tg.text;
             const known = get(P.known_no_crm, resolver.normStrict(name), '') || get(P.known_no_crm, resolver.normLoose(name), '');
-            if (known) { row.company_id = known; row.resolved_by = 'matches a company on file that has no CRM account'; human.push('no CRM account — create one (see CRM Updates)'); }
-            else { row.resolved_by = 'new company — the build creates it with no domain and no CRM account'; human.push('new company: no CRM account, no domain — confirm the spelling'); }
+            if (known) { row.company_id = known; row.resolved_by = 'matches a company on file that has no CRM account'; human.push('no CRM account, create one (see CRM Updates)'); }
+            else { row.resolved_by = 'new company, so the build creates it with no domain and no CRM account'; human.push('new company with no CRM account and no domain, confirm the spelling'); }
           }
         }
         const C = get(P.companies, row.company_id, null);
-        if (C) { row.company_name = C.company_name; row.href = C.href; if (C.stage === 'Closed Lost') human.push('CRM account is Closed Lost — reopen it or close the request'); }
+        if (C) { row.company_name = C.company_name; row.href = C.href; if (C.stage === 'Closed Lost') human.push('CRM account is Closed Lost, reopen it or close the request'); }
         else if (row.company_as_written) row.company_name = row.company_as_written;
-        human.push('thread carries no deal value, urgency or target title — add them to the request file');
+        human.push('thread carries no deal value, urgency or target title, add them to the request file');
       }
       // who it would route to: the best existing path vs any offer in the thread, scored as the build scores them
       const C = get(P.companies, row.company_id, null);
@@ -479,16 +633,16 @@ const LP = (function () {
       cands.sort((a, b) => b.score - a.score);
       if (offers.length) { row.offer_by = offers.map(o => o.who).join(' | '); row.offer_text = offers.map(o => o.text).join(' | '); }
       if (filed && filed.asked) {
-        row.path = 'already asked — not re-routed';
+        row.path = 'already asked, so not re-routed';
       } else if (cands.length) {
         const best = cands[0], conn = get(P.connectors, best.who, null);
         row.route_to = best.who; row.path = `${best.label} (${best.score.toFixed(2)})`;
-        if (conn && conn.idle <= 0) human.push(`${best.who} has no slot left this cycle — would be "capacity exhausted" unless a slot frees`);
+        if (conn && conn.idle <= 0) human.push(`${best.who} has no slot left this cycle, so this would be "capacity exhausted" unless a slot frees`);
         if (conn && !conn.on_roster) human.push(`${best.who} is not on the connector roster`);
         if (!conn) human.push(`${best.who} is unknown to the roster and the outcome log`);
       } else {
         row.path = 'no path';
-        if (row.company_id) human.push('no path to this company in the network — exception unless someone offers');
+        if (row.company_id) human.push('no path to this company in the network, an exception unless someone offers');
       }
       row.flags = human.filter(Boolean);
       row.needs_human = row.flags.join('; ');
@@ -510,12 +664,12 @@ const LP = (function () {
     const out = { text, title: tm ? tm.groups.t : '', mentions: ex.mentions, target: null, company: null, crm: false,
                   others: [], candidates: [], paths: [], top: null, priority: null, status: '', note: '' };
     const lost = m => {
-      if (m.score <= 0) return `mentioned, but as a bridge or in passing — “${m.cue}” scores ${m.score}`;
-      if (m.score < tg.score) return `asked for too, but with a weaker cue — “${m.cue}” scores +${m.score} against +${tg.score}`;
+      if (m.score <= 0) return `mentioned, but as a bridge or in passing: “${m.cue}” scores ${m.score}`;
+      if (m.score < tg.score) return `asked for too, but with a weaker cue: “${m.cue}” scores +${m.score} against +${tg.score}`;
       return `same cue strength (+${m.score}), but named later in the message`;
     };
     out.others = ex.mentions.filter(m => m !== tg).map(m => ({
-      text: m.text, cue: m.cue, score: m.score, why: tg ? lost(m) : `“${m.cue}” scores ${m.score} — nothing in the message asks for anyone`,
+      text: m.text, cue: m.cue, score: m.score, why: tg ? lost(m) : `“${m.cue}” scores ${m.score}; nothing in the message asks for anyone`,
       name: m.resolution.entity_id ? m.resolution.name : '', company_id: m.resolution.kind === 'company' ? m.resolution.entity_id : '',
     }));
     if (!tg) {
@@ -529,13 +683,13 @@ const LP = (function () {
       out.status = 'refused';
       out.candidates = r.candidates.map(c => ({ ...c, ref: get(P.companies, c.id, null) }));
       out.note = r.method === 'fund-or-customer'
-        ? `“${tg.text}” is both a fund and a customer — refused. Ask which one is meant.`
-        : `“${tg.text}” matches more than one company — refused. Ask which one is meant.`;
+        ? `“${tg.text}” is both a fund and a customer, so the router refuses it. Ask which one is meant.`
+        : `“${tg.text}” matches more than one company, so the router refuses it. Ask which one is meant.`;
       return out;
     }
     if (r.entity_id && r.kind === 'fund') {
       out.status = 'fund';
-      out.note = `“${tg.text}” resolves to ${r.name}, an investor fund, not a customer — the build would file a new company under that name.`;
+      out.note = `“${tg.text}” resolves to ${r.name}, which is an investor fund rather than a customer. The build would file a new company under that name.`;
       return out;
     }
     let cid = r.entity_id;
@@ -546,7 +700,7 @@ const LP = (function () {
     const C = get(P.companies, cid, null);
     if (!C) {
       out.status = 'unknown';
-      out.note = `“${tg.text}” is not a company the build knows — no CRM record, no path on the roster. It would be filed as a new company.`;
+      out.note = `“${tg.text}” is a company the build has not seen: no CRM record, no path on the roster. It would be filed as a new company.`;
       return out;
     }
     out.company = C; out.crm = C.crm;
@@ -621,7 +775,7 @@ const LP = (function () {
     }
     return out;
   }
-  const SUBMITTED_TITLE = 'recorded — leaves the list when the site rebuilds';
+  const SUBMITTED_TITLE = 'recorded; leaves the list when the site rebuilds';
   // the tick-box cell for one row; the data- attributes are what Submit posts
   const tick = (state, t) => {
     const key = tickKey(t), on = state.ticks.has(key), sub = state.submitted.has(key);
@@ -683,7 +837,7 @@ const LP = (function () {
       } catch (e) {
         // the ticks stay ticked and pending, so Submit can be tried again
         bar.dataset.state = 'failed';
-        bar.dataset.msg = `<b class="warn">Not recorded.</b> ${esc(e.message)}. Your ${plural(ticks.length, 'tick')} are still here — try Submit again, or if Supabase is down, tell whoever runs the build to apply them by hand.`;
+        bar.dataset.msg = `<b class="warn">Not recorded.</b> ${esc(e.message)}. Your ${plural(ticks.length, 'tick')} are still here. Try Submit again, or if Supabase is down, tell whoever runs the build to apply them by hand.`;
         show();
         return;
       }
@@ -727,7 +881,7 @@ const LP = (function () {
     if (st) parts.push(`site built <b>${esc(utc(st.built_at))}</b> (${ago(st.built_at)}; as of ${esc(st.as_of)}, ${plural(st.completions, 'completion')} applied)`);
     else parts.push(`as of <b>${esc(D.as_of)}</b>`);
     if (run) parts.push(`last rebuild check <a href="${esc(run.html_url)}" target="_blank" rel="noopener">${ago(run.updated_at || run.created_at)}</a>`);
-    if (stale) parts.push('<b class="warn">stale — the 15-minute rebuild has not run lately</b>');
+    if (stale) parts.push('<b class="warn">stale: the 15-minute rebuild has not run lately</b>');
     el.innerHTML = parts.join(' · ');
   }
 
@@ -751,9 +905,9 @@ const LP = (function () {
   // what a connector is sitting on, with a tick-box per row (nudged / chased); a row
   // followed up in the last quiet_days has no box and says when
   const sittingTable = (c, X, state) => c.sitting_on.length ? `<table class="top"><thead><tr><th></th><th>action</th><th>request</th><th>company</th><th>wanted</th><th>for</th><th>asked</th><th class="num">days</th><th>responded</th><th>value</th></tr></thead><tbody>`
-    + c.sitting_on.map(s => { const k = followTick(X, s); return `<tr class="${s.quiet ? 'quiet' : doneClass(state, k)}">${s.quiet ? `<td title="${esc(actionLabel[k.action])} ${esc(s.nudged_on)}; back in ${c.quiet_days - s.days_since_nudged}d"></td>` : tick(state, k)}<td><b>${esc(s.action)}</b>${s.quiet ? `<br><span class="foot">${esc(actionLabel[k.action])} ${s.days_since_nudged}d ago</span>` : ''}</td><td class="rid">${esc(s.request_id)}</td><td>${co(s)}</td><td>${esc(s.target_title)}</td><td>${esc(s.requested_by)}</td><td class="date">${esc(s.asked_date)}</td><td class="num">${s.days_since_asked}</td><td>${s.responded ? '<b>yes — nudge, do not re-ask</b>' : 'no'}</td><td>${esc(s.value_fmt)}</td></tr>`; }).join('') + `</tbody></table><p class="foot">Tick a row once you have nudged or chased; it is off the list for ${c.quiet_days} days after the next rebuild.</p>` : `<p class="empty">nothing outstanding</p>`;
+    + c.sitting_on.map(s => { const k = followTick(X, s); return `<tr class="${s.quiet ? 'quiet' : doneClass(state, k)}">${s.quiet ? `<td title="${esc(actionLabel[k.action])} ${esc(s.nudged_on)}; back in ${c.quiet_days - s.days_since_nudged}d"></td>` : tick(state, k)}<td><b>${esc(s.action)}</b>${s.quiet ? `<br><span class="foot">${esc(actionLabel[k.action])} ${s.days_since_nudged}d ago</span>` : ''}</td><td class="rid">${esc(s.request_id)}</td><td>${co(s)}</td><td>${esc(s.target_title)}</td><td>${esc(s.requested_by)}</td><td class="date">${esc(s.asked_date)}</td><td class="num">${s.days_since_asked}</td><td>${s.responded ? '<b>yes, so nudge rather than re-ask</b>' : 'no'}</td><td>${esc(s.value_fmt)}</td></tr>`; }).join('') + `</tbody></table><p class="foot">Tick a row once you have nudged or chased; it is off the list for ${c.quiet_days} days after the next rebuild.</p>` : `<p class="empty">nothing outstanding</p>`;
 
-  const pctOf = v => v == null ? '—' : `${Math.round(v * 100)}%`;
+  const pctOf = v => v == null ? 'n/a' : `${Math.round(v * 100)}%`;
 
   // cycle-by-cycle record: asks against capacity, intros made, running total
   const cycleTable = (rows, who) => `<table class="cycles"><thead><tr><th>cycle</th><th class="num">asks</th><th class="num">of capacity</th><th class="num">intros made</th><th class="num">cumulative intros</th></tr></thead><tbody>`
@@ -768,10 +922,10 @@ const LP = (function () {
   // with a copy button. A drafting aid only: copying writes nothing anywhere; the
   // ask_sent tick on the queue rows stays the record that the ask went out.
   const composeBlock = (m, id, tick = 'tick <i>ask sent</i> on the rows below once it has gone out') => !m ? '' : `<div class="compose" id="${esc(id)}"><div class="bar"><b>Batched ask · ${esc(m.connector)}</b>
-      <span class="foot">cycle ${esc(m.cycle)} · ${plural(m.request_count, 'request')} across ${plural(m.company_count, 'company')} · ${m.template === 'offerer' ? 'offerer template — not on the roster, being asked because they offered' : 'roster template'}${m.over_capacity ? ` · <b class="warn">${m.request_count} asks against a stated capacity of ${m.capacity}</b>` : ''}</span>
+      <span class="foot">cycle ${esc(m.cycle)} · ${plural(m.request_count, 'request')} across ${plural(m.company_count, 'company')} · ${m.template === 'offerer' ? 'offerer template (off the roster, asked because they offered)' : 'roster template'}${m.over_capacity ? ` · <b class="warn">${m.request_count} asks against a stated capacity of ${m.capacity}</b>` : ''}</span>
       <button type="button" class="copy" data-copy="${esc(id)}">Copy message</button></div>
       <pre class="msg">${esc(m.message)}</pre>
-      <p class="foot">Paste into the thread or a DM. Nothing is written by copying — ${tick}.</p></div>`;
+      <p class="foot">Paste into the thread or a DM. Copying writes nothing; ${tick}.</p></div>`;
   const wireCopy = root => root.querySelectorAll('button.copy').forEach(b => b.onclick = async () => {
     const pre = root.querySelector(`#${b.dataset.copy} pre.msg`), text = pre ? pre.textContent : '';
     let ok = false;
@@ -792,11 +946,11 @@ const LP = (function () {
   // the Batched-Ask tab (docs/batchask.html): every drafted message, current cycle first
   function bootBatch(D, root) {
     const now = D.messages.filter(m => m.cycle === D.cycle), past = D.messages.filter(m => m.cycle !== D.cycle);
-    const detail = m => `<details><summary>${plural(m.request_count, 'request')} behind this message — ids, scores, values and urgency stay here, out of the text</summary>
+    const detail = m => `<details><summary>${plural(m.request_count, 'request')} behind this message (ids, scores, values and urgency stay here, out of the text)</summary>
       <table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>for</th><th>path</th><th class="num">score</th><th>value</th><th>urgency</th></tr></thead><tbody>`
       + m.requests.map(q => `<tr><td class="rid">${esc(q.request_id)}</td><td>${co(q)}</td><td>${esc(q.target_title)}</td><td>${esc(q.requested_by)}</td><td>${esc(q.path_type)}${q.contact_name ? ` <span class="foot">via ${esc(q.contact_name)}</span>` : q.offer_date ? ` <span class="foot">offered ${esc(q.offer_date)}</span>` : ''}</td><td class="num">${esc(q.route_score)}</td><td>${esc(q.value_fmt)}</td><td>${esc(q.urgency)}</td></tr>`).join('')
       + `</tbody></table></details>`;
-    const card = m => `<section id="${esc(m.slug)}"><h2>${esc(m.connector)} <span class="foot">${m.on_roster ? esc(m.type) : 'not on the roster'} · batch <code>${esc(m.batch_id)}</code>${m.page ? ` · <a href="${esc(m.page)}">their page →</a>` : ''}</span></h2>`
+    const card = m => `<section id="${esc(m.slug)}"><h2>${esc(m.connector)} <span class="foot">${m.on_roster ? esc(m.type) : 'not on the roster'} · batch <code>${esc(m.batch_id)}</code>${m.page ? ` · <a href="${esc(m.page)}">their page</a>` : ''}</span></h2>`
       + composeBlock(m, `ask-${m.cycle}-${m.slug}`, `tick <i>ask sent</i> on ${m.page ? `<a href="${esc(m.page)}">their page</a>` : 'their page'} or <a href="livepriorities.html#connectors">Live Priorities</a> once it has gone out`) + detail(m) + `</section>`;
     let out = `<p class="stamp" id="lp-stamp">as of <b>${esc(D.as_of)}</b></p>
       <section id="about"><p class="lede">One message per connector for cycle <b>${esc(D.cycle)}</b>: their whole batch from <code>golden_allocation.csv</code>, grouped by company and ordered by the batch's best route, requesters named from <code>golden_requests.csv</code>. Connectors on the roster get the roster wording; someone off the roster who is being asked because they offered in a thread gets the offerer wording, quoting the thread date. The wording lives in <code>${esc(D.templates)}</code>. No dollar value, route score, request id or urgency label appears in the text; those stay in the table under each message.</p>
@@ -828,8 +982,8 @@ const LP = (function () {
     const X = c.completions, state = loadTicks(X);
     const cap = c.capacity ? `${c.used} / ${c.capacity}` : `${c.used}`;
     const now = c.cycles[c.cycles.length - 1];
-    let out = c.batch_ask ? `<section id="ask"><h2>This cycle's ask <span class="foot">the batch drafted as one message — copy it, send it, then tick the rows below as the asks go out</span></h2>${composeBlock(c.batch_ask, `ask-${c.slug}`)}</section>` : '';
-    out += `<section id="top"><h2>Top ${c.top.length} for ${esc(c.connector)} <span class="foot">do these next — ${esc(c.connector)}'s share of the ${c.ranked_count} live requests routed to them this cycle, sorted by expected value${c.no_slot ? `; ${c.no_slot} have no slot until capacity frees up` : ''}</span></h2>
+    let out = c.batch_ask ? `<section id="ask"><h2>This cycle's ask <span class="foot">the batch drafted as one message: copy it, send it, then tick the rows below as the asks go out</span></h2>${composeBlock(c.batch_ask, `ask-${c.slug}`)}</section>` : '';
+    out += `<section id="top"><h2>Top ${c.top.length} for ${esc(c.connector)} <span class="foot">do these next: ${esc(c.connector)}'s share of the ${c.ranked_count} live requests routed to them this cycle, sorted by expected value${c.no_slot ? `; ${c.no_slot} have no slot until capacity frees up` : ''}</span></h2>
       <p class="lede">${c.on_roster ? `${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''}` : `<b>not on the roster</b> · ${esc(c.type)} · no stated capacity or focus areas`}${c.notes ? `<br><span class="foot">${esc(c.notes)}</span>` : ''}</p>
       <div class="kpis"><div class="kpi"><div class="v">${cap}</div><div class="l">${c.capacity ? 'capacity used this cycle' : 'asks this cycle'}</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated${c.capacity ? ` · ${c.idle} idle` : ''}</div></div>
         <div class="kpi"><div class="v">${c.intros_this_cycle}</div><div class="l">intros made this cycle</div><div class="s">${esc(now.cycle)} · ${c.capacity ? `${pctOf(now.capacity_pct)} of capacity used` : 'no stated capacity'}</div></div>
@@ -838,9 +992,9 @@ const LP = (function () {
         <div class="kpi"><div class="v">${c.ranked_count}</div><div class="l">requests on their list</div><div class="s">${esc(c.ranked_value_fmt)} of deal value</div></div>
         <div class="kpi ${c.sitting_on.length ? 'warn' : ''}"><div class="v">${c.sitting_on.length}</div><div class="l">already sitting on</div><div class="s">asked, live, no intro yet</div></div></div>`
       + (c.top.length ? priorityTable(c.top, X, state, 'rank_here', false) : `<p class="empty">nothing routed to ${esc(c.connector)} this cycle</p>`)
-      + `<p class="foot"># is the rank within ${esc(c.connector)}'s list; the same rows rank ${c.top.map(r => r.rank).join(', ') || '—'} on the <a href="livepriorities.html#top">overall list</a>.</p></section>`;
+      + `<p class="foot"># is the rank within ${esc(c.connector)}'s list; the same rows rank ${c.top.map(r => r.rank).join(', ') || 'nowhere'} on the <a href="livepriorities.html#top">overall list</a>.</p></section>`;
 
-    out += `<section id="rest"><h2>The longer list <span class="foot">everything else on ${esc(c.connector)}'s plate — ${plural(c.rest.length, 'more request')} to ask, then ${plural(c.sitting_on.length, 'ask')} already made and waiting on them</span></h2>
+    out += `<section id="rest"><h2>The longer list <span class="foot">everything else on ${esc(c.connector)}'s plate: ${plural(c.rest.length, 'more request')} to ask, then ${plural(c.sitting_on.length, 'ask')} already made and waiting on them</span></h2>
       <h3>after the top ${c.top.length}</h3>` + (c.rest.length ? priorityTable(c.rest, X, state, 'rank_here', false) : `<p class="empty">${c.ranked_count ? 'the top ' + c.top.length + ' is the whole list' : 'nothing to ask'}</p>`)
       + `<h3>already sitting on</h3>` + sittingTable(c, X, state)
       + strongestTable(c)
@@ -864,14 +1018,14 @@ const LP = (function () {
     // ---- band 1 · intake: input the build does not have yet
     // route one message — the common case and the demo case, so it comes first
     sec.route = `<section id="route"><h2>Route a live request <span class="foot">paste a Slack message and see what the router would do with it</span></h2>
-      <p class="lede">The browser applies the build's own rules, exported as data: the ${P.cues.length} cues from <code>golden/parse.py</code> score every company named, the highest positive score is the target, <code>golden/resolver.py</code>'s tables look the name up, and the company's paths from <code>supply_reach.csv</code> are ranked as the build ranks them. Nothing is written.</p>
+      <p class="lede">The browser applies the build's own rules, exported as data: the ${P.cues.length} cues from <code>golden/parse.py</code> score every company named, the highest positive score is the target, <code>golden/resolver.py</code>'s tables look the name up, and the company's paths from <code>supply_reach.csv</code> are ranked as the build ranks them. Nothing is written anywhere.</p>
       <div class="presets">try a real shape:${P.route_presets.map((p, i) => `<button class="secondary" data-i="${i}">${esc(p.label)}</button>`).join('')}</div>
       <div class="ask"><textarea id="lp-route-text" rows="3" placeholder="who do we know at …" aria-label="Slack message"></textarea><button id="lp-route-go">Route it</button></div>
       <div id="lp-route-out"></div></section>`;
 
     // bulk upload — rare, and ends in a command run elsewhere
     sec.upload = `<section id="upload"><h2>Preview a Slack export before anything is written</h2>
-      <p class="lede">Drop a <code>.jsonl</code> of Slack threads (one <code>{request_id, messages:[{ts,user,text}…]}</code> per line). Every row shows the company the build would resolve, any offer spotted in the replies, who it would route to and what needs a human — using the build's own cues, resolver tables and offer pattern, so the preview matches what lands. A static page cannot write to disk: export the preview and run the command to file it.</p>
+      <p class="lede">Drop a <code>.jsonl</code> of Slack threads (one <code>{request_id, messages:[{ts,user,text}…]}</code> per line). Every row shows the company the build would resolve, any offer spotted in the replies, who it would route to and what needs a human. It uses the build's own cues, resolver tables and offer pattern, so the preview matches what lands. A static page cannot write to disk: export the preview and run the command to file it.</p>
       <div class="drop" id="lp-drop"><input type="file" id="lp-file" accept=".jsonl,.json,.txt"><span>Drop a .jsonl here or click to choose</span></div>
       <div id="lp-preview"></div></section>`;
 
@@ -879,29 +1033,29 @@ const LP = (function () {
     const S = D.stages;
     sec.stages = `<section id="stages" class="masthead">
       <div class="strip">${S.stages.map(s => `<div class="cell"><div class="v">${esc(s.usd_fmt)}</div><div class="n">${s.count === s.unresolved ? plural(s.count, 'unresolved request') : plural(s.count - s.unresolved, 'company') + (s.unresolved ? `<span class="foot"> · ${s.unresolved} unresolved</span>` : '')}</div><div class="l">${esc(s.stage)}</div></div>`).join('')}</div>
-      <details class="note"><summary>${plural(S.total.companies, 'company')}${S.total.unresolved ? ` + ${plural(S.total.unresolved, 'unresolved request')}` : ''}, ${esc(S.total.usd_fmt)} · point in time, as of ${esc(S.as_of)} — each company counted once, at its furthest stage, at one $ value · how it is counted</summary>
-      <p class="foot">One $ per company — CRM ARR potential where the company has an account (${S.value_source.crm}), else the deal value on its latest request (${S.value_source.deal})${S.value_source.none ? `, ${S.value_source.none} with neither` : ''} — never the sum of its requests. A company sits at the furthest stage any of its requests reached: once won, fresh asks on it do not move it back. ${S.total.unresolved ? `${plural(S.total.unresolved, 'request')} that resolved to no company (${esc(S.total.unresolved_usd_fmt)}) cannot be tied to an account or to each other, so each stands alone at its own deal value. ` : ''}${plural(S.excluded.count - S.excluded.unresolved, 'company')} whose every request is filed <i>Closed - no path</i>${S.excluded.unresolved ? `, and ${plural(S.excluded.unresolved, 'unresolved request')} filed the same,` : ''} (${esc(S.excluded.usd_fmt)}) are not on the strip. "needs data" = no company or no deal value on any request; "to be routed" = live with nobody assigned; "routed" = a connector is assigned or allocated this cycle but not yet asked; "asked" = in <code>intro_outcomes.csv</code> with no intro; "introduced" = intro logged or filed; "won" = meeting booked.</p></details></section>`;
+      <details class="note"><summary>${plural(S.total.companies, 'company')}${S.total.unresolved ? ` + ${plural(S.total.unresolved, 'unresolved request')}` : ''}, ${esc(S.total.usd_fmt)} · point in time, as of ${esc(S.as_of)}. Each company counted once, at its furthest stage, at one $ value · how it is counted</summary>
+      <p class="foot">One $ per company: CRM ARR potential where the company has an account (${S.value_source.crm}), else the deal value on its latest request (${S.value_source.deal})${S.value_source.none ? `, ${S.value_source.none} with neither` : ''}, never the sum of its requests. A company sits at the furthest stage any of its requests reached: once won, fresh asks on it do not move it back. ${S.total.unresolved ? `${plural(S.total.unresolved, 'request')} that resolved to no company (${esc(S.total.unresolved_usd_fmt)}) cannot be tied to an account or to each other, so each stands alone at its own deal value. ` : ''}${plural(S.excluded.count - S.excluded.unresolved, 'company')} whose every request is filed <i>Closed - no path</i>${S.excluded.unresolved ? `, and ${plural(S.excluded.unresolved, 'unresolved request')} filed the same,` : ''} (${esc(S.excluded.usd_fmt)}) are not on the strip. "needs data" = no company or no deal value on any request; "to be routed" = live with nobody assigned; "routed" = a connector is assigned or allocated this cycle but not yet asked; "asked" = in <code>intro_outcomes.csv</code> with no intro; "introduced" = intro logged or filed; "won" = meeting booked.</p></details></section>`;
 
     // ---- band 3 · actionable now: ticking a row changes what the queue proposes tomorrow
     // spends a connector slot
     const T = D.priorities;
-    sec.top = `<section id="top"><h2>Top ${T.top.length} priorities <span class="foot">do these next — sorted by expected value across ${T.considered} live requests with a connector to act on · each spends a connector slot</span></h2>`
+    sec.top = `<section id="top"><h2>Top ${T.top.length} priorities <span class="foot">do these next: sorted by expected value across ${T.considered} live requests with a connector to act on · each spends a connector slot</span></h2>`
       + priorityTable(T.top, X, state, 'rank', true)
-      + `<p class="foot">Per connector: ${D.connector_pages.map(c => `<a href="${esc(c.page)}">${esc(c.connector)}</a>`).join(' · ')} — each tab opens on their own top 5, with the longer list below.</p>`
+      + `<p class="foot">Per connector: ${D.connector_pages.map(c => `<a href="${esc(c.page)}">${esc(c.connector)}</a>`).join(' · ')}. Each tab opens on their own top 5, with the longer list below.</p>`
       + formulaNote(T.formula) + `</section>`;
 
     // free: someone already volunteered
     const O = D.offer_gaps;
-    sec.offers = `<section id="offers">${fold(`Already offered, needs response <span class="foot">${plural(O.count, 'request')}, ${esc(O.value_fmt)} — someone volunteered in the Slack thread and no ask was ever logged</span>`)}
-      <p class="lede">These cost nothing to action: someone already said yes. Reply in the thread and log the ask.</p>
+    sec.offers = `<section id="offers">${fold(`Already offered, needs response <span class="foot">${plural(O.count, 'request')}, ${esc(O.value_fmt)}: someone volunteered in the Slack thread and no ask was ever logged</span>`)}
+      <p class="lede">These cost nothing to action, since someone already said yes. Reply in the thread and log the ask.</p>
       <table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>who offered</th><th>what they wrote</th><th>status the request carries</th></tr></thead><tbody>`
       + O.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)}</span></td><td>${co(r)}<br><span class="foot">for ${esc(r.requested_by)}</span></td><td>${esc(r.target_title)}</td><td>${r.offers.map(o => `<b>${esc(o.who)}</b>${o.on_roster ? '' : ' <span class="foot">off roster</span>'}<br><span class="foot">${esc(o.date)} · ${o.days_ago} days ago</span>`).join('<br>')}</td><td>${r.offers.map(o => `<q>${esc(o.text)}</q>`).join('<br>')}</td><td><b class="${r.status === 'Closed - no path' ? 'warn' : ''}">${esc(r.status)}</b><br><span class="foot">${esc(r.note)}</span></td></tr>`).join('')
       + `</tbody></table></details></section>`;
 
     // no slot spent: a nudge
     const B = D.bottlenecks;
-    sec.bottlenecks = `<section id="bottlenecks">${fold(`Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro — ${esc(B.value_fmt)} — from <code>intro_outcomes.csv</code></span>`)}
-      <p class="lede">Each of these is a <b>nudge</b>, not a re-ask: asking again spends a fresh slot for an answer you already have. Tick the row once you have nudged; it comes back after ${B.quiet_days} quiet days.</p>`
+    sec.bottlenecks = `<section id="bottlenecks">${fold(`Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro, ${esc(B.value_fmt)}, from <code>intro_outcomes.csv</code></span>`)}
+      <p class="lede">Each of these wants a <b>nudge</b>. Asking again would spend a fresh slot for an answer you already have. Tick the row once you have nudged; it comes back after ${B.quiet_days} quiet days.</p>`
       + tabs('bottlenecks', [{ label: 'All connectors', n: B.count, rows: B.rows, note: `${plural(B.count, 'ask')} · ${esc(B.value_fmt)} · oldest agreement first` }]
           .concat(B.by_connector.map(c => ({ label: c.connector, n: c.count, rows: B.rows.filter(r => r.connector === c.connector), note: `${plural(c.count, 'ask')} · ${esc(c.value_fmt)}${c.on_roster ? '' : ' · off roster'}` }))),
         t => `<p class="foot">${t.note}</p><table class="top"><thead><tr><th></th><th>action</th><th>request</th><th>company</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
@@ -914,11 +1068,11 @@ const LP = (function () {
     const C = D.crm;
     sec.crm = `<section id="crm">${fold(`CRM Updates <span class="foot">${C.groups.map(g => `${g.count} ${esc(g.group)}`).join(' · ')}</span>`)}
       <div class="dl"><button id="lp-dl-import">Download ${esc(C.import.filename)}</button><span>${plural(C.import.count, 'account')} to create, importer-shaped columns only (<code>${C.import.columns.map(esc).join(', ')}</code>). It can be uploaded straight into the CRM.</span></div>
-      <div class="dl"><button id="lp-dl-review" class="secondary">Download ${esc(C.review.filename)}</button><span>${plural(C.review.count, 'recommendation')} (${C.review.groups.map(g => `${g.count} ${esc(g.group)}`).join(', ')}), every row <code>status = ${esc(C.status)}</code>. Merges and owner conflicts are recommended, never executed — ownership is compensation.</span></div>`;
+      <div class="dl"><button id="lp-dl-review" class="secondary">Download ${esc(C.review.filename)}</button><span>${plural(C.review.count, 'recommendation')} (${C.review.groups.map(g => `${g.count} ${esc(g.group)}`).join(', ')}), every row <code>status = ${esc(C.status)}</code>. Merges and owner conflicts are recommended, never executed, because ownership is compensation.</span></div>`;
     for (const g of C.groups) {
       sec.crm += `<h3>${esc(g.title)} <span class="foot">${g.count} · ${esc(g.value_fmt)}</span></h3>`;
       sec.crm += g.rows.length ? `<table><thead><tr><th>company</th><th>CRM accounts</th><th>owner</th><th>stage</th><th>action</th><th>why</th><th class="num">at stake</th></tr></thead><tbody>`
-        + g.rows.map(r => `<tr><td>${co(r)}<br><span class="foot">${r.request_ids.map(esc).join(', ')}</span></td><td class="rid">${esc(r.crm_account_ids || '—')}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage || '—')}</td><td><b>${esc(r.action)}</b></td><td class="foot">${esc(r.why)}<br>${esc(r.evidence)}</td><td class="num">${esc(r.value_fmt)}</td></tr>`).join('') + `</tbody></table>`
+        + g.rows.map(r => `<tr><td>${co(r)}<br><span class="foot">${r.request_ids.map(esc).join(', ')}</span></td><td class="rid">${esc(r.crm_account_ids || 'none')}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage || 'none')}</td><td><b>${esc(r.action)}</b></td><td class="foot">${esc(r.why)}<br>${esc(r.evidence)}</td><td class="num">${esc(r.value_fmt)}</td></tr>`).join('') + `</tbody></table>`
         : `<p class="empty">nothing to do</p>`;
     }
     sec.crm += `</details></section>`;
@@ -926,14 +1080,14 @@ const LP = (function () {
     // ---- band 4 · current cycle: decisions the allocator already made — read-only
     // what is going out
     const A = D.asks;
-    sec.asks = `<section id="asks">${fold(`Current asks <span class="foot">cycle ${esc(A.cycle)} — ${A.allocated} requests allocated in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code> · the drafted messages are on <a href="${esc(D.batch_page)}">Batched-Ask</a></span>`)}`
-      + tabs('asks', A.batches.map(b => ({ label: b.connector, n: b.size, b })), ({ b }) => `<p class="foot">${esc(b.connector_type)} · ${plural(b.size, 'request')} · ${esc(b.value_fmt)} · one consolidated ask, batch <code>${esc(b.batch_id)}</code> · <a href="${esc(D.batch_page)}#${esc(b.slug)}">the message →</a></p>
+    sec.asks = `<section id="asks">${fold(`Current asks <span class="foot">cycle ${esc(A.cycle)}: ${A.allocated} requests allocated in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code> · the drafted messages are on <a href="${esc(D.batch_page)}">Batched-Ask</a></span>`)}`
+      + tabs('asks', A.batches.map(b => ({ label: b.connector, n: b.size, b })), ({ b }) => `<p class="foot">${esc(b.connector_type)} · ${plural(b.size, 'request')} · ${esc(b.value_fmt)} · one consolidated ask, batch <code>${esc(b.batch_id)}</code> · <a href="${esc(D.batch_page)}#${esc(b.slug)}">the message</a></p>
         <table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>why this connector</th></tr></thead><tbody>`
         + b.companies.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td class="foot">${esc(c.why)}</td></tr>`).join('')
         + `</tbody></table>`);
     const EXCEPTION_TITLE = { 'no path to this company in the network': 'no direct path to this company in the network' };
     const EXCEPTION_NOTE = { 'no path to this company in the network': 'Not routable this cycle (sourcing issue vs. allocation)' };
-    sec.asks += `<details><summary>${plural(A.exception_count, 'exception')} — not allocated this cycle: ${A.exceptions.map(e => `${e.count} ${esc((EXCEPTION_TITLE[e.reason] || e.reason).replace(' to this company in the network', ''))}`).join(', ')}</summary>`;
+    sec.asks += `<details><summary>${plural(A.exception_count, 'exception')} not allocated this cycle: ${A.exceptions.map(e => `${e.count} ${esc((EXCEPTION_TITLE[e.reason] || e.reason).replace(' to this company in the network', ''))}`).join(', ')}</summary>`;
     const cover = sc => !sc ? '' : sc.connectors.length
       ? sc.connectors.map(c => `<b>${esc(c.connector)}</b> <span class="foot">${c.asked ? `asked ${esc(c.asked)}` : 'never asked'}</span>`).join('<br>')
       : `<span class="foot">${esc(sc.note)}</span>`;
@@ -946,9 +1100,9 @@ const LP = (function () {
     sec.asks += `</details></details></section>`;
 
     // who is carrying it
-    sec.connectors = `<section id="connectors">${fold(`Roster Connectors <span class="foot">one panel each: queue this cycle, capacity used against stated capacity, delivery rate, what they are already sitting on — the coloured tabs at the top open each connector's own page</span>`)}`
+    sec.connectors = `<section id="connectors">${fold(`Roster Connectors <span class="foot">one panel each: queue this cycle, capacity used against stated capacity, delivery rate, what they are already sitting on. The coloured tabs at the top open each connector's own page</span>`)}`
       + tabs('connectors', D.connectors.map(c => ({ label: c.connector, n: `${c.used}/${c.capacity}`, c })), ({ c }) => `
-        <p class="lede">${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''} · <a href="${esc(c.page)}">their top 5 →</a><br><span class="foot">${esc(c.notes)}</span></p>
+        <p class="lede">${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''} · <a href="${esc(c.page)}">their top 5</a><br><span class="foot">${esc(c.notes)}</span></p>
         <div class="kpis"><div class="kpi"><div class="v">${c.used} / ${c.capacity}</div><div class="l">capacity used this cycle</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated · ${c.idle} idle</div></div>
           <div class="kpi"><div class="v">${Math.round(c.delivery_rate * 100)}%</div><div class="l">delivery rate</div><div class="s">${c.intros_all_time} intros / ${c.asks_all_time} asks, shrunk toward the prior</div></div>
           <div class="kpi ${c.sitting_on.length ? 'warn' : ''}"><div class="v">${c.sitting_on.length}</div><div class="l">already sitting on</div><div class="s">asked, live, no intro yet</div></div>
@@ -963,9 +1117,9 @@ const LP = (function () {
     // every row says where its action actually lives
     const U = D.unrouted, F = U.finding;
     sec.unrouted = `<section id="unrouted">${fold(`Unrouted company asks, per connector <span class="foot">${U.unrouted_companies} companies with live requests nobody is allocated to, matched to each connector's stated focus areas</span>`)}
-      <p class="lede">In-focus asks convert at <b>${esc(F.in_focus_pct)}</b> versus ${esc(F.out_focus_pct)} outside, yet only ${F.in_focus_asks} of ${F.total_asks} asks landed in focus. These are the names that finding points at. Nothing here is ticked: a company with a path moves on the connector's page, one without moves in sourcing, from its trace.</p>`;
+      <p class="lede">In-focus asks convert at <b>${esc(F.in_focus_pct)}</b> versus ${esc(F.out_focus_pct)} outside, yet only ${F.in_focus_asks} of ${F.total_asks} asks landed in focus. These are the names that finding points at. Nothing here is ticked. A company with a path moves on the connector's page; one without moves in sourcing, from its trace.</p>`;
     for (const c of U.per_connector) {
-      sec.unrouted += `<h3>${esc(c.connector)} <span class="foot">${c.focus.map(esc).join(', ')} · ${plural(c.count, 'company')} · ${esc(c.value_fmt)} · ${c.idle} idle slots · <a href="${esc(c.page)}">their page →</a></span></h3>`;
+      sec.unrouted += `<h3>${esc(c.connector)} <span class="foot">${c.focus.map(esc).join(', ')} · ${plural(c.count, 'company')} · ${esc(c.value_fmt)} · ${c.idle} idle slots · <a href="${esc(c.page)}">their page</a></span></h3>`;
       sec.unrouted += c.companies.length ? `<table><thead><tr><th>company</th><th>industry</th><th>wanted</th><th>waiting</th><th>value</th><th>why unrouted</th><th>their way in</th><th>action lives</th></tr></thead><tbody>`
         + c.companies.map(x => `<tr><td>${co(x)}<br><span class="foot">${x.request_ids.map(esc).join(', ')}</span></td><td>${esc(x.industry)}</td><td>${x.wanted.map(esc).join('<br>')}</td><td>${x.waiting.map(esc).join('<br>')}</td><td>${esc(x.value_fmt)}</td><td class="foot">${x.reasons.map(esc).join('; ')}</td><td class="${x.has_path ? '' : 'foot'}">${esc(x.path)}</td><td class="foot">${x.has_path ? `<a href="${esc(c.page)}">${esc(c.connector)}'s page</a>` : x.href ? `sourcing · <a href="${esc(x.href)}">trace</a>` : 'sourcing'}</td></tr>`).join('') + `</tbody></table>`
         : `<p class="empty">no unrouted company in ${esc(c.connector)}'s focus areas</p>`;
@@ -975,7 +1129,7 @@ const LP = (function () {
     const K = D.checkins;
     const ownedBy = r => r.owned_by ? `<a class="foot" href="#${esc(r.owned_by)}">→ ${esc(r.owned_by_title)}</a>` : `<b>${esc(r.owner || 'nobody')}</b> <span class="foot">in the CRM</span>`;
     sec.checkins = `<section id="checkins">${fold(`Overdue a check-in <span class="foot">${plural(K.count, 'company')} with live requests and no CRM touch in ${K.days} days; ${K.unique} owned by no other section</span>`)}
-      <p class="lede"><b>${plural(K.count, 'company')} with live requests ${K.count === 1 ? 'has' : 'have'} had no CRM touch in ${K.days} days. ${K.both} ${K.both === 1 ? 'has' : 'have'} had no intro ask either.</b> Those are being neither sold to nor networked into. ${K.owned} of them already sit in another section that owns the next move — the pointer says which; the ${plural(K.unique, 'company')} nothing else owns ${K.unique === 1 ? 'is' : 'are'} at the top, and a check-in is the only action left on them.</p>
+      <p class="lede"><b>${plural(K.count, 'company')} with live requests ${K.count === 1 ? 'has' : 'have'} had no CRM touch in ${K.days} days. ${K.both} ${K.both === 1 ? 'has' : 'have'} had no intro ask either.</b> Those are being neither sold to nor networked into. ${K.owned} of them already sit in another section that owns the next move, and the pointer says which. The ${plural(K.unique, 'company')} nothing else owns ${K.unique === 1 ? 'is' : 'are'} at the top, and a check-in is the only action left on them.</p>
       <table class="top"><thead><tr><th>company</th><th>owner</th><th>stage</th><th>CRM last_touch_date</th><th>last intro ask</th><th>failed</th><th>live</th><th>action owned by</th></tr></thead><tbody>`
       + K.rows.map(r => `<tr class="${r.owned_by ? 'owned' : ''}"><td>${co(r)}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage)}</td><td class="date">${esc(r.last_touch_date || 'never')}${r.touch_days != null ? ` <span class="foot">${r.touch_days}d</span>` : ''}</td><td class="date">${esc(r.last_ask_date || 'never')}${r.ask_days != null ? ` <span class="foot">${r.ask_days}d</span>` : ''}</td><td>${r.failed.map(f => `<b class="${r.failed.length === 2 ? 'warn' : ''}">${esc(f)}</b>`).join(' + ')}</td><td>${r.live_requests} · ${esc(r.live_value_fmt)}</td><td>${ownedBy(r)}</td></tr>`).join('')
       + `</tbody></table></details></section>`;
@@ -1023,28 +1177,28 @@ const LP = (function () {
     const row = (dt, dd, cls) => `<dt>${dt}</dt><dd${cls ? ` class="${cls}"` : ''}>${dd}</dd>`;
     let target, account, priority;
     if (!T) target = `<i>none</i> <span class="foot">${esc(x.note)}</span>`;
-    else if (x.status === 'refused') target = `<i>refused</i> — “${esc(T.text)}” ${cue(T)}<br><span class="foot">${x.candidates.map(c => c.kind === 'company' && c.ref ? `${co(c.ref)} <span class="foot">(customer, ${esc(c.id)})</span>` : `${esc(c.name)} <span class="foot">(${esc(c.kind)}, ${esc(c.id)})</span>`).join(' · or · ')}</span>`;
-    else if (x.status === 'fund') target = `${esc(T.name)} <span class="foot">— an investor fund, not a customer</span> ${cue(T)}`;
-    else if (!C) target = `${esc(T.text)} <span class="foot">— not a company the build knows</span> ${cue(T)}`;
+    else if (x.status === 'refused') target = `<i>refused</i>: “${esc(T.text)}” ${cue(T)}<br><span class="foot">${x.candidates.map(c => c.kind === 'company' && c.ref ? `${co(c.ref)} <span class="foot">(customer, ${esc(c.id)})</span>` : `${esc(c.name)} <span class="foot">(${esc(c.kind)}, ${esc(c.id)})</span>`).join(' · or · ')}</span>`;
+    else if (x.status === 'fund') target = `${esc(T.name)} <span class="foot">(an investor fund rather than a customer)</span> ${cue(T)}`;
+    else if (!C) target = `${esc(T.text)} <span class="foot">(new to the build)</span> ${cue(T)}`;
     else target = `${co(C)} <span class="foot">${esc(C.company_id)} · ${C.crm ? `${esc(T.method)} ${T.confidence.toFixed(2)}` : 'on file, no CRM account'}${T.is_domain || T.text !== C.company_name ? ` from “${esc(T.text)}”` : ''}</span> ${cue(T)}`;
-    if (!C) account = x.status === 'refused' ? `<i>${x.candidates.filter(c => c.kind === 'company').length ? 'two records answer to this name' : '—'}</i>` : `<b class="warn">no CRM record</b>`;
-    else if (!C.crm) account = `<b class="warn">no CRM record</b> <span class="foot">— the company is on file from earlier asks; create the account (see CRM Updates)</span>`;
-    else account = `${esc(C.stage)} · ${esc(C.industry || 'no industry')} · ${esc(C.owner || 'nobody')} · ${C.arr_fmt ? esc(C.arr_fmt) + ' ARR potential' : 'no ARR potential on file'}${C.stage === 'Closed Lost' ? ' · <b class="warn">Closed Lost — reopen it or close the request</b>' : ''}`;
+    if (!C) account = x.status === 'refused' ? `<i>${x.candidates.filter(c => c.kind === 'company').length ? 'two records answer to this name' : 'none'}</i>` : `<b class="warn">no CRM record</b>`;
+    else if (!C.crm) account = `<b class="warn">no CRM record</b> <span class="foot">the company is on file from earlier asks; create the account (see CRM Updates)</span>`;
+    else account = `${esc(C.stage)} · ${esc(C.industry || 'no industry')} · ${esc(C.owner || 'nobody')} · ${C.arr_fmt ? esc(C.arr_fmt) + ' ARR potential' : 'no ARR potential on file'}${C.stage === 'Closed Lost' ? ' · <b class="warn">Closed Lost: reopen it or close the request</b>' : ''}`;
     const others = x.others.length
       ? x.others.map(o => `<b>${esc(o.text)}</b> <span class="foot">${o.name && o.name !== o.text ? `(${esc(o.name)}) ` : ''}${esc(o.why)}</span>`).join('<br>')
       : `<span class="foot">no other company is named</span>`;
     if (x.priority) {
       const p = x.priority;
-      const req = `<span class="c" title="${esc(hover(p.components, ['deal_value_musd', 'stage_weight', 'age', 'reps_waiting']))} — deal value is ${esc(p.deal_source)}; age 1.0 = posted today">request priority ${p.request_priority.toFixed(3)}</span>`;
-      if (!x.top) priority = `${req} <span class="foot">× no connector score — nobody reaches ${esc(C.company_name)}, so nothing to rank</span>`;
-      else priority = `<span class="ev" title="expected value = request priority × connector score">${p.expected_value.toFixed(3)}</span> = ${req} × <span class="c" title="${esc(hover(p.connector_components, ['path_strength', 'focus_fit', 'delivery_rate', 'capacity_left']))}">connector score ${p.connector_score.toFixed(3)}</span>${x.top.capacity_left <= 0 ? ` <span class="foot"><b class="warn">zero: ${esc(x.top.connector)} has no slot left this cycle</b> — ${(p.request_priority * x.top.score).toFixed(3)} the moment one frees</span>` : ''}`;
-    } else priority = `<span class="foot">— not scored${x.status === 'no-target' || x.status === 'refused' ? '' : ': nothing to route'}</span>`;
+      const req = `<span class="c" title="${esc(hover(p.components, ['deal_value_musd', 'stage_weight', 'age', 'reps_waiting']))}; deal value is ${esc(p.deal_source)}; age 1.0 = posted today">request priority ${p.request_priority.toFixed(3)}</span>`;
+      if (!x.top) priority = `${req} <span class="foot">× no connector score: nobody reaches ${esc(C.company_name)}, so nothing to rank</span>`;
+      else priority = `<span class="ev" title="expected value = request priority × connector score">${p.expected_value.toFixed(3)}</span> = ${req} × <span class="c" title="${esc(hover(p.connector_components, ['path_strength', 'focus_fit', 'delivery_rate', 'capacity_left']))}">connector score ${p.connector_score.toFixed(3)}</span>${x.top.capacity_left <= 0 ? ` <span class="foot"><b class="warn">zero: ${esc(x.top.connector)} has no slot left this cycle</b>; ${(p.request_priority * x.top.score).toFixed(3)} the moment one frees</span>` : ''}`;
+    } else priority = `<span class="foot">not scored${x.status === 'no-target' || x.status === 'refused' ? '' : ': nothing to route'}</span>`;
     let out = `<dl class="route parts">${row('target', target, 'key')}${row('account', account)}${row('title', x.title ? esc(x.title) : '<span class="foot">none named</span>')}${row('not the target', others)}${row('priority', priority)}</dl>`;
     if (x.note) out += `<div class="route-note${x.status === 'routed' ? ' ok' : ''}">${esc(x.note)}</div>`;
     if (x.paths.length) {
-      out += `<h3>Ranked connectors <span class="foot">best first — path strength × focus fit × delivery rate, as <code>build_golden.py</code> scores them</span></h3>
+      out += `<h3>Ranked connectors <span class="foot">best first: path strength × focus fit × delivery rate, as <code>build_golden.py</code> scores them</span></h3>
         <table><thead><tr><th>#</th><th>connector</th><th>path</th><th class="num">score</th><th>why</th></tr></thead><tbody>`
-        + x.paths.map((p, i) => `<tr class="${p.score > 0 ? '' : 'foot'}"><td class="order">${i + 1}</td><td><b>${esc(p.connector)}</b>${p.on_roster ? '' : '<br><span class="foot">not on the roster</span>'}</td><td class="path">${esc(p.reach_type)}${p.contact ? `<br><span class="foot">${esc(p.contact)}</span>` : ''}</td><td class="num"><span class="c" title="${p.strength} strength × ${p.fit} fit × ${p.rate} delivery rate">${p.score.toFixed(3)}</span></td><td class="foot">${esc(p.reason)}${p.score > 0 ? '' : ' — <b>would not be routed</b>'}</td></tr>`).join('')
+        + x.paths.map((p, i) => `<tr class="${p.score > 0 ? '' : 'foot'}"><td class="order">${i + 1}</td><td><b>${esc(p.connector)}</b>${p.on_roster ? '' : '<br><span class="foot">not on the roster</span>'}</td><td class="path">${esc(p.reach_type)}${p.contact ? `<br><span class="foot">${esc(p.contact)}</span>` : ''}</td><td class="num"><span class="c" title="${p.strength} strength × ${p.fit} fit × ${p.rate} delivery rate">${p.score.toFixed(3)}</span></td><td class="foot">${esc(p.reason)}${p.score > 0 ? '' : '; <b>would not be routed</b>'}</td></tr>`).join('')
         + `</tbody></table>`;
     } else if (C) out += `<p class="empty">no path on the roster</p>`;
     return out;
@@ -1060,7 +1214,7 @@ const LP = (function () {
     if (pv.errors.length) out += `<div class="finding warn"><b>${plural(pv.errors.length, 'line')} skipped</b>${pv.errors.slice(0, 5).map(esc).join('<br>')}</div>`;
     out += `<div class="dl"><button id="lp-dl-preview">Export preview CSV</button><span>Nothing has been written. To apply it for real, from the repo root:<br><code>${esc(P.command.replace('{file}', filename || 'threads.jsonl'))}</code></span></div>`;
     out += `<table class="preview"><thead><tr><th>request</th><th>posted · by</th><th>resolved company</th><th>offer in replies</th><th>would route to</th><th>needs a human</th></tr></thead><tbody>`
-      + pv.rows.map(r => `<tr class="${r.flags.length ? 'flag' : ''}"><td class="rid">${esc(r.request_id)}${r.filed ? '<br><span class="foot">filed</span>' : ''}</td><td class="date">${esc(r.posted)}<br><span class="foot">${esc(r.requested_by)}</span></td><td>${r.company_id ? `${co(r)} <span class="foot">${esc(r.company_id)}</span>` : `<i>${esc(r.company_name || '—')}</i>`}<br><span class="foot">${esc(r.company_as_written ? `"${r.company_as_written}" · ` : '')}${esc(r.resolved_by)}</span></td><td>${r.offers.length ? r.offers.map(o => `<b>${esc(o.who)}</b> <span class="foot">${esc(o.date)}</span><br><q>${esc(o.text)}</q>`).join('<br>') : '<span class="foot">none</span>'}</td><td>${r.route_to ? `<b>${esc(r.route_to)}</b><br><span class="foot">${esc(r.path)}</span>` : `<span class="foot">${esc(r.path || '—')}</span>`}</td><td class="foot">${r.flags.length ? r.flags.map(esc).join('<br>') : 'nothing'}</td></tr>`).join('')
+      + pv.rows.map(r => `<tr class="${r.flags.length ? 'flag' : ''}"><td class="rid">${esc(r.request_id)}${r.filed ? '<br><span class="foot">filed</span>' : ''}</td><td class="date">${esc(r.posted)}<br><span class="foot">${esc(r.requested_by)}</span></td><td>${r.company_id ? `${co(r)} <span class="foot">${esc(r.company_id)}</span>` : `<i>${esc(r.company_name || 'none')}</i>`}<br><span class="foot">${esc(r.company_as_written ? `"${r.company_as_written}" · ` : '')}${esc(r.resolved_by)}</span></td><td>${r.offers.length ? r.offers.map(o => `<b>${esc(o.who)}</b> <span class="foot">${esc(o.date)}</span><br><q>${esc(o.text)}</q>`).join('<br>') : '<span class="foot">none</span>'}</td><td>${r.route_to ? `<b>${esc(r.route_to)}</b><br><span class="foot">${esc(r.path)}</span>` : `<span class="foot">${esc(r.path || 'none')}</span>`}</td><td class="foot">${r.flags.length ? r.flags.map(esc).join('<br>') : 'nothing'}</td></tr>`).join('')
       + `</tbody></table>`;
     el.innerHTML = out;
     el.querySelector('#lp-dl-preview').onclick = () => download(`${name}_preview.csv`, toCsv(P.preview_columns, pv.rows));
@@ -1075,4 +1229,5 @@ LP.bootConnector(JSON.parse(document.getElementById('lp-data').textContent), doc
 
 <p class="foot">Regenerate with <code>python3 build.py dashboard</code>. Ticks are shared with the Live Priorities tab in this browser.</p>
 </main>
+</div>
 </body></html>
