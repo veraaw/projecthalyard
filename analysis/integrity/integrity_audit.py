@@ -8,18 +8,19 @@ dashboard/build_dashboard.py.
     python3 -m analysis.integrity.integrity_audit      # from the repo root
 
 Read-only over dataset/; reports, never repairs. Deterministic: stable ordering
-everywhere, no timestamps.
+everywhere, no timestamps; the only date is the build clock (golden.clock.as_of()),
+which the future-date checks are read against.
 """
 import csv
 import datetime as dt
 import json
 import re
 
+from golden.clock import as_of
 from paths import DATASET, INTEGRITY
 
 DATA = DATASET
 OUT = INTEGRITY
-AS_OF = dt.date(2026, 9, 3)
 ISO = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 DATE_COLUMNS = {
@@ -84,6 +85,7 @@ class Audit:
 
 
 def run():
+    today = as_of()
     a = Audit()
     tables = {f: load(f) for f in sorted(PRIMARY_KEY)}
     for f, rows in tables.items():
@@ -202,7 +204,7 @@ def run():
             nonempty = [(i, r) for i, r in enumerate(rows, 2) if r[col].strip()]
             fut = f"future_date_{f.replace('.csv', '')}_{col}"
             bad = f"unparseable_date_{f.replace('.csv', '')}_{col}"
-            a.check(fut, f"{f}.{col} after {AS_OF.isoformat()}", "medium", len(nonempty),
+            a.check(fut, f"{f}.{col} after {today.isoformat()}", "medium", len(nonempty),
                     f"non-empty {col} values in {f}", "dates", [col])
             a.check(bad, f"{f}.{col} not an ISO date", "medium", len(nonempty),
                     f"non-empty {col} values in {f}", "dates", [col])
@@ -214,9 +216,9 @@ def run():
                           f"{col}={r[col]!r} is not YYYY-MM-DD")
                     continue
                 values.append(d.isoformat())
-                if d > AS_OF:
+                if d > today:
                     a.add(fut, "medium", f, row_key(f, r, i), {col: r[col]},
-                          f"{col}={r[col]} is {(d - AS_OF).days} day(s) after {AS_OF.isoformat()}")
+                          f"{col}={r[col]} is {(d - today).days} day(s) after {today.isoformat()}")
             date_series.append({"file": f, "column": col, "check_id": fut, "dates": values})
 
     # --- Contradictions -----------------------------------------------------
@@ -324,7 +326,7 @@ def run():
     }
 
     results = {
-        "as_of": AS_OF.isoformat(),
+        "as_of": today.isoformat(),
         "source": "dataset/",
         "files": {f: {"rows": len(rows), "primary_key": PRIMARY_KEY[f], "columns": list(rows[0].keys()) if rows else []}
                   for f, rows in sorted(tables.items())},

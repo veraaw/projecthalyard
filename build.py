@@ -5,6 +5,12 @@
     python3 build.py dashboard     # one step (any prefix of the names below)
     python3 build.py --skip-tests  # everything but the tests, for a caller that
                                    # runs them itself against the regenerated docs/
+    python3 build.py --as-of 2026-09-05   # freeze the build clock (default: today, UTC)
+
+Every step reads the same date back through golden.clock.as_of() (it is exported
+as HALYARD_AS_OF), so the traces, the CRM write-back, the integrity audit and the
+dashboard all say "as of" the same day. golden/build_golden.py reads it too:
+set HALYARD_AS_OF once and the allocation agrees with the pages built from it.
 
 The trace step writes one company history per company with a request to
 analysis/traces/ (`python3 analysis/trace.py "Harrowgate Health"` prints one).
@@ -16,6 +22,8 @@ The dashboard reads analysis/joins/join_rates.md and analysis/profile/profile.md
 so those steps run before it. The tests run first (`python3 -m unittest
 discover tests`): a failure exits non-zero and stops the build.
 """
+import argparse
+import os
 import runpy
 import sys
 import unittest
@@ -23,6 +31,7 @@ from pathlib import Path
 
 from analysis.crm.writeback import write_all as write_crm_writeback
 from analysis.trace import write_all as write_traces
+from golden import clock
 
 ROOT = Path(__file__).resolve().parent
 
@@ -50,13 +59,21 @@ STEPS = [
 
 
 def main(argv):
-    skip_tests = "--skip-tests" in argv
-    argv = [a for a in argv if a != "--skip-tests"]
-    wanted = argv or [name for name, _ in STEPS]
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("steps", nargs="*", help="steps to run, by any prefix of their names (default: all)")
+    ap.add_argument("--skip-tests", action="store_true")
+    ap.add_argument("--as-of", metavar="YYYY-MM-DD", help="the build clock; default HALYARD_AS_OF, else today (UTC)")
+    args = ap.parse_args(argv)
+    if args.as_of:
+        os.environ[clock.ENV] = args.as_of
+    today = clock.as_of()
+    os.environ[clock.ENV] = today.isoformat()
+    wanted = args.steps or [name for name, _ in STEPS]
     steps = [(name, mod) for name, mod in STEPS
-             if any(name.startswith(w) for w in wanted) and not (skip_tests and name == "tests")]
+             if any(name.startswith(w) for w in wanted) and not (args.skip_tests and name == "tests")]
     if not steps:
         sys.exit(f"no step matches {wanted}; known steps: {', '.join(n for n, _ in STEPS)}")
+    print(f"as of {today.isoformat()}")
     for name, step in steps:
         print(f"--- {name} ({step if isinstance(step, str) else step.__doc__})")
         try:
