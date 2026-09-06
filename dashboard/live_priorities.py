@@ -274,6 +274,21 @@ class Live:
         """The company's CRM stage (golden_companies.stage) or 'no CRM account'."""
         return self.companies.get(cid, {}).get("stage", "") or "no CRM account"
 
+    def sector_cover(self, cid: str) -> dict:
+        """Who on the roster covers the company's industry (it is in their focus
+        areas), in roster order, each with whether they were ever asked about this
+        company. The named person to go to when nobody in the network has a path."""
+        ind = self.industry(cid)
+        rids = {r["request_id"] for r in self.by_company.get(cid, [])}
+        asked = defaultdict(list)
+        for o in self.outcomes:
+            if o["request_id"] in rids and o["connector_asked"]:
+                asked[o["connector_asked"]].append(o["asked_date"])
+        who = [{"connector": n, "asked": sorted(asked[n])[-1] if asked[n] else ""}
+               for n, r in self.roster.items() if ind and ind in r["focus"]]
+        return {"industry": ind, "connectors": who,
+                "note": "" if who else (f"nobody on the roster covers {ind}" if ind else "industry unknown")}
+
     def company_ref(self, cid: str, name: str = "") -> dict:
         c = self.companies.get(cid)
         return {
@@ -575,6 +590,7 @@ class Live:
                     "value_fmt": money(a["value_usd"]), "urgency": a["urgency_declared"],
                     "status": a["status_as_filed"], "best_path": a["best_path_if_unbudgeted"],
                     "crm_stage": self.crm_stage(a["company_id"]) if a["company_id"] else "",
+                    "sector_cover": self.sector_cover(a["company_id"]) if a["company_id"] else None,
                     "company_as_written": self.by_rid[a["request_id"]]["company_as_written"],
                 })
         n_exc = sum(len(v) for v in exceptions.values())
