@@ -51,14 +51,14 @@ def fragment() -> str:
 #trace tr.tier td{{font-size:12px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--mute);background:var(--bg);padding:12px 0 4px;border-bottom:none}}
 #trace tr.tier td .foot{{font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px}}
 #trace td.hold{{font-size:13px;color:var(--mute);max-width:260px}}
-#trace .routebox{{background:var(--blue);color:#fff;padding:22px 28px 20px;margin:22px 0 0;font-family:var(--sans)}}
+#trace .routebox{{background:color-mix(in srgb,var(--blue) 72%,#5f6b8a);color:#fff;padding:20px 26px 18px;margin:22px 0 0;font-family:var(--sans)}}
 #trace .routebox .eyebrow{{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;opacity:.75}}
-#trace .routebox .who{{font-size:30px;font-weight:500;letter-spacing:-.02em;line-height:1.15;margin:6px 0 0}}
+#trace .routebox .who{{font-size:24px;font-weight:500;letter-spacing:-.02em;line-height:1.15;margin:6px 0 0}}
 #trace .routebox .who .amp{{font-weight:400;opacity:.6;margin:0 4px}}
-#trace .routebox .why{{font-size:15px;font-weight:400;letter-spacing:0;opacity:.85;margin-left:10px}}
-#trace .routebox .note{{font-size:13.5px;line-height:1.5;margin:12px 0 0;opacity:.9}}
+#trace .routebox .why{{font-size:14px;font-weight:400;letter-spacing:0;opacity:.85;margin-left:10px}}
+#trace .routebox .note{{font-size:13px;line-height:1.5;margin:12px 0 0;opacity:.9}}
 #trace .routebox .note+.note{{margin-top:4px}}
-@media(max-width:720px){{#trace .routebox{{padding:18px 20px 16px}} #trace .routebox .who{{font-size:24px}}}}
+@media(max-width:720px){{#trace .routebox{{padding:18px 20px 16px}} #trace .routebox .who{{font-size:20px}}}}
 #trace tr.cold td{{color:var(--mute)}}
 #trace tr.cold td.route{{font-style:italic}}
 #trace td.seat{{font-family:var(--mono);font-weight:600;white-space:nowrap}}
