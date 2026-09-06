@@ -16,7 +16,7 @@
 | 0.496 | Tomás Beckett (Internal) | direct | Greta Petrossian — Head of Automation | connections_beckett.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2025-07-17 |
 | 0.449 | Priya Raghunathan (Investor) | direct | Greta Petrossian — Head of Automation | connections_raghunathan.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2023-11-21 |
 
-## 4. Chronology (15 events, 2 requests, as of 2026-09-05)
+## 4. Chronology (15 events, 2 requests, as of 2026-09-06)
 
 ```
    2025-11-11  intro_requests.csv   Hana Nakashima       R1078 raised by Hana Nakashima (AE, Healthcare): wants VP Engineering, $2,000,000, Medium urgency, filed "Intro sent"
@@ -35,11 +35,11 @@
    2026-01-30  slack_threads.jsonl  Hana Nakashima       R1076 slack: "no idea sorry"
 ++ 2026-02-07  intro_outcomes.csv   Tomás Beckett        R1076 intro sent
 
-!! 2025-11-27  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1038  [282 days ago, nothing since]
+!! 2025-11-27  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1038  [283 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Rafael Salcedo | CRM owner (A1038) | check in on the account | last touch 2025-11-27, 282 days ago | — |
+| 1 | Rafael Salcedo | CRM owner (A1038) | check in on the account | last touch 2025-11-27, 283 days ago | — |

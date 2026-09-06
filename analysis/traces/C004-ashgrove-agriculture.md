@@ -16,7 +16,7 @@
 |---|---|---|---|---|
 | 0.800 | Priya Raghunathan (Investor) | offer | Kwame Marchetti-Drummond | slack_threads.jsonl R1187 2025-10-29 Priya Raghunathan: "I know Kwame Marchetti-Drummond there well, happy to intro" |
 
-## 4. Chronology (10 events, 1 request, as of 2026-09-05)
+## 4. Chronology (10 events, 1 request, as of 2026-09-06)
 
 ```
    2025-10-29  intro_requests.csv   Bertrand Vandermolen R1187 raised by Bertrand Vandermolen (AE, EMEA): wants Chief Digital Officer, $400,000, Critical urgency, filed "Open"
@@ -27,9 +27,9 @@
    2025-11-02  slack_threads.jsonl  Rafael Salcedo       R1187 slack: "did we not already lose this one?"
    2025-11-02  slack_threads.jsonl  Yusuf Petrossian     R1187 slack: "did we not already lose this one?"
 ++ 2025-11-03  intro_outcomes.csv   Priya Raghunathan    R1187 replied (2 days after the ask)
-<- 2026-09-05  intro_outcomes.csv   Priya Raghunathan    R1187 said yes 306 days ago and never forwarded
+<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1187 said yes 307 days ago and never forwarded
 
-!! 2026-01-31  crm_accounts.csv     Hana Nakashima       last CRM touch on A1035  [217 days ago, nothing since]
+!! 2026-01-31  crm_accounts.csv     Hana Nakashima       last CRM touch on A1035  [218 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
@@ -37,5 +37,5 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | nudge, don't re-ask | said yes on 2025-11-03 and never forwarded | R1187 |
-| 2 | Hana Nakashima | CRM owner (A1035) | check in on the account | last touch 2026-01-31, 217 days ago | — |
-| 3 | Bertrand Vandermolen (311 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 311 days | R1187 |
+| 2 | Hana Nakashima | CRM owner (A1035) | check in on the account | last touch 2026-01-31, 218 days ago | — |
+| 3 | Bertrand Vandermolen (312 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 312 days | R1187 |

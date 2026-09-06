@@ -9,6 +9,29 @@ first message, the company parsed from it by golden/parse.py, status Open, no
 deal value or target title, so needs_review is set), and offers in its replies
 become supply. The Live Priorities tab previews exactly this before it is run.
 
+golden/completions.csv is the third fact source, next to the raw exports and
+the Slack threads: one row per thing someone did from the Live Priorities tab
+(action = ask_sent / nudged / account_created). The tab's Submit button
+posts those rows to the Supabase `completions` table; the build pulls the
+table into the CSV, and the CSV is what the build reads:
+
+    python3 golden/build_golden.py                        # the CSV as committed; no network
+    python3 golden/build_golden.py --completions supabase # pull the table into the CSV first
+    python3 golden/build_golden.py --apply FILE           # merge a CSV of rows (a Supabase
+                                                          # export, say) into the CSV first
+
+The database is an input, not a dependency: with Supabase down, --apply a
+file, or edit the CSV, and build. The CSV is append-only and deduplicated on
+completion_id (<request_id>:<action>:<date>), so the same completion pulled,
+applied or committed twice is a no-op. An `ask_sent` row is an ask that happened
+with nothing logged back yet: it counts as an outcome everywhere
+intro_outcomes.csv does (the request leaves the live queue, the connector's
+slot is spent, asked_date is filed on the request). A `nudged` row files
+nudged_on on the request. An `account_created` row is read by
+analysis/crm/writeback.py, which marks the recommendation executed. A row
+with an unknown action, an unparseable completed_at or a missing key fails
+the build.
+
 golden/ is the state; dataset/ is read-only input and is never written.
 
 Writes four CSVs (UTF-8, no BOM, CRLF):
@@ -28,8 +51,11 @@ Writes four CSVs (UTF-8, no BOM, CRLF):
                                are recomputed from the facts on every run, so a
                                better resolver or a new CRM account corrects
                                every historical row. Routing, outcome and
-                               thread columns are filed once and kept. New
-                               columns may be added to the schema.
+                               thread columns are filed once and kept, except
+                               that OUTCOME_COLUMNS still empty on a filed row
+                               are filled in when an ask is first logged for
+                               it, and nudged_on advances to the latest nudge.
+                               New columns may be added to the schema.
                                contradicts_log flags a filed status the outcome
                                log disagrees with; blocked_reason says what
                                would unblock a request nobody is routed to.
@@ -63,8 +89,11 @@ Writes four CSVs (UTF-8, no BOM, CRLF):
                                a run appends its cycle; a rerun in the same
                                cycle replaces only that cycle's rows; earlier
                                cycles are never touched. decided_at is the
-                               build timestamp, so two runs in one cycle are
-                               distinguishable. The allocator reads the prior
+                               build timestamp, one per cycle per run, so two
+                               runs in one cycle are distinguishable - except
+                               that a rerun reproducing the cycle exactly keeps
+                               the filed stamp, so a rebuild that changed
+                               nothing is a byte-identical no-op. The allocator reads the prior
                                cycles back: asks decided in the trailing
                                FATIGUE_DAYS count against a connector's
                                capacity (asks beyond one month's stated
@@ -96,6 +125,7 @@ import json
 import os
 import re
 import sys
+import urllib.request
 from collections import Counter, defaultdict
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -113,13 +143,19 @@ REQUESTS_OUT = OUT / "golden_requests.csv"
 COMPANIES_OUT = OUT / "golden_companies.csv"
 SUPPLY_OUT = OUT / "supply_reach.csv"
 ALLOCATION_OUT = OUT / "golden_allocation.csv"
+COMPLETIONS_OUT = OUT / "completions.csv"
 
 REQUEST_COLUMNS = [
     "request_id", "company_id", "company_as_written", "target_title", "requested_by", "request_date",
     "raw_ask", "value_usd", "urgency_declared", "status_as_filed", "routed_to", "routed_on",
     "route_score", "route_reason", "asked_date", "responded", "intro_sent", "meeting_booked",
     "opportunity_usd", "offer_in_thread", "thread_replies", "thread_all_noise", "resolved_by",
-    "needs_review", "contradicts_log", "blocked_reason",
+    "needs_review", "contradicts_log", "blocked_reason", "nudged_on",
+]
+# what the ask log says about a request: filed the first time an ask is logged, then kept
+OUTCOME_COLUMNS = [
+    "routed_to", "routed_on", "route_score", "route_reason", "asked_date", "responded", "intro_sent",
+    "meeting_booked", "opportunity_usd",
 ]
 # what someone said or filed: written once, never rewritten
 FACT_COLUMNS = [
@@ -143,6 +179,11 @@ SUPPLY_COLUMNS = [
     "delivery_rate", "idle_capacity", "evidence",
 ]
 
+COMPLETION_COLUMNS = [
+    "completion_id", "completed_at", "completed_by", "action", "request_id", "company_id", "connector", "note",
+]
+ASKED, NUDGED, CRM_CREATED = "ask_sent", "nudged", "account_created"  # the table's action check
+COMPLETION_KINDS = (ASKED, NUDGED, CRM_CREATED)
 ALLOCATION_COLUMNS = [
     "cycle", "request_id", "decided_at", "company_id", "company_name", "target_title", "value_usd",
     "urgency_declared", "request_date", "status_as_filed", "allocated_to", "batch_id", "batch_size",
@@ -262,6 +303,188 @@ def decided_date(a: dict) -> date | None:
     """When a history row was decided: decided_at, or the first of its cycle
     for rows filed before the column existed."""
     return parse_date(a.get("decided_at") or "") or parse_date(f"{a['cycle']}-01")
+
+
+def load_completions(path: Path = COMPLETIONS_OUT) -> list[dict]:
+    """golden/completions.csv, deduplicated on completion_id (the first row with
+    an id wins, so a file that repeats a row applies it once). Rows come back
+    in file order with every COMPLETION_COLUMNS key present. A malformed row
+    ends the build: an unknown action, a completed_at that does not start with a date,
+    `ask_sent`/`nudged` without a request_id and connector, `account_created`
+    without a company_id."""
+    if not path.exists():
+        return []
+    rows, seen, bad = [], set(), []
+    for i, raw in enumerate(read_csv(path), 2):
+        r = completion_row(raw)
+        if problem := completion_problem(r):
+            bad.append(f"line {i}: {problem}")
+        if r["completion_id"] in seen:
+            continue
+        seen.add(r["completion_id"])
+        rows.append(r)
+    if bad:
+        sys.exit(f"{path}: {len(bad)} bad row(s); nothing written.\n  " + "\n  ".join(bad))
+    return rows
+
+
+def completion_row(raw: dict) -> dict:
+    """A completion as the CSV holds it: every schema column, stripped strings,
+    JSON null (Supabase's empty optional) as ""."""
+    return {c: ("" if raw.get(c) is None else str(raw.get(c))).strip() for c in COMPLETION_COLUMNS}
+
+
+def completion_problem(r: dict) -> str | None:
+    """Why a completion row cannot be applied, or None when it can."""
+    if not r["completion_id"]:
+        return "no completion_id"
+    who = f"({r['completion_id']})"
+    if r["action"] not in COMPLETION_KINDS:
+        return f"{who}: action {r['action']!r} is not one of {', '.join(COMPLETION_KINDS)}"
+    if not parse_date(r["completed_at"]):
+        return f"{who}: completed_at {r['completed_at']!r} does not start with YYYY-MM-DD"
+    if r["action"] in (ASKED, NUDGED) and not (r["request_id"] and r["connector"]):
+        return f"{who}: {r['action']} needs request_id and connector"
+    if r["action"] == CRM_CREATED and not r["company_id"]:
+        return f"{who}: {r['action']} needs company_id"
+    return None
+
+
+def merge_completions(rows: list[dict], path: Path = COMPLETIONS_OUT, origin: str = "") -> tuple[int, int]:
+    """Add rows to golden/completions.csv: every row already on file stays, a
+    completion_id already there is skipped, the rest are appended, and the file
+    is written back sorted by (completed_at, completion_id) with the schema
+    columns. A malformed incoming row ends the build before the file is
+    touched. Returns (rows on file after, rows added)."""
+    have = read_csv(path) if path.exists() else []
+    seen = {r["completion_id"] for r in have}
+    fresh, bad = [], []
+    for i, raw in enumerate(rows, 1):
+        r = completion_row(raw)
+        if problem := completion_problem(r):
+            bad.append(f"row {i}: {problem}")
+        elif r["completion_id"] not in seen:
+            seen.add(r["completion_id"])
+            fresh.append(r)
+    if bad:
+        sys.exit(f"{origin or 'incoming completions'}: {len(bad)} bad row(s); {path.name} not touched.\n  " + "\n  ".join(bad))
+    have.extend(fresh)
+    have.sort(key=lambda r: (r.get("completed_at", ""), r["completion_id"]))
+    if fresh or not path.exists():
+        write_csv(path, COMPLETION_COLUMNS, have)
+    return len(have), len(fresh)
+
+
+SUPABASE_TABLE = "completions"
+SUPABASE_PAGE = 1000
+ENV_FILE = ROOT / ".env"
+
+
+def load_env(path: Path = ENV_FILE) -> dict[str, str]:
+    """The variables in .env (gitignored; KEY=value lines, # comments), also
+    placed in os.environ where not already set, so SUPABASE_* work the same
+    locally and under Actions secrets."""
+    found: dict[str, str] = {}
+    if not path.exists():
+        return found
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip().removeprefix("export ").strip(), value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+            value = value[1:-1]
+        found[key] = value
+        os.environ.setdefault(key, value)
+    return found
+
+
+def supabase_rest(url: str) -> str:
+    """The REST root for a project URL given with or without /rest/v1."""
+    base = url.strip().rstrip("/")
+    return base if base.endswith("/rest/v1") else base + "/rest/v1"
+
+
+def fetch_supabase_completions(url: str, key: str, opener=None) -> list[dict]:
+    """Every row of the completions table, oldest first, read with the service
+    key (the anon key cannot select). Paged with Range headers. `opener`
+    is urllib.request.urlopen unless a test passes its own."""
+    opener = opener or urllib.request.urlopen
+    endpoint = f"{supabase_rest(url)}/{SUPABASE_TABLE}?select=*&order=completed_at.asc,completion_id.asc"
+    rows, start = [], 0
+    while True:
+        req = urllib.request.Request(endpoint, headers={
+            "apikey": key, "Authorization": f"Bearer {key}", "Accept": "application/json",
+            "Range-Unit": "items", "Range": f"{start}-{start + SUPABASE_PAGE - 1}",
+        })
+        with opener(req, timeout=30) as resp:
+            page = json.loads(resp.read().decode("utf-8") or "[]")
+        rows.extend(page)
+        if len(page) < SUPABASE_PAGE:
+            return rows
+        start += SUPABASE_PAGE
+
+
+def pull_completions(source: str | None, apply: Path | None, path: Path = COMPLETIONS_OUT,
+                     fetch=fetch_supabase_completions) -> None:
+    """Bring rows into golden/completions.csv before the build reads it:
+    --completions supabase pulls the table (SUPABASE_URL + SUPABASE_SERVICE_KEY,
+    from the environment or .env); --apply FILE merges a CSV. Either failing
+    ends the build before anything is written."""
+    if apply is not None:
+        if not apply.exists():
+            sys.exit(f"--apply {apply}: no such file")
+        total, added = merge_completions(read_csv(apply), path, origin=f"--apply {apply}")
+        print(f"completions.csv       {added} rows added from {apply.name}, {total} on file")
+    if source == "supabase":
+        load_env()
+        url, key = os.environ.get("SUPABASE_URL", ""), os.environ.get("SUPABASE_SERVICE_KEY", "")
+        if not (url and key):
+            sys.exit("--completions supabase needs SUPABASE_URL and SUPABASE_SERVICE_KEY (environment or .env)")
+        try:
+            rows = fetch(url, key)
+        except Exception as e:  # noqa: BLE001 - any failure to read the table is one message
+            sys.exit(f"could not read the Supabase {SUPABASE_TABLE} table: {e}\n"
+                     f"the build still works without it: python3 golden/build_golden.py, or --apply FILE")
+        total, added = merge_completions(rows, path, origin=f"supabase {SUPABASE_TABLE}")
+        print(f"completions.csv       {added} rows added from supabase ({len(rows)} in the table), {total} on file")
+    elif source:
+        sys.exit(f"--completions {source}: only 'supabase' is known")
+
+
+def completed_on(c: dict) -> str:
+    """The date part of a completion's completed_at (a timestamptz from Supabase, or a date)."""
+    return c["completed_at"].strip()[:10]
+
+
+def completions_of(completions: list[dict], kind: str) -> dict[str, list[dict]]:
+    """request_id (company_id for account_created) -> that key's rows of one action, oldest first."""
+    key = "company_id" if kind == CRM_CREATED else "request_id"
+    out: dict[str, list[dict]] = defaultdict(list)
+    for c in sorted((c for c in completions if c["action"] == kind), key=lambda c: (c["completed_at"], c["completion_id"])):
+        out[c[key]].append(c)
+    return out
+
+
+def with_completions(outcomes: list[dict], completions: list[dict]) -> list[dict]:
+    """The ask log as the build reads it: intro_outcomes.csv plus one row per
+    request with an `ask_sent` completion and no logged outcome (the earliest ask
+    when there are several). Nothing has come back on those yet, so
+    responded / intro_sent / meeting_booked are N."""
+    logged = {o["request_id"] for o in outcomes}
+    extra = []
+    for rid, asks in completions_of(completions, ASKED).items():
+        if rid in logged:
+            continue
+        c = asks[0]
+        extra.append({
+            "request_id": rid, "connector_asked": c["connector"], "asked_date": completed_on(c),
+            "responded": "N", "response_date": "", "intro_sent": "N", "intro_date": "",
+            "meeting_booked": "N", "opportunity_created": "N", "opportunity_value_usd": "",
+            "source": "completions.csv", "completion_id": c["completion_id"],
+        })
+    return outcomes + sorted(extra, key=lambda o: (o["asked_date"], o["request_id"]))
 
 
 def money(s: str) -> str:
@@ -968,8 +1191,10 @@ def blocked_reason(company: Company | None, paths: list[dict], roster: dict, all
 
 def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: dict[str, list[dict]],
                    resolved: dict[str, dict], threads: dict[str, dict],
-                   allocation: dict[str, dict], filed: list[dict]) -> list[dict]:
-    outcomes = {o["request_id"]: o for o in read_csv(DATASET / "intro_outcomes.csv")}
+                   allocation: dict[str, dict], filed: list[dict], outcomes: list[dict],
+                   completions: list[dict] | None = None) -> list[dict]:
+    outcomes = {o["request_id"]: o for o in outcomes}
+    nudges = completions_of(completions or [], NUDGED)
     filed_by = {r["request_id"]: r for r in filed}
     rows = []
     for rid, rq in resolved.items():
@@ -1063,6 +1288,8 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
             "needs_review": "; ".join(review) if review else "no",
             "contradicts_log": contradicts_log(facts["status_as_filed"], o),
             "blocked_reason": blocked,
+            "nudged_on": max((completed_on(n) for n in nudges.get(rid, [])),
+                             default=filed_by.get(rid, {}).get("nudged_on", "")),
         })
     rows.sort(key=lambda r: r["request_id"])
     return rows
@@ -1071,8 +1298,10 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
 def merge_write(rows: list[dict], source: dict[str, dict | None]) -> tuple[int, int, int, list[str], list[str]]:
     """Merge the recomputed rows into golden_requests.csv. Every filed row is
     kept. Rows whose request_id is new are appended. On a filed row,
-    RECOMPUTED_COLUMNS take the recomputed value; every other column keeps its
-    filed value. source is FACT_COLUMNS as the raw export states them now (None
+    RECOMPUTED_COLUMNS take the recomputed value; OUTCOME_COLUMNS are filled in
+    once, when the row has no asked_date yet and the ask log now has one;
+    nudged_on advances to the latest nudge; every other column keeps its filed
+    value. source is FACT_COLUMNS as the raw export states them now (None
     when it no longer has the request): a fact it states differently from the
     filed row is reported and kept. If the schema has gained columns, the file
     is rewritten with the same rows in the new column order and only the added
@@ -1106,6 +1335,12 @@ def merge_write(rows: list[dict], source: dict[str, dict | None]) -> tuple[int, 
         if diff:
             warnings.append(f"{old['request_id']}: recomputed "
                             + "; ".join(f"{c} {old[c]!r} -> {r[c]!r}" for c in diff))
+        if not old["asked_date"] and r["asked_date"]:
+            diff += [c for c in OUTCOME_COLUMNS if str(old[c]) != str(r[c])]
+            warnings.append(f"{old['request_id']}: ask logged, {r['routed_to']} on {r['asked_date']}")
+        if r["nudged_on"] > old["nudged_on"]:
+            diff.append("nudged_on")
+        if diff:
             old.update({c: r[c] for c in diff})
             changed += 1
     filed_ids = {e["request_id"] for e in existing}
@@ -1121,7 +1356,8 @@ def merge_write(rows: list[dict], source: dict[str, dict | None]) -> tuple[int, 
 # ---------------------------------------------------------------------------
 # companies: rebuilt from golden_requests.csv every run
 # ---------------------------------------------------------------------------
-def build_companies(reg: Registry, supply: list[dict], requests: list[dict], today: date) -> list[dict]:
+def build_companies(reg: Registry, supply: list[dict], requests: list[dict], today: date,
+                    outcomes: list[dict] | None = None) -> list[dict]:
     by_company = defaultdict(list)
     for r in requests:
         if r["company_id"]:
@@ -1129,7 +1365,7 @@ def build_companies(reg: Registry, supply: list[dict], requests: list[dict], tod
     supply_by = defaultdict(list)
     for s in supply:
         supply_by[s["company_id"]].append(s)
-    outcomes = {o["request_id"]: o for o in read_csv(DATASET / "intro_outcomes.csv")}
+    outcomes = {o["request_id"]: o for o in (read_csv(DATASET / "intro_outcomes.csv") if outcomes is None else outcomes)}
 
     rows = []
     for c in reg.companies():
@@ -1202,6 +1438,20 @@ def merge_allocation(history: list[dict], current: list[dict], cycle: str) -> tu
     before = [a for a in history if a["cycle"] < cycle]
     after = [a for a in history if a["cycle"] > cycle]
     kept = len(before) + len(after)
+    # a rerun that reaches exactly the decision already filed for this cycle keeps
+    # its decided_at (so an unchanged rebuild is a no-op); any difference restamps
+    # the whole cycle, so a cycle still carries one decided_at per run
+    filed = {a["request_id"]: a for a in history if a["cycle"] == cycle}
+    same = [c for c in ALLOCATION_COLUMNS if c != "decided_at"]
+    unchanged = (
+        len(filed) == len(current) and all(a.get("decided_at") for a in filed.values())
+        and all(a["request_id"] in filed
+                and all(str(filed[a["request_id"]].get(c, "")) == str(a.get(c, "")) for c in same)
+                for a in current)
+    )
+    if unchanged:
+        for a in current:
+            a["decided_at"] = filed[a["request_id"]]["decided_at"]
     return before + current + after, len({a["cycle"] for a in before + after}), kept, len(history) - kept
 
 
@@ -1230,7 +1480,10 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--as-of", default=date.today().isoformat())
     ap.add_argument("--threads", type=Path, help="a Slack export (.jsonl) to ingest alongside dataset/slack_threads.jsonl")
+    ap.add_argument("--completions", choices=["supabase"], help="pull the Supabase completions table into golden/completions.csv first")
+    ap.add_argument("--apply", type=Path, metavar="FILE", help="merge a CSV of completions into golden/completions.csv first")
     args = ap.parse_args()
+    pull_completions(args.completions, args.apply)
     today = parse_date(args.as_of) or date.today()
     cycle = today.strftime("%Y-%m")
     # the build clock: the as-of date, at the wall-clock time the run started
@@ -1247,7 +1500,8 @@ def main() -> None:
     reg.assign_ids()
 
     roster = load_roster()
-    outcomes = read_csv(DATASET / "intro_outcomes.csv")
+    completions = load_completions()
+    outcomes = with_completions(read_csv(DATASET / "intro_outcomes.csv"), completions)
     rates = delivery_rates(roster, outcomes, threads)
     history = read_allocation()
     signals = history_signals(history, outcomes, today)
@@ -1258,7 +1512,7 @@ def main() -> None:
     for s in supply:
         supply_by[s["company_id"]].append(s)
     allocation = allocate(roster, rates, outcomes, supply_by, resolved, today, decided_at, signals)
-    requests = build_requests(reg, roster, rates, supply_by, resolved, threads, allocation, filed)
+    requests = build_requests(reg, roster, rates, supply_by, resolved, threads, allocation, filed, outcomes, completions)
     kept, appended, changed, added, warnings = merge_write(
         requests, {rid: rq["source"] for rid, rq in resolved.items()})
     carried = sum(1 for rq in resolved.values() if rq["source"] is None)
@@ -1268,8 +1522,13 @@ def main() -> None:
     supply = finish_supply(supply, roster, rates, outcomes, allocation, threads, signals.fatigue)
     alloc_rows = sorted(allocation.values(), key=lambda a: (a["allocated_to"] == "", a["batch_id"], a["request_id"]))
     all_alloc, prior_cycles, prior_rows, replaced = merge_allocation(history, alloc_rows, cycle)
-    companies = build_companies(reg, supply, read_csv(REQUESTS_OUT), today)
+    companies = build_companies(reg, supply, read_csv(REQUESTS_OUT), today, outcomes)
     write_derived(supply, all_alloc, companies)
+
+    if completions:
+        kinds = Counter(c["action"] for c in completions)
+        print(f"completions.csv       {len(completions)} rows applied: "
+              + ", ".join(f"{n} {k}" for k, n in sorted(kinds.items())))
 
     print(f"golden_requests.csv   {kept + appended} rows ({kept} kept, of which {carried} not in "
           f"dataset/intro_requests.csv and carried forward; {appended} appended; "

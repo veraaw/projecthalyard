@@ -18,21 +18,33 @@ dataset/ into a scratch root, edits one side, rebuilds there and checks:
      cycle byte-identical; a rebuild in the same cycle replaces only that
      cycle's rows; an ask allocated in one cycle with no outcome logged is
      flagged in the next, not proposed again.
+  5. golden/completions.csv is the third fact source: an `ask_sent` row takes
+     its request out of the next allocation and files the ask on it; the same
+     completion_id twice (in one file, or applied twice) is one completion; the
+     frozen fact columns never move; the Supabase read is merged into the CSV
+     and a bad row fails before anything is written. No test touches the
+     network: the Supabase read is a fake opener.
 """
 from __future__ import annotations
 
 import csv
 import hashlib
+import io
+import json
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
+from contextlib import redirect_stdout
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.build_golden import STALE_ASK  # noqa: E402
+import golden.build_golden as bg  # noqa: E402
+from golden.build_golden import ASKED, COMPLETION_COLUMNS, FACT_COLUMNS, NUDGED, STALE_ASK  # noqa: E402
 
 CYCLE_1, CYCLE_2 = "2026-09-05", "2026-10-05"
 
@@ -71,7 +83,9 @@ def tree_digest(root: Path) -> dict[str, str]:
             for p in sorted(root.rglob("*")) if p.is_file()}
 
 
-class RebuildTest(unittest.TestCase):
+class ScratchRootTest(unittest.TestCase):
+    """A copy of dataset/ and golden/ to rebuild in."""
+
     def setUp(self):
         self.root = Path(tempfile.mkdtemp(prefix="halyard-rebuild-"))
         self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
@@ -85,13 +99,15 @@ class RebuildTest(unittest.TestCase):
         self.export = self.root / "dataset" / "intro_requests.csv"
         self.crm = self.root / "dataset" / "crm_accounts.csv"
         self.allocation = self.root / "golden" / "golden_allocation.csv"
+        self.completions = self.root / "golden" / "completions.csv"
         self.baseline = read_csv(self.requests)
 
-    def build(self, as_of: str | None = None) -> str:
-        cmd = [sys.executable, str(self.root / "golden" / "build_golden.py")]
-        if as_of:
-            cmd += ["--as-of", as_of]
-        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=self.root)
+    def run_build(self, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
+        cmd = [sys.executable, str(self.root / "golden" / "build_golden.py"), *args]
+        return subprocess.run(cmd, capture_output=True, text=True, cwd=self.root, env=env)
+
+    def build(self, as_of: str | None = None, *args: str) -> str:
+        proc = self.run_build(*(["--as-of", as_of] if as_of else []), *args)
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         return proc.stdout
 
@@ -106,6 +122,8 @@ class RebuildTest(unittest.TestCase):
     def cycle_rows(self, cycle: str) -> list[dict]:
         return [a for a in read_csv(self.allocation) if a["cycle"] == cycle]
 
+
+class RebuildTest(ScratchRootTest):
     def test_dataset_is_never_written(self):
         before = tree_digest(self.root / "dataset")
         self.build()
@@ -118,6 +136,14 @@ class RebuildTest(unittest.TestCase):
         self.assertEqual(self.requests.read_bytes(), bytes_after_first)
         self.assertIn("0 appended", first)
         self.assertIn("0 with recomputed", second)
+
+    def test_unchanged_rebuild_leaves_every_golden_file_byte_identical(self):
+        # what the 15-minute Action relies on: nothing new means nothing to commit
+        self.build(CYCLE_1)
+        digest = tree_digest(self.root / "golden")
+        self.build(CYCLE_1)
+        self.assertEqual(tree_digest(self.root / "golden"), digest)
+        self.assertEqual(len({a["decided_at"] for a in self.cycle_rows("2026-09")}), 1)
 
     def test_rebuild_merges_and_carries_forward(self):
         write_csv(self.requests, self.baseline + [LIVE_ROUTE])
@@ -276,6 +302,213 @@ class RebuildTest(unittest.TestCase):
         # the headroom the flagged asks leave goes to requests September could not place
         newly = [a for a in oct_by_rid.values() if a["allocated_to"] and a["request_id"] not in {p["request_id"] for p in proposed}]
         self.assertTrue(newly, "October still allocates something")
+
+
+def completion(action: str, key: str, day: str, connector: str = "", who: str = "vera", **more) -> dict:
+    """A row as the dashboard posts it: completion_id = <request_id or company_id>:<action>:<date>."""
+    row = {c: "" for c in COMPLETION_COLUMNS}
+    row.update({"completion_id": f"{key}:{action}:{day}", "completed_at": f"{day}T10:15:00+00:00",
+                "completed_by": who, "action": action, "connector": connector,
+                "company_id" if action == bg.CRM_CREATED else "request_id": key})
+    row.update(more)
+    return row
+
+
+class FakeSupabase:
+    """Stands in for urllib.request.urlopen: serves `table` a page at a time,
+    honouring the Range header, and records every request it saw."""
+
+    def __init__(self, table: list[dict]):
+        self.table, self.requests = table, []
+
+    def __call__(self, req, timeout=None):
+        self.requests.append(req)
+        start, end = (int(x) for x in req.get_header("Range").split("-"))
+        body = json.dumps(self.table[start:end + 1]).encode("utf-8")
+        return io.BytesIO(body)
+
+
+class CompletionsTest(ScratchRootTest):
+    """5. golden/completions.csv, the third fact source."""
+
+    def setUp(self):
+        super().setUp()
+        self.build(CYCLE_1)
+        self.first = self.cycle_rows("2026-09")
+        # a request September allocated, and the connector it went to
+        self.target = next(a for a in self.first if a["allocated_to"])
+        self.rid, self.connector = self.target["request_id"], self.target["allocated_to"]
+        self.day = "2026-09-06"
+        self.ask = completion(ASKED, self.rid, self.day, self.connector, note="asked in Slack")
+
+    def write_completions(self, rows: list[dict], path: Path | None = None) -> Path:
+        path = path or self.completions
+        write_csv(path, rows)
+        return path
+
+    def test_a_completion_drops_its_request_from_the_next_allocation(self):
+        dataset_before = tree_digest(self.root / "dataset")
+        self.write_completions([self.ask])
+
+        out = self.build(CYCLE_1)
+
+        self.assertIn("completions.csv       1 rows applied: 1 ask_sent", out)
+        again = {a["request_id"] for a in self.cycle_rows("2026-09")}
+        self.assertNotIn(self.rid, again, "asked, so no longer live for allocation")
+        self.assertEqual(len(again), len(self.first) - 1, "only the asked request left the cycle")
+        row = self.by_id()[self.rid]
+        self.assertEqual((row["routed_to"], row["asked_date"], row["responded"], row["intro_sent"]),
+                         (self.connector, self.day, "N", "N"), "the ask is filed on the request, nothing back yet")
+        self.assertEqual(tree_digest(self.root / "dataset"), dataset_before, "dataset/ is still never written")
+        # the next cycle has no row for it either (asked, so not live), so it is
+        # never flagged as a proposal with no outcome
+        self.build(CYCLE_2)
+        self.assertNotIn(self.rid, {a["request_id"] for a in self.cycle_rows("2026-10")})
+        self.assertEqual(self.by_id()[self.rid]["asked_date"], self.day, "still filed")
+
+    def test_the_same_completion_id_twice_is_one_completion(self):
+        # once inside the file: two rows, one id
+        self.write_completions([self.ask, dict(self.ask, completed_by="someone else", note="ticked again")])
+        out = self.build(CYCLE_1)
+        self.assertIn("completions.csv       1 rows applied: 1 ask_sent", out)
+        requests_bytes, alloc_bytes = self.requests.read_bytes(), self.allocation.read_bytes()
+        self.assertEqual(self.by_id()[self.rid]["asked_date"], self.day)
+
+        # and once across runs: --apply of the same rows again adds nothing and changes nothing
+        again = self.write_completions([self.ask], self.root / "again.csv")
+        out = self.build(CYCLE_1, "--apply", str(again))
+        self.assertIn("completions.csv       0 rows added from again.csv, 2 on file", out)
+        self.assertEqual(self.requests.read_bytes(), requests_bytes)
+        self.assertEqual(self.allocation.read_bytes(), alloc_bytes)
+        self.assertEqual(len(read_csv(self.completions)), 2, "the file keeps what it had, nothing appended")
+
+    def test_apply_merges_a_file_by_hand(self):
+        nudge = completion(NUDGED, self.first[1]["request_id"], self.day, self.first[1]["allocated_to"] or "Marcus Aldridge")
+        by_hand = self.write_completions([nudge], self.root / "by_hand.csv")
+        self.assertFalse(self.completions.exists())
+
+        out = self.build(CYCLE_1, "--apply", str(by_hand))
+
+        self.assertIn("completions.csv       1 rows added from by_hand.csv, 1 on file", out)
+        self.assertEqual([r["completion_id"] for r in read_csv(self.completions)], [nudge["completion_id"]])
+        self.assertEqual(list(read_csv(self.completions)[0]), COMPLETION_COLUMNS)
+        self.assertEqual(self.by_id()[nudge["request_id"]]["nudged_on"], self.day)
+        self.assertIn(nudge["request_id"], {a["request_id"] for a in self.cycle_rows("2026-09")},
+                      "a nudge does not spend the request: it is still live")
+        proc = self.run_build("--apply", str(self.root / "missing.csv"))
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("no such file", proc.stderr)
+
+    def test_frozen_facts_never_move(self):
+        crm_id = self.by_id()[self.rid]["company_id"]
+        self.write_completions([
+            self.ask,
+            completion(NUDGED, self.first[1]["request_id"], self.day, self.first[1]["allocated_to"] or "Marcus Aldridge"),
+            completion(bg.CRM_CREATED, crm_id, self.day),
+        ])
+        before = self.by_id()
+
+        self.build(CYCLE_1)
+        self.build(CYCLE_2)
+        after = self.by_id()
+
+        self.assertEqual(set(after), set(before), "no request appears or disappears")
+        for rid, row in before.items():
+            for fact in FACT_COLUMNS:
+                self.assertEqual(after[rid][fact], row[fact], f"{rid} {fact}")
+
+    def test_a_bad_row_fails_the_build_before_anything_is_written(self):
+        digest = tree_digest(self.root / "golden")
+        self.write_completions([dict(self.ask, action="asked")])
+        proc = self.run_build("--as-of", CYCLE_1)
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("action 'asked' is not one of ask_sent, nudged, account_created", proc.stderr)
+        self.assertIn("nothing written", proc.stderr)
+        self.completions.unlink()
+        self.assertEqual(tree_digest(self.root / "golden"), digest, "no golden file moved")
+
+    # -- the Supabase read, without the network ------------------------------
+    def supabase_rows(self) -> list[dict]:
+        """Rows as PostgREST returns them: timestamptz, JSON null for the empty optionals."""
+        return [
+            {"completion_id": self.ask["completion_id"], "completed_at": f"{self.day}T10:15:00.123456+00:00",
+             "completed_by": "vera", "action": ASKED, "request_id": self.rid, "company_id": None,
+             "connector": self.connector, "note": None},
+            {"completion_id": f"{self.first[1]['request_id']}:nudged:{self.day}", "completed_at": f"{self.day}T11:00:00+00:00",
+             "completed_by": "vera", "action": NUDGED, "request_id": self.first[1]["request_id"], "company_id": None,
+             "connector": self.first[1]["allocated_to"] or "Marcus Aldridge", "note": "pinged"},
+        ]
+
+    def test_supabase_read_is_paged_with_the_service_key_and_never_the_network(self):
+        table = [dict(self.supabase_rows()[0], completion_id=f"R{i:04d}:ask_sent:{self.day}", request_id=f"R{i:04d}")
+                 for i in range(bg.SUPABASE_PAGE + 3)]
+        fake = FakeSupabase(table)
+
+        rows = bg.fetch_supabase_completions("https://x.supabase.co/rest/v1/", "service-key", opener=fake)
+
+        self.assertEqual(rows, table)
+        self.assertEqual(len(fake.requests), 2, "1003 rows is two pages")
+        req = fake.requests[0]
+        self.assertTrue(req.full_url.startswith("https://x.supabase.co/rest/v1/completions?select=*"), req.full_url)
+        self.assertEqual(req.get_header("Apikey"), "service-key")
+        self.assertEqual(req.get_header("Authorization"), "Bearer service-key")
+        self.assertEqual([r.get_header("Range") for r in fake.requests], ["0-999", "1000-1999"])
+        self.assertEqual(bg.supabase_rest("https://x.supabase.co"), "https://x.supabase.co/rest/v1")
+
+    def test_completions_supabase_writes_the_csv_then_the_build_reads_it(self):
+        table = self.supabase_rows()
+        fetched = []
+
+        def fetch(url, key):
+            fetched.append((url, key))
+            return table
+
+        with mock.patch.dict(os.environ, {"SUPABASE_URL": "https://x.supabase.co", "SUPABASE_SERVICE_KEY": "service-key"}), \
+                redirect_stdout(io.StringIO()) as out:
+            bg.pull_completions("supabase", None, self.completions, fetch=fetch)
+        self.assertEqual(fetched, [("https://x.supabase.co", "service-key")])
+        self.assertIn("2 rows added from supabase (2 in the table), 2 on file", out.getvalue())
+        on_file = read_csv(self.completions)
+        self.assertEqual([r["completion_id"] for r in on_file], [r["completion_id"] for r in table], "oldest first")
+        self.assertEqual(on_file[0]["company_id"], "", "JSON null lands as an empty cell")
+        self.assertEqual(on_file[0]["completed_at"], f"{self.day}T10:15:00.123456+00:00", "the timestamp is kept as sent")
+        csv_bytes = self.completions.read_bytes()
+
+        # the build itself is offline: the same table again is a no-op, and the CSV drives the build
+        with mock.patch.dict(os.environ, {"SUPABASE_URL": "https://x.supabase.co", "SUPABASE_SERVICE_KEY": "service-key"}), \
+                redirect_stdout(io.StringIO()) as out:
+            bg.pull_completions("supabase", None, self.completions, fetch=fetch)
+        self.assertIn("0 rows added from supabase (2 in the table), 2 on file", out.getvalue())
+        self.assertEqual(self.completions.read_bytes(), csv_bytes)
+        out = self.build(CYCLE_1)
+        self.assertIn("completions.csv       2 rows applied: 1 ask_sent, 1 nudged", out)
+        self.assertNotIn(self.rid, {a["request_id"] for a in self.cycle_rows("2026-09")})
+        self.assertEqual(self.by_id()[self.rid]["asked_date"], self.day, "the date part of the timestamptz")
+
+    def test_a_bad_supabase_row_leaves_the_csv_alone(self):
+        self.write_completions([self.ask])
+        csv_bytes = self.completions.read_bytes()
+        table = self.supabase_rows() + [dict(self.supabase_rows()[0], completion_id="R0001:asked:x", action="asked")]
+        with mock.patch.dict(os.environ, {"SUPABASE_URL": "https://x.supabase.co", "SUPABASE_SERVICE_KEY": "k"}), \
+                self.assertRaises(SystemExit) as died:
+            bg.pull_completions("supabase", None, self.completions, fetch=lambda url, key: table)
+        self.assertIn("action 'asked' is not one of", str(died.exception))
+        self.assertIn("completions.csv not touched", str(died.exception))
+        self.assertEqual(self.completions.read_bytes(), csv_bytes)
+
+    def test_completions_supabase_without_credentials_stops_before_the_network(self):
+        env = {k: v for k, v in os.environ.items() if not k.startswith("SUPABASE_")}
+        env["PATH"] = os.environ.get("PATH", "")
+        proc = self.run_build("--completions", "supabase", env=env)
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("needs SUPABASE_URL and SUPABASE_SERVICE_KEY", proc.stderr)
+        self.assertFalse(self.completions.exists())
+        # an unreadable table is one message and the manual path is named
+        with mock.patch.dict(os.environ, {"SUPABASE_URL": "https://x.supabase.co", "SUPABASE_SERVICE_KEY": "k"}), \
+                self.assertRaises(SystemExit) as died:
+            bg.pull_completions("supabase", None, self.completions, fetch=lambda url, key: (_ for _ in ()).throw(OSError("no route")))
+        self.assertIn("could not read the Supabase completions table: no route", str(died.exception))
+        self.assertIn("--apply FILE", str(died.exception))
 
 
 if __name__ == "__main__":

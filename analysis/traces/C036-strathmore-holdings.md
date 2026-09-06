@@ -26,7 +26,7 @@
 | 0.187 | Marcus Aldridge (Advisor) | alumni | Yusuf Vasquez — ex-Strathmore Rail (2014-2017), now Director of Software Engineering at Strathmore Rail | investor_network.csv: Yusuf Vasquez prior_employer=Strathmore Rail (2014-2017); connections_aldridge.csv: connection of Marcus Aldridge since 2015-08-28 |
 | 0.187 | Tomás Beckett (Internal) | alumni | Bertrand Lomsadze — ex-Strathmore Rail (2013-2017), now Chief Digital Officer at Strathmore Rail | investor_network.csv: Bertrand Lomsadze prior_employer=Strathmore Rail (2013-2017); connections_beckett.csv: connection of Tomás Beckett since 2015-09-22 |
 
-## 4. Chronology (36 events, 7 requests, as of 2026-09-05)
+## 4. Chronology (36 events, 7 requests, as of 2026-09-06)
 
 ```
    2025-10-27  intro_requests.csv   Yusuf Petrossian     R1102 raised by Yusuf Petrossian (SDR Lead): wants VP Engineering, $400,000, Low urgency, filed "Routed"
@@ -36,7 +36,7 @@
    2025-10-31  slack_threads.jsonl  Hana Nakashima       R1102 slack: "is this the same as the one from last month?"
    2025-10-31  intro_outcomes.csv   Marcus Aldridge      R1102 asked
 ++ 2025-11-01  intro_outcomes.csv   Marcus Aldridge      R1102 replied (1 days after the ask)
-<- 2026-09-05  intro_outcomes.csv   Marcus Aldridge      R1102 said yes 308 days ago and never forwarded
+<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1102 said yes 309 days ago and never forwarded
 
    2025-12-13  intro_requests.csv   Sloane Fairweather   R1132 raised by Sloane Fairweather (Strategic AE): wants Chief Operating Officer, $150,000, High urgency, filed "Routed"
    2025-12-13  slack_threads.jsonl  Sloane Fairweather   R1132 slack: "asking again: Strathmore Rail. Chief Operating Officer. Happy to draft the forward myself if someone can vouch."
@@ -47,17 +47,17 @@
    2025-12-17  slack_threads.jsonl  Nadia Okonkwo        R1093 slack: "wrong channel? this feels like a partner ask"
    2025-12-18  slack_threads.jsonl  Curtis Hartigan      R1093 slack: "adding Bertrand Vandermolen who might know"
    2025-12-19  slack_threads.jsonl  Hana Nakashima       R1093 slack: "is this the same as the one from last month?"
-<- 2026-09-05  intro_outcomes.csv   Marcus Aldridge      R1093 never replied (asked 2025-12-16, 263 days ago)
+<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1093 never replied (asked 2025-12-16, 264 days ago)
 
    2026-06-16  intro_requests.csv   Rafael Salcedo       R1053 raised by Rafael Salcedo (AE, Transport & Logistics): wants VP Data & Analytics, $400,000, Medium urgency, filed "Stalled"
    2026-06-16  slack_threads.jsonl  Rafael Salcedo       R1053 slack: "asking again: Strathmore Rail. VP Data & Analytics. Happy to draft the forward myself if someone can vouch."
    2026-06-22  intro_outcomes.csv   Marcus Aldridge      R1053 asked
-<- 2026-09-05  intro_outcomes.csv   Marcus Aldridge      R1053 never replied (asked 2026-06-22, 75 days ago)
+<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1053 never replied (asked 2026-06-22, 76 days ago)
 
 !! 2026-06-23  intro_requests.csv   Hana Nakashima       R1094 raised by Hana Nakashima (AE, Healthcare): wants VP Data & Analytics, $750,000, High urgency, filed "Open"  [same title as R1053, 7 days earlier]
    2026-06-23  slack_threads.jsonl  Hana Nakashima       R1094 slack: "long shot — Strathmore Rail. Hugo Glückstein-Sandoval (VP Data & Analytics). Anyone?"
    2026-06-23  intro_outcomes.csv   Marcus Aldridge      R1094 asked
-<- 2026-09-05  intro_outcomes.csv   Marcus Aldridge      R1094 never replied (asked 2026-06-23, 74 days ago)
+<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1094 never replied (asked 2026-06-23, 75 days ago)
 
    2026-07-05  intro_requests.csv   Hana Nakashima       R1027 raised by Hana Nakashima (AE, Healthcare): wants Chief Technology Officer, $400,000, High urgency, filed "Routed"
    2026-07-05  slack_threads.jsonl  Hana Nakashima       R1027 slack: "asking again: Strathmore Rail. Chief Technology Officer. Happy to draft the forward myself if someone can vouch."
@@ -80,4 +80,4 @@
 |---|---|---|---|---|---|
 | 1 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | nudge, don't re-ask | said yes on 2025-11-01 and never forwarded | R1102 |
 | 2 | Tomás Beckett | VP Partnerships (internal connector) | send the ask (batch 2026-09 Tomás Beckett) | allocated in golden_allocation.csv via direct path to Bertrand Lomsadze, score 0.053; allocated in golden_allocation.csv via direct path to Bertrand Lomsadze, score 0.053; allocated in golden_allocation.csv via direct path to Bertrand Lomsadze, score 0.053 | R1027, R1125, R1132 |
-| 3 | Yusuf Petrossian (313 days), Sloane Fairweather (266 days), Curtis Hartigan (263 days), Rafael Salcedo (81 days), Hana Nakashima (74 days) | 5 reps still waiting, longest first | tell them it's with Marcus Aldridge / Tomás Beckett | 5 reps raised this and have heard nothing; the oldest has been waiting 313 days | R1102, R1132, R1125, R1093, R1053, R1094, R1027 |
+| 3 | Yusuf Petrossian (314 days), Sloane Fairweather (267 days), Curtis Hartigan (264 days), Rafael Salcedo (82 days), Hana Nakashima (75 days) | 5 reps still waiting, longest first | tell them it's with Marcus Aldridge / Tomás Beckett | 5 reps raised this and have heard nothing; the oldest has been waiting 314 days | R1102, R1132, R1125, R1093, R1053, R1094, R1027 |

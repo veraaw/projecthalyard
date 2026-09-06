@@ -124,6 +124,15 @@ img{max-width:100%}
 #lp .dl span{color:var(--mute);padding-top:6px}
 #lp button:not(.subtabs button){font-family:var(--sans);font-size:14px;font-weight:500;background:var(--blue);color:#fff;border:1px solid var(--blue);padding:8px 16px;cursor:pointer;white-space:nowrap}
 #lp button.secondary{background:var(--surface);color:var(--ink);border-color:var(--ink)}
+#lp .submitbar{position:sticky;bottom:0;z-index:5;display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:0 -2px;padding:12px 18px;background:var(--surface);border-top:2px solid var(--blue);box-shadow:0 -6px 18px rgba(0,0,0,.08);font-family:var(--sans);font-size:14px}
+#lp .submitbar[hidden]{display:none}
+#lp .submitbar .foot{flex:1 1 240px;min-width:200px}
+#lp .submitbar a{color:var(--blue)}
+#lp .submitbar.failed{border-top-color:var(--warn)}
+#lp .submitbar button:disabled{opacity:.5;cursor:default}
+#lp .stamp{margin:0 0 10px;font-family:var(--sans);font-size:13px;color:var(--mute)}
+#lp .stamp a{color:inherit}
+#lp table.top .tick:disabled{opacity:.55}
 #lp table.preview tr.flag td{background:rgba(159,45,0,.035)}
 #lp .presets{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 8px;font-family:var(--sans);font-size:12.5px;color:var(--mute);align-items:center}
 #lp .presets button{font-size:12.5px;padding:5px 10px}
@@ -178,6 +187,7 @@ img{max-width:100%}
   #lp .ask button{align-self:flex-start}
   #lp .dl{flex-direction:column;gap:6px}
   #lp .dl span{padding-top:0}
+  #lp .submitbar{padding:10px 12px;gap:8px}
   #lp dl.route{grid-template-columns:1fr;gap:2px 0}
   #lp dl.route dt{padding-top:10px}
   #lp dl.route dt:first-child{padding-top:0}
@@ -228,7 +238,7 @@ img{max-width:100%}
 <main>
 
 <div id="lp"></div>
-<script id="lp-data" type="application/json">{"connector": "Priya Raghunathan", "slug": "priya-raghunathan", "page": "connector-priya-raghunathan.html", "on_roster": true, "role": "Partner, Redtree Capital", "type": "Investor", "focus": ["Biotech", "Fintech", "Technology"], "hard_decline": false, "notes": "Board seats give direct-to-CEO access. Prefers one consolidated ask per month.", "capacity": 3, "asked_this_cycle": 0, "allocated_this_cycle": 3, "used": 3, "idle": 0, "delivery_rate": 0.455, "asks_all_time": 21, "intros_all_time": 10, "intros_this_cycle": 0, "cycles": [{"cycle": "2025-08", "current": false, "asks": 1, "allocated": 0, "allocated_off_roster": 0, "used": 1, "capacity": 3, "capacity_pct": 0.333, "intros": 0, "intros_cumulative": 0}, {"cycle": "2025-09", "current": false, "asks": 1, "allocated": 0, "allocated_off_roster": 0, "used": 1, "capacity": 3, "capacity_pct": 0.333, "intros": 1, "intros_cumulative": 1}, {"cycle": "2025-10", "current": false, "asks": 3, "allocated": 0, "allocated_off_roster": 0, "used": 3, "capacity": 3, "capacity_pct": 1.0, "intros": 1, "intros_cumulative": 2}, {"cycle": "2025-11", "current": false, "asks": 4, "allocated": 0, "allocated_off_roster": 0, "used": 4, "capacity": 3, "capacity_pct": 1.333, "intros": 0, "intros_cumulative": 2}, {"cycle": "2025-12", "current": false, "asks": 1, "allocated": 0, "allocated_off_roster": 0, "used": 1, "capacity": 3, "capacity_pct": 0.333, "intros": 1, "intros_cumulative": 3}, {"cycle": "2026-01", "current": false, "asks": 2, "allocated": 0, "allocated_off_roster": 0, "used": 2, "capacity": 3, "capacity_pct": 0.667, "intros": 1, "intros_cumulative": 4}, {"cycle": "2026-02", "current": false, "asks": 3, "allocated": 0, "allocated_off_roster": 0, "used": 3, "capacity": 3, "capacity_pct": 1.0, "intros": 1, "intros_cumulative": 5}, {"cycle": "2026-03", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 3, "capacity_pct": 0.0, "intros": 0, "intros_cumulative": 5}, {"cycle": "2026-04", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 3, "capacity_pct": 0.0, "intros": 0, "intros_cumulative": 5}, {"cycle": "2026-05", "current": false, "asks": 4, "allocated": 0, "allocated_off_roster": 0, "used": 4, "capacity": 3, "capacity_pct": 1.333, "intros": 3, "intros_cumulative": 8}, {"cycle": "2026-06", "current": false, "asks": 1, "allocated": 0, "allocated_off_roster": 0, "used": 1, "capacity": 3, "capacity_pct": 0.333, "intros": 1, "intros_cumulative": 9}, {"cycle": "2026-07", "current": false, "asks": 1, "allocated": 0, "allocated_off_roster": 0, "used": 1, "capacity": 3, "capacity_pct": 0.333, "intros": 0, "intros_cumulative": 9}, {"cycle": "2026-08", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 3, "capacity_pct": 0.0, "intros": 1, "intros_cumulative": 10}, {"cycle": "2026-09", "current": true, "asks": 0, "allocated": 3, "allocated_off_roster": 0, "used": 3, "capacity": 3, "capacity_pct": 1.0, "intros": 0, "intros_cumulative": 10}], "sitting_on": [{"request_id": "R1082", "company_id": "C010", "company_name": "Duncastle Holdings", "href": "companytrace.html#C010", "target_title": "Chief Information Officer", "requested_by": "Sloane Fairweather", "asked_date": "2025-08-05", "responded": true, "days_since_asked": 397, "value_fmt": "$400K", "action": "nudge"}, {"request_id": "R1120", "company_id": "C010", "company_name": "Duncastle Holdings", "href": "companytrace.html#C010", "target_title": "Chief Information Officer", "requested_by": "Yusuf Petrossian", "asked_date": "2025-10-30", "responded": false, "days_since_asked": 311, "value_fmt": "$80K", "action": "chase"}, {"request_id": "R1187", "company_id": "C004", "company_name": "Ashgrove Agriculture", "href": "companytrace.html#C004", "target_title": "Chief Digital Officer", "requested_by": "Bertrand Vandermolen", "asked_date": "2025-11-01", "responded": true, "days_since_asked": 309, "value_fmt": "$400K", "action": "nudge"}, {"request_id": "R1124", "company_id": "C019", "company_name": "Hollowbrook Grocers", "href": "companytrace.html#C019", "target_title": "VP Engineering", "requested_by": "Yusuf Petrossian", "asked_date": "2025-11-13", "responded": false, "days_since_asked": 297, "value_fmt": "$1.2M", "action": "chase"}, {"request_id": "R1031", "company_id": "C020", "company_name": "Ironvale Steel", "href": "companytrace.html#C020", "target_title": "Chief Data Officer", "requested_by": "Imani Mkhize", "asked_date": "2025-11-30", "responded": false, "days_since_asked": 280, "value_fmt": "$80K", "action": "chase"}, {"request_id": "R1135", "company_id": "C045", "company_name": "Redtree Foods", "href": "companytrace.html#C045", "target_title": "Chief Digital Officer", "requested_by": "Curtis Hartigan", "asked_date": "2025-12-13", "responded": true, "days_since_asked": 267, "value_fmt": "$750K", "action": "nudge"}, {"request_id": "R1058", "company_id": "C016", "company_name": "Gravenhurst Motors", "href": "companytrace.html#C016", "target_title": "Chief Data Officer", "requested_by": "Curtis Hartigan", "asked_date": "2026-01-02", "responded": false, "days_since_asked": 247, "value_fmt": "$80K", "action": "chase"}, {"request_id": "R1086", "company_id": "C020", "company_name": "Ironvale Steel", "href": "companytrace.html#C020", "target_title": "VP Enterprise Architecture", "requested_by": "Sloane Fairweather", "asked_date": "2026-02-20", "responded": false, "days_since_asked": 198, "value_fmt": "$150K", "action": "chase"}, {"request_id": "R1046", "company_id": "", "company_name": "(unresolved)", "href": "", "target_title": "Head of Developer Productivity", "requested_by": "Curtis Hartigan", "asked_date": "2026-06-09", "responded": true, "days_since_asked": 89, "value_fmt": "$80K", "action": "nudge"}], "queue": [{"request_id": "R1028", "company_id": "C028", "company_name": "Osric Networks", "href": "companytrace.html#C028", "target_title": "Chief Digital Officer", "requested_by": "Yusuf Petrossian", "path_type": "offer", "contact": "", "route_score": "0.164", "value_fmt": "$2M", "urgency": "Critical"}, {"request_id": "R1084", "company_id": "C019", "company_name": "Hollowbrook Grocers", "href": "companytrace.html#C019", "target_title": "VP Engineering", "requested_by": "Bertrand Vandermolen", "path_type": "investor", "contact": "CEO / exec team", "route_score": "0.184", "value_fmt": "$2M", "urgency": "Critical"}, {"request_id": "R1159", "company_id": "C019", "company_name": "Hollowbrook Grocers", "href": "companytrace.html#C019", "target_title": "VP Enterprise Architecture", "requested_by": "Bertrand Vandermolen", "path_type": "investor", "contact": "CEO / exec team", "route_score": "0.184", "value_fmt": "$1.2M", "urgency": "Critical"}], "top": [{"request_id": "R1084", "company_id": "C019", "company_name": "Hollowbrook Grocers", "href": "companytrace.html#C019", "target_title": "VP Engineering", "requested_by": "Bertrand Vandermolen", "connector": "Priya Raghunathan", "path": "investor path via CEO / exec team", "value_fmt": "$2M", "crm_stage": "Pilot", "days_waiting": 55, "reps": ["Bertrand Vandermolen", "Yusuf Petrossian"], "capacity_note": "3 of 3 slots left when reached", "components": {"deal_value_musd": 2.0, "stage_weight": 0.75, "age": 1.151, "reps_waiting": 2, "path_strength": 0.9, "focus_fit": 0.45, "delivery_rate": 0.455, "capacity_left": 1.0}, "request_priority": 3.452, "connector_score": 0.184, "expected_value": 0.6359, "allocated": true, "rank": 2, "rank_here": 1}, {"request_id": "R1028", "company_id": "C028", "company_name": "Osric Networks", "href": "companytrace.html#C028", "target_title": "Chief Digital Officer", "requested_by": "Yusuf Petrossian", "connector": "Priya Raghunathan", "path": "offered in Slack (knows exec team)", "value_fmt": "$2M", "crm_stage": "Discovery", "days_waiting": 50, "reps": ["Curtis Hartigan", "Hana Nakashima", "Nadia Okonkwo", "Yusuf Petrossian"], "capacity_note": "2 of 3 slots left when reached", "components": {"deal_value_musd": 2.0, "stage_weight": 0.35, "age": 1.137, "reps_waiting": 4, "path_strength": 0.8, "focus_fit": 0.45, "delivery_rate": 0.455, "capacity_left": 0.667}, "request_priority": 3.184, "connector_score": 0.109, "expected_value": 0.3475, "allocated": true, "rank": 4, "rank_here": 2}, {"request_id": "R1159", "company_id": "C019", "company_name": "Hollowbrook Grocers", "href": "companytrace.html#C019", "target_title": "VP Enterprise Architecture", "requested_by": "Bertrand Vandermolen", "connector": "Priya Raghunathan", "path": "investor path via CEO / exec team", "value_fmt": "$1.2M", "crm_stage": "Pilot", "days_waiting": 269, "reps": ["Bertrand Vandermolen", "Yusuf Petrossian"], "capacity_note": "1 of 3 slots left when reached", "components": {"deal_value_musd": 1.2, "stage_weight": 0.75, "age": 1.737, "reps_waiting": 2, "path_strength": 0.9, "focus_fit": 0.45, "delivery_rate": 0.455, "capacity_left": 0.333}, "request_priority": 3.127, "connector_score": 0.061, "expected_value": 0.192, "allocated": true, "rank": 9, "rank_here": 3}, {"request_id": "R1018", "company_id": "C043", "company_name": "Wrenfield Robotics", "href": "companytrace.html#C043", "target_title": "Chief Technology Officer", "requested_by": "Yusuf Petrossian", "connector": "Priya Raghunathan", "path": "direct path via Saoirse Prendergast (Head of Platform Engineering)", "value_fmt": "$1.2M", "crm_stage": "Discovery", "days_waiting": 98, "reps": ["Hana Nakashima", "Nadia Okonkwo", "Yusuf Petrossian"], "capacity_note": "capacity exhausted this cycle", "components": {"deal_value_musd": 1.2, "stage_weight": 0.35, "age": 1.268, "reps_waiting": 3, "path_strength": 0.285, "focus_fit": 1.0, "delivery_rate": 0.455, "capacity_left": 0.0}, "request_priority": 1.598, "connector_score": 0.0, "expected_value": 0.0, "allocated": false, "rank": 36, "rank_here": 4}, {"request_id": "R1075", "company_id": "C046", "company_name": "Vireo Systems", "href": "companytrace.html#C046", "target_title": "VP Engineering", "requested_by": "Hana Nakashima", "connector": "Priya Raghunathan", "path": "investor path via CEO / exec team", "value_fmt": "$750K", "crm_stage": "no CRM account", "days_waiting": 193, "reps": ["Curtis Hartigan", "Hana Nakashima", "Nadia Okonkwo", "Rafael Salcedo"], "capacity_note": "capacity exhausted this cycle", "components": {"deal_value_musd": 0.75, "stage_weight": 0.25, "age": 1.529, "reps_waiting": 4, "path_strength": 0.9, "focus_fit": 0.7, "delivery_rate": 0.455, "capacity_left": 0.0}, "request_priority": 1.147, "connector_score": 0.0, "expected_value": 0.0, "allocated": false, "rank": 39, "rank_here": 5}], "rest": [{"request_id": "R1170", "company_id": "C028", "company_name": "Osric Networks", "href": "companytrace.html#C028", "target_title": "SVP Digital", "requested_by": "Hana Nakashima", "connector": "Priya Raghunathan", "path": "offered in Slack (knows exec team)", "value_fmt": "$1.2M", "crm_stage": "Discovery", "days_waiting": 361, "reps": ["Curtis Hartigan", "Hana Nakashima", "Nadia Okonkwo", "Yusuf Petrossian"], "capacity_note": "capacity exhausted this cycle", "components": {"deal_value_musd": 1.2, "stage_weight": 0.35, "age": 1.989, "reps_waiting": 4, "path_strength": 0.8, "focus_fit": 0.45, "delivery_rate": 0.455, "capacity_left": 0.0}, "request_priority": 3.342, "connector_score": 0.0, "expected_value": 0.0, "allocated": false, "rank": 41, "rank_here": 6}, {"request_id": "R1183", "company_id": "C010", "company_name": "Duncastle Holdings", "href": "companytrace.html#C010", "target_title": "SVP Digital", "requested_by": "Yusuf Petrossian", "connector": "Priya Raghunathan", "path": "investor path via CEO / exec team", "value_fmt": "$750K", "crm_stage": "Prospect", "days_waiting": 130, "reps": ["Sloane Fairweather", "Yusuf Petrossian"], "capacity_note": "capacity exhausted this cycle", "components": {"deal_value_musd": 0.75, "stage_weight": 0.25, "age": 1.356, "reps_waiting": 2, "path_strength": 0.9, "focus_fit": 0.45, "delivery_rate": 0.455, "capacity_left": 0.0}, "request_priority": 0.509, "connector_score": 0.0, "expected_value": 0.0, "allocated": false, "rank": 42, "rank_here": 7}, {"request_id": "R1195", "company_id": "C043", "company_name": "Wrenfield Robotics", "href": "companytrace.html#C043", "target_title": "SVP Digital", "requested_by": "Nadia Okonkwo", "connector": "Priya Raghunathan", "path": "direct path via Saoirse Prendergast (Head of Platform Engineering)", "value_fmt": "$1.2M", "crm_stage": "Discovery", "days_waiting": 132, "reps": ["Hana Nakashima", "Nadia Okonkwo", "Yusuf Petrossian"], "capacity_note": "capacity exhausted this cycle", "components": {"deal_value_musd": 1.2, "stage_weight": 0.35, "age": 1.362, "reps_waiting": 3, "path_strength": 0.285, "focus_fit": 1.0, "delivery_rate": 0.455, "capacity_left": 0.0}, "request_priority": 1.716, "connector_score": 0.0, "expected_value": 0.0, "allocated": false, "rank": 43, "rank_here": 8}], "ranked_count": 8, "ranked_value_fmt": "$10.3M", "no_slot": 5, "formula": {"expected_value": "expected value = request priority × connector score", "request_priority": "request priority = deal value ($M) × stage weight × age × reps waiting", "connector_score": "connector score = path strength × focus fit × delivery rate × capacity left", "stage_weight": {"Negotiation": 0.9, "Pilot": 0.75, "Evaluation": 0.55, "Discovery": 0.35, "Prospect": 0.25, "Closed Lost": 0.1, "no CRM account": 0.25}, "age": "1 + min(days since request, 365) / 365", "reps_waiting": "distinct requesters with a live request on the same company", "path_strength": "supply_reach.csv strength of the path used", "focus_fit": "1.0 in the connector's focus areas, 0.45 outside, 0 if they decline outside, 0.7 when the industry or the connector is unknown", "delivery_rate": "intros / asks, shrunk toward the prior (supply_reach.csv delivery_rate)", "capacity_left": "share of stated monthly capacity still unspent when the allocator reached this request; 0 when the cycle's slots were gone"}}</script>
+<script id="lp-data" type="application/json">{"connector": "Priya Raghunathan", "slug": "priya-raghunathan", "page": "connector-priya-raghunathan.html", "on_roster": true, "role": "Partner, Redtree Capital", "type": "Investor", "focus": ["Biotech", "Fintech", "Technology"], "hard_decline": false, "notes": "Board seats give direct-to-CEO access. Prefers one consolidated ask per month.", "capacity": 3, "asked_this_cycle": 0, "allocated_this_cycle": 3, "used": 3, "idle": 0, "delivery_rate": 0.455, "asks_all_time": 21, "intros_all_time": 10, "intros_this_cycle": 0, "cycles": [{"cycle": "2025-08", "current": false, "asks": 1, "allocated": 0, "allocated_off_roster": 0, "used": 1, "capacity": 3, "capacity_pct": 0.333, "intros": 0, "intros_cumulative": 0}, {"cycle": "2025-09", "current": false, "asks": 1, "allocated": 0, "allocated_off_roster": 0, "used": 1, "capacity": 3, "capacity_pct": 0.333, "intros": 1, "intros_cumulative": 1}, {"cycle": "2025-10", "current": false, "asks": 3, "allocated": 0, "allocated_off_roster": 0, "used": 3, "capacity": 3, "capacity_pct": 1.0, "intros": 1, "intros_cumulative": 2}, {"cycle": "2025-11", "current": false, "asks": 4, "allocated": 0, "allocated_off_roster": 0, "used": 4, "capacity": 3, "capacity_pct": 1.333, "intros": 0, "intros_cumulative": 2}, {"cycle": "2025-12", "current": false, "asks": 1, "allocated": 0, "allocated_off_roster": 0, "used": 1, "capacity": 3, "capacity_pct": 0.333, "intros": 1, "intros_cumulative": 3}, {"cycle": "2026-01", "current": false, "asks": 2, "allocated": 0, "allocated_off_roster": 0, "used": 2, "capacity": 3, "capacity_pct": 0.667, "intros": 1, "intros_cumulative": 4}, {"cycle": "2026-02", "current": false, "asks": 3, "allocated": 0, "allocated_off_roster": 0, "used": 3, "capacity": 3, "capacity_pct": 1.0, "intros": 1, "intros_cumulative": 5}, {"cycle": "2026-03", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 3, "capacity_pct": 0.0, "intros": 0, "intros_cumulative": 5}, {"cycle": "2026-04", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 3, "capacity_pct": 0.0, "intros": 0, "intros_cumulative": 5}, {"cycle": "2026-05", "current": false, "asks": 4, "allocated": 0, "allocated_off_roster": 0, "used": 4, "capacity": 3, "capacity_pct": 1.333, "intros": 3, "intros_cumulative": 8}, {"cycle": "2026-06", "current": false, "asks": 1, "allocated": 0, "allocated_off_roster": 0, "used": 1, "capacity": 3, "capacity_pct": 0.333, "intros": 1, "intros_cumulative": 9}, {"cycle": "2026-07", "current": false, "asks": 1, "allocated": 0, "allocated_off_roster": 0, "used": 1, "capacity": 3, "capacity_pct": 0.333, "intros": 0, "intros_cumulative": 9}, {"cycle": "2026-08", "current": false, "asks": 0, "allocated": 0, "allocated_off_roster": 0, "used": 0, "capacity": 3, "capacity_pct": 0.0, "intros": 1, "intros_cumulative": 10}, {"cycle": "2026-09", "current": true, "asks": 0, "allocated": 3, "allocated_off_roster": 0, "used": 3, "capacity": 3, "capacity_pct": 1.0, "intros": 0, "intros_cumulative": 10}], "sitting_on": [{"request_id": "R1082", "company_id": "C010", "company_name": "Duncastle Holdings", "href": "companytrace.html#C010", "target_title": "Chief Information Officer", "requested_by": "Sloane Fairweather", "asked_date": "2025-08-05", "responded": true, "days_since_asked": 397, "value_fmt": "$400K", "action": "nudge"}, {"request_id": "R1120", "company_id": "C010", "company_name": "Duncastle Holdings", "href": "companytrace.html#C010", "target_title": "Chief Information Officer", "requested_by": "Yusuf Petrossian", "asked_date": "2025-10-30", "responded": false, "days_since_asked": 311, "value_fmt": "$80K", "action": "chase"}, {"request_id": "R1187", "company_id": "C004", "company_name": "Ashgrove Agriculture", "href": "companytrace.html#C004", "target_title": "Chief Digital Officer", "requested_by": "Bertrand Vandermolen", "asked_date": "2025-11-01", "responded": true, "days_since_asked": 309, "value_fmt": "$400K", "action": "nudge"}, {"request_id": "R1124", "company_id": "C019", "company_name": "Hollowbrook Grocers", "href": "companytrace.html#C019", "target_title": "VP Engineering", "requested_by": "Yusuf Petrossian", "asked_date": "2025-11-13", "responded": false, "days_since_asked": 297, "value_fmt": "$1.2M", "action": "chase"}, {"request_id": "R1031", "company_id": "C020", "company_name": "Ironvale Steel", "href": "companytrace.html#C020", "target_title": "Chief Data Officer", "requested_by": "Imani Mkhize", "asked_date": "2025-11-30", "responded": false, "days_since_asked": 280, "value_fmt": "$80K", "action": "chase"}, {"request_id": "R1135", "company_id": "C045", "company_name": "Redtree Foods", "href": "companytrace.html#C045", "target_title": "Chief Digital Officer", "requested_by": "Curtis Hartigan", "asked_date": "2025-12-13", "responded": true, "days_since_asked": 267, "value_fmt": "$750K", "action": "nudge"}, {"request_id": "R1058", "company_id": "C016", "company_name": "Gravenhurst Motors", "href": "companytrace.html#C016", "target_title": "Chief Data Officer", "requested_by": "Curtis Hartigan", "asked_date": "2026-01-02", "responded": false, "days_since_asked": 247, "value_fmt": "$80K", "action": "chase"}, {"request_id": "R1086", "company_id": "C020", "company_name": "Ironvale Steel", "href": "companytrace.html#C020", "target_title": "VP Enterprise Architecture", "requested_by": "Sloane Fairweather", "asked_date": "2026-02-20", "responded": false, "days_since_asked": 198, "value_fmt": "$150K", "action": "chase"}, {"request_id": "R1046", "company_id": "", "company_name": "(unresolved)", "href": "", "target_title": "Head of Developer Productivity", "requested_by": "Curtis Hartigan", "asked_date": "2026-06-09", "responded": true, "days_since_asked": 89, "value_fmt": "$80K", "action": "nudge"}], "queue": [{"request_id": "R1028", "company_id": "C028", "company_name": "Osric Networks", "href": "companytrace.html#C028", "target_title": "Chief Digital Officer", "requested_by": "Yusuf Petrossian", "path_type": "offer", "contact": "", "route_score": "0.164", "value_fmt": "$2M", "urgency": "Critical"}, {"request_id": "R1084", "company_id": "C019", "company_name": "Hollowbrook Grocers", "href": "companytrace.html#C019", "target_title": "VP Engineering", "requested_by": "Bertrand Vandermolen", "path_type": "investor", "contact": "CEO / exec team", "route_score": "0.184", "value_fmt": "$2M", "urgency": "Critical"}, {"request_id": "R1159", "company_id": "C019", "company_name": "Hollowbrook Grocers", "href": "companytrace.html#C019", "target_title": "VP Enterprise Architecture", "requested_by": "Bertrand Vandermolen", "path_type": "investor", "contact": "CEO / exec team", "route_score": "0.184", "value_fmt": "$1.2M", "urgency": "Critical"}], "top": [{"request_id": "R1084", "company_id": "C019", "company_name": "Hollowbrook Grocers", "href": "companytrace.html#C019", "target_title": "VP Engineering", "requested_by": "Bertrand Vandermolen", "connector": "Priya Raghunathan", "path": "investor path via CEO / exec team", "value_fmt": "$2M", "crm_stage": "Pilot", "days_waiting": 55, "reps": ["Bertrand Vandermolen", "Yusuf Petrossian"], "capacity_note": "3 of 3 slots left when reached", "components": {"deal_value_musd": 2.0, "stage_weight": 0.75, "age": 1.151, "reps_waiting": 2, "path_strength": 0.9, "focus_fit": 0.45, "delivery_rate": 0.455, "capacity_left": 1.0}, "request_priority": 3.452, "connector_score": 0.184, "expected_value": 0.6359, "allocated": true, "rank": 2, "rank_here": 1}, {"request_id": "R1028", "company_id": "C028", "company_name": "Osric Networks", "href": "companytrace.html#C028", "target_title": "Chief Digital Officer", "requested_by": "Yusuf Petrossian", "connector": "Priya Raghunathan", "path": "offered in Slack (knows exec team)", "value_fmt": "$2M", "crm_stage": "Discovery", "days_waiting": 50, "reps": ["Curtis Hartigan", "Hana Nakashima", "Nadia Okonkwo", "Yusuf Petrossian"], "capacity_note": "2 of 3 slots left when reached", "components": {"deal_value_musd": 2.0, "stage_weight": 0.35, "age": 1.137, "reps_waiting": 4, "path_strength": 0.8, "focus_fit": 0.45, "delivery_rate": 0.455, "capacity_left": 0.667}, "request_priority": 3.184, "connector_score": 0.109, "expected_value": 0.3475, "allocated": true, "rank": 4, "rank_here": 2}, {"request_id": "R1159", "company_id": "C019", "company_name": "Hollowbrook Grocers", "href": "companytrace.html#C019", "target_title": "VP Enterprise Architecture", "requested_by": "Bertrand Vandermolen", "connector": "Priya Raghunathan", "path": "investor path via CEO / exec team", "value_fmt": "$1.2M", "crm_stage": "Pilot", "days_waiting": 269, "reps": ["Bertrand Vandermolen", "Yusuf Petrossian"], "capacity_note": "1 of 3 slots left when reached", "components": {"deal_value_musd": 1.2, "stage_weight": 0.75, "age": 1.737, "reps_waiting": 2, "path_strength": 0.9, "focus_fit": 0.45, "delivery_rate": 0.455, "capacity_left": 0.333}, "request_priority": 3.127, "connector_score": 0.061, "expected_value": 0.192, "allocated": true, "rank": 9, "rank_here": 3}, {"request_id": "R1018", "company_id": "C043", "company_name": "Wrenfield Robotics", "href": "companytrace.html#C043", "target_title": "Chief Technology Officer", "requested_by": "Yusuf Petrossian", "connector": "Priya Raghunathan", "path": "direct path via Saoirse Prendergast (Head of Platform Engineering)", "value_fmt": "$1.2M", "crm_stage": "Discovery", "days_waiting": 98, "reps": ["Hana Nakashima", "Nadia Okonkwo", "Yusuf Petrossian"], "capacity_note": "capacity exhausted this cycle", "components": {"deal_value_musd": 1.2, "stage_weight": 0.35, "age": 1.268, "reps_waiting": 3, "path_strength": 0.285, "focus_fit": 1.0, "delivery_rate": 0.455, "capacity_left": 0.0}, "request_priority": 1.598, "connector_score": 0.0, "expected_value": 0.0, "allocated": false, "rank": 36, "rank_here": 4}, {"request_id": "R1075", "company_id": "C046", "company_name": "Vireo Systems", "href": "companytrace.html#C046", "target_title": "VP Engineering", "requested_by": "Hana Nakashima", "connector": "Priya Raghunathan", "path": "investor path via CEO / exec team", "value_fmt": "$750K", "crm_stage": "no CRM account", "days_waiting": 193, "reps": ["Curtis Hartigan", "Hana Nakashima", "Nadia Okonkwo", "Rafael Salcedo"], "capacity_note": "capacity exhausted this cycle", "components": {"deal_value_musd": 0.75, "stage_weight": 0.25, "age": 1.529, "reps_waiting": 4, "path_strength": 0.9, "focus_fit": 0.7, "delivery_rate": 0.455, "capacity_left": 0.0}, "request_priority": 1.147, "connector_score": 0.0, "expected_value": 0.0, "allocated": false, "rank": 39, "rank_here": 5}], "rest": [{"request_id": "R1170", "company_id": "C028", "company_name": "Osric Networks", "href": "companytrace.html#C028", "target_title": "SVP Digital", "requested_by": "Hana Nakashima", "connector": "Priya Raghunathan", "path": "offered in Slack (knows exec team)", "value_fmt": "$1.2M", "crm_stage": "Discovery", "days_waiting": 361, "reps": ["Curtis Hartigan", "Hana Nakashima", "Nadia Okonkwo", "Yusuf Petrossian"], "capacity_note": "capacity exhausted this cycle", "components": {"deal_value_musd": 1.2, "stage_weight": 0.35, "age": 1.989, "reps_waiting": 4, "path_strength": 0.8, "focus_fit": 0.45, "delivery_rate": 0.455, "capacity_left": 0.0}, "request_priority": 3.342, "connector_score": 0.0, "expected_value": 0.0, "allocated": false, "rank": 41, "rank_here": 6}, {"request_id": "R1183", "company_id": "C010", "company_name": "Duncastle Holdings", "href": "companytrace.html#C010", "target_title": "SVP Digital", "requested_by": "Yusuf Petrossian", "connector": "Priya Raghunathan", "path": "investor path via CEO / exec team", "value_fmt": "$750K", "crm_stage": "Prospect", "days_waiting": 130, "reps": ["Sloane Fairweather", "Yusuf Petrossian"], "capacity_note": "capacity exhausted this cycle", "components": {"deal_value_musd": 0.75, "stage_weight": 0.25, "age": 1.356, "reps_waiting": 2, "path_strength": 0.9, "focus_fit": 0.45, "delivery_rate": 0.455, "capacity_left": 0.0}, "request_priority": 0.509, "connector_score": 0.0, "expected_value": 0.0, "allocated": false, "rank": 42, "rank_here": 7}, {"request_id": "R1195", "company_id": "C043", "company_name": "Wrenfield Robotics", "href": "companytrace.html#C043", "target_title": "SVP Digital", "requested_by": "Nadia Okonkwo", "connector": "Priya Raghunathan", "path": "direct path via Saoirse Prendergast (Head of Platform Engineering)", "value_fmt": "$1.2M", "crm_stage": "Discovery", "days_waiting": 132, "reps": ["Hana Nakashima", "Nadia Okonkwo", "Yusuf Petrossian"], "capacity_note": "capacity exhausted this cycle", "components": {"deal_value_musd": 1.2, "stage_weight": 0.35, "age": 1.362, "reps_waiting": 3, "path_strength": 0.285, "focus_fit": 1.0, "delivery_rate": 0.455, "capacity_left": 0.0}, "request_priority": 1.716, "connector_score": 0.0, "expected_value": 0.0, "allocated": false, "rank": 43, "rank_here": 8}], "ranked_count": 8, "ranked_value_fmt": "$10.3M", "no_slot": 5, "formula": {"expected_value": "expected value = request priority × connector score", "request_priority": "request priority = deal value ($M) × stage weight × age × reps waiting", "connector_score": "connector score = path strength × focus fit × delivery rate × capacity left", "stage_weight": {"Negotiation": 0.9, "Pilot": 0.75, "Evaluation": 0.55, "Discovery": 0.35, "Prospect": 0.25, "Closed Lost": 0.1, "no CRM account": 0.25}, "age": "1 + min(days since request, 365) / 365", "reps_waiting": "distinct requesters with a live request on the same company", "path_strength": "supply_reach.csv strength of the path used", "focus_fit": "1.0 in the connector's focus areas, 0.45 outside, 0 if they decline outside, 0.7 when the industry or the connector is unknown", "delivery_rate": "intros / asks, shrunk toward the prior (supply_reach.csv delivery_rate)", "capacity_left": "share of stated monthly capacity still unspent when the allocator reached this request; 0 when the cycle's slots were gone"}, "completions": {"supabase_url": "https://jlmnfbzawxkfrxktjkqx.supabase.co/rest/v1", "anon_key": "sb_publishable_9s-1s6fi9tztNFZcb416bA_yLwDVfvu", "table": "completions", "columns": ["completion_id", "completed_at", "completed_by", "action", "request_id", "company_id", "connector", "note"], "actions": {"top": "ask_sent", "bottlenecks": "nudged", "crm": "account_created"}, "ids": [], "count": 0, "quiet_days": 14, "stamp": "build_stamp.json", "repo_url": "https://github.com/veraaw/projecthalyard", "workflow": "rebuild.yml", "path": "golden/completions.csv"}, "as_of": "2026-09-06"}</script>
 <script>
 /* Live Priorities tab. Renders the payload dashboard/live_priorities.py wrote;
    derives nothing. The only input it processes is a dropped .jsonl of Slack
@@ -526,31 +536,180 @@ const LP = (function () {
     return out;
   }
 
+  // ------------------------------------------------------------ completions
+  // A tick is one thing someone did: an ask sent (Top priorities), a nudge sent
+  // (Core bottlenecks), an account created (CRM Updates). Ticks wait in this
+  // browser until Submit posts them, one row each, to the Supabase
+  // `completions` table (X.supabase_url, anon key: insert only). The scheduled
+  // rebuild pulls the table into golden/completions.csv and the ticked items
+  // leave the queue. completion_id is <request_id>:<action>:<day>
+  // (company_id for an account created), so submitting the same tick twice
+  // hits the primary key and lands nothing new; the build applies it once.
+  const tickKey = t => `${t.action}:${t.request_id || t.company_id}`;
+  const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } };
+  const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
+  function loadTicks(X) {
+    const onFile = new Set(X && X.ids || []);
+    const ticks = new Map(load('lp-ticks', []).filter(t => t.action).map(t => [tickKey(t), t]));
+    // submitted, not yet rebuilt into the site: still shown as done, not submitted again.
+    // Once the build has the row (its completion_id is in X.ids) the memory is dropped.
+    const submitted = new Map(Object.entries(load('lp-submitted', {})).filter(([k, id]) => !onFile.has(id)));
+    for (const k of submitted.keys()) ticks.delete(k);
+    return { ticks, submitted };
+  }
+  const isoDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const completionId = (t, day) => `${t.request_id || t.company_id}:${t.action}:${day}`;
+  // the rows Submit posts: one per tick, in tick order; `at` is the ISO timestamp for completed_at
+  function completionRows(X, ticks, who, at) {
+    const day = at.slice(0, 10), seen = new Set(X && X.ids || []), rows = [];
+    for (const t of ticks) {
+      const completion_id = completionId(t, day);
+      if (seen.has(completion_id)) continue;
+      seen.add(completion_id);
+      rows.push({ completion_id, completed_at: at, completed_by: who, action: t.action, request_id: t.request_id || null, company_id: t.company_id || null, connector: t.connector || null, note: t.note || null });
+    }
+    return rows;
+  }
+  // POST the rows, one request each: a plain insert (the anon role has insert
+  // only, and Supabase's ignore-duplicates needs select), so a completion_id
+  // already in the table answers 409 — recorded earlier, counted as such, not an
+  // error. Resolves to { recorded, already }; rejects with a readable message on
+  // the first row that fails, so nothing is reported as saved that was not.
+  async function postCompletions(X, rows, doFetch = (u, o) => fetch(u, o)) {
+    if (!X.supabase_url || !X.anon_key) throw new Error('this build has no Supabase URL / anon key (SUPABASE_URL and SUPABASE_ANON_KEY were not set when the site was built)');
+    const out = { recorded: [], already: [] };
+    for (const row of rows) {
+      let res;
+      try {
+        res = await doFetch(`${X.supabase_url}/${X.table}`, {
+          method: 'POST',
+          headers: { apikey: X.anon_key, Authorization: `Bearer ${X.anon_key}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify(row),
+        });
+      } catch (e) { throw new Error(`could not reach ${X.supabase_url} (${e.message})`); }
+      if (res.ok) { out.recorded.push(row); continue; }
+      let detail = '';
+      try { const j = await res.json(); detail = j.message || j.error_description || j.error || ''; } catch (e) { /* no body */ }
+      if (res.status === 409) { out.already.push(row); continue; }
+      throw new Error(`Supabase answered HTTP ${res.status}${detail ? `: ${detail}` : ''} for ${row.completion_id}`);
+    }
+    return out;
+  }
+  const SUBMITTED_TITLE = 'recorded — leaves the list when the site rebuilds';
+  // the tick-box cell for one row; the data- attributes are what Submit posts
+  const tick = (state, t) => {
+    const key = tickKey(t), on = state.ticks.has(key), sub = state.submitted.has(key);
+    return `<td><input type="checkbox" class="tick" ${on || sub ? 'checked' : ''} ${sub ? `disabled title="${SUBMITTED_TITLE}"` : ''} aria-label="done" data-key="${esc(key)}" data-action="${esc(t.action)}" data-rid="${esc(t.request_id || '')}" data-cid="${esc(t.company_id || '')}" data-connector="${esc(t.connector || '')}" data-note="${esc(t.note || '')}"></td>`;
+  };
+  const doneClass = (state, t) => { const k = tickKey(t); return state.ticks.has(k) || state.submitted.has(k) ? 'done' : ''; };
+  const askTick = (X, r) => ({ action: X.actions.top, request_id: r.request_id, company_id: r.company_id, connector: r.connector, note: `${r.company_name} · ${r.target_title}` });
+  const nudgeTick = (X, r) => ({ action: X.actions.bottlenecks, request_id: r.request_id, company_id: r.company_id, connector: r.connector, note: `${r.company_name} · agreed ${r.agreed_date || r.asked_date}` });
+  const crmTick = (X, r) => ({ action: X.actions.crm, request_id: '', company_id: r.company_id, connector: '', note: `${r.company_name} · ${r.request_ids.join(' | ')}` });
+  const actionLabel = { ask_sent: 'ask sent', nudged: 'nudged', account_created: 'account created' };
+  const describe = r => `${actionLabel[r.action] || r.action} ${esc(r.request_id || r.company_id)}${r.connector ? ` → ${esc(r.connector)}` : ''}`;
+
+  const submitBar = X => `<div class="submitbar" id="lp-submit" hidden><span id="lp-submit-n"></span><button id="lp-submit-go">Submit</button><button id="lp-submit-clear" class="secondary">Clear</button><span class="foot">${X.supabase_url ? `records your ticks in the <code>${esc(X.table)}</code> table; the site rebuilds from it every 15 minutes and the ticked items leave the queue` : '<b class="warn">this build cannot submit: no Supabase URL / anon key</b>'}</span></div>`;
+
+  function wireCompletions(root, X, state) {
+    const bar = root.querySelector('#lp-submit'), n = root.querySelector('#lp-submit-n'), go = root.querySelector('#lp-submit-go');
+    const show = () => {
+      const k = state.ticks.size;
+      bar.hidden = !k && !bar.dataset.msg;
+      bar.classList.toggle('failed', bar.dataset.state === 'failed');
+      n.innerHTML = bar.dataset.msg || `<b>${plural(k, 'tick')}</b>`;
+      go.disabled = !k || !X.supabase_url;
+    };
+    root.querySelectorAll('.tick').forEach(cb => cb.addEventListener('change', () => {
+      const d = cb.dataset, t = { action: d.action, request_id: d.rid, company_id: d.cid, connector: d.connector, note: d.note };
+      cb.checked ? state.ticks.set(d.key, t) : state.ticks.delete(d.key);
+      root.querySelectorAll(`.tick[data-key="${d.key}"]`).forEach(x => { x.checked = cb.checked; x.closest('tr').classList.toggle('done', cb.checked); });
+      store('lp-ticks', [...state.ticks.values()]);
+      delete bar.dataset.msg; delete bar.dataset.state;
+      show();
+    }));
+    root.querySelector('#lp-submit-clear').onclick = () => {
+      state.ticks.clear(); store('lp-ticks', []); delete bar.dataset.msg; delete bar.dataset.state;
+      root.querySelectorAll('.tick:not(:disabled)').forEach(x => { x.checked = false; x.closest('tr').classList.remove('done'); });
+      show();
+    };
+    go.onclick = async () => {
+      if (!state.ticks.size) return;
+      const who = (window.prompt('Who are you? (goes in completed_by, remembered in this browser)', load('lp-who', '') || '') || '').trim();
+      if (!who) return;
+      store('lp-who', who);
+      const ticks = [...state.ticks.entries()], at = new Date().toISOString();
+      const rows = completionRows(X, ticks.map(([, t]) => t), who, at);
+      go.disabled = true; delete bar.dataset.state;
+      bar.dataset.msg = `Recording ${plural(rows.length, 'row')}…`; show();
+      let got;
+      try {
+        got = await postCompletions(X, rows);
+      } catch (e) {
+        // the ticks stay ticked and pending, so Submit can be tried again
+        bar.dataset.state = 'failed';
+        bar.dataset.msg = `<b class="warn">Not recorded.</b> ${esc(e.message)}. Your ${plural(ticks.length, 'tick')} are still here — try Submit again, or if Supabase is down, tell whoever runs the build to apply them by hand.`;
+        show();
+        return;
+      }
+      for (const [k, t] of ticks) state.submitted.set(k, completionId(t, at.slice(0, 10)));
+      state.ticks.clear(); store('lp-ticks', []); store('lp-submitted', Object.fromEntries(state.submitted));
+      root.querySelectorAll('.tick:checked').forEach(x => { x.disabled = true; x.title = SUBMITTED_TITLE; });
+      const already = got.already.length ? ` ${plural(got.already.length, 'row')} already recorded today (${got.already.map(describe).join('; ')}).` : '';
+      bar.dataset.msg = `<b>Recorded ${plural(got.recorded.length, 'row')}</b> as ${esc(who)}${got.recorded.length ? `: ${got.recorded.map(describe).join('; ')}` : ''}.${already} The site rebuilds from the table every 15 minutes; refresh after that and these leave the queue.`;
+      show();
+    };
+    show();
+  }
+
+  // when this site was last built, from docs/build_stamp.json (committed with
+  // the rest of docs/ whenever a rebuild changed something), and the last run of
+  // the scheduled rebuild from the public GitHub Actions API when the repo is
+  // known — that run is what says the page is current even when nothing changed.
+  // Stale = no successful run in 3 cycles (or, with no API, a build over a day
+  // old). Both are best-effort: a page opened from disk shows the as-of date.
+  const STALE_RUN_MS = 45 * 60000, STALE_BUILD_MS = 24 * 3600 * 1000;
+  const ago = (iso, now = Date.now()) => {
+    const m = Math.round((now - Date.parse(iso)) / 60000);
+    return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
+  };
+  const utc = iso => iso.replace('T', ' ').replace(/(:\d\d)(\.\d+)?Z$/, '$1 UTC');
+  async function fetchJson(url, opts) {
+    try { const r = await fetch(url, opts); return r.ok ? await r.json() : null; } catch (e) { return null; }
+  }
+  async function buildStamp(D, el) {
+    if (!el) return;
+    const X = D.completions || {};
+    const m = /^https:\/\/github\.com\/([^/]+\/[^/]+)$/.exec(X.repo_url || '');
+    const [st, runs] = await Promise.all([
+      fetchJson(X.stamp || 'build_stamp.json', { cache: 'no-store' }),
+      m && X.workflow ? fetchJson(`https://api.github.com/repos/${m[1]}/actions/workflows/${X.workflow}/runs?per_page=1&status=success`, { headers: { Accept: 'application/vnd.github+json' } }) : null,
+    ]);
+    const run = runs && (runs.workflow_runs || [])[0];
+    const stale = run ? Date.now() - Date.parse(run.updated_at || run.created_at) > STALE_RUN_MS
+      : st ? Date.now() - Date.parse(st.built_at) > STALE_BUILD_MS : false;
+    const parts = [];
+    if (st) parts.push(`site built <b>${esc(utc(st.built_at))}</b> (${ago(st.built_at)}; as of ${esc(st.as_of)}, ${plural(st.completions, 'completion')} applied)`);
+    else parts.push(`as of <b>${esc(D.as_of)}</b>`);
+    if (run) parts.push(`last rebuild check <a href="${esc(run.html_url)}" target="_blank" rel="noopener">${ago(run.updated_at || run.created_at)}</a>`);
+    if (stale) parts.push('<b class="warn">stale — the 15-minute rebuild has not run lately</b>');
+    el.innerHTML = parts.join(' · ');
+  }
+
   // ------------------------------------------------------------------ render
-  const loadDone = () => new Set(JSON.parse(localStorage.getItem('lp-done') || '[]'));
   const comp = (r, k, fmt) => `<span class="c" title="${esc(k.replace(/_/g, ' '))}">${fmt(r.components[k])}</span>`;
   const FM_HEAD = '<th class="num">expected value</th><th>request priority<br><span class="fm">deal $M × stage × age × reps</span></th><th>connector score<br><span class="fm">path × fit × rate × capacity</span></th>';
   const fmCells = r => `<td class="num ev">${r.expected_value.toFixed(3)}</td><td class="parts"><b>${r.request_priority.toFixed(3)}</b> = ${comp(r, 'deal_value_musd', v => v.toFixed(2))} × ${comp(r, 'stage_weight', v => v.toFixed(2))} × ${comp(r, 'age', v => v.toFixed(2))} × ${comp(r, 'reps_waiting', v => v)}<br><span class="foot">${r.days_waiting} days waiting</span></td><td class="parts"><b>${r.connector_score.toFixed(3)}</b> = ${comp(r, 'path_strength', v => v.toFixed(2))} × ${comp(r, 'focus_fit', v => v.toFixed(2))} × ${comp(r, 'delivery_rate', v => v.toFixed(2))} × ${comp(r, 'capacity_left', v => v.toFixed(2))}<br><span class="foot">${esc(r.capacity_note)}</span></td>`;
 
-  // rows of ranked() with tick-boxes; `rankKey` picks the number shown in the # column
-  function priorityTable(rows, done, rankKey, withConnector) {
+  // rows of ranked() with tick-boxes (an ask sent); `rankKey` picks the number shown in the # column
+  function priorityTable(rows, X, state, rankKey, withConnector) {
     return `<table class="top"><thead><tr><th></th><th>#</th><th>request</th><th>company</th><th>who wants</th>${withConnector ? '<th>ask</th>' : '<th>path</th>'}${FM_HEAD}</tr></thead><tbody>`
-      + rows.map(r => `<tr class="${done.has(r.request_id) ? 'done' : ''}" data-rid="${esc(r.request_id)}"><td><input type="checkbox" class="tick" ${done.has(r.request_id) ? 'checked' : ''} aria-label="done"></td><td class="order">${r[rankKey]}</td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.crm_stage)}</span></td><td>${co(r)}<br><span class="foot">${esc(r.target_title)}</span></td><td>${esc(r.requested_by)}${r.reps.length > 1 ? `<br><span class="foot">+${r.reps.length - 1} more waiting</span>` : ''}</td><td>${withConnector ? `<b>${esc(r.connector)}</b><br><span class="foot">${esc(r.path)}</span>` : `${esc(r.path)}${r.allocated ? '' : '<br><b class="warn">no slot this cycle</b>'}`}</td>${fmCells(r)}</tr>`).join('')
+      + rows.map(r => { const t = askTick(X, r); return `<tr class="${doneClass(state, t)}" data-rid="${esc(r.request_id)}">${tick(state, t)}<td class="order">${r[rankKey]}</td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.crm_stage)}</span></td><td>${co(r)}<br><span class="foot">${esc(r.target_title)}</span></td><td>${esc(r.requested_by)}${r.reps.length > 1 ? `<br><span class="foot">+${r.reps.length - 1} more waiting</span>` : ''}</td><td>${withConnector ? `<b>${esc(r.connector)}</b><br><span class="foot">${esc(r.path)}</span>` : `${esc(r.path)}${r.allocated ? '' : '<br><b class="warn">no slot this cycle</b>'}`}</td>${fmCells(r)}</tr>`; }).join('')
       + `</tbody></table>`;
   }
 
   function formulaNote(F) {
     return `<div class="formula"><p><code>${esc(F.expected_value)}</code></p><p><code>${esc(F.request_priority)}</code><br><code>${esc(F.connector_score)}</code></p>
-      <p class="foot">stage weight by CRM stage: ${Object.entries(F.stage_weight).map(([k, v]) => `${esc(k)} ${v}`).join(' · ')}. age: ${esc(F.age)}. reps waiting: ${esc(F.reps_waiting)}. path strength: ${esc(F.path_strength)}. focus fit: ${esc(F.focus_fit)}. delivery rate: ${esc(F.delivery_rate)}. capacity left: ${esc(F.capacity_left)}. Ticks are kept in this browser only.</p></div>`;
-  }
-
-  function wireTicks(root, done) {
-    root.querySelectorAll('.tick').forEach(cb => cb.addEventListener('change', () => {
-      const tr = cb.closest('tr'), rid = tr.dataset.rid;
-      cb.checked ? done.add(rid) : done.delete(rid);
-      tr.classList.toggle('done', cb.checked);
-      localStorage.setItem('lp-done', JSON.stringify([...done]));
-    }));
+      <p class="foot">stage weight by CRM stage: ${Object.entries(F.stage_weight).map(([k, v]) => `${esc(k)} ${v}`).join(' · ')}. age: ${esc(F.age)}. reps waiting: ${esc(F.reps_waiting)}. path strength: ${esc(F.path_strength)}. focus fit: ${esc(F.focus_fit)}. delivery rate: ${esc(F.delivery_rate)}. capacity left: ${esc(F.capacity_left)}. Tick a row once the ask is sent; Submit records the ticks and the next rebuild takes them off the list.</p></div>`;
   }
 
   const sittingTable = c => c.sitting_on.length ? `<table><thead><tr><th>action</th><th>request</th><th>company</th><th>wanted</th><th>for</th><th>asked</th><th class="num">days</th><th>responded</th><th>value</th></tr></thead><tbody>`
@@ -568,7 +727,7 @@ const LP = (function () {
 
   // one connector's page (docs/connector-<slug>.html): top 5, then the longer list
   function bootConnector(c, root) {
-    const done = loadDone();
+    const X = c.completions, state = loadTicks(X);
     const cap = c.capacity ? `${c.used} / ${c.capacity}` : `${c.used}`;
     const now = c.cycles[c.cycles.length - 1];
     let out = `<section id="top"><h2>Top ${c.top.length} for ${esc(c.connector)} <span class="foot">do these next — ${esc(c.connector)}'s share of the ${c.ranked_count} live requests routed to them this cycle, sorted by expected value${c.no_slot ? `; ${c.no_slot} have no slot until capacity frees up` : ''}</span></h2>
@@ -579,25 +738,26 @@ const LP = (function () {
         <div class="kpi"><div class="v">${Math.round(c.delivery_rate * 100)}%</div><div class="l">delivery rate</div><div class="s">${c.intros_all_time} intros / ${c.asks_all_time} asks, shrunk toward the prior</div></div>
         <div class="kpi"><div class="v">${c.ranked_count}</div><div class="l">requests on their list</div><div class="s">${esc(c.ranked_value_fmt)} of deal value</div></div>
         <div class="kpi ${c.sitting_on.length ? 'warn' : ''}"><div class="v">${c.sitting_on.length}</div><div class="l">already sitting on</div><div class="s">asked, live, no intro yet</div></div></div>`
-      + (c.top.length ? priorityTable(c.top, done, 'rank_here', false) : `<p class="empty">nothing routed to ${esc(c.connector)} this cycle</p>`)
+      + (c.top.length ? priorityTable(c.top, X, state, 'rank_here', false) : `<p class="empty">nothing routed to ${esc(c.connector)} this cycle</p>`)
       + `<p class="foot"># is the rank within ${esc(c.connector)}'s list; the same rows rank ${c.top.map(r => r.rank).join(', ') || '—'} on the <a href="livepriorities.html#top">overall list</a>.</p></section>`;
 
     out += `<section id="rest"><h2>The longer list <span class="foot">everything else on ${esc(c.connector)}'s plate — ${plural(c.rest.length, 'more request')} to ask, then ${plural(c.sitting_on.length, 'ask')} already made and waiting on them</span></h2>
-      <h3>after the top ${c.top.length}</h3>` + (c.rest.length ? priorityTable(c.rest, done, 'rank_here', false) : `<p class="empty">${c.ranked_count ? 'the top ' + c.top.length + ' is the whole list' : 'nothing to ask'}</p>`)
+      <h3>after the top ${c.top.length}</h3>` + (c.rest.length ? priorityTable(c.rest, X, state, 'rank_here', false) : `<p class="empty">${c.ranked_count ? 'the top ' + c.top.length + ' is the whole list' : 'nothing to ask'}</p>`)
       + `<h3>already sitting on</h3>` + sittingTable(c)
       + formulaNote(c.formula) + `</section>`;
 
     out += `<section id="cycles"><h2>By cycle <span class="foot">${esc(c.connector)}'s asks against capacity, intros made and the running total, one row per month since ${esc(c.cycles[0].cycle)}</span></h2>`
       + cycleTable(c.cycles, c.connector) + `</section>`;
 
-    root.innerHTML = out;
-    wireTicks(root, done);
+    root.innerHTML = `<p class="stamp" id="lp-stamp">as of <b>${esc(c.as_of)}</b></p>` + out + submitBar(X);
+    wireCompletions(root, X, state);
+    buildStamp(c, root.querySelector('#lp-stamp'));
   }
 
   function boot(D, root) {
-    const P = D.parser;
-    const done = loadDone();
-    let out = '';
+    const P = D.parser, X = D.completions;
+    const state = loadTicks(X);
+    let out = `<p class="stamp" id="lp-stamp">as of <b>${esc(D.as_of)}</b></p>`;
 
     // 0. upload
     out += `<section id="upload"><h2>Preview a Slack export before anything is written</h2>
@@ -621,7 +781,7 @@ const LP = (function () {
     // 2. top 5
     const T = D.priorities;
     out += `<section id="top"><h2>Top ${T.top.length} priorities <span class="foot">do these next — sorted by expected value across ${T.considered} live requests with a connector to act on</span></h2>`
-      + priorityTable(T.top, done, 'rank', true)
+      + priorityTable(T.top, X, state, 'rank', true)
       + `<p class="foot">Per connector: ${D.connector_pages.map(c => `<a href="${esc(c.page)}">${esc(c.connector)}</a>`).join(' · ')} — each tab opens on their own top 5, with the longer list below.</p>`
       + formulaNote(T.formula) + `</section>`;
 
@@ -664,12 +824,13 @@ const LP = (function () {
     // 6. bottlenecks
     const B = D.bottlenecks;
     out += `<section id="bottlenecks">${fold(`Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro — ${esc(B.value_fmt)} — from <code>intro_outcomes.csv</code></span>`)}
-      <p class="lede">Each of these is a <b>nudge</b>, not a re-ask: asking again spends a fresh slot for an answer you already have.</p>`
+      <p class="lede">Each of these is a <b>nudge</b>, not a re-ask: asking again spends a fresh slot for an answer you already have. Tick the row once you have nudged; it comes back after ${B.quiet_days} quiet days.</p>`
       + tabs('bottlenecks', [{ label: 'All connectors', n: B.count, rows: B.rows, note: `${plural(B.count, 'ask')} · ${esc(B.value_fmt)} · oldest agreement first` }]
           .concat(B.by_connector.map(c => ({ label: c.connector, n: c.count, rows: B.rows.filter(r => r.connector === c.connector), note: `${plural(c.count, 'ask')} · ${esc(c.value_fmt)}${c.on_roster ? '' : ' · off roster'}` }))),
-        t => `<p class="foot">${t.note}</p><table><thead><tr><th>action</th><th>request</th><th>company</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
-          + t.rows.map(r => `<tr><td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`).join('')
+        t => `<p class="foot">${t.note}</p><table class="top"><thead><tr><th></th><th>action</th><th>request</th><th>company</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
+          + t.rows.map(r => { const k = nudgeTick(X, r); return `<tr class="${doneClass(state, k)}">${tick(state, k)}<td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`; }).join('')
           + `</tbody></table>`)
+      + (B.nudged.length ? `<p class="foot">Nudged in the last ${B.quiet_days} days, off the list until then: ${B.nudged.map(r => `${co(r)} (${esc(r.connector)}, ${esc(r.nudged_on)}, ${r.days_since_nudged}d ago)`).join(' · ')}.</p>` : '')
       + `</details></section>`;
 
     // 7. check-ins
@@ -698,19 +859,22 @@ const LP = (function () {
       <div class="dl"><button id="lp-dl-import">Download ${esc(C.import.filename)}</button><span>${plural(C.import.count, 'account')} to create, importer-shaped columns only (<code>${C.import.columns.map(esc).join(', ')}</code>). It can be uploaded straight into the CRM.</span></div>
       <div class="dl"><button id="lp-dl-review" class="secondary">Download ${esc(C.review.filename)}</button><span>${plural(C.review.count, 'recommendation')} (${C.review.groups.map(g => `${g.count} ${esc(g.group)}`).join(', ')}), every row <code>status = ${esc(C.status)}</code>. Merges and owner conflicts are recommended, never executed — ownership is compensation.</span></div>`;
     for (const g of C.groups) {
-      out += `<h3>${esc(g.title)} <span class="foot">${g.count} · ${esc(g.value_fmt)}</span></h3>`;
-      out += g.rows.length ? `<table><thead><tr><th>company</th><th>CRM accounts</th><th>owner</th><th>stage</th><th>action</th><th>why</th><th class="num">at stake</th></tr></thead><tbody>`
-        + g.rows.map(r => `<tr><td>${co(r)}<br><span class="foot">${r.request_ids.map(esc).join(', ')}</span></td><td class="rid">${esc(r.crm_account_ids || '—')}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage || '—')}</td><td><b>${esc(r.action)}</b></td><td class="foot">${esc(r.why)}<br>${esc(r.evidence)}</td><td class="num">${esc(r.value_fmt)}</td></tr>`).join('') + `</tbody></table>`
+      const ticks = g.group === 'create';  // the one group someone can do by hand and tick off
+      out += `<h3>${esc(g.title)} <span class="foot">${g.count} · ${esc(g.value_fmt)}${ticks ? ' · tick an account once it exists in the CRM' : ''}</span></h3>`;
+      out += g.rows.length ? `<table class="${ticks ? 'top' : ''}"><thead><tr>${ticks ? '<th></th>' : ''}<th>company</th><th>CRM accounts</th><th>owner</th><th>stage</th><th>action</th><th>why</th><th class="num">at stake</th></tr></thead><tbody>`
+        + g.rows.map(r => { const k = ticks ? crmTick(X, r) : null; return `<tr class="${k ? doneClass(state, k) : ''}">${k ? tick(state, k) : ''}<td>${co(r)}<br><span class="foot">${r.request_ids.map(esc).join(', ')}</span></td><td class="rid">${esc(r.crm_account_ids || '—')}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage || '—')}</td><td><b>${esc(r.action)}</b></td><td class="foot">${esc(r.why)}<br>${esc(r.evidence)}</td><td class="num">${esc(r.value_fmt)}</td></tr>`; }).join('') + `</tbody></table>`
         : `<p class="empty">nothing to do</p>`;
+      if (g.executed.length) out += `<p class="foot">Done, waiting for the next CRM export to confirm: ${g.executed.map(r => `${co(r)} (${esc(r.executed_on)})`).join(' · ')}.</p>`;
     }
     out += `</details></section>`;
 
-    root.innerHTML = out;
+    root.innerHTML = out + submitBar(X);
     openFoldAt(root);
     window.addEventListener('hashchange', () => openFoldAt(root));
 
-    // wiring: ticks, connector tabs, downloads, upload
-    wireTicks(root, done);
+    // wiring: ticks + Submit, build stamp, connector tabs, downloads, upload
+    wireCompletions(root, X, state);
+    buildStamp(D, root.querySelector('#lp-stamp'));
     wireTabs(root);
     root.querySelector('#lp-dl-import').onclick = () => download(C.import.filename, C.import.csv);
     root.querySelector('#lp-dl-review').onclick = () => download(C.review.filename, C.review.csv);
@@ -783,7 +947,7 @@ const LP = (function () {
     el.querySelector('#lp-dl-preview').onclick = () => download(`${name}_preview.csv`, toCsv(P.preview_columns, pv.rows));
   }
 
-  return { boot, bootConnector, extract, makeResolver, previewThreads, parseJsonl, route, normStrict, toCsv };
+  return { boot, bootConnector, extract, makeResolver, previewThreads, parseJsonl, route, normStrict, toCsv, completionRows, completionId, tickKey, postCompletions };
 })();
 if (typeof module !== 'undefined') module.exports = LP;
 

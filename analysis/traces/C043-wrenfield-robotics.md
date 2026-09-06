@@ -16,7 +16,7 @@
 | 0.285 | Priya Raghunathan (Investor) | direct | Saoirse Prendergast — Head of Platform Engineering | connections_raghunathan.csv: Saoirse Prendergast, Head of Platform Engineering at Wrenfield Robotics, connected 2014-01-26 |
 | 0.187 | Priya Raghunathan (Investor) | alumni | Saoirse Prendergast — ex-Wrenfield Robotics (2012-2015), now Head of Platform Engineering at Wrenfield Robotics | investor_network.csv: Saoirse Prendergast prior_employer=Wrenfield Robotics (2012-2015); connections_raghunathan.csv: connection of Priya Raghunathan since 2014-01-26 |
 
-## 4. Chronology (14 events, 3 requests, as of 2026-09-05)
+## 4. Chronology (14 events, 3 requests, as of 2026-09-06)
 
 ```
    2025-10-01  intro_requests.csv   Hana Nakashima       R1156 raised by Hana Nakashima (AE, Healthcare): wants Head of Developer Productivity, $1,200,000, High urgency, filed "Routed"
@@ -35,12 +35,12 @@
    2026-05-31  slack_threads.jsonl  Yusuf Petrossian     R1018 slack: "who do we know at Wrenfield Robotics? Chief Technology Officer would be ideal but I'll take anyone senior"
    2026-06-03  slack_threads.jsonl  Sloane Fairweather   R1018 slack: "is this the same as the one from last month?"
 
-!! 2025-10-15  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1036  [325 days ago, nothing since]
+!! 2025-10-15  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1036  [326 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Rafael Salcedo | CRM owner (A1036) | check in on the account | last touch 2025-10-15, 325 days ago | — |
-| 2 | Nadia Okonkwo (131 days), Yusuf Petrossian (97 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 131 days | R1195, R1018 |
+| 1 | Rafael Salcedo | CRM owner (A1036) | check in on the account | last touch 2025-10-15, 326 days ago | — |
+| 2 | Nadia Okonkwo (132 days), Yusuf Petrossian (98 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 132 days | R1195, R1018 |

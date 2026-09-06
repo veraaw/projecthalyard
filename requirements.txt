@@ -1,0 +1,3 @@
+# the one third-party package the build needs (the dashboard figures). Pinned to the
+# release that ships the plotly.js the committed docs/ already embed.
+plotly==6.0.1

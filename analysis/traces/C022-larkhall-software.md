@@ -13,7 +13,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (9 events, 2 requests, as of 2026-09-05)
+## 4. Chronology (9 events, 2 requests, as of 2026-09-06)
 
 ```
 !! 2026-05-09  intro_requests.csv   Bertrand Vandermolen R1062 raised by Bertrand Vandermolen (AE, EMEA): wants Head of Developer Productivity, $400,000, Critical urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
@@ -26,12 +26,12 @@ nobody in the network reaches this company
    2026-05-24  slack_threads.jsonl  Hana Nakashima       R1010 slack: "no idea sorry"
    2026-05-28  slack_threads.jsonl  Yusuf Petrossian     R1010 slack: "no idea sorry"
 
-!! 2026-03-16  crm_accounts.csv     Imani Mkhize         last CRM touch on A1022  [173 days ago, nothing since]
+!! 2026-03-16  crm_accounts.csv     Imani Mkhize         last CRM touch on A1022  [174 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Imani Mkhize | CRM owner (A1022) | check in on the account | last touch 2026-03-16, 173 days ago | — |
-| 2 | Bertrand Vandermolen (119 days) | 1 rep still waiting, longest first | tell them nobody has it | 1 rep raised this and has heard nothing; the oldest has been waiting 119 days | R1062, R1010 |
+| 1 | Imani Mkhize | CRM owner (A1022) | check in on the account | last touch 2026-03-16, 174 days ago | — |
+| 2 | Bertrand Vandermolen (120 days) | 1 rep still waiting, longest first | tell them nobody has it | 1 rep raised this and has heard nothing; the oldest has been waiting 120 days | R1062, R1010 |

@@ -16,7 +16,7 @@
 |---|---|---|---|---|
 | 0.800 | Imani Mkhize (not on roster) | offer | Head of Platform | slack_threads.jsonl R1176 2026-04-05 Imani Mkhize: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
 
-## 4. Chronology (17 events, 3 requests, as of 2026-09-05)
+## 4. Chronology (17 events, 3 requests, as of 2026-09-06)
 
 ```
    2025-08-17  intro_requests.csv   Rafael Salcedo       R1047 raised by Rafael Salcedo (AE, Transport & Logistics): wants Director of Software Engineering, $250,000, High urgency, filed "Stalled"
@@ -38,7 +38,7 @@
 ++ 2026-04-19  intro_outcomes.csv   Imani Mkhize         R1176 meeting booked
 ++ 2026-04-19  intro_outcomes.csv   Imani Mkhize         R1176 opportunity created, $400,000
 
-!! 2026-01-20  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1043  [228 days ago, nothing since]
+!! 2026-01-20  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1043  [229 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
@@ -46,5 +46,5 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Imani Mkhize | off-roster connector | send the ask (batch 2026-09 Imani Mkhize) | allocated in golden_allocation.csv via offer path, score 0.262; allocated in golden_allocation.csv via offer path, score 0.262 | R1047, R1200 |
-| 2 | Yusuf Petrossian | CRM owner (A1043) | check in on the account | last touch 2026-01-20, 228 days ago | — |
-| 3 | Rafael Salcedo (384 days), Hana Nakashima (202 days) | 2 reps still waiting, longest first | tell them it's with Imani Mkhize | 2 reps raised this and have heard nothing; the oldest has been waiting 384 days | R1047, R1200 |
+| 2 | Yusuf Petrossian | CRM owner (A1043) | check in on the account | last touch 2026-01-20, 229 days ago | — |
+| 3 | Rafael Salcedo (385 days), Hana Nakashima (203 days) | 2 reps still waiting, longest first | tell them it's with Imani Mkhize | 2 reps raised this and have heard nothing; the oldest has been waiting 385 days | R1047, R1200 |

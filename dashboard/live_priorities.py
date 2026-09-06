@@ -6,11 +6,19 @@
 
 Everything on the tab is computed here, from golden/ and dataset/, and written
 into one JSON payload; the JavaScript renders it and never derives a number.
-The one thing the page does with user input is the upload preview: the parser
+Two things the page does with user input. The upload preview: the parser
 rules (golden/parse.py cues, golden/build_golden.py OFFER_RE, and the
 golden/resolver.py lookup tables) are exported into the payload and applied
 verbatim by the browser, so a dropped .jsonl previews exactly what
-`python3 golden/build_golden.py --threads FILE` would file.
+`python3 golden/build_golden.py --threads FILE` would file. And Submit: the
+tick-boxes on Top priorities (an ask sent), Core bottlenecks (a nudge sent) and
+CRM Updates / create these accounts (an account created) are posted, one row
+each, to the Supabase `completions` table with the anon key (insert-only; the
+URL and key come from SUPABASE_URL / SUPABASE_ANON_KEY at build time, never
+from this file). The scheduled rebuild (.github/workflows/rebuild.yml) pulls
+the table into golden/completions.csv, a fact source of the build, and the
+ticked items leave the queue. docs/build_stamp.json says when that last
+happened; the page shows it.
 
     python3 -m dashboard.live_priorities     # prints the payload summary
 """
@@ -19,7 +27,9 @@ from __future__ import annotations
 import csv
 import io
 import json
+import os
 import re
+import subprocess
 import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import asdict
@@ -32,7 +42,7 @@ from golden import build_golden as bg
 from golden import parse as gp
 from golden import resolver as gr
 from golden.resolve_cli import load_resolver
-from paths import DASHBOARD, DATASET, GOLDEN
+from paths import DASHBOARD, DATASET, DOCS, GOLDEN
 
 # ---------------------------------------------------------------------------
 # constants the ranking uses; every one is shown on the tab
@@ -47,6 +57,9 @@ NO_CRM_WEIGHT = 0.25   # a requested company with no CRM account
 AGE_CAP_DAYS = 365     # age factor = 1 + min(days waiting, cap) / cap  (1.0 .. 2.0)
 CHECKIN_DAYS = 60
 TOP_N = 5
+NUDGE_QUIET_DAYS = 14  # a bottleneck nudged this recently is off the list until the quiet period passes
+BUILD_STAMP = DOCS / "build_stamp.json"  # when the site was last generated; the page shows it
+WORKFLOW_FILE = "rebuild.yml"  # .github/workflows/, the scheduled rebuild the page reports the last run of
 
 PAGE = "livepriorities.html"
 TRACE_PAGE = "companytrace.html"
@@ -113,6 +126,20 @@ def slug(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
+def repo_url() -> str:
+    """https://github.com/<owner>/<repo> for the checkout, from GITHUB_REPOSITORY
+    (Actions) or the origin remote; '' when neither is available."""
+    if os.environ.get("GITHUB_REPOSITORY"):
+        return f"{os.environ.get('GITHUB_SERVER_URL', 'https://github.com')}/{os.environ['GITHUB_REPOSITORY']}"
+    try:
+        origin = subprocess.run(["git", "config", "--get", "remote.origin.url"], capture_output=True, text=True,
+                                cwd=DASHBOARD, timeout=5).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    m = re.match(r"^(?:https?://|git@)([^/:]+)[/:](.+?)(?:\.git)?/?$", origin)
+    return f"https://{m.group(1)}/{m.group(2)}" if m else ""
+
+
 def csv_text(columns: list[str], rows: list[dict]) -> str:
     buf = io.StringIO()
     w = csv.DictWriter(buf, fieldnames=columns, lineterminator="\r\n", extrasaction="ignore")
@@ -133,7 +160,8 @@ class Live:
         self.history = bg.read_allocation(GOLDEN / "golden_allocation.csv")
         self.allocation = bg.latest_cycle(self.history)
         self.alloc_by_rid = {a["request_id"]: a for a in self.allocation}
-        self.outcomes = bg.read_csv(DATASET / "intro_outcomes.csv")
+        self.completions = bg.load_completions()
+        self.outcomes = bg.with_completions(bg.read_csv(DATASET / "intro_outcomes.csv"), self.completions)
         self.outcome_by_rid = {o["request_id"]: o for o in self.outcomes}
         self.raw = {r["request_id"]: r for r in bg.read_csv(DATASET / "intro_requests.csv")}
         self.accounts = {a["account_id"]: a for a in bg.read_csv(DATASET / "crm_accounts.csv")}
@@ -576,13 +604,17 @@ class Live:
 
     # -- 5. core bottlenecks --------------------------------------------------
     def bottlenecks(self) -> dict:
-        rows = []
+        """Asks the connector agreed to and never delivered. One nudged in the last
+        NUDGE_QUIET_DAYS (golden_requests.nudged_on, from completions.csv) is
+        listed under `nudged` instead and comes back when the quiet period ends."""
+        rows, nudged = [], []
         for o in self.outcomes:
             if o["responded"] != "Y" or o["intro_sent"] == "Y":
                 continue
             r = self.by_rid.get(o["request_id"], {})
             agreed = parse_date(o["response_date"]) or parse_date(o["asked_date"]) or self.today
-            rows.append({
+            last_nudge = parse_date(r.get("nudged_on", ""))
+            row = {
                 "request_id": o["request_id"], **self.company_ref(r.get("company_id", ""), r.get("company_as_written", "")),
                 "connector": o["connector_asked"], "on_roster": o["connector_asked"] in self.roster,
                 "target_title": r.get("target_title", ""), "requested_by": r.get("requested_by", ""),
@@ -590,10 +622,15 @@ class Live:
                 "days_since_agreed": (self.today - agreed).days,
                 "value_fmt": money(r.get("value_usd", "")), "value_usd": usd(r.get("value_usd", "")),
                 "status": r.get("status_as_filed", ""), "action": "nudge",
-            })
+                "nudged_on": r.get("nudged_on", ""),
+                "days_since_nudged": (self.today - last_nudge).days if last_nudge else None,
+            }
+            (nudged if last_nudge and 0 <= (self.today - last_nudge).days < NUDGE_QUIET_DAYS else rows).append(row)
         rows.sort(key=lambda r: -r["days_since_agreed"])
+        nudged.sort(key=lambda r: (r["nudged_on"], r["request_id"]))
         by_connector = Counter(r["connector"] for r in rows)
         return {"rows": rows, "count": len(rows), "value_fmt": money(sum(r["value_usd"] for r in rows)),
+                "nudged": nudged, "quiet_days": NUDGE_QUIET_DAYS,
                 "by_connector": [{"connector": k, "count": n, "on_roster": k in self.roster,
                                   "value_fmt": money(sum(r["value_usd"] for r in rows if r["connector"] == k))}
                                  for k, n in by_connector.most_common()]}
@@ -663,7 +700,7 @@ class Live:
                 "top": mine[:TOP_N], "rest": mine[TOP_N:], "ranked_count": len(mine),
                 "ranked_value_fmt": money(sum(usd(self.by_rid[r["request_id"]]["value_usd"]) for r in mine)),
                 "no_slot": sum(1 for r in mine if not r["allocated"]),
-                "formula": self.formula(),
+                "formula": self.formula(), "completions": self.completion_export(), "as_of": self.today.isoformat(),
             })
         return out
 
@@ -753,12 +790,14 @@ class Live:
         review = w.review_rows()
         imports = w.import_rows()
 
-        def rows(group: str) -> list[dict]:
+        def rows(group: str, status: str = wb.STATUS) -> list[dict]:
             return [{**asdict(r), "value_fmt": money(r.value_at_stake_usd), "href": self.company_ref(r.company_id)["href"],
-                     "request_ids": bar(r.request_ids)} for r in review if r.group == group]
+                     "request_ids": bar(r.request_ids)} for r in review if r.group == group and r.status == status]
 
+        # a create row someone has ticked off (completions.csv) is `executed`: shown as done, not counted
         groups = [{"group": g, "title": wb.GROUP_TITLES[g], "rows": rows(g), "count": len(rows(g)),
-                   "value_fmt": money(sum(r.value_at_stake_usd for r in review if r.group == g))}
+                   "value_fmt": money(sum(r["value_at_stake_usd"] for r in rows(g))),
+                   "executed": rows(g, wb.EXECUTED)}
                   for g in (wb.CREATE, wb.MERGE, wb.OWNERS, wb.REOPEN)]
         return {
             "groups": groups,
@@ -768,6 +807,25 @@ class Live:
                        "csv": csv_text(wb.REVIEW_COLUMNS, [asdict(r) for r in review]),
                        "groups": [{"group": g, "count": sum(1 for r in review if r.group == g)} for g in wb.GROUPS]},
             "status": wb.STATUS,
+        }
+
+    # -- 9b. what Submit writes ---------------------------------------------------
+    def completion_export(self) -> dict:
+        """Everything the browser needs to post completions: the Supabase REST
+        endpoint and the anon (publishable) key, the row columns, the action per
+        section, and the completion_ids already on file. Only SUPABASE_URL and
+        SUPABASE_ANON_KEY are read; the service key is never in the payload."""
+        bg.load_env()
+        url = os.environ.get("SUPABASE_URL", "").strip()
+        return {
+            "supabase_url": bg.supabase_rest(url) if url else "",
+            "anon_key": os.environ.get("SUPABASE_ANON_KEY", "").strip(),
+            "table": bg.SUPABASE_TABLE, "columns": bg.COMPLETION_COLUMNS,
+            "actions": {"top": bg.ASKED, "bottlenecks": bg.NUDGED, "crm": bg.CRM_CREATED},
+            "ids": sorted(c["completion_id"] for c in self.completions), "count": len(self.completions),
+            "quiet_days": NUDGE_QUIET_DAYS,
+            "stamp": BUILD_STAMP.name, "repo_url": repo_url(), "workflow": WORKFLOW_FILE,
+            "path": bg.COMPLETIONS_OUT.relative_to(bg.ROOT).as_posix(),
         }
 
     # -- 10. upload preview rules ----------------------------------------------
@@ -867,6 +925,7 @@ class Live:
             "stages": self.stages(), "priorities": self.priorities(), "asks": self.asks(),
             "offer_gaps": self.offer_gaps(), "bottlenecks": self.bottlenecks(), "connectors": self.connectors(),
             "checkins": self.checkins(), "unrouted": self.unrouted(), "crm": self.crm(), "parser": self.parser(),
+            "completions": self.completion_export(),
             "connector_pages": [{"connector": c["connector"], "page": c["page"], "on_roster": c["on_roster"]}
                                 for c in self.connector_pages()],
         }
@@ -911,7 +970,8 @@ if __name__ == "__main__":
           + ", ".join(f"{e['count']} {e['reason']}" for e in p["asks"]["exceptions"]))
     print(f"offer gaps  {p['offer_gaps']['count']} ({p['offer_gaps']['value_fmt']}): "
           + ", ".join(r["request_id"] for r in p["offer_gaps"]["rows"]))
-    print(f"bottlenecks {p['bottlenecks']['count']} nudges")
+    print(f"bottlenecks {p['bottlenecks']['count']} nudges" + (f", {len(p['bottlenecks']['nudged'])} nudged recently" if p['bottlenecks']['nudged'] else ""))
+    print(f"completions {p['completions']['count']} on file")
     print(f"check-ins   {p['checkins']['count']} overdue ({p['checkins']['both']} failed both)")
     print("unrouted   ", ", ".join(f"{c['connector'].split()[0]} {c['count']}" for c in p["unrouted"]["per_connector"]))
     print("crm        ", ", ".join(f"{g['count']} {g['group']}" for g in p["crm"]["groups"]))

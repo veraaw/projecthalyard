@@ -21,7 +21,7 @@
 | 0.218 | Marcus Aldridge (Advisor) | alumni | Tomás Ferreira — ex-Ironvale Steel (2015-2020), now VP Enterprise Architecture at Ironvale Steel | investor_network.csv: Tomás Ferreira prior_employer=Ironvale Steel (2015-2020); connections_aldridge.csv: connection of Marcus Aldridge since 2018-11-19 |
 | 0.202 | Priya Raghunathan (Investor) | alumni | Tomás Ferreira — ex-Ironvale Steel (2015-2020), now VP Enterprise Architecture at Ironvale Steel | investor_network.csv: Tomás Ferreira prior_employer=Ironvale Steel (2015-2020); connections_raghunathan.csv: connection of Priya Raghunathan since 2017-06-21 |
 
-## 4. Chronology (31 events, 5 requests, as of 2026-09-05)
+## 4. Chronology (31 events, 5 requests, as of 2026-09-06)
 
 ```
    2025-11-25  intro_requests.csv   Curtis Hartigan      R1141 raised by Curtis Hartigan (AE, Financial Services): wants VP Enterprise Architecture, $400,000, High urgency, filed "Intro sent"
@@ -39,7 +39,7 @@
    2025-11-28  slack_threads.jsonl  Hana Nakashima       R1031 slack: "what's the deal size here?"
    2025-11-30  slack_threads.jsonl  Rafael Salcedo       R1031 slack: "wrong channel? this feels like a partner ask"
    2025-11-30  intro_outcomes.csv   Priya Raghunathan    R1031 asked
-<- 2026-09-05  intro_outcomes.csv   Priya Raghunathan    R1031 never replied (asked 2025-11-30, 279 days ago)
+<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1031 never replied (asked 2025-11-30, 280 days ago)
 
 !! 2026-02-17  intro_requests.csv   Sloane Fairweather   R1086 raised by Sloane Fairweather (Strategic AE): wants VP Enterprise Architecture, $150,000, Critical urgency, filed "Open"  [same title as R1141, 84 days earlier]
    2026-02-17  slack_threads.jsonl  Sloane Fairweather   R1086 slack: "who do we know at Ironvale Steel? VP Enterprise Architecture would be ideal but I'll take anyone senior"
@@ -47,7 +47,7 @@
    2026-02-18  slack_threads.jsonl  Rafael Salcedo       R1086 slack: "adding Hana Nakashima who might know"
    2026-02-20  slack_threads.jsonl  Sloane Fairweather   R1086 slack: "is this the same as the one from last month?"
    2026-02-20  intro_outcomes.csv   Priya Raghunathan    R1086 asked
-<- 2026-09-05  intro_outcomes.csv   Priya Raghunathan    R1086 never replied (asked 2026-02-20, 197 days ago)
+<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1086 never replied (asked 2026-02-20, 198 days ago)
 
 !! 2026-02-18  intro_requests.csv   Hana Nakashima       R1089 raised by Hana Nakashima (AE, Healthcare): wants VP Enterprise Architecture, $400,000, High urgency, filed "Closed - no path"  [6 paths in supply_reach.csv; same title as R1141, 85 days earlier]
    2026-02-18  slack_threads.jsonl  Hana Nakashima       R1089 slack: "who do we know at Ironvale Steel? VP Enterprise Architecture would be ideal but I'll take anyone senior"
@@ -59,12 +59,12 @@
    2026-06-30  slack_threads.jsonl  Hana Nakashima       R1040 slack: "adding Sloane Fairweather who might know"
    2026-07-01  slack_threads.jsonl  Nadia Okonkwo        R1040 slack: "wrong channel? this feels like a partner ask"
 
-!! 2026-04-16  crm_accounts.csv     Hana Nakashima       last CRM touch on A1009  [142 days ago, nothing since]
+!! 2026-04-16  crm_accounts.csv     Hana Nakashima       last CRM touch on A1009  [143 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Hana Nakashima | CRM owner (A1009) | check in on the account | last touch 2026-04-16, 142 days ago | — |
-| 2 | Imani Mkhize (283 days), Sloane Fairweather (200 days), Hana Nakashima (199 days) | 3 reps still waiting, longest first | tell them it's with Priya Raghunathan / Marcus Aldridge | 3 reps raised this and have heard nothing; the oldest has been waiting 283 days | R1031, R1086, R1040, R1089 |
+| 1 | Hana Nakashima | CRM owner (A1009) | check in on the account | last touch 2026-04-16, 143 days ago | — |
+| 2 | Imani Mkhize (284 days), Sloane Fairweather (201 days), Hana Nakashima (200 days) | 3 reps still waiting, longest first | tell them it's with Priya Raghunathan / Marcus Aldridge | 3 reps raised this and have heard nothing; the oldest has been waiting 284 days | R1031, R1086, R1040, R1089 |

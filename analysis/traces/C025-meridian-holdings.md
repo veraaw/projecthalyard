@@ -18,13 +18,13 @@
 | 0.415 | Dana Whitfield (Internal) | direct | Desmond Cardoso — Director of IT | connections_whitfield.csv: Desmond Cardoso, Director of IT at Meridian Peak Foods, connected 2022-03-01 |
 | 0.346 | Owen Trask (Investor) | direct | Desmond Cardoso — Director of IT | connections_trask.csv: Desmond Cardoso, Director of IT at Meridian Peak Foods, connected 2019-10-24 |
 
-## 4. Chronology (15 events, 2 requests, as of 2026-09-05)
+## 4. Chronology (15 events, 2 requests, as of 2026-09-06)
 
 ```
 !! 2025-10-21  intro_requests.csv   Hana Nakashima       R1172 raised by Hana Nakashima (AE, Healthcare): wants VP Engineering, $150,000, High urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
    2025-10-21  slack_threads.jsonl  Hana Nakashima       R1172 slack: "any connections into Meridian Peak Foods? we're up against a renewal window and I need an intro to VP Engineering"
    2025-10-21  intro_outcomes.csv   Priya Raghunathan    R1172 asked
-<- 2026-09-05  intro_outcomes.csv   Priya Raghunathan    R1172 never replied (asked 2025-10-21, 319 days ago)
+<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1172 never replied (asked 2025-10-21, 320 days ago)
 
 !! 2026-07-22  intro_requests.csv   Bertrand Vandermolen R1168 raised by Bertrand Vandermolen (AE, EMEA): wants VP Engineering, $750,000, Medium urgency, filed "Open"  [same title as R1172, 274 days earlier]
    2026-07-22  slack_threads.jsonl  Bertrand Vandermolen R1168 slack: "any connections into Meridian Peak Foods? we're up against a renewal window and I need an intro to VP Engineering"
@@ -37,12 +37,12 @@
 ++ 2026-08-04  intro_outcomes.csv   Priya Raghunathan    R1168 meeting booked
 ++ 2026-08-04  intro_outcomes.csv   Priya Raghunathan    R1168 opportunity created, $750,000
 
-!! 2026-04-21  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1034  [137 days ago, nothing since]
+!! 2026-04-21  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1034  [138 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Bertrand Vandermolen | CRM owner (A1034) | check in on the account | last touch 2026-04-21, 137 days ago | — |
-| 2 | Hana Nakashima (319 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 319 days | R1172 |
+| 1 | Bertrand Vandermolen | CRM owner (A1034) | check in on the account | last touch 2026-04-21, 138 days ago | — |
+| 2 | Hana Nakashima (320 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 320 days | R1172 |

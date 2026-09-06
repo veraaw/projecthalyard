@@ -23,7 +23,7 @@
 | 0.202 | Owen Trask (Investor) | alumni | Niall Grimsby — ex-Redtree Foods (2013-2019), now Chief Data Officer at Redtree Foods | investor_network.csv: Niall Grimsby prior_employer=Redtree Foods (2013-2019); connections_trask.csv: connection of Owen Trask since 2017-11-17 |
 | 0.187 | Priya Raghunathan (Investor) | alumni | Coretta Bellinger — ex-Redtree Foods (2012-2016), now VP Data & Analytics at Redtree Foods | investor_network.csv: Coretta Bellinger prior_employer=Redtree Foods (2012-2016); connections_raghunathan.csv: connection of Priya Raghunathan since 2014-07-03 |
 
-## 4. Chronology (18 events, 4 requests, as of 2026-09-05)
+## 4. Chronology (18 events, 4 requests, as of 2026-09-06)
 
 ```
    2025-10-22  intro_requests.csv   Curtis Hartigan      R1067 raised by Curtis Hartigan (AE, Financial Services): wants Head of Platform Engineering, $1,200,000, Medium urgency, filed "Open"
@@ -33,7 +33,7 @@
    2025-12-08  slack_threads.jsonl  Curtis Hartigan      R1135 slack: "looking for a path to Ilse Oldfield-Dobrescu — email domain is redtreefoods.com, that's all I have"
    2025-12-13  intro_outcomes.csv   Priya Raghunathan    R1135 asked
 ++ 2025-12-16  intro_outcomes.csv   Priya Raghunathan    R1135 replied (3 days after the ask)
-<- 2026-09-05  intro_outcomes.csv   Priya Raghunathan    R1135 said yes 263 days ago and never forwarded
+<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1135 said yes 264 days ago and never forwarded
 
    2026-03-03  intro_requests.csv   Imani Mkhize         R1003 raised by Imani Mkhize (Enterprise AE, West): wants VP Engineering, $400,000, High urgency, filed "Stalled"
    2026-03-03  slack_threads.jsonl  Imani Mkhize         R1003 slack: "long shot — Redtree Foods. Tomás Jarrold-Egerton (VP Engineering). Anyone?"
@@ -55,4 +55,4 @@
 |---|---|---|---|---|---|
 | 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | nudge, don't re-ask | said yes on 2025-12-16 and never forwarded | R1135 |
 | 2 | Dana Whitfield | Chief Revenue Officer (internal connector) | send the ask (batch 2026-09 Dana Whitfield) | allocated in golden_allocation.csv via offer path, score 0.240; allocated in golden_allocation.csv via offer path, score 0.240 | R1067, R1074 |
-| 3 | Curtis Hartigan (318 days), Bertrand Vandermolen (94 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 318 days | R1067, R1135, R1074 |
+| 3 | Curtis Hartigan (319 days), Bertrand Vandermolen (95 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 319 days | R1067, R1135, R1074 |

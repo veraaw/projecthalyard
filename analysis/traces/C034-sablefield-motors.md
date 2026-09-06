@@ -9,7 +9,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (19 events, 5 requests, as of 2026-09-05)
+## 4. Chronology (19 events, 5 requests, as of 2026-09-06)
 
 ```
    2025-09-30  intro_requests.csv   Curtis Hartigan      R1081 raised by Curtis Hartigan (AE, Financial Services): wants SVP Digital, $80,000, Low urgency, filed "Open"
@@ -35,12 +35,12 @@ nobody in the network reaches this company
    2026-05-19  slack_threads.jsonl  Curtis Hartigan      R1036 slack: "asking again: Sablefield Motors. Chief Data Officer. Happy to draft the forward myself if someone can vouch."
    2026-05-21  slack_threads.jsonl  Nadia Okonkwo        R1036 slack: "bumping this"
 
-!! 2026-02-14  crm_accounts.csv     Hana Nakashima       last CRM touch on A1005  [203 days ago, nothing since]
+!! 2026-02-14  crm_accounts.csv     Hana Nakashima       last CRM touch on A1005  [204 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Hana Nakashima | CRM owner (A1005) | check in on the account | last touch 2026-02-14, 203 days ago | — |
-| 2 | Curtis Hartigan (340 days), Yusuf Petrossian (205 days) | 2 reps still waiting, longest first | tell them nobody has it | 2 reps raised this and have heard nothing; the oldest has been waiting 340 days | R1081, R1036, R1182, R1138, R1117 |
+| 1 | Hana Nakashima | CRM owner (A1005) | check in on the account | last touch 2026-02-14, 204 days ago | — |
+| 2 | Curtis Hartigan (341 days), Yusuf Petrossian (206 days) | 2 reps still waiting, longest first | tell them nobody has it | 2 reps raised this and have heard nothing; the oldest has been waiting 341 days | R1081, R1036, R1182, R1138, R1117 |

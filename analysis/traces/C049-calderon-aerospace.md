@@ -19,13 +19,13 @@
 | 0.431 | Marcus Aldridge (Advisor) | direct | Camille Fairweather — VP Engineering | connections_aldridge.csv: Camille Fairweather, VP Engineering at Calderon Aerospace, connected 2025-10-19 |
 | 0.423 | Owen Trask (Investor) | direct | Sabine Underhill — VP Enterprise Architecture | connections_trask.csv: Sabine Underhill, VP Enterprise Architecture at Calderon Aerospace, connected 2021-12-24 |
 
-## 4. Chronology (11 events, 2 requests, as of 2026-09-05)
+## 4. Chronology (11 events, 2 requests, as of 2026-09-06)
 
 ```
 !! 2026-02-14  intro_requests.csv   Rafael Salcedo       R1068 raised by Rafael Salcedo (AE, Transport & Logistics): wants Chief Digital Officer, $150,000, Medium urgency, filed "Closed - no path"  [4 paths in supply_reach.csv]
    2026-02-14  slack_threads.jsonl  Rafael Salcedo       R1068 slack: "long shot — Calderon Aerospace. Emeka Ingleby-Brenneman (Chief Digital Officer). Anyone?"
    2026-02-15  intro_outcomes.csv   Priya Raghunathan    R1068 asked
-<- 2026-09-05  intro_outcomes.csv   Priya Raghunathan    R1068 never replied (asked 2026-02-15, 202 days ago)
+<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1068 never replied (asked 2026-02-15, 203 days ago)
 
    2026-05-09  intro_requests.csv   Imani Mkhize         R1101 raised by Imani Mkhize (Enterprise AE, West): wants Head of Developer Productivity, $80,000, High urgency, filed "Open"
    2026-05-09  slack_threads.jsonl  Imani Mkhize         R1101 slack: "any connections into Calderon Aerospace? we're up against a renewal window and I need an intro to Head of Developer Productivity"
@@ -40,4 +40,4 @@
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Rafael Salcedo (203 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 203 days | R1068 |
+| 1 | Rafael Salcedo (204 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 204 days | R1068 |

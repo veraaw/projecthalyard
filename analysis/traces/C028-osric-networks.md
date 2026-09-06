@@ -20,7 +20,7 @@
 | 0.800 | Elena Duvall (Advisor) | offer | Chief Data Officer | slack_threads.jsonl R1163 2026-03-27 Elena Duvall: "I met their Chief Data Officer at a conference last spring, happy to reach out" |
 | 0.800 | Priya Raghunathan (Investor) | offer | exec team | slack_threads.jsonl R1167 2026-01-16 Priya Raghunathan: "I'll take this one — I've got a direct line to their exec team" |
 
-## 4. Chronology (24 events, 4 requests, as of 2026-09-05)
+## 4. Chronology (24 events, 4 requests, as of 2026-09-06)
 
 ```
    2025-09-10  intro_requests.csv   Hana Nakashima       R1170 raised by Hana Nakashima (AE, Healthcare): wants SVP Digital, $1,200,000, High urgency, filed "Open"
@@ -50,7 +50,7 @@
    2026-07-18  intro_requests.csv   Yusuf Petrossian     R1028 raised by Yusuf Petrossian (SDR Lead): wants Chief Digital Officer, $2,000,000, Critical urgency, filed "Open"
    2026-07-18  slack_threads.jsonl  Yusuf Petrossian     R1028 slack: "Duncastle Hotels introduced us to Calderon Aerospace, but the account I actually need is Osric Networks (Chief Digital Officer)."
 
-!! 2026-04-19  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1044  [139 days ago, nothing since]
+!! 2026-04-19  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1044  [140 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
@@ -58,5 +58,5 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | send the ask (batch 2026-09 Priya Raghunathan) | allocated in golden_allocation.csv via offer path, score 0.164 | R1028 |
-| 2 | Nadia Okonkwo | CRM owner (A1044) | check in on the account | last touch 2026-04-19, 139 days ago | — |
-| 3 | Hana Nakashima (360 days), Yusuf Petrossian (49 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 360 days | R1170, R1028 |
+| 2 | Nadia Okonkwo | CRM owner (A1044) | check in on the account | last touch 2026-04-19, 140 days ago | — |
+| 3 | Hana Nakashima (361 days), Yusuf Petrossian (50 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 361 days | R1170, R1028 |

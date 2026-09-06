@@ -16,7 +16,7 @@
 |---|---|---|---|---|
 | 0.465 | Marcus Aldridge (Advisor) | direct | Marcus Merriweather — Chief Data Officer | connections_aldridge.csv: Marcus Merriweather, Chief Data Officer at Marlowe Freight Systems, connected 2021-01-07 |
 
-## 4. Chronology (19 events, 3 requests, as of 2026-09-05)
+## 4. Chronology (19 events, 3 requests, as of 2026-09-06)
 
 ```
 !! 2025-09-06  intro_requests.csv   Yusuf Petrossian     R1045 raised by Yusuf Petrossian (SDR Lead): wants VP Enterprise Architecture, $750,000, High urgency, filed "Closed - no path"  [1 paths in supply_reach.csv]
@@ -40,7 +40,7 @@
 ++ 2026-05-19  intro_outcomes.csv   Marcus Aldridge      R1129 meeting booked
 ++ 2026-05-19  intro_outcomes.csv   Marcus Aldridge      R1129 opportunity created, $1,200,000
 
-!! 2026-02-02  crm_accounts.csv     Imani Mkhize         last CRM touch on A1047  [215 days ago, nothing since]
+!! 2026-02-02  crm_accounts.csv     Imani Mkhize         last CRM touch on A1047  [216 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
@@ -48,5 +48,5 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | send the ask (batch 2026-09 Marcus Aldridge) | allocated in golden_allocation.csv via direct path to Marcus Merriweather, score 0.161 | R1134 |
-| 2 | Imani Mkhize | CRM owner (A1047) | check in on the account | last touch 2026-02-02, 215 days ago | — |
-| 3 | Bertrand Vandermolen (184 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 184 days | R1134 |
+| 2 | Imani Mkhize | CRM owner (A1047) | check in on the account | last touch 2026-02-02, 216 days ago | — |
+| 3 | Bertrand Vandermolen (185 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 185 days | R1134 |

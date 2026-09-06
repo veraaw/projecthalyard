@@ -23,7 +23,7 @@ import re
 import shutil
 import statistics
 from collections import Counter
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -31,10 +31,11 @@ import plotly.io as pio
 from analysis.integrity.integrity_audit import fragment as integrity_fragment
 from dashboard import data_cuts, theme
 from dashboard.funnel_overview import dropoff_rows, ratios
-from dashboard.live_priorities import (PAGE as PRIORITIES_HTML, SECTIONS as PRIORITIES_SECTIONS, connector_fragments,
-                                       cycles as connector_cycles, fragment as priorities_fragment)
+from dashboard.live_priorities import (BUILD_STAMP, PAGE as PRIORITIES_HTML, SECTIONS as PRIORITIES_SECTIONS,
+                                       connector_fragments, cycles as connector_cycles, fragment as priorities_fragment)
 from dashboard.sankey_funnel import GOLDEN as GOLDEN_REQUESTS, build_figure, funnel_stages
 from dashboard.trace_section import fragment as trace_fragment
+from golden import build_golden as bg
 from paths import DATASET, DOCS, PROFILE, ROUTING
 
 DATA = str(DATASET)
@@ -493,6 +494,15 @@ img{{max-width:100%}}
 #lp .dl span{{color:var(--mute);padding-top:6px}}
 #lp button:not(.subtabs button){{font-family:var(--sans);font-size:14px;font-weight:500;background:var(--blue);color:#fff;border:1px solid var(--blue);padding:8px 16px;cursor:pointer;white-space:nowrap}}
 #lp button.secondary{{background:var(--surface);color:var(--ink);border-color:var(--ink)}}
+#lp .submitbar{{position:sticky;bottom:0;z-index:5;display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:0 -2px;padding:12px 18px;background:var(--surface);border-top:2px solid var(--blue);box-shadow:0 -6px 18px rgba(0,0,0,.08);font-family:var(--sans);font-size:14px}}
+#lp .submitbar[hidden]{{display:none}}
+#lp .submitbar .foot{{flex:1 1 240px;min-width:200px}}
+#lp .submitbar a{{color:var(--blue)}}
+#lp .submitbar.failed{{border-top-color:var(--warn)}}
+#lp .submitbar button:disabled{{opacity:.5;cursor:default}}
+#lp .stamp{{margin:0 0 10px;font-family:var(--sans);font-size:13px;color:var(--mute)}}
+#lp .stamp a{{color:inherit}}
+#lp table.top .tick:disabled{{opacity:.55}}
 #lp table.preview tr.flag td{{background:rgba(159,45,0,.035)}}
 #lp .presets{{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 8px;font-family:var(--sans);font-size:12.5px;color:var(--mute);align-items:center}}
 #lp .presets button{{font-size:12.5px;padding:5px 10px}}
@@ -547,6 +557,7 @@ img{{max-width:100%}}
   #lp .ask button{{align-self:flex-start}}
   #lp .dl{{flex-direction:column;gap:6px}}
   #lp .dl span{{padding-top:0}}
+  #lp .submitbar{{padding:10px 12px;gap:8px}}
   #lp dl.route{{grid-template-columns:1fr;gap:2px 0}}
   #lp dl.route dt{{padding-top:10px}}
   #lp dl.route dt:first-child{{padding-top:0}}
@@ -1087,6 +1098,13 @@ for name, markup in (
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(markup)
     print(f"wrote {out_path}")
+# when this site was generated, for the Live Priorities tab to show; kept out of
+# the pages so an unchanged rebuild leaves them byte-identical
+BUILD_STAMP.write_text(json.dumps({
+    "built_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "as_of": TODAY.isoformat(),
+    "completions": len(bg.load_completions()),
+}) + "\n", encoding="utf-8")
+print(f"wrote {BUILD_STAMP}")
 print(f"funnel {counts}  offers {len(offers)} unlogged {len(offers_unlogged)} adds {len(adds)}/{adds_followed} "
       f"no_reply {len(no_reply)}/{len(no_reply_asked)} median_h {statistics.median(first_reply_h):.1f} "
       f"flags {len(flags)} dupes {len(crm_dupes)}/{crm_dup_owner_conflicts}")

@@ -18,7 +18,7 @@
 | 0.310 | Owen Trask (Investor) | direct | Teodor Zubkov — Program Manager | connections_trask.csv: Teodor Zubkov, Program Manager at Marchford Clinics, connected 2020-05-24 |
 | 0.310 | Priya Raghunathan (Investor) | direct | Teodor Zubkov — Program Manager | connections_raghunathan.csv: Teodor Zubkov, Program Manager at Marchford Clinics, connected 2020-12-24 |
 
-## 4. Chronology (31 events, 6 requests, as of 2026-09-05)
+## 4. Chronology (31 events, 6 requests, as of 2026-09-06)
 
 ```
    2025-09-11  intro_requests.csv   Sloane Fairweather   R1121 raised by Sloane Fairweather (Strategic AE): wants VP Engineering, $80,000, Medium urgency, filed "Stalled"
@@ -38,7 +38,7 @@
    2026-02-19  intro_outcomes.csv   Marcus Aldridge      R1114 asked
    2026-02-21  slack_threads.jsonl  Bertrand Vandermolen R1114 slack: "wrong channel? this feels like a partner ask"
 ++ 2026-02-24  intro_outcomes.csv   Marcus Aldridge      R1114 replied (5 days after the ask)
-<- 2026-09-05  intro_outcomes.csv   Marcus Aldridge      R1114 said yes 193 days ago and never forwarded
+<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1114 said yes 194 days ago and never forwarded
 
 !! 2026-04-15  intro_requests.csv   Yusuf Petrossian     R1009 raised by Yusuf Petrossian (SDR Lead): wants SVP Digital, $1,200,000, High urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
    2026-04-15  slack_threads.jsonl  Yusuf Petrossian     R1009 slack: "long shot — Marchford Clinics. Ansel Lomsadze-Ingleby (SVP Digital). Anyone?"
@@ -50,14 +50,14 @@
    2026-06-02  slack_threads.jsonl  Curtis Hartigan      R1162 slack: "Marchford Clinics is the target. Our champion at Calderon Aerospace used to work with their team, and I think Meridian Peak Foods is a supplier of theirs. Any path?"
    2026-06-02  slack_threads.jsonl  Curtis Hartigan      R1162 slack: "no idea sorry"
    2026-06-04  intro_outcomes.csv   Marcus Aldridge      R1162 asked
-<- 2026-09-05  intro_outcomes.csv   Marcus Aldridge      R1162 never replied (asked 2026-06-04, 93 days ago)
+<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1162 never replied (asked 2026-06-04, 94 days ago)
 
    2026-07-06  intro_requests.csv   Imani Mkhize         R1004 raised by Imani Mkhize (Enterprise AE, West): wants Head of Developer Productivity, $750,000, Medium urgency, filed "Open"
    2026-07-06  slack_threads.jsonl  Imani Mkhize         R1004 slack: "long shot — Marchford Clinics. Silas Mkhize-Thackeray (Head of Developer Productivity). Anyone?"
    2026-07-06  slack_threads.jsonl  Yusuf Petrossian     R1004 slack: "wrong channel? this feels like a partner ask"
    2026-07-07  slack_threads.jsonl  Imani Mkhize         R1004 slack: "is this the same as the one from last month?"
 
-!! 2025-07-15  crm_accounts.csv     Curtis Hartigan      last CRM touch on A1018  [417 days ago, nothing since]
+!! 2025-07-15  crm_accounts.csv     Curtis Hartigan      last CRM touch on A1018  [418 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
@@ -65,5 +65,5 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | nudge, don't re-ask | said yes on 2026-02-24 and never forwarded | R1114 |
-| 2 | Curtis Hartigan | CRM owner (A1018) | check in on the account | last touch 2025-07-15, 417 days ago | — |
-| 3 | Rafael Salcedo (344 days), Yusuf Petrossian (200 days), Curtis Hartigan (95 days), Imani Mkhize (61 days) | 4 reps still waiting, longest first | tell them it's with Marcus Aldridge | 4 reps raised this and have heard nothing; the oldest has been waiting 344 days | R1142, R1114, R1009, R1162, R1004 |
+| 2 | Curtis Hartigan | CRM owner (A1018) | check in on the account | last touch 2025-07-15, 418 days ago | — |
+| 3 | Rafael Salcedo (345 days), Yusuf Petrossian (201 days), Curtis Hartigan (96 days), Imani Mkhize (62 days) | 4 reps still waiting, longest first | tell them it's with Marcus Aldridge | 4 reps raised this and have heard nothing; the oldest has been waiting 345 days | R1142, R1114, R1009, R1162, R1004 |

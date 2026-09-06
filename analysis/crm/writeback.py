@@ -19,7 +19,12 @@ wrong is costing something right now:
   5. stale     open requests against an account nobody has touched in 90+ days:
                nothing is blocked yet, the CRM is just falling behind
 
-Two exports, and nothing in either has been executed - they are recommendations:
+Two exports, and nothing in either is executed here - they are recommendations.
+The one exception is reported, not performed: an `account_created` row in
+golden/completions.csv (someone ticked the account off on the Live Priorities
+tab) marks that company's create row status = executed / executed_on and drops
+it from the import file, until the CRM export catches up and the company has an
+account, at which point the row disappears altogether.
 
   crm_import.csv   the machine artifact: group 1 only, in the shape a CRM
                    importer accepts and nothing else - account_name, domain,
@@ -42,7 +47,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.build_golden import MULTI, OPEN_STATUSES, parse_date, read_csv, write_csv  # noqa: E402
+from golden.build_golden import (CRM_CREATED, MULTI, OPEN_STATUSES, completed_on, completions_of, load_completions,  # noqa: E402
+                                 parse_date, read_csv, write_csv)
 from paths import CRM, DATASET, GOLDEN  # noqa: E402
 
 IMPORT_OUT = CRM / "crm_import.csv"
@@ -53,6 +59,7 @@ CLOSED_LOST = "Closed Lost"
 DEFAULT_STAGE = "Prospect"
 SOURCE = "Halyard intro requests"
 STATUS = "recommended"  # this file never executes anything
+EXECUTED = "executed"   # ... but completions.csv can say someone did
 
 CREATE, MERGE, OWNERS, REOPEN, STALE = "create", "merge", "owners", "reopen", "stale"
 GROUPS = [CREATE, MERGE, OWNERS, REOPEN, STALE]  # costing something now -> falling behind
@@ -120,6 +127,8 @@ class Writeback:
                 by_company.setdefault(r["company_id"], []).append(r)
         self.requests = {cid: sorted(rs, key=lambda r: (r["request_date"], r["request_id"]))
                          for cid, rs in by_company.items()}
+        self.created = {cid: completed_on(rows[0])
+                        for cid, rows in completions_of(load_completions(), CRM_CREATED).items()}
 
     # -- helpers --------------------------------------------------------------
     def reqs(self, c: dict) -> list[dict]:
@@ -159,9 +168,12 @@ class Writeback:
                         + (f"; {plural(int(c['paths_available']), 'path')} into the company" if int(c["paths_available"] or 0) else ""))
             why = (f"{plural(len(live), 'live request')} worth {money(value(live))} have no account to log against" if live
                    else f"{plural(len(reqs), 'request')} were filed with no account to log against; none still live")
-            out.append(self.row(
+            row = self.row(
                 CREATE, c, f"create account, owner {first['requested_by']}, stage {DEFAULT_STAGE}",
-                why, evidence, value(live), live or reqs))
+                why, evidence, value(live), live or reqs)
+            if c["company_id"] in self.created:
+                row.status, row.executed_on = EXECUTED, self.created[c["company_id"]]
+            out.append(row)
         return out
 
     def duplicates(self) -> list[dict]:
@@ -251,7 +263,8 @@ class Writeback:
 
     def import_rows(self) -> list[dict]:
         out = []
-        for c in sorted((c for c in self.companies if not c["crm_account_ids"]), key=lambda c: c["company_name"]):
+        for c in sorted((c for c in self.companies if not c["crm_account_ids"] and c["company_id"] not in self.created),
+                        key=lambda c: c["company_name"]):
             live = self.live(c)
             out.append({
                 "account_name": c["company_name"],

@@ -17,13 +17,13 @@
 |---|---|---|---|---|
 | 0.484 | Marcus Aldridge (Advisor) | direct | Astrid Salcedo — VP Data & Analytics | connections_aldridge.csv: Astrid Salcedo, VP Data & Analytics at Apex Logistics Group, connected 2023-11-25 |
 
-## 4. Chronology (17 events, 3 requests, as of 2026-09-05)
+## 4. Chronology (17 events, 3 requests, as of 2026-09-06)
 
 ```
 !! 2025-10-30  intro_requests.csv   Sloane Fairweather   R1069 raised by Sloane Fairweather (Strategic AE): wants SVP Digital, $1,200,000, Medium urgency, filed "Closed - no path"  [1 paths in supply_reach.csv]
    2025-10-30  slack_threads.jsonl  Sloane Fairweather   R1069 slack: "any connections into Apex Logistics Group? we're up against a renewal window and I need an intro to SVP Digital"
    2025-11-01  intro_outcomes.csv   Marcus Aldridge      R1069 asked
-<- 2026-09-05  intro_outcomes.csv   Marcus Aldridge      R1069 never replied (asked 2025-11-01, 308 days ago)
+<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1069 never replied (asked 2025-11-01, 309 days ago)
 
    2025-12-27  intro_requests.csv   Hana Nakashima       R1186 raised by Hana Nakashima (AE, Healthcare): wants VP Engineering, $1,200,000, Low urgency, filed "Open"
    2025-12-27  slack_threads.jsonl  Hana Nakashima       R1186 slack: "trying to reach VP Engineering at Apex Logistics Group. I know we sell into Priorwood Chemicals and Tessellate Payments — could either of those relationships get us there?"
@@ -39,12 +39,12 @@
 ++ 2026-03-06  intro_outcomes.csv   Marcus Aldridge      R1154 replied (1 days after the ask)
 ++ 2026-03-11  intro_outcomes.csv   Marcus Aldridge      R1154 intro sent
 
-!! 2025-08-03  crm_accounts.csv     Imani Mkhize         last CRM touch on A1002  [398 days ago, nothing since]
+!! 2025-08-03  crm_accounts.csv     Imani Mkhize         last CRM touch on A1002  [399 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Imani Mkhize | CRM owner (A1002) | check in on the account | last touch 2025-08-03, 398 days ago | — |
-| 2 | Sloane Fairweather (310 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 310 days | R1069 |
+| 1 | Imani Mkhize | CRM owner (A1002) | check in on the account | last touch 2025-08-03, 399 days ago | — |
+| 2 | Sloane Fairweather (311 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 311 days | R1069 |

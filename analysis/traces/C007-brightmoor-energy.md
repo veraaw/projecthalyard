@@ -18,7 +18,7 @@
 | 0.357 | Elena Duvall (Advisor) | direct | Idris Drummond — Chief Digital Officer | connections_duvall.csv: Idris Drummond, Chief Digital Officer at Brightmoor Energy, connected 2017-07-02 |
 | 0.202 | Elena Duvall (Advisor) | alumni | Idris Drummond — ex-Brightmoor Energy (2015-2018), now Chief Digital Officer at Brightmoor Energy | investor_network.csv: Idris Drummond prior_employer=Brightmoor Energy (2015-2018); connections_duvall.csv: connection of Elena Duvall since 2017-07-02 |
 
-## 4. Chronology (33 events, 5 requests, as of 2026-09-05)
+## 4. Chronology (33 events, 5 requests, as of 2026-09-06)
 
 ```
 !! 2025-10-28  intro_requests.csv   Bertrand Vandermolen R1139 raised by Bertrand Vandermolen (AE, EMEA): wants VP Data & Analytics, $1,200,000, Critical urgency, filed "Closed - no path"  [2 paths in supply_reach.csv]
@@ -51,14 +51,14 @@
    2026-07-05  intro_outcomes.csv   Elena Duvall         R1190 asked
    2026-07-06  slack_threads.jsonl  Imani Mkhize         R1190 slack: "adding Curtis Hartigan who might know"
 ++ 2026-07-06  intro_outcomes.csv   Elena Duvall         R1190 replied (1 days after the ask)
-<- 2026-09-05  intro_outcomes.csv   Elena Duvall         R1190 said yes 61 days ago and never forwarded
+<- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1190 said yes 62 days ago and never forwarded
 
    2026-07-13  intro_requests.csv   Rafael Salcedo       R1029 raised by Rafael Salcedo (AE, Transport & Logistics): wants VP Engineering, $150,000, Medium urgency, filed "Stalled"
    2026-07-13  slack_threads.jsonl  Rafael Salcedo       R1029 slack: "Brightmoor Energy is the target. Our champion at Yarrowdale Media used to work with their team, and I think Marlowe Freight Systems is a supplier of theirs. Any path?"
    2026-07-18  intro_outcomes.csv   Elena Duvall         R1029 asked
-<- 2026-09-05  intro_outcomes.csv   Elena Duvall         R1029 never replied (asked 2026-07-18, 49 days ago)
+<- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1029 never replied (asked 2026-07-18, 50 days ago)
 
-!! 2025-12-22  crm_accounts.csv     Imani Mkhize         last CRM touch on A1006  [257 days ago, nothing since]
+!! 2025-12-22  crm_accounts.csv     Imani Mkhize         last CRM touch on A1006  [258 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
@@ -66,5 +66,5 @@
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
 | 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | nudge, don't re-ask | said yes on 2026-07-06 and never forwarded | R1190 |
-| 2 | Imani Mkhize | CRM owner (A1006) | check in on the account | last touch 2025-12-22, 257 days ago | — |
-| 3 | Bertrand Vandermolen (312 days), Yusuf Petrossian (65 days), Rafael Salcedo (54 days) | 3 reps still waiting, longest first | tell them it's with Elena Duvall | 3 reps raised this and have heard nothing; the oldest has been waiting 312 days | R1139, R1190, R1029 |
+| 2 | Imani Mkhize | CRM owner (A1006) | check in on the account | last touch 2025-12-22, 258 days ago | — |
+| 3 | Bertrand Vandermolen (313 days), Yusuf Petrossian (66 days), Rafael Salcedo (55 days) | 3 reps still waiting, longest first | tell them it's with Elena Duvall | 3 reps raised this and have heard nothing; the oldest has been waiting 313 days | R1139, R1190, R1029 |

@@ -13,7 +13,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (11 events, 3 requests, as of 2026-09-05)
+## 4. Chronology (11 events, 3 requests, as of 2026-09-06)
 
 ```
    2025-11-20  intro_requests.csv   Imani Mkhize         R1175 raised by Imani Mkhize (Enterprise AE, West): wants Chief Digital Officer, $80,000, Critical urgency, filed "Closed - no path"
@@ -35,4 +35,4 @@ nobody in the network reaches this company
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Yusuf Petrossian (170 days) | 1 rep still waiting, longest first | tell them nobody has it | 1 rep raised this and has heard nothing; the oldest has been waiting 170 days | R1043 |
+| 1 | Yusuf Petrossian (171 days) | 1 rep still waiting, longest first | tell them nobody has it | 1 rep raised this and has heard nothing; the oldest has been waiting 171 days | R1043 |

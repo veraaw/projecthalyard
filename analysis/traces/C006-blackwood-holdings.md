@@ -24,7 +24,7 @@
 | 0.202 | Owen Trask (Investor) | alumni | Marcus Højgaard — ex-Blackwood Industrial (2014-2017), now Chief Technology Officer at Blackwood Industrial | investor_network.csv: Marcus Højgaard prior_employer=Blackwood Industrial (2014-2017); connections_trask.csv: connection of Owen Trask since 2017-04-20 |
 | 0.187 | Tomás Beckett (Internal) | alumni | Marcus Højgaard — ex-Blackwood Industrial (2014-2017), now Chief Technology Officer at Blackwood Industrial | investor_network.csv: Marcus Højgaard prior_employer=Blackwood Industrial (2014-2017); connections_beckett.csv: connection of Tomás Beckett since 2015-01-02 |
 
-## 4. Chronology (25 events, 4 requests, as of 2026-09-05)
+## 4. Chronology (25 events, 4 requests, as of 2026-09-06)
 
 ```
    2025-12-10  intro_requests.csv   Nadia Okonkwo        R1179 raised by Nadia Okonkwo (AE, Industrials): wants SVP Digital, $250,000, High urgency, filed "Open"
@@ -37,7 +37,7 @@
 ** 2026-02-06  slack_threads.jsonl  Tomás Beckett        R1130 slack: "I'll take this one — I've got a direct line to their exec team"
    2026-02-10  intro_outcomes.csv   Tomás Beckett        R1130 asked
 ++ 2026-02-19  intro_outcomes.csv   Tomás Beckett        R1130 replied (9 days after the ask)
-<- 2026-09-05  intro_outcomes.csv   Tomás Beckett        R1130 said yes 198 days ago and never forwarded
+<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1130 said yes 199 days ago and never forwarded
 
    2026-04-14  intro_requests.csv   Yusuf Petrossian     R1091 raised by Yusuf Petrossian (SDR Lead): wants Chief Digital Officer, $150,000, High urgency, filed "Stalled"
    2026-04-14  slack_threads.jsonl  Yusuf Petrossian     R1091 slack: "who do we know at Blackwood Industrial? Chief Digital Officer would be ideal but I'll take anyone senior"
@@ -55,7 +55,7 @@
 ++ 2026-06-18  intro_outcomes.csv   Elena Duvall         R1022 replied (2 days after the ask)
 ++ 2026-06-20  intro_outcomes.csv   Elena Duvall         R1022 intro sent
 
-!! 2025-09-26  crm_accounts.csv     Imani Mkhize         last CRM touch on A1010  [344 days ago, nothing since]
+!! 2025-09-26  crm_accounts.csv     Imani Mkhize         last CRM touch on A1010  [345 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
@@ -64,5 +64,5 @@
 |---|---|---|---|---|---|
 | 1 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask | said yes on 2026-02-19 and never forwarded | R1130 |
 | 2 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | send the ask (batch 2026-09 Marcus Aldridge) | allocated in golden_allocation.csv via direct path to Bram Quillane, score 0.180 | R1179 |
-| 3 | Imani Mkhize | CRM owner (A1010) | check in on the account | last touch 2025-09-26, 344 days ago | — |
-| 4 | Nadia Okonkwo (269 days), Sloane Fairweather (213 days) | 2 reps still waiting, longest first | tell them it's with Elena Duvall / Tomás Beckett | 2 reps raised this and have heard nothing; the oldest has been waiting 269 days | R1179, R1130 |
+| 3 | Imani Mkhize | CRM owner (A1010) | check in on the account | last touch 2025-09-26, 345 days ago | — |
+| 4 | Nadia Okonkwo (270 days), Sloane Fairweather (214 days) | 2 reps still waiting, longest first | tell them it's with Elena Duvall / Tomás Beckett | 2 reps raised this and have heard nothing; the oldest has been waiting 270 days | R1179, R1130 |

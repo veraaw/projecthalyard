@@ -13,7 +13,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (18 events, 6 requests, as of 2026-09-05)
+## 4. Chronology (18 events, 6 requests, as of 2026-09-06)
 
 ```
    2025-08-14  intro_requests.csv   Yusuf Petrossian     R1064 raised by Yusuf Petrossian (SDR Lead): wants Chief Data Officer, $1,200,000, Low urgency, filed "Routed"
@@ -39,12 +39,12 @@ nobody in the network reaches this company
    2026-06-04  intro_requests.csv   Nadia Okonkwo        R1083 raised by Nadia Okonkwo (AE, Industrials): wants VP Engineering, $750,000, Critical urgency, filed "Open"
    2026-06-04  slack_threads.jsonl  Nadia Okonkwo        R1083 slack: "looking for a path to Perrine Hartigan-Thackeray — email domain is thistledownenergy.com, that's all I have"
 
-!! 2026-05-13  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1046  [115 days ago, nothing since]
+!! 2026-05-13  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1046  [116 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
 
 | # | who | role | action | why | requests |
 |---|---|---|---|---|---|
-| 1 | Yusuf Petrossian | CRM owner (A1046) | check in on the account | last touch 2026-05-13, 115 days ago | — |
-| 2 | Yusuf Petrossian (387 days), Bertrand Vandermolen (319 days), Hana Nakashima (283 days), Rafael Salcedo (261 days), Nadia Okonkwo (93 days) | 5 reps still waiting, longest first | tell them nobody has it | 5 reps raised this and have heard nothing; the oldest has been waiting 387 days | R1064, R1023, R1037, R1148, R1152, R1083 |
+| 1 | Yusuf Petrossian | CRM owner (A1046) | check in on the account | last touch 2026-05-13, 116 days ago | — |
+| 2 | Yusuf Petrossian (388 days), Bertrand Vandermolen (320 days), Hana Nakashima (284 days), Rafael Salcedo (262 days), Nadia Okonkwo (94 days) | 5 reps still waiting, longest first | tell them nobody has it | 5 reps raised this and have heard nothing; the oldest has been waiting 388 days | R1064, R1023, R1037, R1148, R1152, R1083 |

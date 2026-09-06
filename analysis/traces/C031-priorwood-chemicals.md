@@ -24,7 +24,7 @@
 | 0.187 | Tomás Beckett (Internal) | alumni | Curtis Marchetti — ex-Priorwood Chemicals (2010-2017), now VP Enterprise Architecture at Priorwood Chemicals | investor_network.csv: Curtis Marchetti prior_employer=Priorwood Chemicals (2010-2017); connections_beckett.csv: connection of Tomás Beckett since 2014-07-13 |
 | 0.187 | Tomás Beckett (Internal) | alumni | Margot Havercamp — ex-Priorwood Chemicals (2011-2017), now Director of Software Engineering at Priorwood Chemicals | investor_network.csv: Margot Havercamp prior_employer=Priorwood Chemicals (2011-2017); connections_beckett.csv: connection of Tomás Beckett since 2015-01-12 |
 
-## 4. Chronology (56 events, 9 requests, as of 2026-09-05)
+## 4. Chronology (56 events, 9 requests, as of 2026-09-06)
 
 ```
    2025-08-18  intro_requests.csv   Imani Mkhize         R1192 raised by Imani Mkhize (Enterprise AE, West): wants Chief Operating Officer, $2,000,000, High urgency, filed "Intro sent"
@@ -42,14 +42,14 @@
    2025-08-19  slack_threads.jsonl  Yusuf Petrossian     R1052 slack: "asking again: Priorwood Chemicals. Head of Platform Engineering. Happy to draft the forward myself if someone can vouch."
    2025-08-20  intro_outcomes.csv   Tomás Beckett        R1052 asked
    2025-08-21  slack_threads.jsonl  Nadia Okonkwo        R1052 slack: "bumping this"
-<- 2026-09-05  intro_outcomes.csv   Tomás Beckett        R1052 never replied (asked 2025-08-20, 381 days ago)
+<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1052 never replied (asked 2025-08-20, 382 days ago)
 
 !! 2025-09-15  intro_requests.csv   Nadia Okonkwo        R1118 raised by Nadia Okonkwo (AE, Industrials): wants Chief Operating Officer, $1,200,000, Critical urgency, filed "Open"  [same title as R1192, 28 days earlier]
    2025-09-15  slack_threads.jsonl  Nadia Okonkwo        R1118 slack: "trying to reach Chief Operating Officer at Priorwood Chemicals — anyone have a path?"
    2025-09-16  intro_outcomes.csv   Tomás Beckett        R1118 asked
 ++ 2025-09-17  intro_outcomes.csv   Tomás Beckett        R1118 replied (1 days after the ask)
    2025-09-18  slack_threads.jsonl  Rafael Salcedo       R1118 slack: "wrong channel? this feels like a partner ask"
-<- 2026-09-05  intro_outcomes.csv   Tomás Beckett        R1118 said yes 353 days ago and never forwarded
+<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1118 said yes 354 days ago and never forwarded
 
    2026-02-03  intro_requests.csv   Bertrand Vandermolen R1196 raised by Bertrand Vandermolen (AE, EMEA): wants Chief Technology Officer, $1,200,000, Medium urgency, filed "Stalled"
    2026-02-03  slack_threads.jsonl  Bertrand Vandermolen R1196 slack: "asking again: Priorwood Chemicals. Chief Technology Officer. Happy to draft the forward myself if someone can vouch."
@@ -74,7 +74,7 @@
    2026-03-24  slack_threads.jsonl  Sloane Fairweather   R1098 slack: "wrong channel? this feels like a partner ask"
    2026-03-26  intro_outcomes.csv   Tomás Beckett        R1098 asked
 ++ 2026-03-28  intro_outcomes.csv   Tomás Beckett        R1098 replied (2 days after the ask)
-<- 2026-09-05  intro_outcomes.csv   Tomás Beckett        R1098 said yes 161 days ago and never forwarded
+<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1098 said yes 162 days ago and never forwarded
 
    2026-03-28  intro_requests.csv   Sloane Fairweather   R1092 raised by Sloane Fairweather (Strategic AE): wants VP Enterprise Architecture, $750,000, Critical urgency, filed "Stalled"
    2026-03-28  slack_threads.jsonl  Sloane Fairweather   R1092 slack: "who do we know at Priorwood Chemicals? VP Enterprise Architecture would be ideal but I'll take anyone senior"
@@ -89,9 +89,9 @@
    2026-06-06  slack_threads.jsonl  Imani Mkhize         R1033 slack: "adding Nadia Okonkwo who might know"
    2026-06-07  intro_outcomes.csv   Tomás Beckett        R1033 asked
 ++ 2026-06-11  intro_outcomes.csv   Tomás Beckett        R1033 replied (4 days after the ask)
-<- 2026-09-05  intro_outcomes.csv   Tomás Beckett        R1033 said yes 86 days ago and never forwarded
+<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1033 said yes 87 days ago and never forwarded
 
-!! 2025-10-17  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1030  [323 days ago, nothing since]
+!! 2025-10-17  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1030  [324 days ago, nothing since]
 ```
 
 ## 5. Next steps, by person, cheapest first
@@ -100,5 +100,5 @@
 |---|---|---|---|---|---|
 | 1 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask; send the ask (batch 2026-09 Tomás Beckett) | said yes on 2025-09-17 and never forwarded; said yes on 2026-03-28 and never forwarded; said yes on 2026-06-11 and never forwarded; allocated in golden_allocation.csv via direct path to Curtis Marchetti, score 0.048 | R1118, R1098, R1033, R1174 |
 | 2 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | send the ask (batch 2026-09 Elena Duvall) | allocated in golden_allocation.csv via direct path to Curtis Marchetti, score 0.108 | R1092 |
-| 3 | Bertrand Vandermolen | CRM owner (A1030) | check in on the account | last touch 2025-10-17, 323 days ago | — |
-| 4 | Yusuf Petrossian (382 days), Nadia Okonkwo (355 days), Curtis Hartigan (169 days), Sloane Fairweather (161 days) | 4 reps still waiting, longest first | tell them it's with Tomás Beckett / Elena Duvall | 4 reps raised this and have heard nothing; the oldest has been waiting 382 days | R1052, R1174, R1118, R1098, R1033, R1092 |
+| 3 | Bertrand Vandermolen | CRM owner (A1030) | check in on the account | last touch 2025-10-17, 324 days ago | — |
+| 4 | Yusuf Petrossian (383 days), Nadia Okonkwo (356 days), Curtis Hartigan (170 days), Sloane Fairweather (162 days) | 4 reps still waiting, longest first | tell them it's with Tomás Beckett / Elena Duvall | 4 reps raised this and have heard nothing; the oldest has been waiting 383 days | R1052, R1174, R1118, R1098, R1033, R1092 |
