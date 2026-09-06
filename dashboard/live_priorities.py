@@ -78,7 +78,7 @@ BANDS = [
      [("stages", "Deal value by stage")]),
     ("now", "Actionable Routing Steps",
      "Does ticking it change what the queue proposes tomorrow?",
-     [("top", "Top priorities"), ("offers", "Already offered"), ("bottlenecks", "Core bottlenecks"), ("crm", "CRM Updates")]),
+     [("top", "Top priorities"), ("bottlenecks", "Core bottlenecks"), ("crm", "CRM Updates")]),
     ("cycle", "Current Cycle Overview",
      "Does it describe a decision the allocator already made?",
      [("asks", "Current asks"), ("introduced", "Already introduced"), ("connectors", "Roster Connectors")]),
@@ -694,30 +694,7 @@ class Live:
             "retries": retries, "retry_requests": sum(len(r["request_ids"]) for r in retries),
         }
 
-    # -- 4. already offered, needs response -----------------------------------
-    def offer_gaps(self) -> dict:
-        rows = []
-        for r in self.requests:
-            rid = r["request_id"]
-            if r["offer_in_thread"] != "Y" or rid in self.outcome_by_rid:
-                continue
-            th = self.threads.get(rid, {"offers": []})
-            rows.append({
-                "request_id": rid, **self.company_ref(r["company_id"], r["company_as_written"]),
-                "target_title": r["target_title"], "requested_by": r["requested_by"],
-                "value_usd": usd(r["value_usd"]), "value_fmt": money(r["value_usd"]),
-                "status": r["status_as_filed"], "routed_to": r["routed_to"],
-                "offers": [{"who": m["user"], "text": m["text"], "date": m["ts"][:10],
-                            "on_roster": m["user"] in self.roster,
-                            "days_ago": (self.today - (parse_date(m["ts"]) or self.today)).days} for m in th["offers"]],
-                "note": ("filed as Closed - no path with an offer sitting in the thread" if r["status_as_filed"] == "Closed - no path"
-                         else "filed as Intro sent but no ask or intro was ever logged" if r["status_as_filed"] == "Intro sent"
-                         else f"routed to {r['routed_to']} on paper, never asked" if r["routed_to"] else "open, nobody asked"),
-            })
-        rows.sort(key=lambda r: -r["value_usd"])
-        return {"rows": rows, "count": len(rows), "value_fmt": money(sum(r["value_usd"] for r in rows))}
-
-    # -- 5. core bottlenecks --------------------------------------------------
+    # -- 4. core bottlenecks --------------------------------------------------
     def bottlenecks(self) -> dict:
         """Asks the connector agreed to and never delivered. One nudged in the last
         NUDGE_QUIET_DAYS (golden_requests.nudged_on, from completions.csv) is
@@ -889,14 +866,13 @@ class Live:
     # -- 7. overdue a check-in ------------------------------------------------
     def owned_elsewhere(self) -> dict[str, str]:
         """company_id -> the first section, in page order, that already holds an
-        action on the company: an ask to send (Top priorities, Current asks), an
-        offer to answer, a nudge, a connector's follow-up, an unrouted ask to
+        action on the company: an ask to send (Top priorities, Current asks), a
+        live intro to extend, a nudge, a connector's follow-up, an unrouted ask to
         place, a CRM fix. A company in none of them is this section's alone."""
         listed = {
             "top": [r["company_id"] for r in self.priorities()["top"]],
             "asks": [c["company_id"] for b in self.asks()["batches"] for c in b["companies"]],
             "introduced": [r["company_id"] for r in self.introduced()["rows"]],
-            "offers": [r["company_id"] for r in self.offer_gaps()["rows"]],
             "bottlenecks": [r["company_id"] for r in self.bottlenecks()["rows"]],
             "connectors": [s["company_id"] for c in self.connectors() for s in c["sitting_on"]],
             "unrouted": [x["company_id"] for c in self.unrouted()["per_connector"] for x in c["companies"]],
@@ -1138,7 +1114,7 @@ class Live:
             "bands": [{"id": bid, "title": title, "test": test, "sections": [sid for sid, _ in sections]}
                       for bid, title, test, sections in BANDS],
             "stages": self.stages(), "priorities": self.priorities(), "asks": self.asks(), "introduced": self.introduced(),
-            "offer_gaps": self.offer_gaps(), "bottlenecks": self.bottlenecks(), "connectors": self.connectors(),
+"bottlenecks": self.bottlenecks(), "connectors": self.connectors(),
             "checkins": self.checkins(), "unrouted": self.unrouted(), "crm": self.crm(), "parser": self.parser(),
             "completions": self.completion_export(),
             "connector_pages": [{"connector": c["connector"], "page": c["page"], "on_roster": c["on_roster"]}
@@ -1187,8 +1163,6 @@ if __name__ == "__main__":
     print("top 5      ", ", ".join(f"{r['request_id']} {r['company_name']} -> {r['connector']} EV {r['expected_value']}" for r in p["priorities"]["top"]))
     print(f"asks        {p['asks']['allocated']} allocated in {len(p['asks']['batches'])} batches; "
           + ", ".join(f"{e['count']} {e['reason']}" for e in p["asks"]["exceptions"]))
-    print(f"offer gaps  {p['offer_gaps']['count']} ({p['offer_gaps']['value_fmt']}): "
-          + ", ".join(r["request_id"] for r in p["offer_gaps"]["rows"]))
     print(f"bottlenecks {p['bottlenecks']['count']} nudges" + (f", {len(p['bottlenecks']['nudged'])} nudged recently" if p['bottlenecks']['nudged'] else ""))
     print(f"completions {p['completions']['count']} on file")
     print(f"check-ins   {p['checkins']['count']} overdue ({p['checkins']['both']} failed both, {p['checkins']['unique']} owned by no other section)")

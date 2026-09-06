@@ -7,9 +7,9 @@ Three things are checked:
   1. the payload the page embeds — every section computed in Python, the browser
      only renders — states the facts the golden files state: 27 allocated in 8
      batches, 56 exceptions by reason (11 of them parked behind a live intro,
-     and the fizzled ones labelled as retries), the four unanswered offers, the 23
-     responded-but-no-intro asks, the 60-day check-in tests, importer-shaped
-     CRM columns, and a company link into Company Trace on every company.
+     and the fizzled ones labelled as retries), the 23 responded-but-no-intro
+     asks, the 60-day check-in tests, importer-shaped CRM columns, and a company
+     link into Company Trace on every company.
   2. the upload preview parses like the build: the JavaScript parser (run under
      node) picks the same target and resolves it the same way as golden/parse.py
      + golden/resolver.py on every Slack first message and every raw_ask.
@@ -274,17 +274,17 @@ class PayloadTest(unittest.TestCase):
                 self.assertEqual(c["retry"] is not None, c["company_id"] in retried, c["company_name"])
             self.assertEqual(m["message"].count("retry:"), sum(1 for c in m["companies"] if c["retry"]), m["connector"])
 
-    def test_offer_gaps(self):
-        O = self.P["offer_gaps"]
-        self.assertEqual(sorted(r["request_id"] for r in O["rows"]), ["R1034", "R1109", "R1115", "R1136"])
-        self.assertEqual(sum(r["value_usd"] for r in O["rows"]), 3_750_000)
-        self.assertEqual(O["value_fmt"], "$3.8M")
-        r1109 = next(r for r in O["rows"] if r["request_id"] == "R1109")
-        self.assertEqual(r1109["status"], "Closed - no path")
-        self.assertEqual([o["who"] for o in r1109["offers"]], ["Owen Trask"])
-        for r in O["rows"]:
-            for o in r["offers"]:
-                self.assertTrue(o["text"], "what they wrote")
+    def test_offers_are_paths_not_a_section(self):
+        """An offer in the Slack thread is the strongest reach type the allocator
+        scores, so the offerer is the connector on the row; it is not listed again
+        as a to-do of its own."""
+        self.assertNotIn("offer_gaps", self.P)
+        self.assertNotIn("offers", dict(lp.SECTIONS))
+        reach = read_csv(ROOT / "golden" / "supply_reach.csv")
+        offered = {(r["connector"], r["company_id"]) for r in reach if r["reach_type"] == "offer"}
+        self.assertTrue(offered)
+        routed = {(r["connector"], r["company_id"]) for r in lp.Live(AS_OF).ranked() if r["path"].startswith("offered in Slack")}
+        self.assertTrue(routed and routed <= offered, "an offer row routes to whoever offered")
 
     def test_bottlenecks_are_nudges(self):
         B = self.P["bottlenecks"]
@@ -339,7 +339,6 @@ class PayloadTest(unittest.TestCase):
             "asks": {c["company_id"] for b in P["asks"]["batches"] for c in b["companies"]},
             "introduced": {r["company_id"] for r in P["introduced"]["rows"]},
             "connectors": {s["company_id"] for c in P["connectors"] for s in c["sitting_on"]},
-            "offers": {r["company_id"] for r in P["offer_gaps"]["rows"]},
             "bottlenecks": {r["company_id"] for r in P["bottlenecks"]["rows"]},
             "unrouted": {x["company_id"] for c in P["unrouted"]["per_connector"] for x in c["companies"]},
             "crm": {r["company_id"] for g in P["crm"]["groups"] for r in g["rows"]},
@@ -506,11 +505,11 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual([sid for sid, _ in lp.SECTIONS], re.findall(r'<section id="([^"]+)"', boot),
                          "SECTIONS is the header nav; it must list every section boot() renders, in order")
         self.assertEqual([sid for sid, _ in lp.SECTIONS],
-                         ["route", "upload", "stages", "top", "offers", "bottlenecks", "crm", "asks", "introduced", "connectors", "unrouted", "checkins"],
+                         ["route", "upload", "stages", "top", "bottlenecks", "crm", "asks", "introduced", "connectors", "unrouted", "checkins"],
                          "intake, orientation, actionable now, current cycle, not moving")
-        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 4, 3, 2])
+        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 3, 3, 2])
         folded = re.findall(r'<section id="([^"]+)">\$\{fold\(', boot)
-        self.assertEqual(folded, ["offers", "bottlenecks", "crm", "asks", "introduced", "connectors", "unrouted", "checkins"], "the long tables start collapsed")
+        self.assertEqual(folded, ["bottlenecks", "crm", "asks", "introduced", "connectors", "unrouted", "checkins"], "the long tables start collapsed")
         self.assertIn('<section id="stages" class="masthead">', boot)
         self.assertNotIn("<table", boot.split('<section id="stages"')[1].split("</section>")[0], "orientation is one strip, no rows")
         self.assertIn("CRM Updates <span", boot)

@@ -1049,14 +1049,6 @@ const LP = (function () {
       + `<p class="foot">Per connector: ${D.connector_pages.map(c => `<a href="${esc(c.page)}">${esc(c.connector)}</a>`).join(' · ')}. Each tab opens on their own top 5, with the longer list below.</p>`
       + formulaNote(T.formula) + `</section>`;
 
-    // free: someone already volunteered
-    const O = D.offer_gaps;
-    sec.offers = `<section id="offers">${fold(`Already offered, needs response <span class="foot">${plural(O.count, 'request')}, ${esc(O.value_fmt)}: someone volunteered in the Slack thread and no ask was ever logged</span>`)}
-      <p class="lede">These cost nothing to action, since someone already said yes. Reply in the thread and log the ask.</p>
-      <table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>who offered</th><th>what they wrote</th><th>status the request carries</th></tr></thead><tbody>`
-      + O.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)}</span></td><td>${co(r)}<br><span class="foot">for ${esc(r.requested_by)}</span></td><td>${esc(r.target_title)}</td><td>${r.offers.map(o => `<b>${esc(o.who)}</b>${o.on_roster ? '' : ' <span class="foot">off roster</span>'}<br><span class="foot">${esc(o.date)} · ${o.days_ago} days ago</span>`).join('<br>')}</td><td>${r.offers.map(o => `<q>${esc(o.text)}</q>`).join('<br>')}</td><td><b class="${r.status === 'Closed - no path' ? 'warn' : ''}">${esc(r.status)}</b><br><span class="foot">${esc(r.note)}</span></td></tr>`).join('')
-      + `</tbody></table></details></section>`;
-
     // no slot spent: a nudge
     const B = D.bottlenecks;
     sec.bottlenecks = `<section id="bottlenecks">${fold(`Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro, ${esc(B.value_fmt)}, from <code>intro_outcomes.csv</code></span>`)}
