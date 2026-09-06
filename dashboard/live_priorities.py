@@ -79,12 +79,15 @@ BANDS = [
      [("stages", "Deal Value by Stage")]),
     ("now", "Actionable Routing Steps",
      "Does ticking it change what the queue proposes tomorrow?",
-     [("top", "Top Priorities"), ("crm", "CRM Updates")]),
+     [("top", "Top Priorities")]),
     ("cycle", "Current Cycle Overview",
      "Does it describe a decision the allocator already made?",
-     [("asks", "Current Asks"), ("introduced", "Already Introduced"), ("connectors", "Roster Connectors Capacity"),
+     [("asks", "Current Asks"), ("connectors", "Roster Connector Capacity"), ("introduced", "Already Introduced"),
       ("exceptions", "Unrouted Exceptions"), ("unrouted", "Suggested Unrouted Company Connectors"),
       ("bottlenecks", "Core Introduction Bottlenecks")]),
+    ("other", "Other",
+     "Is it admin that fits none of the bands above?",
+     [("crm", "CRM Updates")]),
 ]
 # every section in page order; drives the header nav
 SECTIONS = [s for _, _, _, sections in BANDS for s in sections]
@@ -739,6 +742,10 @@ class Live:
                 "companies": companies,
             })
 
+        routed_at: dict[str, list[dict]] = defaultdict(list)
+        for a in self.allocation:
+            if a["allocated_to"] and a["company_id"]:
+                routed_at[a["company_id"]].append({"request_id": a["request_id"], "connector": a["allocated_to"]})
         exceptions: dict[str, list[dict]] = defaultdict(list)
         for a in self.allocation:
             if a["exception_reason"]:
@@ -746,6 +753,7 @@ class Live:
                 exceptions[reason].append({
                     "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
                     "detail": detail,
+                    "routed_here": sorted(routed_at.get(a["company_id"], []), key=lambda r: r["request_id"]),
                     "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                     "value_fmt": money(self.dollars(a["company_id"], a["value_usd"])), "urgency": a["urgency_declared"],
                     "status": a["status_as_filed"], "best_path": a["best_path_if_unbudgeted"],
