@@ -4,9 +4,9 @@ Counts are computed from golden/golden_requests.csv (one row per request; stage 
 asked_date / responded / intro_sent / meeting_booked / opportunity_usd).
 Dollar values are intentionally not shown: a request's deal_value_usd appears at every stage
 it survives, so summing per stage double-counts pipeline.
-Writes docs/sankey_funnel.html and docs/sankey_funnel.png.
+Writes docs/sankey_funnel.html.
 
-    pip install plotly kaleido
+    pip install plotly
     python3 build.py sankey      # from the repo root
 """
 import csv
@@ -85,6 +85,5 @@ if __name__ == "__main__":
     stages = funnel_stages()
     fig = build_figure(stages)
     fig.write_html(os.path.join(OUT, "sankey_funnel.html"), include_plotlyjs="cdn")
-    fig.write_image(os.path.join(OUT, "sankey_funnel.png"), scale=2)
     for name, c in stages:
         print(f"{name:14} {c:4}")
