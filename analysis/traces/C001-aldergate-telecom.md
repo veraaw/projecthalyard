@@ -1,6 +1,6 @@
 # Aldergate Telecom  (C001)
 
-- stage: Closed Lost | industry: Telecom | owner: Yusuf Petrossian | deal value: $2,200,000 | largest request: $400,000
+- stage: Closed Lost | industry: Telecom | owner: Yusuf Petrossian | deal value: $2,200,000 (CRM ARR potential) | by request: R1099 $400,000
 - CRM accounts: A1027 (aldergate.com)
 - also goes by: nothing else
 - 1 request from 1 person wanting 1 different title: VP Enterprise Architecture

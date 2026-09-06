@@ -1,6 +1,6 @@
 # Halcyon Grid  (C017)
 
-- stage: Negotiation | industry: Utilities | owner: Bertrand Vandermolen | deal value: $600,000 | largest request: $2,000,000
+- stage: Negotiation | industry: Utilities | owner: Bertrand Vandermolen | deal value: $600,000 (CRM ARR potential) | by request: R1007 $80,000, R1127 $750,000, R1177 $2,000,000
 - CRM accounts: A1008 (halcyongrid.com)
 - also goes by: nothing else
 - 3 requests from 3 people wanting 3 different titles: Chief Digital Officer | Head of Platform Engineering | SVP Digital

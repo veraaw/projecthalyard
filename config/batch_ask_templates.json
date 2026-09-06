@@ -12,10 +12,16 @@
     "offer_join": " and ",
     "closing": "If the door is still open, reply with which of these you can make happen and we will send the details."
   },
+  "network": {
+    "greeting": "Hi {first_name},",
+    "opening": "thank you for being part of the Halyard network. We have a few doors we are trying to open where you are the closest person we know, and we would be grateful if a warm introduction is possible:",
+    "closing": "No pressure if the timing is not right; a quick note either way helps us plan, and we are glad to return the favour. Thank you again for your help and for being part of the Halyard network."
+  },
   "path": {
     "direct": "via {contact}",
     "investor": "via the board / exec team",
     "board": "via the board / exec team",
+    "investor_network": "via your board / exec team relationship",
     "offer": "per your offer in the thread on {date}",
     "offer_undated": "per your offer in the thread",
     "unknown": "path to be confirmed"
@@ -31,6 +37,7 @@
     "asked_twice": ", asked twice",
     "asked_n": ", asked {n}x",
     "retry": "  retry: {connector} introduced {requester} there on {date} and it went quiet, so a fresh name would help",
+    "retry_network": "  for context: {connector} introduced {requester} there on {date} and it went quiet, so a fresh name would help",
     "retry_own": "  retry: you introduced {requester} there on {date} and it went quiet, so a fresh name (or a nudge to the first) would help",
     "retry_undated": "an earlier date"
   }

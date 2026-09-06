@@ -1,6 +1,6 @@
 # Brightmoor Energy  (C007)
 
-- stage: Discovery | industry: Energy | owner: Imani Mkhize | deal value: $600,000 | largest request: $2,000,000
+- stage: Discovery | industry: Energy | owner: Imani Mkhize | deal value: $600,000 (CRM ARR potential) | by request: R1029 $150,000, R1190 $1,200,000, R1042 $80,000, R1123 $2,000,000, R1139 $1,200,000
 - CRM accounts: A1006 | A91006 (brightmoorenergy.com) | duplicates: yes - same owner
 - also goes by: Brightmoor Energy Inc
 - 5 requests from 4 people wanting 4 different titles: Chief Technology Officer | VP Data & Analytics | VP Engineering | VP Enterprise Architecture

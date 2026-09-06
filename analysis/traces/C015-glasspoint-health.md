@@ -1,6 +1,6 @@
 # Glasspoint Health  (C015)
 
-- stage: Closed Lost | industry: Healthcare | owner: Bertrand Vandermolen | deal value: $600,000 | largest request: $1,200,000
+- stage: Closed Lost | industry: Healthcare | owner: Bertrand Vandermolen | deal value: $600,000 (CRM ARR potential) | by request: R1025 $1,200,000
 - CRM accounts: A1017 (glasspointhealth.com)
 - also goes by: nothing else
 - 1 request from 1 person wanting 1 different title: Chief Information Officer

@@ -1,6 +1,6 @@
 # Osric Networks  (C028)
 
-- stage: Discovery | industry: Telecom | owner: Nadia Okonkwo | deal value: $250,000 | largest request: $2,000,000
+- stage: Discovery | industry: Telecom | owner: Nadia Okonkwo | deal value: $250,000 (CRM ARR potential) | by request: R1028 $2,000,000, R1163 $400,000, R1167 $250,000, R1170 $1,200,000
 - CRM accounts: A1044 (osricnetworks.com)
 - also goes by: nothing else
 - 4 requests from 4 people wanting 4 different titles: Chief Data Officer | Chief Digital Officer | Director of Software Engineering | SVP Digital

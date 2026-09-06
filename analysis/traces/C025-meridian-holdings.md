@@ -1,6 +1,6 @@
 # Meridian Holdings  (C025)
 
-- stage: Evaluation | industry: Consumer | owner: Bertrand Vandermolen | deal value: $250,000 | largest request: $750,000
+- stage: Evaluation | industry: Consumer | owner: Bertrand Vandermolen | deal value: $250,000 (CRM ARR potential) | by request: R1168 $750,000, R1172 $150,000
 - CRM accounts: A1034 (meridianpeakfoods.com)
 - also goes by: Meridian Peak Foods
 - 2 requests from 2 people wanting 1 different title: VP Engineering

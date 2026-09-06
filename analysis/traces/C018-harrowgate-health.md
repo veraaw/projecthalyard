@@ -1,6 +1,6 @@
 # Harrowgate Health  (C018)
 
-- stage: Pilot | industry: Healthcare | owner: Imani Mkhize | deal value: $3,500,000 | largest request: $1,200,000
+- stage: Pilot | industry: Healthcare | owner: Imani Mkhize | deal value: $3,500,000 (CRM ARR potential) | by request: R1057 $250,000, R1157 $750,000, R1136 $1,200,000, R1090 $400,000, R1153 $750,000, R1072 $750,000, R1173 $150,000, R1140 $80,000, R1137 $250,000
 - CRM accounts: A1050 (harrowgatehealth.com)
 - also goes by: nothing else
 - 9 requests from 7 people wanting 6 different titles: Chief Digital Officer | Chief Information Officer | Chief Operating Officer | SVP Digital | VP Engineering | VP Enterprise Architecture

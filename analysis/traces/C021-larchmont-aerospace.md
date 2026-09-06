@@ -1,6 +1,6 @@
 # Larchmont Aerospace  (C021)
 
-- stage: Closed Lost | industry: Aerospace | owner: Bertrand Vandermolen | deal value: $400,000 | largest request: $1,200,000
+- stage: Closed Lost | industry: Aerospace | owner: Bertrand Vandermolen | deal value: $400,000 (CRM ARR potential) | by request: R1030 $80,000, R1146 $1,200,000, R1103 $250,000, R1021 $1,200,000
 - CRM accounts: A1042 (larchmontaero.com)
 - also goes by: nothing else
 - 4 requests from 3 people wanting 4 different titles: Chief Operating Officer | Head of Platform Engineering | SVP Digital | VP Data & Analytics

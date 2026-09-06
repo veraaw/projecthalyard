@@ -1,6 +1,6 @@
 # Apex Holdings  (C003)
 
-- stage: Negotiation | industry: Logistics | owner: Imani Mkhize | deal value: $600,000 | largest request: $2,000,000
+- stage: Negotiation | industry: Logistics | owner: Imani Mkhize | deal value: $600,000 (CRM ARR potential) | by request: R1154 $2,000,000, R1186 $1,200,000, R1069 $1,200,000
 - CRM accounts: A1002 (apexlogisticsgroup.co.uk)
 - also goes by: Apex Logistics Group
 - 3 requests from 3 people wanting 3 different titles: Head of Platform Engineering | SVP Digital | VP Engineering

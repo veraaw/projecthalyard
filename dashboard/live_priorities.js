@@ -473,7 +473,7 @@ const LP = (function () {
   // rows of ranked() with tick-boxes (an ask sent); `rankKey` picks the number shown in the # column
   function priorityTable(rows, X, state, rankKey, withConnector) {
     return `<table class="top"><thead><tr><th></th><th>#</th><th>request</th><th>company</th><th>who wants</th>${withConnector ? '<th>ask</th>' : '<th>path</th>'}${FM_HEAD}</tr></thead><tbody>`
-      + rows.map(r => { const t = askTick(X, r); return `<tr class="${doneClass(state, t)}" data-rid="${esc(r.request_id)}">${tick(state, t)}<td class="order">${r[rankKey]}</td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.crm_stage)}</span></td><td>${co(r)}<br><span class="foot">${esc(r.target_title)}</span>${retryTag(r)}</td><td>${esc(r.requested_by)}${r.reps.length > 1 ? `<br><span class="foot">+${r.reps.length - 1} more waiting</span>` : ''}</td><td>${withConnector ? `<b>${esc(r.connector)}</b><br><span class="foot">${esc(r.path)}</span>` : `${esc(r.path)}${r.allocated ? '' : '<br><b class="warn">no slot this cycle</b>'}`}</td>${fmCells(r)}</tr>`; }).join('')
+      + rows.map(r => { const t = askTick(X, r); return `<tr class="${doneClass(state, t)}" data-rid="${esc(r.request_id)}">${tick(state, t)}<td class="order">${r[rankKey]}</td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.crm_stage)}</span></td><td>${co(r)}<br><span class="foot">${esc(r.target_title)}</span>${retryTag(r)}</td><td>${esc(r.requested_by)}${r.reps.length > 1 ? `<br><span class="foot">+${r.reps.length - 1} more waiting</span>` : ''}</td><td>${withConnector ? `<b>${esc(r.connector)}</b>${r.on_roster ? '<br><span class="foot">roster</span>' : ''}<br><span class="foot">${esc(r.path)}</span>` : `${esc(r.path)}${r.allocated ? '' : '<br><b class="warn">no slot this cycle</b>'}`}</td>${fmCells(r)}</tr>`; }).join('')
       + `</tbody></table>`;
   }
 
@@ -502,7 +502,7 @@ const LP = (function () {
   // with a copy button. A drafting aid only: copying writes nothing anywhere; the
   // ask_sent tick on the queue rows stays the record that the ask went out.
   const composeBlock = (m, id, tick = 'tick <i>ask sent</i> on the rows below once it has gone out') => !m ? '' : `<div class="compose" id="${esc(id)}"><div class="bar"><b>Batched ask · ${esc(m.connector)}</b>
-      <span class="foot">cycle ${esc(m.cycle)} · ${plural(m.request_count, 'request')} across ${plural(m.company_count, 'company')} · ${m.template === 'offerer' ? 'offerer template (off the roster, asked because they offered)' : 'roster template'}${m.over_capacity ? ` · <b class="warn">${m.request_count} asks against a stated capacity of ${m.capacity}</b>` : ''}</span>
+      <span class="foot">cycle ${esc(m.cycle)} · ${plural(m.request_count, 'request')} across ${plural(m.company_count, 'company')} · ${m.template === 'offerer' ? 'offerer template (off the roster, asked because they offered)' : m.template === 'network' ? 'network template (investor network, asked for a warm intro as a favour)' : 'roster template'}${m.over_capacity ? ` · <b class="warn">${m.request_count} asks against a stated capacity of ${m.capacity}</b>` : ''}</span>
       <button type="button" class="copy" data-copy="${esc(id)}">Copy message</button></div>
       <pre class="msg">${esc(m.message)}</pre>
       <p class="foot">Paste into the thread or a DM. Copying writes nothing; ${tick}.</p></div>`;
@@ -533,7 +533,7 @@ const LP = (function () {
     const card = m => `<section id="${esc(m.slug)}"><h2>${esc(m.connector)} <span class="foot">${m.on_roster ? esc(m.type) : 'not on the roster'} · batch <code>${esc(m.batch_id)}</code>${m.page ? ` · <a href="${esc(m.page)}">their page</a>` : ''}</span></h2>`
       + composeBlock(m, `ask-${m.cycle}-${m.slug}`, `tick <i>ask sent</i> on ${m.page ? `<a href="${esc(m.page)}">their page</a>` : 'their page'} or <a href="livepriorities.html#connectors">Live Priorities</a> once it has gone out`) + detail(m) + `</section>`;
     let out = `<p class="stamp" id="lp-stamp">as of <b>${esc(D.as_of)}</b></p>
-      <section id="about"><p class="lede">One message per connector for cycle <b>${esc(D.cycle)}</b>: their whole batch from <code>golden_allocation.csv</code>, grouped by company and ordered by the batch's best route, requesters named from <code>golden_requests.csv</code>. Connectors on the roster get the roster wording; someone off the roster who is being asked because they offered in a thread gets the offerer wording, quoting the thread date. The wording lives in <code>${esc(D.templates)}</code>. No dollar value, route score, request id or urgency label appears in the text; those stay in the table under each message.</p>
+      <section id="about"><p class="lede">One message per connector for cycle <b>${esc(D.cycle)}</b>: their whole batch from <code>golden_allocation.csv</code>, grouped by company and ordered by the batch's best route, requesters named from <code>golden_requests.csv</code>. Connectors on the roster get the roster wording; someone off the roster who is being asked because they offered in a thread gets the offerer wording, quoting the thread date; an investor-network person asked over their own portfolio or prior-employer path gets the network wording, a thank-you and a request for a warm introduction rather than a work queue. The wording lives in <code>${esc(D.templates)}</code>. No dollar value, route score, request id or urgency label appears in the text; those stay in the table under each message.</p>
       <p class="foot">${plural(now.length, 'message')} this cycle: ${now.map(m => `<a href="#${esc(m.slug)}">${esc(m.connector)}</a>`).join(' · ') || 'nothing allocated'}. Copying writes nothing; the <i>ask sent</i> tick on Live Priorities and the connector's page remains the record that the ask went out.</p></section>`;
     out += now.map(card).join('') || `<p class="empty">nothing allocated in cycle ${esc(D.cycle)}</p>`;
     if (past.length) out += `<section id="past">${fold(`Earlier cycles <span class="foot">${plural(past.length, 'message')} kept for reference</span>`)}${past.map(card).join('')}</details></section>`;
@@ -650,19 +650,8 @@ const LP = (function () {
         <table><thead><tr><th>company</th><th>connector</th><th>everyone wanted</th><th>who is waiting</th><th>path</th></tr></thead><tbody>`
         + A.all.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td><b>${esc(c.connector)}</b><br><a class="foot" href="${esc(D.batch_page)}#${esc(c.slug)}">the message</a></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td></tr>`).join('')
         + `</tbody></table>`);
-    const EXCEPTION_TITLE = { 'no path to this company in the network': 'no direct path to this company in the network', 'already introduced': 'already introduced — extend the intro' };
-    const EXCEPTION_NOTE = { 'no path to this company in the network': 'Not routable this cycle (sourcing issue vs. allocation)', 'already introduced': 'Someone is already in the door; the rep introduced asks for the other names. Listed under Already introduced.' };
-    sec.asks += `<details><summary>${plural(A.exception_count, 'exception')} not allocated this cycle: ${A.exceptions.map(e => `${e.count} ${esc((EXCEPTION_TITLE[e.reason] || e.reason).replace(' to this company in the network', ''))}`).join(', ')}</summary>`;
-    const cover = sc => !sc ? '' : sc.connectors.length
-      ? sc.connectors.map(c => `<b>${esc(c.connector)}</b> <span class="foot">${c.asked ? `asked ${esc(c.asked)}` : 'never asked'}</span>`).join('<br>')
-      : `<span class="foot">${esc(sc.note)}</span>`;
-    for (const e of A.exceptions) {
-      const withStage = !e.reason.startsWith('company'), noPath = e.reason.startsWith('no path');
-      sec.asks += `<h3>${esc(EXCEPTION_TITLE[e.reason] || e.reason)} <span class="foot">${e.count} · ${esc(e.value_fmt)}</span></h3>${EXCEPTION_NOTE[e.reason] ? `<p class="foot">${esc(EXCEPTION_NOTE[e.reason])}</p>` : ''}<table><thead><tr><th>request</th><th>company</th>${withStage ? '<th>CRM stage</th>' : ''}<th>wanted</th><th>who</th><th>value</th><th>urgency</th><th>status</th>${noPath ? '<th>who covers this sector</th>' : ''}<th>${e.reason.startsWith('capacity') ? 'best path (no slot)' : e.reason.startsWith('company') ? 'as written' : 'note'}</th></tr></thead><tbody>`
-        + e.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}</td><td>${co(r)}</td>${withStage ? `<td>${esc(r.crm_stage)}</td>` : ''}<td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td><td>${esc(r.value_fmt)}</td><td>${esc(r.urgency)}</td><td>${esc(r.status)}</td>${noPath ? `<td>${cover(r.sector_cover)}</td>` : ''}<td class="foot">${esc(r.detail || r.best_path || (e.reason.startsWith('company') ? r.company_as_written || '(nothing parseable)' : 'nobody in the network reaches them'))}</td></tr>`).join('')
-        + `</tbody></table>`;
-    }
-    sec.asks += `</details></details></section>`;
+    sec.asks += `</details></section>`;
+
 
     // already in the door: the allocator parked these rather than spend a slot
     const I = D.introduced;
@@ -691,8 +680,22 @@ const LP = (function () {
         + `<h3>already sitting on</h3>` + sittingTable(c, X, state))
       + `</details></section>`;
 
-    // ---- band 5 · not moving: the action belongs to someone who is not reading this page
-    // every row says where its action actually lives
+    // requests the allocator could not place this cycle, by reason
+    const EXCEPTION_TITLE = { 'no path to this company in the network': 'no direct path to this company in the network', 'already introduced': 'already introduced — extend the intro' };
+    const EXCEPTION_NOTE = { 'no path to this company in the network': 'Not routable this cycle (sourcing issue vs. allocation)', 'already introduced': 'Someone is already in the door; the rep introduced asks for the other names. Listed under Already Introduced.' };
+    sec.exceptions = `<section id="exceptions">${fold(`Unrouted Exceptions <span class="foot">${plural(A.exception_count, 'request')} not allocated in cycle ${esc(A.cycle)}: ${A.exceptions.map(e => `${e.count} ${esc((EXCEPTION_TITLE[e.reason] || e.reason).replace(' to this company in the network', ''))}`).join(', ')} · from <code>golden_allocation.csv</code></span>`)}`;
+    const cover = sc => !sc ? '' : sc.connectors.length
+      ? sc.connectors.map(c => `<b>${esc(c.connector)}</b> <span class="foot">${c.asked ? `asked ${esc(c.asked)}` : 'never asked'}</span>`).join('<br>')
+      : `<span class="foot">${esc(sc.note)}</span>`;
+    for (const e of A.exceptions) {
+      const withStage = !e.reason.startsWith('company'), noPath = e.reason.startsWith('no path');
+      sec.exceptions += `<h3>${esc(EXCEPTION_TITLE[e.reason] || e.reason)} <span class="foot">${e.count} · ${esc(e.value_fmt)}</span></h3>${EXCEPTION_NOTE[e.reason] ? `<p class="foot">${esc(EXCEPTION_NOTE[e.reason])}</p>` : ''}<table><thead><tr><th>request</th><th>company</th>${withStage ? '<th>CRM stage</th>' : ''}<th>wanted</th><th>who</th><th>value</th><th>urgency</th><th>status</th>${noPath ? '<th>who covers this sector</th>' : ''}<th>${e.reason.startsWith('capacity') ? 'best path (no slot)' : e.reason.startsWith('company') ? 'as written' : 'note'}</th></tr></thead><tbody>`
+        + e.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}</td><td>${co(r)}</td>${withStage ? `<td>${esc(r.crm_stage)}</td>` : ''}<td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td><td>${esc(r.value_fmt)}</td><td>${esc(r.urgency)}</td><td>${esc(r.status)}</td>${noPath ? `<td>${cover(r.sector_cover)}</td>` : ''}<td class="foot">${esc(r.detail || r.best_path || (e.reason.startsWith('company') ? r.company_as_written || '(nothing parseable)' : 'nobody in the network reaches them'))}</td></tr>`).join('')
+        + `</tbody></table>`;
+    }
+    sec.exceptions += `</details></section>`;
+
+    // still in the cycle band: nothing here is a decision to make on this page, each row says where its action lives
     const U = D.unrouted, F = U.finding;
     sec.unrouted = `<section id="unrouted">${fold(`Suggested Unrouted Company Connectors <span class="foot">${U.unrouted_companies} companies with live requests nobody is allocated to, matched to each connector's stated focus areas</span>`)}
       <p class="lede">In-focus asks convert at <b>${esc(F.in_focus_pct)}</b> versus ${esc(F.out_focus_pct)} outside, yet only ${F.in_focus_asks} of ${F.total_asks} asks landed in focus. These are the names that finding points at. Nothing here is ticked. A company with a path moves on the connector's page; one without moves in sourcing, from its trace.</p>`;

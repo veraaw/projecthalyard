@@ -1,6 +1,6 @@
 # Pemberton Retail  (C030)
 
-- stage: Negotiation | industry: Retail | owner: Hana Nakashima | deal value: $1,400,000 | largest request: $1,200,000
+- stage: Negotiation | industry: Retail | owner: Hana Nakashima | deal value: $1,400,000 (CRM ARR potential) | by request: R1165 $80,000, R1061 $1,200,000, R1097 $400,000, R1050 $400,000
 - CRM accounts: A1023 (pembertonretail.com)
 - also goes by: nothing else
 - 4 requests from 4 people wanting 3 different titles: Head of Developer Productivity | Head of Platform Engineering | VP Data & Analytics

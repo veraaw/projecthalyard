@@ -1,6 +1,6 @@
 # Silverbrook Paper  (C035)
 
-- stage: Closed Lost | industry: Materials | owner: Curtis Hartigan | Yusuf Petrossian | deal value: $600,000 | largest request: $2,000,000
+- stage: Closed Lost | industry: Materials | owner: Curtis Hartigan | Yusuf Petrossian | deal value: $600,000 (CRM ARR potential) | by request: R1008 $2,000,000, R1063 $80,000
 - CRM accounts: A1032 | A91032 (silverbrookpaper.com) | duplicates: yes - owners disagree
 - also goes by: Silverbrook Paper Corp
 - 2 requests from 2 people wanting 2 different titles: Chief Operating Officer | Chief Technology Officer

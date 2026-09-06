@@ -1,6 +1,6 @@
 # Quillon Pharma  (C032)
 
-- stage: Closed Lost | industry: Pharma | owner: Rafael Salcedo | deal value: $3,500,000 | largest request: $750,000
+- stage: Closed Lost | industry: Pharma | owner: Rafael Salcedo | deal value: $3,500,000 (CRM ARR potential) | by request: R1178 $750,000, R1198 $750,000
 - CRM accounts: A1019 (quillonpharma.com)
 - also goes by: nothing else
 - 2 requests from 2 people wanting 2 different titles: Chief Operating Officer | SVP Digital

@@ -1,6 +1,6 @@
 # Sundermere Bank  (C037)
 
-- stage: Pilot | industry: Financial Services | owner: Imani Mkhize | deal value: $600,000 | largest request: $400,000
+- stage: Pilot | industry: Financial Services | owner: Imani Mkhize | deal value: $600,000 (CRM ARR potential) | by request: R1034 $400,000
 - CRM accounts: A1014 (sundermere.com)
 - also goes by: nothing else
 - 1 request from 1 person wanting 1 different title: Chief Data Officer

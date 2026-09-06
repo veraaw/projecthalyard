@@ -1,6 +1,6 @@
 # Duncastle Holdings  (C010)
 
-- stage: Prospect | industry: Hospitality | owner: Bertrand Vandermolen | deal value: $600,000 | largest request: $750,000
+- stage: Prospect | industry: Hospitality | owner: Bertrand Vandermolen | deal value: $600,000 (CRM ARR potential) | by request: R1183 $750,000, R1071 $400,000, R1120 $80,000, R1032 $80,000, R1082 $400,000
 - CRM accounts: A1029 (duncastle.com)
 - also goes by: Duncastle Hotels | duncastle.com
 - 5 requests from 4 people wanting 4 different titles: Chief Digital Officer | Chief Information Officer | SVP Digital | VP Enterprise Architecture

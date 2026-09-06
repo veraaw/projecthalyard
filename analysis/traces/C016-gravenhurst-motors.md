@@ -1,6 +1,6 @@
 # Gravenhurst Motors  (C016)
 
-- stage: Negotiation | industry: Automotive | owner: Sloane Fairweather | deal value: $400,000 | largest request: $2,000,000
+- stage: Negotiation | industry: Automotive | owner: Sloane Fairweather | deal value: $400,000 (CRM ARR potential) | by request: R1122 $1,200,000, R1160 $150,000, R1149 $80,000, R1143 $150,000, R1115 $2,000,000, R1185 $1,200,000, R1058 $80,000, R1158 $750,000, R1108 $250,000
 - CRM accounts: A1041 (gravenhurst.com)
 - also goes by: nothing else
 - 9 requests from 5 people wanting 8 different titles: Chief Data Officer | Chief Digital Officer | Chief Operating Officer | Director of Software Engineering | Head of Platform Engineering | SVP Digital | VP Engineering | VP Enterprise Architecture

@@ -1,6 +1,6 @@
 # Ellerby Semiconductor  (C011)
 
-- stage: Negotiation | industry: Semiconductors | owner: Sloane Fairweather | Yusuf Petrossian | deal value: $400,000 | largest request: $2,000,000
+- stage: Negotiation | industry: Semiconductors | owner: Sloane Fairweather | Yusuf Petrossian | deal value: $400,000 (CRM ARR potential) | by request: R1104 $2,000,000
 - CRM accounts: A1020 | A91020 (ellerbysemi.com) | duplicates: yes - owners disagree
 - also goes by: Ellerby Semiconductor, Inc.
 - 1 request from 1 person wanting 1 different title: VP Engineering

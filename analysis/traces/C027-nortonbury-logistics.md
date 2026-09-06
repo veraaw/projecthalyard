@@ -1,6 +1,6 @@
 # Nortonbury Logistics  (C027)
 
-- stage: Evaluation | industry: Logistics | owner: Bertrand Vandermolen | deal value: $600,000 | largest request: $1,200,000
+- stage: Evaluation | industry: Logistics | owner: Bertrand Vandermolen | deal value: $600,000 (CRM ARR potential) | by request: R1013 $80,000, R1016 $1,200,000, R1077 $750,000
 - CRM accounts: A1039 (nortonbury.com)
 - also goes by: nothing else
 - 3 requests from 3 people wanting 2 different titles: Chief Operating Officer | Head of Developer Productivity

@@ -1,6 +1,6 @@
 # Kestrel Airlines  (C014)
 
-- stage: Negotiation | industry: Airlines | owner: Rafael Salcedo | deal value: $120,000 | largest request: $1,200,000
+- stage: Negotiation | industry: Airlines | owner: Rafael Salcedo | deal value: $120,000 (CRM ARR potential) | by request: R1054 $1,200,000
 - CRM accounts: A1012 (flykestrel.com)
 - also goes by: nothing else
 - 1 request from 1 person wanting 1 different title: Chief Operating Officer

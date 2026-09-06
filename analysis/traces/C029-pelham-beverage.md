@@ -1,6 +1,6 @@
 # Pelham Beverage  (C029)
 
-- stage: Evaluation | industry: Consumer | owner: Yusuf Petrossian | deal value: $3,500,000 | largest request: $750,000
+- stage: Evaluation | industry: Consumer | owner: Yusuf Petrossian | deal value: $3,500,000 (CRM ARR potential) | by request: R1176 $400,000, R1200 $750,000, R1047 $250,000
 - CRM accounts: A1043 (pelhambev.com)
 - also goes by: nothing else
 - 3 requests from 3 people wanting 2 different titles: Director of Software Engineering | Head of Platform Engineering

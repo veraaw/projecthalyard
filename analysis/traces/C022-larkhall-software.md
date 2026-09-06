@@ -1,6 +1,6 @@
 # Larkhall Software  (C022)
 
-- stage: Prospect | industry: Technology | owner: Imani Mkhize | deal value: $250,000 | largest request: $400,000
+- stage: Prospect | industry: Technology | owner: Imani Mkhize | deal value: $250,000 (CRM ARR potential) | by request: R1010 $250,000, R1062 $400,000
 - CRM accounts: A1022 (larkhall.io)
 - also goes by: nothing else
 - 2 requests from 1 person wanting 2 different titles: Chief Technology Officer | Head of Developer Productivity

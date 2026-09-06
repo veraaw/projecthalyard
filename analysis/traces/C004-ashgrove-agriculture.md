@@ -1,6 +1,6 @@
 # Ashgrove Agriculture  (C004)
 
-- stage: Pilot | industry: Agriculture | owner: Hana Nakashima | Rafael Salcedo | deal value: $600,000 | largest request: $400,000
+- stage: Pilot | industry: Agriculture | owner: Hana Nakashima | Rafael Salcedo | deal value: $600,000 (CRM ARR potential) | by request: R1187 $400,000
 - CRM accounts: A1035 | A91035 (ashgroveag.com) | duplicates: yes - owners disagree
 - also goes by: Ashgrove Agriculture Inc
 - 1 request from 1 person wanting 1 different title: Chief Digital Officer

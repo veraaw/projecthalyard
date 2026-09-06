@@ -1,6 +1,6 @@
 # Thistledown Energy  (C039)
 
-- stage: Pilot | industry: Energy | owner: Yusuf Petrossian | deal value: $120,000 | largest request: $1,200,000
+- stage: Pilot | industry: Energy | owner: Yusuf Petrossian | deal value: $120,000 (CRM ARR potential) | by request: R1083 $750,000, R1148 $150,000, R1152 $400,000, R1037 $1,200,000, R1023 $400,000, R1064 $1,200,000
 - CRM accounts: A1046 (thistledownenergy.com)
 - also goes by: thistledownenergy.com
 - 6 requests from 5 people wanting 6 different titles: Chief Data Officer | Chief Information Officer | Chief Operating Officer | Head of Developer Productivity | Head of Platform Engineering | VP Engineering

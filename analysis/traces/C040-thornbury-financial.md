@@ -1,6 +1,6 @@
 # Thornbury Financial  (C040)
 
-- stage: Pilot | industry: Financial Services | owner: Sloane Fairweather | deal value: $400,000 | largest request: $2,000,000
+- stage: Pilot | industry: Financial Services | owner: Sloane Fairweather | deal value: $400,000 (CRM ARR potential) | by request: R1105 $2,000,000, R1180 $2,000,000, R1164 $150,000
 - CRM accounts: A1015 (thornburyfinancial.com)
 - also goes by: THORNBURYFINANCIAL | thornburyfinancial.com
 - 3 requests from 3 people wanting 2 different titles: Chief Information Officer | Director of Software Engineering

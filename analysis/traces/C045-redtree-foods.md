@@ -1,6 +1,6 @@
 # Redtree Foods  (C045)
 
-- stage: ? | industry: ? | owner: none | deal value: ? | largest request: $1,200,000
+- stage: ? | industry: ? | owner: none | deal value: $750,000 (latest request with a deal value, R1074) | by request: R1074 $750,000, R1003 $400,000, R1135 $750,000, R1067 $1,200,000
 - CRM accounts: none (redtreefoods.com)
 - also goes by: redtreefoods.com
 - 4 requests from 3 people wanting 4 different titles: Chief Digital Officer | Head of Platform Engineering | VP Data & Analytics | VP Engineering

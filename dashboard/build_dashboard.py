@@ -655,7 +655,7 @@ TABS = [
     (LIVE_HTML, "Live Data Dashboard"),
     (RAW_HTML, "Raw Sept Data Dashboard"),
 ]
-NO_PEOPLE_ROW = {LIVE_HTML, RAW_HTML}
+NO_PEOPLE_ROW = {TRACE_HTML, LIVE_HTML, RAW_HTML}
 
 
 connector_pages = connector_fragments(TODAY)
@@ -666,8 +666,9 @@ MASTHEAD = (f'<a class="mast" href="{LIVE_HTML}">{theme.logo()}'
 def tabs(active):
     """The sticky bar on every page: the masthead across the top, the page tabs, and
     under Live Priorities a sub-row in the baton colour with one tab per connector.
-    The connector row belongs to Live Priorities, so the two data dashboards go without
-    it; on a connector's page the Live Priorities tab is marked as the parent."""
+    The connector row belongs to Live Priorities, so Company Trace and the two data
+    dashboards go without it; on a connector's page the Live Priorities tab is marked
+    as the parent."""
     on_connector = any(c["page"] == active for c, _ in connector_pages)
     people_row = active not in NO_PEOPLE_ROW
 

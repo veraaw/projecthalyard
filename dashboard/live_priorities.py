@@ -80,10 +80,9 @@ BANDS = [
      [("top", "Top Priorities"), ("crm", "CRM Updates")]),
     ("cycle", "Current Cycle Overview",
      "Does it describe a decision the allocator already made?",
-     [("asks", "Current Asks"), ("introduced", "Already Introduced"), ("connectors", "Roster Connectors Capacity")]),
-    ("stuck", "Not Moving",
-     "Does the action belong to someone who isn't reading this page?",
-     [("unrouted", "Suggested Unrouted Company Connectors"), ("bottlenecks", "Core Introduction Bottlenecks")]),
+     [("asks", "Current Asks"), ("introduced", "Already Introduced"), ("connectors", "Roster Connectors Capacity"),
+      ("exceptions", "Unrouted Exceptions"), ("unrouted", "Suggested Unrouted Company Connectors"),
+      ("bottlenecks", "Core Introduction Bottlenecks")]),
 ]
 # every section in page order; drives the header nav
 SECTIONS = [s for _, _, _, sections in BANDS for s in sections]
@@ -269,18 +268,12 @@ class Live:
 
     def route_priority(self, cid: str) -> dict:
         """Request priority for a message about this company pasted today: deal value is
-        the CRM's ARR potential (a Slack message carries none), else the largest live
-        request on the company; age is 1.0 (posted today); reps waiting counts the
-        requesters already live on the company, at least one (the poster)."""
+        the company's one $ (company_value: CRM ARR potential, else the latest request
+        with one; a Slack message carries none); age is 1.0 (posted today); reps waiting
+        counts the requesters already live on the company, at least one (the poster)."""
         c = self.companies[cid]
-        acct = next((self.accounts[a] for a in bar(c["crm_account_ids"]) if a in self.accounts), None)
-        live = [usd(r["value_usd"]) for r in self.by_company.get(cid, []) if r["status_as_filed"] in bg.OPEN_STATUSES]
-        if acct and usd(acct["arr_potential_usd"]):
-            deal, source = usd(acct["arr_potential_usd"]), "CRM ARR potential"
-        elif live and max(live):
-            deal, source = max(live), "largest live request on the company"
-        else:
-            deal, source = 0, "no deal value on file"
+        deal, src = self.company_value(cid)
+        source = {"crm": "CRM ARR potential", "deal": "latest request on the company with a deal value"}.get(src, "no deal value on file")
         comp = {
             "deal_value_musd": deal / 1e6,
             "stage_weight": STAGE_WEIGHT.get(c["stage"], NO_CRM_WEIGHT) if c["crm_account_ids"] else NO_CRM_WEIGHT,
@@ -430,6 +423,25 @@ class Live:
                 return usd(r["value_usd"]), "deal"
         return 0, "none"
 
+    def dollars(self, cid: str, request_value: str = "") -> int:
+        """The one $ shown for a row: company_value() when the row has a company;
+        a request that resolved to no company stands at its own deal value."""
+        return self.company_value(cid)[0] if cid else usd(request_value)
+
+    def dollars_total(self, rows: list[dict]) -> int:
+        """Sum of one $ per distinct company across rows carrying company_id (and
+        value_usd for the unresolved ones), so a company on two rows counts once."""
+        seen: set[str] = set()
+        total = 0
+        for r in rows:
+            cid = r.get("company_id", "")
+            if not cid:
+                total += usd(r.get("value_usd", ""))
+            elif cid not in seen:
+                seen.add(cid)
+                total += self.dollars(cid)
+        return total
+
     def company_stage(self, cid: str) -> str:
         """The furthest stage any of the company's requests has reached: a company
         with a meeting booked stays there however many fresh asks are open on it. 'closed'
@@ -526,8 +538,9 @@ class Live:
                 "target_title": a["target_title"],
                 "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                 "connector": connector,
+                "on_roster": connector in self.roster,
                 "path": bg.path_label(p),
-                "value_fmt": money(a["value_usd"]),
+                "value_fmt": money(self.dollars(cid)),
                 "crm_stage": self.crm_stage(cid),
                 "days_waiting": days,
                 "reps": reps,
@@ -597,15 +610,15 @@ class Live:
                     "path_type": a["path_type"],
                     "contact": p["contact_name"] or p["contact_title"],
                     "why": "; ".join(why),
-                    "value_usd": sum(usd(g["value_usd"]) for g in group),
-                    "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
+                    "value_usd": self.dollars_total(group),
+                    "value_fmt": money(self.dollars_total(group)),
                     "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
                     "retry": self.retry_of(cid),
                 })
             out.append({
                 "batch_id": batch_id, "connector": connector, "slug": slug(connector),
                 "connector_type": self.connector_facts.get(connector, {}).get("type", ""),
-                "size": len(rows), "value_fmt": money(sum(usd(a["value_usd"]) for a in rows)),
+                "size": len(rows), "value_fmt": money(self.dollars_total(rows)),
                 "companies": companies,
             })
 
@@ -617,7 +630,7 @@ class Live:
                     "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
                     "detail": detail,
                     "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
-                    "value_fmt": money(a["value_usd"]), "urgency": a["urgency_declared"],
+                    "value_fmt": money(self.dollars(a["company_id"], a["value_usd"])), "urgency": a["urgency_declared"],
                     "status": a["status_as_filed"], "best_path": a["best_path_if_unbudgeted"],
                     "crm_stage": self.crm_stage(a["company_id"]) if a["company_id"] else "",
                     "sector_cover": self.sector_cover(a["company_id"]) if a["company_id"] else None,
@@ -630,8 +643,8 @@ class Live:
                             key=lambda c: (-c["value_usd"], c["company_name"]))
         return {
             "cycle": self.cycle, "allocated": sum(b["size"] for b in out), "batches": out,
-            "all": everything, "value_fmt": money(sum(c["value_usd"] for c in everything)),
-            "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(sum(usd(self.by_rid[r["request_id"]]["value_usd"]) for r in v)),
+            "all": everything, "value_fmt": money(self.dollars_total([self.by_rid[a["request_id"]] for b in batches.values() for a in b])),
+            "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in v])),
                             "rows": v} for k, v in sorted(exceptions.items(), key=lambda kv: -len(kv[1]))],
             "exception_count": n_exc,
         }
@@ -658,8 +671,8 @@ class Live:
                 "request_ids": sorted(g["request_id"] for g in group),
                 "wanted": wanted,
                 "waiting": sorted({self.by_rid[g["request_id"]]["requested_by"] for g in group}),
-                "value_usd": sum(usd(g["value_usd"]) for g in group),
-                "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
+                "value_usd": self.dollars(cid),
+                "value_fmt": money(self.dollars(cid)),
                 "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
                 "crm_stage": self.crm_stage(cid),
                 "intro": intro,
@@ -683,8 +696,8 @@ class Live:
                 "request_ids": sorted(g["request_id"] for g in group),
                 "wanted": self.wanted([self.by_rid[g["request_id"]] for g in group]),
                 "connectors": sorted({g["allocated_to"] for g in group}),
-                "value_usd": sum(usd(g["value_usd"]) for g in group),
-                "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
+                "value_usd": self.dollars(cid),
+                "value_fmt": money(self.dollars(cid)),
                 "retry": self.retry_of(cid),
             })
         retries.sort(key=lambda r: (-r["value_usd"], r["company_name"]))
@@ -707,7 +720,7 @@ class Live:
             r = self.by_rid.get(o["request_id"], {})
             agreed = parse_date(o["response_date"]) or parse_date(o["asked_date"]) or self.today
             last_nudge = parse_date(r.get("nudged_on", ""))
-            value, source = self.company_value(r["company_id"]) if r.get("company_id") else (usd(r.get("value_usd", "")), "deal")
+            value, source = self.company_value(r["company_id"]) if r.get("company_id") else (usd(r.get("value_usd", "")), "request")
             row = {
                 "request_id": o["request_id"], **self.company_ref(r.get("company_id", ""), r.get("company_as_written", "")),
                 "connector": o["connector_asked"], "on_roster": o["connector_asked"] in self.roster,
@@ -751,7 +764,7 @@ class Live:
                 "target_title": r.get("target_title", ""), "requested_by": r.get("requested_by", ""),
                 "connector": name, "asked_date": o["asked_date"], "responded": o["responded"] == "Y",
                 "days_since_asked": (self.today - (parse_date(o["asked_date"]) or self.today)).days,
-                "value_fmt": money(r.get("value_usd", "")),
+                "value_fmt": money(self.dollars(r.get("company_id", ""), r.get("value_usd", ""))),
                 "action": "nudge" if o["responded"] == "Y" else "chase",
                 "nudged_on": r.get("nudged_on", ""), "days_since_nudged": since,
                 "quiet": since is not None and 0 <= since < NUDGE_QUIET_DAYS,
@@ -778,7 +791,7 @@ class Live:
                 "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
                 "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                 "path_type": a["path_type"], "contact": a["contact_name"], "route_score": a["route_score"],
-                "value_fmt": money(a["value_usd"]), "urgency": a["urgency_declared"],
+                "value_fmt": money(self.dollars(a["company_id"], a["value_usd"])), "urgency": a["urgency_declared"],
                 "retry": self.retry_of(a["company_id"]),
             } for a in queue],
         }
@@ -829,7 +842,7 @@ class Live:
         return {
             "as_of": self.today.isoformat(), "cycle": self.cycle, "trace_page": TRACE_PAGE,
             "messages": [{**m, "page": pages.get(m["connector"], ""),
-                          "requests": [{**q, **self.company_ref(q["company_id"], q["company_name"]), "value_fmt": money(q["value_usd"])}
+                          "requests": [{**q, **self.company_ref(q["company_id"], q["company_name"]), "value_fmt": money(self.dollars(q["company_id"], q["value_usd"]))}
                                        for q in m["requests"]]} for m in messages],
             "templates": batch_ask.TEMPLATES.relative_to(ROOT).as_posix(),
         }
@@ -840,7 +853,7 @@ class Live:
         extra = Counter()
         for a in self.allocation:
             if a["allocated_to"] and a["allocated_to"] not in self.roster:
-                extra[a["allocated_to"]] += usd(a["value_usd"])
+                extra[a["allocated_to"]] += self.dollars(a["company_id"], a["value_usd"])
         return list(self.roster) + [n for n, _ in sorted(extra.items(), key=lambda kv: (-kv[1], kv[0]))]
 
     def connectors(self) -> list[dict]:
@@ -856,7 +869,7 @@ class Live:
             out.append({
                 **self.connector_card(name),
                 "top": mine[:TOP_N], "rest": mine[TOP_N:], "ranked_count": len(mine),
-                "ranked_value_fmt": money(sum(usd(self.by_rid[r["request_id"]]["value_usd"]) for r in mine)),
+                "ranked_value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in mine])),
                 "no_slot": sum(1 for r in mine if not r["allocated"]),
                 "strongest_elsewhere": self.strongest_elsewhere(name),
                 "formula": self.formula(), "completions": self.completion_export(), "as_of": self.today.isoformat(),
@@ -893,8 +906,8 @@ class Live:
                     "reasons": sorted({g["exception_reason"] for g in group}),
                     "wanted": self.wanted([self.by_rid[g["request_id"]] for g in group]),
                     "waiting": sorted({self.by_rid[g["request_id"]]["requested_by"] for g in group}),
-                    "value_usd": sum(usd(g["value_usd"]) for g in group),
-                    "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
+                    "value_usd": self.dollars(cid),
+                    "value_fmt": money(self.dollars(cid)),
                     "has_path": bool(own),
                     "path": bg.path_label(max(own, key=lambda p: float(p["strength"]))) if own else "no known path; ask them if they know anyone",
                 })
@@ -922,11 +935,11 @@ class Live:
         imports = w.import_rows()
 
         def rows(group: str) -> list[dict]:
-            return [{**asdict(r), "value_fmt": money(r.value_at_stake_usd), "href": self.company_ref(r.company_id)["href"],
+            return [{**asdict(r), "value_fmt": money(self.dollars(r.company_id)), "href": self.company_ref(r.company_id)["href"],
                      "request_ids": bar(r.request_ids)} for r in review if r.group == group]
 
         groups = [{"group": g, "title": wb.GROUP_TITLES[g], "rows": rows(g), "count": len(rows(g)),
-                   "value_fmt": money(sum(r["value_at_stake_usd"] for r in rows(g)))}
+                   "value_fmt": money(self.dollars_total(rows(g)))}
                   for g in (wb.CREATE, wb.MERGE, wb.OWNERS, wb.REOPEN)]
         return {
             "groups": groups,

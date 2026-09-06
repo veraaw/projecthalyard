@@ -1,6 +1,6 @@
 # Cindermill Holdings  (C008)
 
-- stage: Discovery | industry: Mining | owner: Nadia Okonkwo | deal value: $600,000 | largest request: $750,000
+- stage: Discovery | industry: Mining | owner: Nadia Okonkwo | deal value: $600,000 (CRM ARR potential) | by request: R1184 $750,000, R1015 $80,000, R1059 $250,000, R1144 $400,000
 - CRM accounts: A1025 (cindermill.com)
 - also goes by: Cindermill Mining
 - 4 requests from 3 people wanting 4 different titles: Chief Digital Officer | Chief Information Officer | VP Data & Analytics | VP Engineering

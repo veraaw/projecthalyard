@@ -1,6 +1,6 @@
 # Yarrowdale Media  (C044)
 
-- stage: Evaluation | industry: Media | owner: Rafael Salcedo | deal value: $1,400,000 | largest request: $150,000
+- stage: Evaluation | industry: Media | owner: Rafael Salcedo | deal value: $1,400,000 (CRM ARR potential) | by request: R1169 $150,000
 - CRM accounts: A1028 (yarrowdale.com)
 - also goes by: nothing else
 - 1 request from 1 person wanting 1 different title: VP Data & Analytics

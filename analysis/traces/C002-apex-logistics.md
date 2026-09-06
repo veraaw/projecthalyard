@@ -1,6 +1,6 @@
 # Apex Logistics  (C002)
 
-- stage: Prospect | industry: Logistics | owner: Rafael Salcedo | Yusuf Petrossian | deal value: $2,200,000 | largest request: $2,000,000
+- stage: Prospect | industry: Logistics | owner: Rafael Salcedo | Yusuf Petrossian | deal value: $2,200,000 (CRM ARR potential) | by request: R1024 $2,000,000, R1038 $250,000, R1041 $750,000, R1197 $250,000
 - CRM accounts: A1001 | A91001 (apexlogistics.com) | duplicates: yes - owners disagree
 - also goes by: Apex Logistics, Inc.
 - 4 requests from 4 people wanting 4 different titles: Chief Operating Officer | Director of Software Engineering | Head of Developer Productivity | SVP Digital

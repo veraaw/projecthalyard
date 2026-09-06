@@ -120,6 +120,34 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(S["total"]["companies"] + S["total"]["unresolved"], S["total"]["count"])
         self.assertEqual(S["excluded"]["stage"], "closed")
 
+    def test_every_dollar_on_the_page_is_the_companys_one_dollar(self):
+        """One traceable $ per company everywhere on Live Priorities: CRM ARR
+        potential, else the latest request carrying a deal value. The request's own
+        $ lives only on the Company Trace hover."""
+        L = lp.Live(AS_OF)
+        P = lp.payload(AS_OF)
+        seen = 0
+
+        def walk(o, where):
+            nonlocal seen
+            if isinstance(o, dict):
+                cid, fmt = o.get("company_id"), o.get("value_fmt")
+                if cid and fmt:
+                    seen += 1
+                    self.assertEqual(fmt, lp.money(L.company_value(cid)[0]), f"{where}: {o.get('request_id') or o.get('company_name')}")
+                for k, v in o.items():
+                    walk(v, f"{where}.{k}")
+            elif isinstance(o, list):
+                for x in o:
+                    walk(x, where + "[]")
+        walk({k: v for k, v in P.items() if k != "parser"}, "payload")
+        self.assertGreater(seen, 50)
+        for g in P["crm"]["groups"]:
+            self.assertEqual(g["value_fmt"], lp.money(L.dollars_total(g["rows"])), g["group"])
+        for r in P["priorities"]["top"]:
+            self.assertEqual(r["on_roster"], r["connector"] in L.roster, r["request_id"])
+        self.assertTrue(any(r["on_roster"] for r in P["priorities"]["top"]))
+
     def test_stage_dollars_are_one_value_per_company(self):
         """CRM ARR potential first, else the latest request's deal value; never the
         sum of a company's requests. A company with a meeting booked stays there whatever
@@ -273,7 +301,8 @@ class PayloadTest(unittest.TestCase):
         for m in L.batch_asks:
             for c in m["companies"]:
                 self.assertEqual(c["retry"] is not None, c["company_id"] in retried, c["company_name"])
-            self.assertEqual(m["message"].count("retry:"), sum(1 for c in m["companies"] if c["retry"]), m["connector"])
+            self.assertEqual(m["message"].count("retry:") + m["message"].count("for context:"),
+                             sum(1 for c in m["companies"] if c["retry"]), m["connector"])
 
     def test_offers_are_paths_not_a_section(self):
         """An offer in the Slack thread is the strongest reach type the allocator
@@ -472,11 +501,16 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual([sid for sid, _ in lp.SECTIONS], re.findall(r'<section id="([^"]+)"', boot),
                          "SECTIONS is the header nav; it must list every section boot() renders, in order")
         self.assertEqual([sid for sid, _ in lp.SECTIONS],
-                         ["route", "upload", "stages", "top", "crm", "asks", "introduced", "connectors", "unrouted", "bottlenecks"],
-                         "intake, orientation, actionable now, current cycle, not moving")
-        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 2, 3, 2])
+                         ["route", "upload", "stages", "top", "crm", "asks", "introduced", "connectors", "exceptions", "unrouted", "bottlenecks"],
+                         "intake, orientation, actionable now, current cycle")
+        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 2, 6], "no Not Moving band")
+        self.assertTrue(all(all(w[0].isupper() or w in ("a", "an", "and", "by", "of", "the") for w in label.replace("—", " ").split())
+                            for _, label in lp.SECTIONS), "nav labels in Title Case")
+        self.assertIn("Unrouted Exceptions <span", boot)
+        asks = boot.split('<section id="asks"')[1].split('<section id=')[0]
+        self.assertNotIn("EXCEPTION_TITLE", asks, "exceptions have their own section, not a fold inside Current Asks")
         folded = re.findall(r'<section id="([^"]+)">\$\{fold\(', boot)
-        self.assertEqual(folded, ["crm", "asks", "introduced", "connectors", "unrouted", "bottlenecks"], "the long tables start collapsed")
+        self.assertEqual(folded, ["crm", "asks", "introduced", "connectors", "exceptions", "unrouted", "bottlenecks"], "the long tables start collapsed")
         self.assertIn('<section id="stages" class="masthead">', boot)
         self.assertNotIn("<table", boot.split('<section id="stages"')[1].split("</section>")[0], "orientation is one strip, no rows")
         self.assertIn("CRM Updates <span", boot)
@@ -484,7 +518,7 @@ class PayloadTest(unittest.TestCase):
 
     def test_bands_are_in_the_payload_and_cover_every_section(self):
         bands = lp.payload(AS_OF)["bands"]
-        self.assertEqual([b["id"] for b in bands], ["intake", "orientation", "now", "cycle", "stuck"])
+        self.assertEqual([b["id"] for b in bands], ["intake", "orientation", "now", "cycle"])
         self.assertEqual([s for b in bands for s in b["sections"]], [sid for sid, _ in lp.SECTIONS])
         self.assertTrue(all(b["title"] and b["test"].endswith("?") for b in bands))
 
@@ -517,7 +551,7 @@ class BuiltPagesTest(unittest.TestCase):
                      + [c["page"] for c in cls.cards]}
 
     def test_masthead_and_tab_rows_on_every_page(self):
-        data_tabs = {"halyardscoping.html", "livedata.html"}
+        data_tabs = {"halyardscoping.html", "livedata.html", "companytrace.html"}
         for name, html in self.pages.items():
             self.assertIn("<b>Halyard Baton</b> / intro routing console", html, name)
             self.assertIn('<svg class="logo"', html, name)

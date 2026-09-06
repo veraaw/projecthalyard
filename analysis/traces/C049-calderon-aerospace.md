@@ -1,6 +1,6 @@
 # Calderon Aerospace  (C049)
 
-- stage: ? | industry: ? | owner: none | deal value: ? | largest request: $150,000
+- stage: ? | industry: ? | owner: none | deal value: $80,000 (latest request with a deal value, R1101) | by request: R1101 $80,000, R1068 $150,000
 - CRM accounts: none
 - also goes by: nothing else
 - 2 requests from 2 people wanting 2 different titles: Chief Digital Officer | Head of Developer Productivity

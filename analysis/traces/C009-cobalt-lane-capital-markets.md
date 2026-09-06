@@ -1,6 +1,6 @@
 # Cobalt Lane Capital Markets  (C009)
 
-- stage: Discovery | industry: Financial Services | owner: Rafael Salcedo | deal value: $600,000 | largest request: $2,000,000
+- stage: Discovery | industry: Financial Services | owner: Rafael Salcedo | deal value: $600,000 (CRM ARR potential) | by request: R1076 $250,000, R1078 $2,000,000
 - CRM accounts: A1038 (cobaltlanecm.com)
 - also goes by: nothing else
 - 2 requests from 2 people wanting 2 different titles: Chief Digital Officer | VP Engineering

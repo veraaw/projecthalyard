@@ -154,6 +154,24 @@ class ComposerTest(unittest.TestCase):
                 self.assertEqual(m["template"], batch_ask.ROSTER_TEMPLATE)
                 self.assertIn("here is what routes to you this cycle, reply with what you can take", m["message"])
 
+    def test_investor_network_batch_gets_the_network_template(self):
+        network = [m for m in self.records if not m["on_roster"] and all(q["path_type"] == "investor_network" for q in m["requests"])]
+        self.assertTrue(network, "the golden allocation asks someone in investor_network.csv over their own path")
+        for m in network:
+            self.assertEqual(m["template"], batch_ask.NETWORK_TEMPLATE)
+            self.assertIn("thank you for being part of the Halyard network", m["message"])
+            self.assertIn("warm introduction", m["message"])
+            self.assertNotIn("here is what routes to you this cycle", m["message"])
+            self.assertNotIn("back into the pool", m["message"])
+            self.assertIn("via your board / exec team relationship", m["message"])
+            for c in m["companies"]:
+                if c["retry"]:
+                    self.assertIn("for context:", m["message"], m["connector"])
+                    self.assertNotIn("retry:", m["message"], m["connector"])
+        self.assertEqual(batch_ask.pick_template(True, ["investor_network"]), batch_ask.ROSTER_TEMPLATE)
+        self.assertEqual(batch_ask.pick_template(False, ["investor_network", "offer"]), batch_ask.ROSTER_TEMPLATE)
+        self.assertEqual(batch_ask.pick_template(False, ["offer"]), batch_ask.OFFERER_TEMPLATE)
+
     def test_paths_render_as_specified(self):
         for m in self.records:
             for c in m["companies"]:
@@ -187,7 +205,7 @@ class ComposerTest(unittest.TestCase):
                 expect = intro if intro and intro["date"][:7] < m["cycle"] else None
                 self.assertEqual(c["retry"], expect, c["company_name"])
                 lines = block(m["message"], c["company_name"])
-                retry_lines = [ln for ln in lines if ln.startswith("  retry:")]
+                retry_lines = [ln for ln in lines if ln.startswith(("  retry:", "  for context:"))]
                 if not expect:
                     self.assertEqual(retry_lines, [], c["company_name"])
                     continue
@@ -215,7 +233,7 @@ class ComposerTest(unittest.TestCase):
             for q in m["requests"]:
                 if q["requested_by"]:
                     self.assertNotIn(q["requested_by"], src)
-        for t in ("roster", "offerer"):
+        for t in ("roster", "offerer", "network"):
             self.assertIn(t, self.templates)
 
 
