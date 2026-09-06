@@ -6,12 +6,12 @@
 
 Everything on the tab is computed here, from golden/ and dataset/, and written
 into one JSON payload; the JavaScript renders it and never derives a number.
-Two things the page does with user input. The upload preview: the parser
+Two things the page does with user input. The intake preview: the parser
 rules (golden/parse.py cues, golden/build_golden.py OFFER_RE, and the
 golden/resolver.py lookup tables) are exported into the payload and applied
-verbatim by the browser, so a dropped .jsonl previews exactly what
-`python3 golden/build_golden.py --threads FILE` would file. And Submit: the
-tick-boxes on Top Priorities (an ask sent), Core Introduction Bottlenecks (a nudge sent) and
+verbatim by the browser, so a pasted message or a dropped .jsonl previews
+exactly what `python3 golden/build_golden.py --threads FILE` would file. And
+Submit: the tick-boxes on Top Priorities (an ask sent), Follow-Ups Owed and
 the connector pages' "already sitting on" (a nudge or a chase sent) are posted,
 one row each, to the Supabase
 `completions` table with the anon key (insert-only; the
@@ -73,7 +73,7 @@ CONNECTOR_PAGE = "connector-{slug}.html"
 BANDS = [
     ("intake", "Intake: Preview a Routed Request Summary",
      "Does it accept input the build doesn't have yet?",
-     [("route", "Route a Request"), ("upload", "Preview an Export")]),
+     [("route", "Route a Request")]),
     ("orientation", "Orientation: Deal Value by Stage",
      "Is it a single aggregate with no rows?",
      [("stages", "Deal Value by Stage")]),
@@ -82,9 +82,8 @@ BANDS = [
      [("top", "Top Priorities")]),
     ("cycle", "Current Cycle Overview",
      "Does it describe a decision the allocator already made?",
-     [("asks", "Current Asks"), ("connectors", "Roster Connector Capacity"), ("introduced", "Already Introduced"),
-      ("exceptions", "Unrouted Exceptions"), ("unrouted", "Suggested Unrouted Company Connectors"),
-      ("bottlenecks", "Core Introduction Bottlenecks")]),
+     [("connectors", "This Cycle, by Connector"), ("introduced", "Already Introduced"),
+      ("exceptions", "Unrouted Exceptions"), ("followups", "Follow-Ups Owed")]),
     ("other", "Other",
      "Is it admin that fits none of the bands above?",
      [("crm", "CRM Updates")]),
@@ -686,7 +685,71 @@ class Live:
         return {"top": rows[:TOP_N], "considered": len(rows), "formula": self.formula()}
 
     # -- 3. current asks ------------------------------------------------------
+    def batch_companies(self, rows: list[dict]) -> list[dict]:
+        """One connector's allocation rows this cycle grouped by company: everyone
+        wanted there, who is waiting, the path taken and why it won, the owner
+        heads-up owed. Batch order (the allocator's) is kept."""
+        if not rows:
+            return []
+        connector = rows[0]["allocated_to"]
+        by_co: dict[str, list[dict]] = defaultdict(list)
+        for a in rows:
+            by_co[a["company_id"]].append(a)
+        companies = []
+        for cid, group in by_co.items():
+            a = group[0]
+            p = self.path_for(a)
+            industry = self.industry(cid)
+            why = [f"best-scoring path with a slot left this cycle: {a['path_type']} via {p['contact_name'] or p['contact_title'] or connector}"
+                   f" (strength {float(p['strength']):.2f} × fit {self.fit(connector, industry):.2f} × rate {self.rate(connector):.2f} = {a['route_score']})"]
+            if p["in_focus_area"] == "yes":
+                why.append(f"{industry} is in {connector.split()[0]}'s focus areas")
+            elif p["in_focus_area"] == "no":
+                why.append(f"{industry or 'industry'} is outside their focus areas")
+            if a["best_path_if_unbudgeted"] and not a["best_path_if_unbudgeted"].startswith(connector):
+                why.append(f"stronger path via {a['best_path_if_unbudgeted']} had no slot left")
+            companies.append({
+                **self.company_ref(cid, a["company_name"]),
+                "request_ids": [g["request_id"] for g in group],
+                "wanted": self.wanted([self.by_rid[g["request_id"]] for g in group]),
+                "waiting": sorted({self.by_rid[g["request_id"]]["requested_by"] for g in group}),
+                "path_type": a["path_type"],
+                "contact": p["contact_name"] or p["contact_title"],
+                "why": "; ".join(why),
+                "value_usd": self.dollars_total(group),
+                "value_fmt": money(self.dollars_total(group)),
+                "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
+                "retry": self.retry_of(cid),
+                "notify": [n for n in (self.owner_notice(g) for g in group) if n],
+            })
+        return companies
+
+    def focus_finding(self) -> dict:
+        """Every ask on file split by whether the company's industry was in the
+        asked connector's focus areas, with the intro rate of each half."""
+        asks_in, asks_out, intros_in, intros_out = 0, 0, 0, 0
+        for o in self.outcomes:
+            r = self.roster.get(o["connector_asked"])
+            ind = self.industry(self.by_rid.get(o["request_id"], {}).get("company_id", ""))
+            if r and ind and ind in r["focus"]:
+                asks_in += 1
+                intros_in += o["intro_sent"] == "Y"
+            else:
+                asks_out += 1
+                intros_out += o["intro_sent"] == "Y"
+        return {
+            "in_focus_asks": asks_in, "out_focus_asks": asks_out, "total_asks": asks_in + asks_out,
+            "in_focus_rate": round(intros_in / asks_in, 2) if asks_in else 0,
+            "out_focus_rate": round(intros_out / asks_out, 2) if asks_out else 0,
+            "in_focus_pct": f"{round(100 * intros_in / asks_in) if asks_in else 0}%",
+            "out_focus_pct": f"{round(100 * intros_out / asks_out) if asks_out else 0}%",
+        }
+
     def asks(self) -> dict:
+        """What is going out this cycle (one batch per connector, the Aggregate
+        across them) and what the allocator could not place, by reason. A request
+        whose only fault is that its connector's slots are gone is not an exception
+        here: it keeps its connector and its expected value on the ranked list."""
         batches: dict[str, list[dict]] = defaultdict(list)
         for a in self.allocation:
             if a["allocated_to"]:
@@ -695,41 +758,11 @@ class Live:
         out = []
         for batch_id, rows in sorted(batches.items()):
             connector = rows[0]["allocated_to"]
-            by_co: dict[str, list[dict]] = defaultdict(list)
-            for a in rows:
-                by_co[a["company_id"]].append(a)
-            companies = []
-            for cid, group in by_co.items():
-                a = group[0]
-                p = self.path_for(a)
-                industry = self.industry(cid)
-                why = [f"best-scoring path with a slot left this cycle: {a['path_type']} via {p['contact_name'] or p['contact_title'] or connector}"
-                       f" (strength {float(p['strength']):.2f} × fit {self.fit(connector, industry):.2f} × rate {self.rate(connector):.2f} = {a['route_score']})"]
-                if p["in_focus_area"] == "yes":
-                    why.append(f"{industry} is in {connector.split()[0]}'s focus areas")
-                elif p["in_focus_area"] == "no":
-                    why.append(f"{industry or 'industry'} is outside their focus areas")
-                if a["best_path_if_unbudgeted"] and not a["best_path_if_unbudgeted"].startswith(connector):
-                    why.append(f"stronger path via {a['best_path_if_unbudgeted']} had no slot left")
-                companies.append({
-                    **self.company_ref(cid, a["company_name"]),
-                    "request_ids": [g["request_id"] for g in group],
-                    "wanted": self.wanted([self.by_rid[g["request_id"]] for g in group]),
-                    "waiting": sorted({self.by_rid[g["request_id"]]["requested_by"] for g in group}),
-                    "path_type": a["path_type"],
-                    "contact": p["contact_name"] or p["contact_title"],
-                    "why": "; ".join(why),
-                    "value_usd": self.dollars_total(group),
-                    "value_fmt": money(self.dollars_total(group)),
-                    "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
-                    "retry": self.retry_of(cid),
-                    "notify": [n for n in (self.owner_notice(g) for g in group) if n],
-                })
             out.append({
                 "batch_id": batch_id, "connector": connector, "slug": slug(connector),
                 "connector_type": self.connector_facts.get(connector, {}).get("type", ""),
                 "size": len(rows), "value_fmt": money(self.dollars_total(rows)),
-                "companies": companies,
+                "companies": self.batch_companies(rows),
             })
 
         routed_at: dict[str, list[dict]] = defaultdict(list)
@@ -737,8 +770,11 @@ class Live:
             if a["allocated_to"] and a["company_id"]:
                 routed_at[a["company_id"]].append({"request_id": a["request_id"], "connector": a["allocated_to"]})
         exceptions: dict[str, list[dict]] = defaultdict(list)
+        no_slot = 0
         for a in self.allocation:
-            if a["exception_reason"]:
+            if a["exception_reason"].startswith(bg.CAPACITY_EXHAUSTED):
+                no_slot += 1
+            elif a["exception_reason"]:
                 reason, _, detail = a["exception_reason"].partition(": ")
                 exceptions[reason].append({
                     "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
@@ -762,7 +798,7 @@ class Live:
             "all": everything, "notify_count": sum(len(c["notify"]) for c in everything), "value_fmt": money(self.dollars_total([self.by_rid[a["request_id"]] for b in batches.values() for a in b])),
             "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in v])),
                             "rows": v} for k, v in sorted(exceptions.items(), key=lambda kv: -len(kv[1]))],
-            "exception_count": n_exc,
+            "exception_count": n_exc, "no_slot": no_slot, "focus": self.focus_finding(),
         }
 
     # -- 3b. already introduced: extend the intro, don't ask afresh -------------
@@ -824,79 +860,80 @@ class Live:
             "retries": retries, "retry_requests": sum(len(r["request_ids"]) for r in retries),
         }
 
-    # -- 4. core bottlenecks --------------------------------------------------
-    def bottlenecks(self) -> dict:
-        """Asks the connector agreed to and never delivered. One nudged in the last
-        NUDGE_QUIET_DAYS (golden_requests.nudged_on, from completions.csv) is
-        listed under `nudged` instead and comes back when the quiet period ends.
+    # -- 4. follow-ups owed -----------------------------------------------------
+    def sitting_on(self, name: str) -> list[dict]:
+        """Every live ask on this connector with no intro yet: `nudge` it if they
+        replied, `chase` if they never did. A retry sent after a fizzled intro
+        (reasked_date) is a fresh ask nobody has answered: `chase`, counted from
+        the re-ask. One followed up in the last NUDGE_QUIET_DAYS (nudged_on, from
+        completions.csv) is `quiet`: listed, not actionable, until the period ends.
         `blocking` lists the live requests at the company this ask left with no
-        askable path (the allocator's unresolved-ask exceptions)."""
-        rows, nudged = [], []
+        askable path (the allocator's unresolved-ask exceptions). Actionable rows
+        first, oldest ask first; the quiet ones last."""
         blocked = defaultdict(list)
         for a in self.allocation:
             if a["exception_reason"].startswith(bg.UNRESOLVED_ASK):
                 blocked[a["company_id"]].append(a["request_id"])
+        rows = []
         for o in self.outcomes:
-            if o["responded"] != "Y" or o["intro_sent"] == "Y":
+            if o["connector_asked"] != name or (o["intro_sent"] == "Y" and not o["reasked_date"]):
                 continue
             r = self.by_rid.get(o["request_id"], {})
-            agreed = parse_date(o["response_date"]) or parse_date(o["asked_date"]) or self.today
-            last_nudge = parse_date(r.get("nudged_on", ""))
-            value, source = self.company_value(r["company_id"]) if r.get("company_id") else (usd(r.get("value_usd", "")), "request")
-            row = {
-                "request_id": o["request_id"], **self.company_ref(r.get("company_id", ""), r.get("company_as_written", "")),
-                "connector": o["connector_asked"], "on_roster": o["connector_asked"] in self.roster,
-                "target_title": r.get("target_title", ""), "requested_by": r.get("requested_by", ""),
-                "asked_date": o["asked_date"], "agreed_date": o["response_date"],
-                "days_since_agreed": (self.today - agreed).days,
-                "value_fmt": money(value), "value_usd": value, "value_source": source,
-                "status": r.get("status_as_filed", ""), "action": "nudge",
-                "nudged_on": r.get("nudged_on", ""),
-                "days_since_nudged": (self.today - last_nudge).days if last_nudge else None,
-                "blocking": sorted(blocked.get(r.get("company_id", ""), [])),
-            }
-            (nudged if last_nudge and 0 <= (self.today - last_nudge).days < NUDGE_QUIET_DAYS else rows).append(row)
-        rows.sort(key=lambda r: -r["days_since_agreed"])
-        nudged.sort(key=lambda r: (r["nudged_on"], r["request_id"]))
-        by_connector = Counter(r["connector"] for r in rows)
-        return {"rows": rows, "count": len(rows), "nudged": nudged, "quiet_days": NUDGE_QUIET_DAYS,
-                "by_connector": [{"connector": k, "count": n, "on_roster": k in self.roster}
-                                 for k, n in by_connector.most_common()]}
-
-    # -- 6. per-connector -----------------------------------------------------
-    def connector_card(self, name: str) -> dict:
-        """One connector's facts: capacity used against stated, delivery rate, what
-        they are sitting on, their queue this cycle. Works for people off the roster
-        too (no stated capacity, no focus list)."""
-        r = self.roster.get(name)
-        cap = int(r["stated_monthly_capacity"] or 0) if r else 0
-        asked_cycle = self.asks_this_cycle(name)
-        queue = [a for a in self.allocation if a["allocated_to"] == name]
-        sitting = [o for o in self.outcomes if o["connector_asked"] == name and (o["intro_sent"] != "Y" or o["reasked_date"])
-                   and self.by_rid.get(o["request_id"], {}).get("status_as_filed") in bg.OPEN_STATUSES]
-
-        def sitting_row(o: dict) -> dict:
-            """An ask with no intro yet: `nudge` it if they replied, `chase` if they
-            never did. A retry sent after a fizzled intro (reasked_date) is a fresh
-            ask nobody has answered: `chase`, counted from the re-ask. One followed
-            up in the last NUDGE_QUIET_DAYS (nudged_on, from completions.csv) is
-            `quiet`: listed, not actionable, until the period ends."""
-            r = self.by_rid.get(o["request_id"], {})
+            if r.get("status_as_filed") not in bg.OPEN_STATUSES:
+                continue
             last = parse_date(r.get("nudged_on", ""))
             since = (self.today - last).days if last else None
             asked_on = o["reasked_date"] or o["asked_date"]
             responded = o["responded"] == "Y" and not o["reasked_date"]
-            return {
-                "request_id": o["request_id"], **self.company_ref(r.get("company_id", "")),
+            value, source = self.company_value(r["company_id"]) if r.get("company_id") else (usd(r.get("value_usd", "")), "request")
+            rows.append({
+                "request_id": o["request_id"], **self.company_ref(r.get("company_id", ""), r.get("company_as_written", "")),
                 "target_title": r.get("target_title", ""), "requested_by": r.get("requested_by", ""),
-                "connector": name, "asked_date": asked_on, "responded": responded,
+                "connector": name, "on_roster": name in self.roster,
+                "asked_date": asked_on, "responded": responded, "agreed_date": o["response_date"] if responded else "",
                 "days_since_asked": (self.today - (parse_date(asked_on) or self.today)).days,
-                "value_fmt": money(self.dollars(r.get("company_id", ""), r.get("value_usd", ""))),
+                "value_fmt": money(value), "value_usd": value, "value_source": source,
+                "status": r.get("status_as_filed", ""),
                 "action": "nudge" if responded else "chase",
                 "retry": self.own_retry(o) if o["reasked_date"] else None,
                 "nudged_on": r.get("nudged_on", ""), "days_since_nudged": since,
                 "quiet": since is not None and 0 <= since < NUDGE_QUIET_DAYS,
-            }
+                "blocking": sorted(blocked.get(r.get("company_id", ""), [])),
+            })
+        return sorted(rows, key=lambda s: (s["quiet"], s["asked_date"], s["request_id"]))
+
+    def followups(self) -> dict:
+        """Every ask anyone is sitting on, across every connector (roster, off-roster
+        batch holders, and anyone else in intro_outcomes.csv), oldest first; then
+        the same rows per connector. No slot is spent here: a nudge or a chase,
+        never a fresh ask, and while a row stands its connector is not routed a
+        new ask at that company."""
+        names = self.connector_names()
+        names += sorted({o["connector_asked"] for o in self.outcomes if o["connector_asked"] and o["connector_asked"] not in names})
+        per = [{"connector": n, "slug": slug(n), "page": CONNECTOR_PAGE.format(slug=slug(n)), "on_roster": n in self.roster, "rows": rows,
+                "count": sum(1 for s in rows if not s["quiet"]),
+                "nudge": sum(1 for s in rows if s["action"] == "nudge" and not s["quiet"]),
+                "chase": sum(1 for s in rows if s["action"] == "chase" and not s["quiet"])}
+               for n in names for rows in [self.sitting_on(n)] if rows]
+        rows = sorted((s for c in per for s in c["rows"]), key=lambda s: (s["quiet"], s["asked_date"], s["request_id"]))
+        return {
+            "rows": rows, "count": sum(1 for s in rows if not s["quiet"]),
+            "nudge": sum(1 for s in rows if s["action"] == "nudge" and not s["quiet"]),
+            "chase": sum(1 for s in rows if s["action"] == "chase" and not s["quiet"]),
+            "quiet": [s for s in rows if s["quiet"]], "quiet_days": NUDGE_QUIET_DAYS,
+            "by_connector": per,
+        }
+
+    # -- 6. per-connector -----------------------------------------------------
+    def connector_card(self, name: str) -> dict:
+        """One connector's facts: capacity used against stated, delivery rate, what
+        they are sitting on, their batch this cycle (grouped by company, with why
+        each landed on them) and its drafted message. Works for people off the
+        roster too (no stated capacity, no focus list)."""
+        r = self.roster.get(name)
+        cap = int(r["stated_monthly_capacity"] or 0) if r else 0
+        asked_cycle = self.asks_this_cycle(name)
+        queue = [a for a in self.allocation if a["allocated_to"] == name]
         asks = [o for o in self.outcomes if o["connector_asked"] == name]
         intros = [o for o in asks if o["intro_sent"] == "Y"]
         cycles = self.cycle_rows([name])
@@ -913,9 +950,11 @@ class Live:
             "prior_rate": bg.PRIOR_RATE,
             "intros_this_cycle": cycles[-1]["intros"], "cycles": cycles,
             "batch_ask": self.batch_ask(name),
-            # actionable rows first (oldest ask first), then the ones followed up recently
-            "sitting_on": sorted((sitting_row(o) for o in sitting), key=lambda s: (s["quiet"], s["asked_date"], s["request_id"])),
+            "sitting_on": self.sitting_on(name),
             "quiet_days": NUDGE_QUIET_DAYS,
+            "batch_id": queue[0]["batch_id"] if queue else "",
+            "batch_value_fmt": money(self.dollars_total(queue)),
+            "companies": self.batch_companies(queue),
             "queue": [{
                 "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
                 "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
@@ -986,7 +1025,9 @@ class Live:
         return list(self.roster) + [n for n, _ in sorted(extra.items(), key=lambda kv: (-kv[1], kv[0]))]
 
     def connectors(self) -> list[dict]:
-        return [self.connector_card(name) for name in self.roster]
+        """One card per connector with a stake in this cycle: the roster, then
+        anyone off it who holds a batch."""
+        return [self.connector_card(name) for name in self.connector_names()]
 
     def connector_pages(self) -> list[dict]:
         """One page per connector: their top 5 by expected value, then the rest of
@@ -1004,61 +1045,6 @@ class Live:
                 "formula": self.formula(), "completions": self.completion_export(), "as_of": self.today.isoformat(),
             })
         return out
-
-    # -- 8. unrouted company asks, per connector -------------------------------
-    def unrouted(self) -> dict:
-        asks_in, asks_out, intros_in, intros_out = 0, 0, 0, 0
-        for o in self.outcomes:
-            r = self.roster.get(o["connector_asked"])
-            ind = self.industry(self.by_rid.get(o["request_id"], {}).get("company_id", ""))
-            if r and ind and ind in r["focus"]:
-                asks_in += 1
-                intros_in += o["intro_sent"] == "Y"
-            else:
-                asks_out += 1
-                intros_out += o["intro_sent"] == "Y"
-
-        unrouted = [a for a in self.allocation if a["exception_reason"] and a["company_id"]
-                    and not a["exception_reason"].startswith(bg.ALREADY_INTRODUCED)]
-        per = []
-        for name, r in self.roster.items():
-            by_co: dict[str, list[dict]] = defaultdict(list)
-            for a in unrouted:
-                if self.industry(a["company_id"]) in r["focus"]:
-                    by_co[a["company_id"]].append(a)
-            companies = []
-            for cid, group in by_co.items():
-                hold = self.hold_of(name, cid)
-                if hold and not hold["askable"]:
-                    continue   # their unresolved ask here is on the nudge or chase queue, not a new ask
-                own = [p for p in self.paths.get(cid, []) if p["connector"] == name]
-                companies.append({
-                    **self.company_ref(cid), "industry": self.industry(cid),
-                    "request_ids": [g["request_id"] for g in group],
-                    "reasons": sorted({g["exception_reason"] for g in group}),
-                    "wanted": self.wanted([self.by_rid[g["request_id"]] for g in group]),
-                    "waiting": sorted({self.by_rid[g["request_id"]]["requested_by"] for g in group}),
-                    "value_usd": self.dollars(cid),
-                    "value_fmt": money(self.dollars(cid)),
-                    "has_path": bool(own),
-                    "path": bg.path_label(max(own, key=lambda p: float(p["strength"]))) if own else "no known path; ask them if they know anyone",
-                })
-            companies.sort(key=lambda c: (not c["has_path"], -c["value_usd"]))
-            per.append({"connector": name, "page": CONNECTOR_PAGE.format(slug=slug(name)), "focus": sorted(r["focus"]),
-                        "idle": self.connector_facts.get(name, {}).get("idle", 0),
-                        "companies": companies, "count": len(companies),
-                        "value_fmt": money(sum(c["value_usd"] for c in companies))})
-        return {
-            "finding": {
-                "in_focus_asks": asks_in, "out_focus_asks": asks_out, "total_asks": asks_in + asks_out,
-                "in_focus_rate": round(intros_in / asks_in, 2) if asks_in else 0,
-                "out_focus_rate": round(intros_out / asks_out, 2) if asks_out else 0,
-                "in_focus_pct": f"{round(100 * intros_in / asks_in) if asks_in else 0}%",
-                "out_focus_pct": f"{round(100 * intros_out / asks_out) if asks_out else 0}%",
-            },
-            "unrouted_companies": len({a["company_id"] for a in unrouted}),
-            "per_connector": per,
-        }
 
     # -- 9. what the CRM is missing --------------------------------------------
     def crm(self) -> dict:
@@ -1095,7 +1081,7 @@ class Live:
             "supabase_url": bg.supabase_rest(url) if url else "",
             "anon_key": os.environ.get("SUPABASE_ANON_KEY", "").strip(),
             "table": bg.SUPABASE_TABLE, "columns": bg.COMPLETION_COLUMNS,
-            "actions": {"top": bg.ASKED, "bottlenecks": bg.NUDGED, "nudge": bg.NUDGED, "chase": bg.CHASED},
+            "actions": {"top": bg.ASKED, "nudge": bg.NUDGED, "chase": bg.CHASED},
             "ids": sorted(c["completion_id"] for c in self.completions), "count": len(self.completions),
             "quiet_days": NUDGE_QUIET_DAYS,
             "stamp": BUILD_STAMP.name, "repo_url": repo_url(), "workflow": WORKFLOW_FILE,
@@ -1244,8 +1230,7 @@ class Live:
             "bands": [{"id": bid, "title": title, "test": test, "sections": [sid for sid, _ in sections]}
                       for bid, title, test, sections in BANDS],
             "stages": self.stages(), "priorities": self.priorities(), "asks": self.asks(), "introduced": self.introduced(),
-"bottlenecks": self.bottlenecks(), "connectors": self.connectors(),
-            "unrouted": self.unrouted(), "crm": self.crm(), "parser": self.parser(),
+            "connectors": self.connectors(), "followups": self.followups(), "crm": self.crm(), "parser": self.parser(),
             "completions": self.completion_export(),
             "connector_pages": [{"connector": c["connector"], "page": c["page"], "on_roster": c["on_roster"]}
                                 for c in self.connector_pages()],
@@ -1292,8 +1277,8 @@ if __name__ == "__main__":
     print("stages     ", ", ".join(f"{s['stage']} {s['count']} ({s['usd_fmt']})" for s in p["stages"]["stages"]))
     print("top 5      ", ", ".join(f"{r['request_id']} {r['company_name']} -> {r['connector']} EV {r['expected_value']}" for r in p["priorities"]["top"]))
     print(f"asks        {p['asks']['allocated']} allocated in {len(p['asks']['batches'])} batches; "
-          + ", ".join(f"{e['count']} {e['reason']}" for e in p["asks"]["exceptions"]))
-    print(f"bottlenecks {p['bottlenecks']['count']} nudges" + (f", {len(p['bottlenecks']['nudged'])} nudged recently" if p['bottlenecks']['nudged'] else ""))
+          + ", ".join(f"{e['count']} {e['reason']}" for e in p["asks"]["exceptions"]) + f"; {p['asks']['no_slot']} wait for a slot")
+    print(f"follow-ups  {p['followups']['nudge']} nudges, {p['followups']['chase']} chases"
+          + (f", {len(p['followups']['quiet'])} followed up recently" if p['followups']['quiet'] else ""))
     print(f"completions {p['completions']['count']} on file")
-    print("unrouted   ", ", ".join(f"{c['connector'].split()[0]} {c['count']}" for c in p["unrouted"]["per_connector"]))
     print("crm        ", ", ".join(f"{g['count']} {g['group']}" for g in p["crm"]["groups"]))
