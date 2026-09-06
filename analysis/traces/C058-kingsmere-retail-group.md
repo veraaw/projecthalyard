@@ -25,7 +25,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.044 | 0.248 | Owen Trask (Investor) | direct | Kofi Mkhize — VP Engineering | connections_trask.csv: Kofi Mkhize, VP Engineering at Kingsmere Retail Group, connected 2016-05-20 |
 | 0.033 | 0.187 | Owen Trask (Investor) | alumni | Kofi Mkhize — ex-Kingsmere Retail Group (2012-2019), now VP Engineering at Kingsmere Retail Group | investor_network.csv: Kofi Mkhize prior_employer=Kingsmere Retail Group (2012-2019); connections_trask.csv: connection of Owen Trask since 2016-05-20 |
 
-strongest path, not where it went: Yusuf Petrossian, offer 0.800, at capacity 2/2, holds R1006, R1128; R1070 routed to Dana Whitfield, R1193 routed to Dana Whitfield
+strongest path, not where it went: Yusuf Petrossian, offer 0.800, at capacity 2/2, holds R1006, R1128; R1070 routed to Dana Whitfield, R1171 routed to Dana Whitfield, R1193 unrouted (capacity exhausted this cycle)
 
 ## 4. Chronology (35 events, 8 requests, newest first, as of 2026-09-06)
 

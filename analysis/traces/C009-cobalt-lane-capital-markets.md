@@ -19,6 +19,8 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.080 | 0.496 | Tomás Beckett (Internal) | direct | Greta Petrossian — Head of Automation | connections_beckett.csv: Greta Petrossian, Head of Automation at Cobalt Lane Capital Markets, connected 2025-07-17 |
 | 0.172 | 0.720 | Malik Thackeray-Okonkwo (investor network) | investor_network | CEO / exec team — Meridian Peak Partners portfolio company | investor_network.csv: Malik Thackeray-Okonkwo (Private equity investor), portfolio_company=Cobalt Lane Capital Markets, board_seat=False |
 
+strongest path, not where it went: Malik Thackeray-Okonkwo, investor_network 0.720, 0/2 used this cycle; R1076 routed to Tomás Beckett
+
 ## 4. Chronology (15 events, 2 requests, newest first, as of 2026-09-06)
 
 ```

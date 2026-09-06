@@ -26,7 +26,10 @@ completion_id (<request_id>:<action>:<date>), so the same completion pulled,
 applied or committed twice is a no-op. An `ask_sent` row is an ask that happened
 with nothing logged back yet: it counts as an outcome everywhere
 intro_outcomes.csv does (the request leaves the live queue, the connector's
-slot is spent, asked_date is filed on the request). A `nudged` row (the
+slot is spent, asked_date is filed on the request). On a request whose intro
+already fizzled, an `ask_sent` row dated after that intro is the retry going
+out: it files reasked_date on the outcome, takes the request out of the queue
+again and puts it back on the connector's plate. A `nudged` row (the
 connector agreed and never delivered) or a `chased` row (the connector never
 replied) files nudged_on on the request: the latest follow-up of either kind.
 A `checked_in` row (someone touched the company: CRM account or connector)
@@ -91,7 +94,10 @@ Writes five CSVs (UTF-8, no BOM, CRLF):
   golden/golden_allocation.csv the connector history: one row per (cycle,
                                request_id), every ask ever proposed. Each
                                cycle holds one row per request that was live
-                               and not yet asked when the cycle was decided:
+                               and not yet asked when the cycle was decided,
+                               plus every asked request whose intro fizzled
+                               (no meeting, older than INTRO_LIVE_DAYS) and
+                               has not been re-asked since, back as a retry:
                                the connector it was allocated to, or an
                                exception (capacity exhausted this cycle / no
                                path / company unresolved / already proposed
@@ -231,7 +237,8 @@ OFF_ROSTER_CAPACITY = 2  # monthly asks assumed for anyone askable who is not on
 FATIGUE_DAYS = 60  # asks proposed to a connector in this trailing window count against their capacity
 CAPACITY_EXHAUSTED = "capacity exhausted this cycle"
 STALE_ASK = "already proposed, no outcome logged"  # exception_reason prefix: '<STALE_ASK>: <connector> in <cycle>'
-INTRO_LIVE_DAYS = 60  # an intro this recent (or one that booked a meeting) is still in play: nobody is asked afresh
+INTRO_LIVE_DAYS = 60  # an intro this recent is still in play, as is a meeting until it has gone this long without an opportunity
+                      # while newer requests wait on the company: nobody is asked afresh
 # exception_reason prefix: '<ALREADY_INTRODUCED>: <connector> on <intro_date> (<request_id>[, meeting booked])'
 ALREADY_INTRODUCED = "already introduced"
 # contradicts_log: status_as_filed vs intro_outcomes.csv
@@ -513,20 +520,30 @@ def with_completions(outcomes: list[dict], completions: list[dict]) -> list[dict
     """The ask log as the build reads it: intro_outcomes.csv plus one row per
     request with an `ask_sent` completion and no logged outcome (the earliest ask
     when there are several). Nothing has come back on those yet, so
-    responded / intro_sent / meeting_booked are N."""
+    responded / intro_sent / meeting_booked are N. Every row carries
+    reasked_date: on a logged row whose intro went out, the earliest `ask_sent`
+    completion dated after the intro (the retry being sent), else empty."""
+    asks_of = completions_of(completions, ASKED)
+    rows = []
+    for o in outcomes:
+        reasked = ""
+        if o["intro_sent"].strip() == "Y":
+            after = [completed_on(c) for c in asks_of.get(o["request_id"], []) if completed_on(c) > (o["intro_date"] or "")]
+            reasked = min(after) if after else ""
+        rows.append({**o, "reasked_date": reasked})
     logged = {o["request_id"] for o in outcomes}
     extra = []
-    for rid, asks in completions_of(completions, ASKED).items():
+    for rid, asks in asks_of.items():
         if rid in logged:
             continue
         c = asks[0]
         extra.append({
             "request_id": rid, "connector_asked": c["connector"], "asked_date": completed_on(c),
             "responded": "N", "response_date": "", "intro_sent": "N", "intro_date": "",
-            "meeting_booked": "N", "opportunity_created": "N", "opportunity_value_usd": "",
+            "meeting_booked": "N", "opportunity_created": "N", "opportunity_value_usd": "", "reasked_date": "",
             "source": "completions.csv", "completion_id": c["completion_id"],
         })
-    return outcomes + sorted(extra, key=lambda o: (o["asked_date"], o["request_id"]))
+    return rows + sorted(extra, key=lambda o: (o["asked_date"], o["request_id"]))
 
 
 def money(s: str) -> str:
@@ -781,18 +798,32 @@ class HistorySignals(NamedTuple):
     decided in the trailing FATIGUE_DAYS (rows of the current cycle are about
     to be replaced and are not counted).
     stale: (connector, company_id) -> the most recent prior-cycle row that
-    allocated that company to that connector whose request has no row in
-    intro_outcomes.csv: an ask proposed and never logged as made.
+    allocated that company to that connector with no ask logged since: an ask
+    proposed and never logged as made (see logged_since).
     proposed: request_id -> the most recent prior-cycle row that allocated the
-    request, again with no outcome logged since."""
+    request, again with no ask logged since."""
     fatigue: Counter
     stale: dict[tuple[str, str], dict]
     proposed: dict[str, dict]
 
 
+def logged_since(outcome: dict | None, alloc: dict) -> bool:
+    """Whether an ask was logged after a history row proposed it. A first ask is
+    any outcome row (one dated before the decision means the row was a retry of
+    an already-asked request, so only a reasked_date on or after the decision
+    counts)."""
+    if outcome is None:
+        return False
+    asked, decided = parse_date(outcome["asked_date"] or ""), decided_date(alloc)
+    if asked is None or decided is None or asked >= decided:
+        return True
+    reasked = parse_date(outcome.get("reasked_date", "") or "")
+    return reasked is not None and reasked >= decided
+
+
 def history_signals(history: list[dict], outcomes: list[dict], today: date) -> HistorySignals:
     cycle = today.strftime("%Y-%m")
-    asked = {o["request_id"] for o in outcomes}
+    outcome_of = {o["request_id"]: o for o in outcomes}
     fatigue: Counter = Counter()
     stale: dict[tuple[str, str], dict] = {}
     proposed: dict[str, dict] = {}
@@ -801,31 +832,73 @@ def history_signals(history: list[dict], outcomes: list[dict], today: date) -> H
         d = decided_date(a)
         if d and 0 <= (today - d).days < FATIGUE_DAYS:
             fatigue[a["allocated_to"]] += 1
-        if a["request_id"] not in asked:
+        if not logged_since(outcome_of.get(a["request_id"]), a):
             proposed[a["request_id"]] = a
             if a["company_id"]:
                 stale[(a["allocated_to"], a["company_id"])] = a
     return HistorySignals(fatigue, stale, proposed)
 
 
-def introductions(outcomes: list[dict], company_of: dict[str, str], today: date) -> dict[str, dict]:
+def intro_of(o: dict, today: date) -> dict | None:
+    """The intro an outcome row logged, or None. `live` while it booked a meeting
+    or went out within INTRO_LIVE_DAYS; otherwise it has fizzled. `outcome` says
+    where it stands, in words. The log has no meeting date, so a meeting's age
+    is counted from the intro."""
+    if o["intro_sent"].strip() != "Y":
+        return None
+    d = parse_date(o["intro_date"] or "")
+    days = (today - d).days if d else None
+    booked = o["meeting_booked"].strip() == "Y"
+    opportunity = o["opportunity_created"].strip() == "Y"
+    since = f"in {days} days" if days is not None else "yet"
+    if opportunity:
+        outcome = "opportunity created"
+    elif booked:
+        outcome = f"meeting booked, no opportunity {since}"
+    else:
+        outcome = f"no meeting {since}"
+    return {
+        "request_id": o["request_id"], "connector": o["connector_asked"], "intro_date": o["intro_date"],
+        "days": days, "meeting_booked": booked, "opportunity": opportunity, "outcome": outcome,
+        "live": booked or (days is not None and days <= INTRO_LIVE_DAYS),
+    }
+
+
+def retriable(o: dict, today: date) -> bool:
+    """An asked request that goes back in the queue: its own intro fizzled and
+    nobody has re-asked since (no reasked_date from completions.csv)."""
+    i = intro_of(o, today)
+    return i is not None and not i["live"] and not o.get("reasked_date", "")
+
+
+def meeting_stalled(i: dict, requested_after: list[str]) -> bool:
+    """A meeting that has not become an opportunity within INTRO_LIVE_DAYS while
+    requests filed after the intro wait on the company: the intro no longer
+    holds the company and its open requests go back in the queue."""
+    return (i["meeting_booked"] and not i["opportunity"]
+            and i["days"] is not None and i["days"] > INTRO_LIVE_DAYS
+            and any(d > i["intro_date"] for d in requested_after))
+
+
+def introductions(outcomes: list[dict], company_of: dict[str, str], today: date,
+                  open_since: dict[str, list[str]] | None = None) -> dict[str, dict]:
     """company_id -> the intro that governs new asks on the company. An intro is
     `live` while it booked a meeting or went out within INTRO_LIVE_DAYS: the rep
-    who received it extends it, nobody is asked afresh. With no live intro the
-    newest one has fizzled and is named so the next ask reads as a retry.
-    Companies with no intro sent are absent."""
+    who received it extends it, nobody is asked afresh. A meeting stops holding
+    the company once it has gone INTRO_LIVE_DAYS without an opportunity and
+    `open_since` (company_id -> request_date of each open request) shows
+    requests filed after it (meeting_stalled). With no live intro the newest
+    one has fizzled and is named so the next ask reads as a retry. Companies
+    with no intro sent are absent."""
+    open_since = open_since or {}
     by_company: dict[str, list[dict]] = defaultdict(list)
     for o in outcomes:
         cid = company_of.get(o["request_id"], "")
-        if cid and o["intro_sent"].strip() == "Y":
-            d = parse_date(o["intro_date"] or "")
-            days = (today - d).days if d else None
-            booked = o["meeting_booked"].strip() == "Y"
-            by_company[cid].append({
-                "request_id": o["request_id"], "connector": o["connector_asked"], "intro_date": o["intro_date"],
-                "days": days, "meeting_booked": booked,
-                "live": booked or (days is not None and days <= INTRO_LIVE_DAYS),
-            })
+        i = intro_of(o, today) if cid else None
+        if i:
+            if meeting_stalled(i, open_since.get(cid, [])):
+                i = {**i, "live": False}
+            by_company[cid].append(i)
     out = {}
     for cid, intros in by_company.items():
         live = [i for i in intros if i["live"]]
@@ -1112,7 +1185,10 @@ def path_rank(p: dict, roster: dict, rates: dict, industry: str) -> tuple[int, f
 def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company: dict[str, list[dict]],
              resolved: dict[str, dict], today: date, decided_at: str, signals: HistorySignals) -> dict[str, dict]:
     """request_id -> allocation row for every live request not yet asked,
-    taken from the request file (filed rows plus the ones about to be appended).
+    taken from the request file (filed rows plus the ones about to be appended),
+    and for every asked request whose own intro fizzled with nobody re-asked
+    since (retriable): the intro went nowhere, so the request is back in the
+    queue as a retry rather than left in limbo behind a logged ask.
 
     Each connector has a budget for the cycle (cycle_budget): stated monthly
     capacity (OFF_ROSTER_CAPACITY off the roster) less the asks the history
@@ -1125,9 +1201,13 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     cycle) instead of being allocated or falling through to the next
     connector. A request on a company whose intro is still live
     (introductions) is parked (ALREADY_INTRODUCED, naming the intro) rather
-    than asked afresh: the rep who received the intro extends it. Roster paths
-    are tried before investor_network ones whatever their scores (path_rank).
-    Once every connector with a path is spent the request becomes an exception. Requests
+    than asked afresh: the rep who received the intro extends it. A meeting
+    that has gone INTRO_LIVE_DAYS without an opportunity stops parking the
+    company once requests are filed after it (meeting_stalled): its open
+    requests are routed again, as retries.
+    Roster paths are tried before investor_network ones whatever their scores
+    (path_rank). Once every connector with a path is spent the request becomes
+    an exception. Requests
     allocated to the same connector share a batch_id: one consolidated ask."""
     cycle = today.strftime("%Y-%m")
     fatigue, stale, proposed = signals
@@ -1136,9 +1216,15 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
         budget[n] = cycle_budget(roster, fatigue, n)
 
     asked = {o["request_id"] for o in outcomes}
-    introduced = introductions(outcomes, {rid: rq["company"].company_id for rid, rq in resolved.items() if rq["company"]}, today)
+    retry = {o["request_id"] for o in outcomes if retriable(o, today)}
+    open_since: dict[str, list[str]] = defaultdict(list)
+    for rq in resolved.values():
+        if rq["company"] and rq["facts"]["status_as_filed"] in OPEN_STATUSES:
+            open_since[rq["company"].company_id].append(rq["facts"]["request_date"])
+    introduced = introductions(outcomes, {rid: rq["company"].company_id for rid, rq in resolved.items() if rq["company"]},
+                               today, open_since)
     live = [(rid, rq) for rid, rq in resolved.items()
-            if rq["facts"]["status_as_filed"] in OPEN_STATUSES and rid not in asked]
+            if rq["facts"]["status_as_filed"] in OPEN_STATUSES and (rid not in asked or rid in retry)]
     live.sort(key=lambda t: (URGENCY_RANK.get(t[1]["facts"]["urgency_declared"], 9),
                              -float(t[1]["facts"]["value_usd"] or 0), t[1]["facts"]["request_date"], t[0]))
 

@@ -31,7 +31,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.021 | 0.187 | Owen Trask (Investor) | alumni | Ingrid Marchetti — ex-Harrowgate Health (2015-2018), now Head of Developer Productivity at Harrowgate Health | investor_network.csv: Ingrid Marchetti prior_employer=Harrowgate Health (2015-2018); connections_trask.csv: connection of Owen Trask since 2016-01-02 |
 | 0.000 | 0.800 | Elena Duvall (Advisor) | offer | Head of Platform | slack_threads.jsonl R1136 2026-03-16 Elena Duvall: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
 
-strongest path, not where it went: Elena Duvall, offer 0.800, at capacity 3/3, Healthcare is outside their focus (route score 0.000); R1136 routed to Tomás Beckett, R1153 routed to Tomás Beckett
+strongest path, not where it went: Elena Duvall, offer 0.800, at capacity 3/3, Healthcare is outside their focus (route score 0.000); R1136 unrouted (capacity exhausted this cycle), R1140 unrouted (capacity exhausted this cycle), R1153 routed to Tomás Beckett
 
 ## 4. Chronology (51 events, 9 requests, newest first, as of 2026-09-06)
 
