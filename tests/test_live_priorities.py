@@ -55,6 +55,8 @@ NEW_THREADS = [
         {"ts": "2026-09-04T09:00:00Z", "user": "Bea Marsh",
          "text": "we need Kingsmere Retail Group. email domain is kingsmereretail.com"},
         {"ts": "2026-09-04T09:10:00Z", "user": "Bea Marsh", "text": "+1"}]},
+    {"request_id": "R2004", "messages": [
+        {"ts": "2026-09-04T10:00:00Z", "user": "Bea Marsh", "text": "how about Xanthe Labs"}]},
     {"request_id": "R1034", "messages": [
         {"ts": "2026-05-01T09:00:00Z", "user": "x", "text": "a thread for a request already on file"}]},
 ]
@@ -697,7 +699,7 @@ class ParserParityTest(unittest.TestCase):
         texts += ["how about harrowgate health", "Harrowgate Health?", "how about thornbury financial",
                   "harrowgate health or quillon pharma, whichever is easier",
                   "can we connect with Quillon Pharma? harrowgate health is already a customer", "Not Harrowgate Health",
-                  "how about kingsmere retail group"]
+                  "how about kingsmere retail group", "how about xanthe labs", "Looking for a warm path into Zenner Foods"]
         js = run_node(self.parser, texts, [])["extracted"]
         self.assertEqual(len(js), len(texts))
         known = self.live.known_regex()
@@ -740,16 +742,18 @@ class ThreadsIngestTest(unittest.TestCase):
         return proc.stdout
 
     def test_threads_land_as_the_preview_showed(self):
-        preview = {r["request_id"]: r for r in run_node(lp.Live(AS_OF).parser(), [], NEW_THREADS)["preview"]}
+        live = lp.Live(AS_OF)
+        preview = {r["request_id"]: r for r in run_node(live.parser(), [], NEW_THREADS)["preview"]}
         out = self.build("--threads", str(self.upload))
-        self.assertIn("3 appended", out)
+        self.assertIn("4 appended", out)
         rows = {r["request_id"]: r for r in read_csv(self.requests)}
-        self.assertEqual(len(rows), len(self.before) + 3)
+        self.assertEqual(len(rows), len(self.before) + 4)
         self.assertEqual(rows["R1034"], self.before["R1034"], "a thread for a filed request changes no filed fact")
 
-        for rid, first in (("R2001", NEW_THREADS[0]), ("R2002", NEW_THREADS[1]), ("R2003", NEW_THREADS[2])):
+        for rid, first in (("R2001", NEW_THREADS[0]), ("R2002", NEW_THREADS[1]), ("R2003", NEW_THREADS[2]), ("R2004", NEW_THREADS[3])):
             r = rows[rid]
-            self.assertEqual(r["company_id"], preview[rid]["company_id"], rid)
+            if rid != "R2004":   # the build mints the network-only company's id; the preview has none to show
+                self.assertEqual(r["company_id"], preview[rid]["company_id"], rid)
             self.assertEqual(r["requested_by"], first["messages"][0]["user"])
             self.assertEqual(r["request_date"], first["messages"][0]["ts"][:10])
             self.assertEqual(r["raw_ask"], first["messages"][0]["text"])
@@ -767,11 +771,29 @@ class ThreadsIngestTest(unittest.TestCase):
         for s in reach:
             self.assertNotIn("new.jsonl R1034", s["evidence"])
 
+        # a bare network-only name: the preview showed the company the network reaches, with
+        # no id and no CRM account, and the paths it would get; the build creates it and files them
+        pv = preview["R2004"]
+        self.assertEqual((pv["company_id"], pv["network"], pv["company_name"]), ("", "network:xanthelabs", "Xanthe Labs"))
+        self.assertIn("no CRM account, create one (see CRM Updates)", pv["flags"])
+        xanthe = rows["R2004"]
+        self.assertTrue(xanthe["company_id"])
+        companies = {c["company_id"]: c for c in read_csv(self.root / "golden" / "golden_companies.csv")}
+        self.assertEqual((companies[xanthe["company_id"]]["company_name"], companies[xanthe["company_id"]]["crm_account_ids"]),
+                         ("Xanthe Labs", ""))
+        filed = [s for s in reach if s["company_id"] == xanthe["company_id"]]
+        shown = live.network_only["network:xanthelabs"]["paths"]
+        self.assertEqual(len(filed), len(shown))
+        self.assertEqual({(s["connector"], s["reach_type"], s["contact_name"], s["strength"]) for s in filed},
+                         {(s["connector"], s["reach_type"], s["contact_name"], s["strength"]) for s in shown})
+        best, _ = bg.best_route(filed, live.roster, live.rates, "")
+        self.assertEqual(pv["route_to"], best["connector"])
+
         again = self.build()
-        self.assertIn("3 not in dataset/intro_requests.csv and carried forward", again)
+        self.assertIn("4 not in dataset/intro_requests.csv and carried forward", again)
         self.assertIn("0 appended", again)
         after = {r["request_id"]: r for r in read_csv(self.requests)}
-        for rid in ("R2001", "R2002", "R2003"):
+        for rid in ("R2001", "R2002", "R2003", "R2004"):
             self.assertEqual(after[rid], rows[rid], f"{rid} survives a rebuild without --threads")
 
 

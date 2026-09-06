@@ -56,6 +56,7 @@ STAGE_WEIGHT = {
     "Closed Lost": 0.1,
 }
 NO_CRM_WEIGHT = 0.25   # a requested company with no CRM account
+NETWORK_PATHS_SHOWN = 20  # paths exported per network-only company (they can have hundreds; the panel ranks the best)
 AGE_CAP_DAYS = 365     # age factor = 1 + min(days waiting, cap) / cap  (1.0 .. 2.0)
 TOP_N = 5
 NUDGE_QUIET_DAYS = 14  # a bottleneck nudged this recently is off the list until the quiet period passes
@@ -96,6 +97,7 @@ ROUTE_PRESETS = [
     {"label": "No path", "text": "any connections into Halcyon Grid?"},
     {"label": "Fund or customer", "text": "who do we know at Thornbury?"},
     {"label": "No CRM record", "text": "any connections into Kingsmere Retail Group? we're up against a renewal window"},
+    {"label": "Network only", "text": "any way into Zenner Foods?"},
 ]
 
 
@@ -215,6 +217,38 @@ class Live:
         for r in self.requests:
             if r["company_id"]:
                 self.by_company[r["company_id"]].append(r)
+        self.network_only = self.network_only_companies()
+
+    def network_only_companies(self) -> dict[str, dict]:
+        """Companies the network reaches (connections_*.csv, investor_network.csv)
+        that are on nobody's file: not in the CRM, never requested. The build keeps
+        them out of supply_reach.csv until a request names one; then the next
+        rebuild creates the company (no CRM account) and every one of these paths
+        lands. Keyed 'network:<strict name>', each with the spellings seen and its
+        paths as supply_reach.csv rows, so the front page can show the routing a
+        request about the company would get today."""
+        funds = [inv["fund"] for inv in bg.read_csv(DATASET / "investor_network.csv")]
+        on_file = bg.Registry(list(self.accounts.values()), funds)
+        for c in self.companies.values():
+            for n in [c["company_name"], *bar(c["also_known_as"])]:
+                on_file.resolve_or_create(n, c["domain"])
+        fresh = bg.Registry([], funds)  # merges the spellings of one unrequested company as the build would
+        people = bg.network_people(self.roster)
+        by_company: dict[bg.Company, list[dict]] = defaultdict(list)
+        for p in bg.network_reach(self.roster, self.today):
+            if on_file.resolve(p["company"])[1] != "unmatched":
+                continue
+            c, _ = fresh.resolve_or_create(p["company"])
+            if c is not None:
+                by_company[c].append(p)
+        out = {}
+        for c, paths in by_company.items():
+            rows = [bg.supply_row(self.roster, self.rates, people, p["connector"], "", c.name, "", p["kind"], p["contact"],
+                                  p["title"], p["observed"], p["strength"], p["evidence"], board_seat=p["board_seat"])
+                    for p in paths]
+            rows.sort(key=lambda r: (r["reach_type"], r["connector"], r["contact_name"], r["evidence"]))
+            out[f"network:{gr.normalize_strict(c.name)}"] = {"name": c.name, "names": sorted(c.names, key=str.lower), "paths": rows}
+        return out
 
     # -- helpers --------------------------------------------------------------
     def industry(self, cid: str) -> str:
@@ -232,9 +266,13 @@ class Live:
         (bg.path_rank: roster before investor_network, then route score = strength x
         focus fit x delivery rate), each with the one line of reasoning the route
         panel shows."""
-        ind = self.industry(cid)
+        return self.rank_paths(self.paths.get(cid, []), self.industry(cid))
+
+    def rank_paths(self, rows: list[dict], ind: str) -> list[dict]:
+        """ranked_paths for any supply_reach.csv-shaped rows (a company's, or a
+        network-only company's from network_only_companies)."""
         out = []
-        for p in sorted(self.paths.get(cid, []), key=lambda p: bg.path_rank(p, self.roster, self.rates, ind)):
+        for p in sorted(rows, key=lambda p: bg.path_rank(p, self.roster, self.rates, ind)):
             n = p["connector"]
             fit, rate = self.fit(n, ind), self.rate(n)
             r = self.roster.get(n)
@@ -281,12 +319,12 @@ class Live:
         the company's one $ (company_value: CRM ARR potential, else the latest request
         with one; a Slack message carries none); age is 1.0 (posted today); reps waiting
         counts the requesters already live on the company, at least one (the poster)."""
-        c = self.companies[cid]
-        deal, src = self.company_value(cid)
+        c = self.companies.get(cid)
+        deal, src = self.company_value(cid) if c else (0.0, "")
         source = {"crm": "CRM ARR potential", "deal": "latest request on the company with a deal value"}.get(src, "no deal value on file")
         comp = {
             "deal_value_musd": deal / 1e6,
-            "stage_weight": STAGE_WEIGHT.get(c["stage"], NO_CRM_WEIGHT) if c["crm_account_ids"] else NO_CRM_WEIGHT,
+            "stage_weight": STAGE_WEIGHT.get(c["stage"], NO_CRM_WEIGHT) if c and c["crm_account_ids"] else NO_CRM_WEIGHT,
             "age": 1.0,
             "reps_waiting": max(1, len(self.live_requesters(cid))),
         }
@@ -1002,12 +1040,14 @@ class Live:
 
     # -- 10. upload preview rules ----------------------------------------------
     def known_regex(self, res: gr.Resolver | None = None) -> re.Pattern:
-        """What the build's registry scans a message for: every CRM and fund spelling
-        plus every company on file with no CRM account (see Registry.known_names)."""
+        """What the build's registry scans a message for: every CRM and fund spelling,
+        every company on file with no CRM account, and every company the network
+        reaches (see Registry.known_names)."""
         res = res or load_resolver()
         return gr.names_regex([*(n for e in res.entities for n in e.names),
                                *(n for c in self.companies.values() if not c["crm_account_ids"]
-                                 for n in [c["company_name"], *bar(c["also_known_as"])])])
+                                 for n in [c["company_name"], *bar(c["also_known_as"])]),
+                               *bg.network_company_names(self.roster)])
 
     def parser(self) -> dict:
         """The build's parser, as data. The browser applies these tables with the
@@ -1031,6 +1071,13 @@ class Live:
             for n in [c["company_name"], *bar(c["also_known_as"])]:
                 known_no_crm.setdefault(gr.normalize_strict(n), cid)
                 known_no_crm.setdefault(gr.normalize(n), cid)
+        # companies only the network knows: not on file, so the build would create
+        # them (no CRM account) and file these paths on the next rebuild
+        known_network = {}
+        for key, net in self.network_only.items():
+            for n in net["names"]:
+                known_network.setdefault(gr.normalize_strict(n), key)
+                known_network.setdefault(gr.normalize(n), key)
 
         # fund-or-customer collisions: a stem (8+ chars) that is a prefix of both a fund's
         # and a customer's name — "Thornbury" for Thornbury Financial + Thornbury Equity.
@@ -1060,12 +1107,26 @@ class Live:
             companies[cid] = {
                 **self.company_ref(cid), "industry": ind, "stage": c["stage"], "crm": bool(c["crm_account_ids"]),
                 "owner": c["owner"], "arr_fmt": money(usd(acct["arr_potential_usd"])) if acct else "",
-                "paths": paths, "priority": self.route_priority(cid),
+                "paths": paths, "path_count": len(paths), "priority": self.route_priority(cid),
                 "best": {"connector": best["connector"], "reach_type": best["reach_type"], "contact": best["contact"],
                          "score": best["score"], "label": best["label"], "strength": best["strength"], "fit": best["fit"],
                          "rate": best["rate"], "capacity_left": best["capacity_left"]} if best else None,
                 "offer_score": {n: round(bg.PATH_BASE["offer"] * self.fit(n, ind) * self.rate(n), 3) for n in askable},
                 "offer_fit": {n: round(self.fit(n, ind), 2) for n in askable},
+                "offer_score_unknown": round(bg.PATH_BASE["offer"] * 0.7 * bg.PRIOR_RATE, 3),
+            }
+        for key, net in self.network_only.items():
+            paths = self.rank_paths(net["paths"], "")
+            best = paths[0] if paths else None
+            companies[key] = {
+                "company_id": "", "company_name": net["name"], "href": "", "network": True, "names": net["names"],
+                "industry": "", "stage": "", "crm": False, "owner": "", "arr_fmt": "",
+                "paths": paths[:NETWORK_PATHS_SHOWN], "path_count": len(paths), "priority": self.route_priority(key),
+                "best": {"connector": best["connector"], "reach_type": best["reach_type"], "contact": best["contact"],
+                         "score": best["score"], "label": best["label"], "strength": best["strength"], "fit": best["fit"],
+                         "rate": best["rate"], "capacity_left": best["capacity_left"]} if best else None,
+                "offer_score": {n: round(bg.PATH_BASE["offer"] * 0.7 * self.rate(n), 3) for n in askable},
+                "offer_fit": {n: 0.7 for n in askable},
                 "offer_score_unknown": round(bg.PATH_BASE["offer"] * 0.7 * bg.PRIOR_RATE, 3),
             }
         return {
@@ -1085,6 +1146,7 @@ class Live:
             },
             "route_presets": ROUTE_PRESETS,
             "known_no_crm": known_no_crm,
+            "known_network": known_network,
             # an offer on a company the build has never seen: no industry, so fit is 0.7 for everyone
             "offer_score_no_industry": {n: round(bg.PATH_BASE["offer"] * 0.7 * self.rate(n), 3) for n in askable},
             "offer_score_unknown": round(bg.PATH_BASE["offer"] * 0.7 * bg.PRIOR_RATE, 3),

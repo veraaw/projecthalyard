@@ -45,6 +45,8 @@ CASES = {
     "two bare names": "harrowgate health or quillon pharma, whichever is easier",
     "cue beats bare name": "can we connect with Quillon Pharma? harrowgate health is already a customer",
     "bare no-CRM name": "how about kingsmere retail group",
+    "network-only company": "Looking for a warm path into Zenner Foods",
+    "bare network-only name": "how about xanthe labs",
 }
 
 
@@ -270,6 +272,10 @@ class ExportedRulesTest(unittest.TestCase):
         self.assertIn("i", self.P["known"]["flags"])
         self.assertIsNotNone(self.live.known_regex().search("kingsmere retail group"), "companies on file with no CRM account are scanned for too")
         self.assertIsNone(self.res.names_regex().search("kingsmere retail group"))
+        self.assertIsNotNone(self.live.known_regex().search("zenner foods"), "companies only the network reaches are scanned for too")
+        self.assertIsNone(self.res.names_regex().search("zenner foods"))
+        self.assertEqual(sorted(self.live.known_regex().findall("Xanthe Labs, Zenner Foods and Quillon Pharma"), key=str.lower),
+                         ["Quillon Pharma", "Xanthe Labs", "Zenner Foods"])
         self.assertEqual(self.P["known_cue"], gp.KNOWN_CUE)
         self.assertEqual(self.P["known_score"], gp.KNOWN_SCORE)
 
@@ -301,6 +307,60 @@ class ExportedRulesTest(unittest.TestCase):
             keys = [(p["reach_type"] == bg.INVESTOR_NETWORK, -p["score"]) for p in e["paths"]]
             self.assertEqual(keys, sorted(keys), f"{cid}: roster paths first, then by route score")
 
+    def test_network_only_companies_are_exported(self):
+        """A company the network reaches but nobody has filed is in the payload under a
+        'network:' key: no company_id, no CRM account, its best paths ranked as the
+        build would rank them once a request creates the company."""
+        from dashboard.live_priorities import NETWORK_PATHS_SHOWN
+        net = {k: v for k, v in self.P["companies"].items() if k.startswith("network:")}
+        self.assertEqual(set(net), set(self.live.network_only))
+        self.assertIn("network:zennerfoods", net)
+        on_file = {gr.normalize_strict(n) for c in self.live.companies.values()
+                   for n in [c["company_name"], *c["also_known_as"].split("|")]}
+        reached = {gr.normalize_strict(n) for n in bg.network_company_names(self.live.roster)}
+        for key, e in net.items():
+            with self.subTest(key):
+                self.assertTrue(e["network"])
+                self.assertFalse(e["crm"])
+                self.assertEqual((e["company_id"], e["href"], e["industry"], e["stage"]), ("", "", "", ""))
+                self.assertEqual(self.res.resolve(e["company_name"]).method, "unmatched", "not a CRM account or a fund")
+                self.assertNotIn(gr.normalize_strict(e["company_name"]), on_file, "not on file from an earlier ask")
+                self.assertIn(gr.normalize_strict(e["company_name"]), reached, "someone in the network reaches it")
+                for n in e["names"]:
+                    self.assertEqual(self.P["known_network"][gr.normalize_strict(n)], key)
+                    self.assertNotIn(gr.normalize_strict(n), self.P["known_no_crm"])
+                paths = self.live.network_only[key]["paths"]
+                self.assertEqual(e["path_count"], len(paths))
+                self.assertEqual(len(e["paths"]), min(len(paths), NETWORK_PATHS_SHOWN))
+                keys = [(p["reach_type"] == bg.INVESTOR_NETWORK, -p["score"]) for p in e["paths"]]
+                self.assertEqual(keys, sorted(keys), f"{key}: roster paths first, then by route score")
+                best, _ = bg.best_route(paths, self.live.roster, self.live.rates, "")
+                self.assertEqual((e["best"]["connector"], e["best"]["reach_type"], e["best"]["contact"]),
+                                 (best["connector"], best["reach_type"], best["contact_name"]))
+                self.assertEqual(e["priority"]["request_priority"], 0)
+                self.assertEqual(e["priority"]["components"]["stage_weight"], self.P["no_crm_weight"])
+        # every network company that is neither a CRM account nor on file is exported
+        for n in bg.network_company_names(self.live.roster):
+            if self.res.resolve(n).method == "unmatched" and gr.normalize_strict(n) not in on_file:
+                self.assertIn(gr.normalize_strict(n), self.P["known_network"], n)
+
+    def test_network_only_company_routes_to_its_best_path(self):
+        for name in ("network-only company", "bare network-only name"):
+            with self.subTest(name):
+                js = self.js[CASES[name]]
+                self.assertEqual(js["status"], "routed")
+                self.assertTrue(js["network"])
+                self.assertFalse(js["crm"])
+                self.assertEqual(js["company_id"], "")
+                key = self.P["known_network"][gr.normalize_strict(js["company_name"])]
+                best, _ = bg.best_route(self.live.network_only[key]["paths"], self.live.roster, self.live.rates, "")
+                self.assertEqual((js["top"]["connector"], js["top"]["reach_type"], js["top"]["contact"]),
+                                 (best["connector"], best["reach_type"], best["contact_name"]))
+                self.assertGreater(js["path_count"], len(js["paths"]))
+        self.assertEqual(self.js[CASES["network-only company"]]["company_name"], "Zenner Foods")
+        self.assertEqual(self.js[CASES["bare network-only name"]]["company_name"], "Xanthe Labs")
+        self.assertEqual(self.js_extract[CASES["bare network-only name"]]["target"], "xanthe labs")
+
     def test_same_target_as_the_python_parser(self):
         scan = self.live.known_regex()
         for name, text in CASES.items():
@@ -320,15 +380,19 @@ class ExportedRulesTest(unittest.TestCase):
                     self.assertIsNone(js["top"])
                 elif r.entity_id:
                     self.assertEqual(js["company_id"], r.entity_id)
-                else:   # unmatched by the resolver: a company on file with no CRM account, or new
+                else:   # unmatched by the resolver: a company on file with no CRM account, one only the network reaches, or new
                     name = gr.domain_stem(ex.target.text) if ex.target.is_domain else ex.target.text
                     known = self.P["known_no_crm"]
                     self.assertEqual(js["company_id"], known.get(gr.normalize_strict(name)) or known.get(gr.normalize(name), ""))
+                    net = self.P["known_network"]
+                    self.assertEqual(js["network"], not js["company_id"] and bool(net.get(gr.normalize_strict(name)) or net.get(gr.normalize(name))))
 
     def test_same_top_connector_as_the_build(self):
         for name, text in CASES.items():
             with self.subTest(name):
                 js = self.js[text]
+                if js["network"]:
+                    continue   # test_network_only_company_routes_to_its_best_path
                 if not js["company_id"]:
                     self.assertIsNone(js["top"])
                     continue
@@ -339,7 +403,8 @@ class ExportedRulesTest(unittest.TestCase):
     def test_presets_hit_the_cases_they_are_named_for(self):
         want = {"Distractor": ("routed", "Ironvale Steel"), "Bridge": ("routed", "Apex Logistics"),
                 "Domain only": ("routed", "Bexley Bioworks"), "No path": ("no-path", "Halcyon Grid"),
-                "Fund or customer": ("refused", ""), "No CRM record": ("routed", "Kingsmere Retail Group")}
+                "Fund or customer": ("refused", ""), "No CRM record": ("routed", "Kingsmere Retail Group"),
+                "Network only": ("routed", "Zenner Foods")}
         self.assertEqual({p["label"] for p in self.presets}, set(want))
         for p in self.presets:
             js = self.js[p["text"]]
@@ -353,6 +418,10 @@ class ExportedRulesTest(unittest.TestCase):
         refused = self.js[next(p["text"] for p in self.presets if p["label"] == "Fund or customer")]
         self.assertEqual(len(refused["candidates"]), 2)
         self.assertEqual(refused["paths"], [])
+        network = self.js[next(p["text"] for p in self.presets if p["label"] == "Network only")]
+        self.assertTrue(network["network"])
+        self.assertFalse(network["crm"])
+        self.assertIsNotNone(network["top"])
 
 
 if __name__ == "__main__":
