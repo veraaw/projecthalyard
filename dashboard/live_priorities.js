@@ -482,6 +482,10 @@ const LP = (function () {
   }
 
   // ------------------------------------------------------------------ render
+  // a connector never asked has no rate of their own: the scoring assumes the network average (the prior)
+  const rateKpi = c => c.asks_all_time
+    ? `<div class="kpi"><div class="v">${Math.round(c.delivery_rate * 100)}%</div><div class="l">delivery rate</div><div class="s">${c.intros_all_time} intros / ${c.asks_all_time} asks, shrunk toward the ${Math.round(c.prior_rate * 100)}% network average</div></div>`
+    : `<div class="kpi"><div class="v words">no track record</div><div class="l">delivery rate</div><div class="s">never asked; scoring assumes the ${Math.round(c.prior_rate * 100)}% network average</div></div>`;
   const comp = (r, k, fmt) => `<span class="c" title="${esc(k.replace(/_/g, ' '))}">${fmt(r.components[k])}</span>`;
   const FM_HEAD = '<th class="num">expected value</th><th>request priority<br><span class="fm">deal $M × stage × age × reps</span></th><th>connector score<br><span class="fm">path × fit × rate × capacity</span></th>';
   const fmCells = r => `<td class="num ev">${r.expected_value.toFixed(3)}</td><td class="parts"><b>${r.request_priority.toFixed(3)}</b> = ${comp(r, 'deal_value_musd', v => v.toFixed(2))} × ${comp(r, 'stage_weight', v => v.toFixed(2))} × ${comp(r, 'age', v => v.toFixed(2))} × ${comp(r, 'reps_waiting', v => v)}<br><span class="foot">${r.days_waiting} days waiting</span></td><td class="parts"><b>${r.connector_score.toFixed(3)}</b> = ${comp(r, 'path_strength', v => v.toFixed(2))} × ${comp(r, 'focus_fit', v => v.toFixed(2))} × ${comp(r, 'delivery_rate', v => v.toFixed(2))} × ${comp(r, 'capacity_left', v => v.toFixed(2))}<br><span class="foot">${esc(r.capacity_note)}</span></td>`;
@@ -584,7 +588,7 @@ const LP = (function () {
       <div class="kpis"><div class="kpi"><div class="v">${cap}</div><div class="l">${c.capacity ? 'capacity used this cycle' : 'asks this cycle'}</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated${c.capacity ? ` · ${c.idle} idle` : ''}</div></div>
         <div class="kpi"><div class="v">${c.intros_this_cycle}</div><div class="l">intros made this cycle</div><div class="s">${esc(now.cycle)} · ${c.capacity ? `${pctOf(now.capacity_pct)} of capacity used` : 'no stated capacity'}</div></div>
         <div class="kpi"><div class="v">${c.intros_all_time}</div><div class="l">cumulative intros</div><div class="s">since ${esc(c.cycles[0].cycle)}, over ${c.asks_all_time} asks</div></div>
-        <div class="kpi"><div class="v">${Math.round(c.delivery_rate * 100)}%</div><div class="l">delivery rate</div><div class="s">${c.intros_all_time} intros / ${c.asks_all_time} asks, shrunk toward the prior</div></div>
+        ${rateKpi(c)}
         <div class="kpi"><div class="v">${c.ranked_count}</div><div class="l">requests on their list</div><div class="s">${esc(c.ranked_value_fmt)} of deal value</div></div>
         <div class="kpi ${c.sitting_on.length ? 'warn' : ''}"><div class="v">${c.sitting_on.length}</div><div class="l">already sitting on</div><div class="s">asked, live, no intro yet</div></div></div>`
       + (c.top.length ? priorityTable(c.top, X, state, 'rank_here', false) : `<p class="empty">nothing routed to ${esc(c.connector)} this cycle</p>`)
@@ -687,7 +691,7 @@ const LP = (function () {
       + tabs('connectors', D.connectors.map(c => ({ label: c.connector, n: `${c.used}/${c.capacity}`, c })), ({ c }) => `
         <p class="lede">${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''} · <a href="${esc(c.page)}">their top 5</a><br><span class="foot">${esc(c.notes)}</span></p>
         <div class="kpis"><div class="kpi"><div class="v">${c.used} / ${c.capacity}</div><div class="l">capacity used this cycle</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated · ${c.idle} idle</div></div>
-          <div class="kpi"><div class="v">${Math.round(c.delivery_rate * 100)}%</div><div class="l">delivery rate</div><div class="s">${c.intros_all_time} intros / ${c.asks_all_time} asks, shrunk toward the prior</div></div>
+          ${rateKpi(c)}
           <div class="kpi ${c.sitting_on.length ? 'warn' : ''}"><div class="v">${c.sitting_on.length}</div><div class="l">already sitting on</div><div class="s">asked, live, no intro yet</div></div>
           <div class="kpi"><div class="v">${c.queue.length}</div><div class="l">in this cycle's ask</div><div class="s">${c.queue.length ? 'one consolidated batch' : 'nothing allocated'}</div></div></div>`
         + composeBlock(c.batch_ask, `ask-${c.slug}`, `tick <i>ask sent</i> under <a href="#top">Top Priorities</a> or on <a href="${esc(c.page)}">their page</a> once it has gone out`)
@@ -698,12 +702,15 @@ const LP = (function () {
 
     // requests the allocator could not place this cycle, by reason
     const EXCEPTION_TITLE = { 'no path to this company in the network': 'no direct path to this company in the network', 'already introduced': 'already introduced — extend the intro' };
-    const EXCEPTION_NOTE = { 'no path to this company in the network': 'Not routable this cycle (sourcing issue vs. allocation)', 'already introduced': 'Someone is already in the door; the rep introduced asks for the other names. Listed under Already Introduced.' };
-    sec.exceptions = `<section id="exceptions">${fold(`Unrouted Exceptions <span class="foot">${plural(A.exception_count, 'request')} not allocated in cycle ${esc(A.cycle)}: ${A.exceptions.map(e => `${e.count} ${esc((EXCEPTION_TITLE[e.reason] || e.reason).replace(' to this company in the network', ''))}`).join(', ')} · from <code>golden_allocation.csv</code></span>`)}`;
+    const EXCEPTION_NOTE = { 'no path to this company in the network': 'Not routable this cycle (sourcing issue vs. allocation)' };
+    const parked = A.exceptions.find(e => e.reason === 'already introduced');
+    sec.exceptions = `<section id="exceptions">${fold(`Unrouted Exceptions <span class="foot">${plural(A.exception_count, 'request')} not allocated in cycle ${esc(A.cycle)}: ${A.exceptions.map(e => `${e.count} ${esc((EXCEPTION_TITLE[e.reason] || e.reason).replace(' to this company in the network', ''))}`).join(', ')} · from <code>golden_allocation.csv</code></span>`)}`
+      + (parked ? `<p class="lede">${plural(parked.count, 'request')} · ${esc(parked.value_fmt)} parked behind a live intro → <a href="#introduced">Already Introduced</a>, not repeated here</p>` : '');
     const cover = sc => !sc ? '' : sc.connectors.length
       ? sc.connectors.map(c => `<b>${esc(c.connector)}</b> <span class="foot">${c.asked ? `asked ${esc(c.asked)}` : 'never asked'}</span>`).join('<br>')
       : `<span class="foot">${esc(sc.note)}</span>`;
     for (const e of A.exceptions) {
+      if (e === parked) continue;
       const withStage = !e.reason.startsWith('company'), noPath = e.reason.startsWith('no path');
       sec.exceptions += `<h3>${esc(EXCEPTION_TITLE[e.reason] || e.reason)} <span class="foot">${e.count} · ${esc(e.value_fmt)}</span></h3>${EXCEPTION_NOTE[e.reason] ? `<p class="foot">${esc(EXCEPTION_NOTE[e.reason])}</p>` : ''}<table><thead><tr><th>request</th><th>company</th>${withStage ? '<th>CRM stage</th>' : ''}<th>wanted</th><th>who</th><th>value</th><th>urgency</th><th>status</th>${noPath ? '<th>who covers this sector</th>' : ''}<th>${e.reason.startsWith('capacity') ? 'best path (no slot)' : e.reason.startsWith('company') ? 'as written' : 'note'}</th></tr></thead><tbody>`
         + e.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}</td><td>${co(r)}</td>${withStage ? `<td>${esc(r.crm_stage)}</td>` : ''}<td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td><td>${esc(r.value_fmt)}</td><td>${esc(r.urgency)}</td><td>${esc(r.status)}</td>${noPath ? `<td>${cover(r.sector_cover)}</td>` : ''}<td class="foot">${esc(r.detail || r.best_path || (e.reason.startsWith('company') ? r.company_as_written || '(nothing parseable)' : 'nobody in the network reaches them'))}</td></tr>`).join('')
