@@ -7,15 +7,18 @@
 
 ## 2. Where the files disagree
 
-- R1198: filed "Closed - no path" but supply_reach.csv has 12 paths into Quillon Pharma
-- R1178: filed "Closed - no path" but supply_reach.csv has 12 paths into Quillon Pharma
+- R1178: filed "Closed - no path" but supply_reach.csv has 15 paths into Quillon Pharma
+- R1198: filed "Closed - no path" but supply_reach.csv has 15 paths into Quillon Pharma
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
+| 0.172 | 0.720 | Matteo Ferreira-Yarrow (investor network) | investor_network | CEO / exec team — Ironvale Partners portfolio company | investor_network.csv: Matteo Ferreira-Yarrow (Private equity investor), portfolio_company=Quillon Pharma, board_seat=False |
+| 0.172 | 0.720 | Otto Cathcart-Brenneman (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Otto Cathcart-Brenneman (Venture capital investor), portfolio_company=Quillon Pharma, board_seat=False |
+| 0.172 | 0.720 | Xiomara Achterberg-Norrington (investor network) | investor_network | CEO / exec team — Northgate Growth portfolio company | investor_network.csv: Xiomara Achterberg-Norrington (Growth equity investor), portfolio_company=Quillon Pharma, board_seat=False |
 | 0.096 | 0.600 | Tomás Beckett (Internal) | direct | Renata Petrossian — Chief Data Officer | connections_beckett.csv: Renata Petrossian, Chief Data Officer at Quillon Pharma, connected 2026-10-13 |
 | 0.089 | 0.573 | Marcus Aldridge (Advisor) | direct | Renata Petrossian — Chief Data Officer | connections_aldridge.csv: Renata Petrossian, Chief Data Officer at Quillon Pharma, connected 2025-02-05 |
 | 0.062 | 0.546 | Owen Trask (Investor) | direct | Mei Ferreira — Chief Information Officer | connections_trask.csv: Mei Ferreira, Chief Information Officer at Quillon Pharma, connected 2024-08-05 |
@@ -29,31 +32,31 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.000 | 0.269 | Elena Duvall (Advisor) | direct | Kian Merriweather — VP Engineering | connections_duvall.csv: Kian Merriweather, VP Engineering at Quillon Pharma, connected 2017-10-15 |
 | 0.000 | 0.202 | Elena Duvall (Advisor) | alumni | Kian Merriweather — ex-Quillon Pharma (2012-2018), now VP Engineering at Quillon Pharma | investor_network.csv: Kian Merriweather prior_employer=Quillon Pharma (2012-2018); connections_duvall.csv: connection of Elena Duvall since 2017-10-15 |
 
-## 4. Chronology (10 events, 2 requests, as of 2026-09-06)
+## 4. Chronology (10 events, 2 requests, newest first, as of 2026-09-06)
 
 ```
-!! 2025-10-07  intro_requests.csv   Sloane Fairweather   R1198 raised by Sloane Fairweather (Strategic AE): wants Chief Operating Officer, $750,000, Critical urgency, filed "Closed - no path"  [12 paths in supply_reach.csv]
-   2025-10-07  slack_threads.jsonl  Sloane Fairweather   R1198 slack: "who do we know at Quillon Pharma? Chief Operating Officer would be ideal but I'll take anyone senior"
-   2025-10-09  slack_threads.jsonl  Sloane Fairweather   R1198 slack: "no idea sorry"
-   2025-10-10  slack_threads.jsonl  Curtis Hartigan      R1198 slack: "did we not already lose this one?"
-   2025-10-11  slack_threads.jsonl  Yusuf Petrossian     R1198 slack: "no idea sorry"
-
-!! 2026-05-16  intro_requests.csv   Bertrand Vandermolen R1178 raised by Bertrand Vandermolen (AE, EMEA): wants SVP Digital, $750,000, High urgency, filed "Closed - no path"  [12 paths in supply_reach.csv]
-   2026-05-16  slack_threads.jsonl  Bertrand Vandermolen R1178 slack: "need help getting to Quillon Pharma. Tanvi Eastcott-Lindqvist is the SVP Digital there, cold outbound is going nowhere"
-   2026-05-16  slack_threads.jsonl  Nadia Okonkwo        R1178 slack: "did we not already lose this one?"
    2026-05-17  slack_threads.jsonl  Yusuf Petrossian     R1178 slack: "what's the deal size here?"
+   2026-05-16  slack_threads.jsonl  Nadia Okonkwo        R1178 slack: "did we not already lose this one?"
+   2026-05-16  slack_threads.jsonl  Bertrand Vandermolen R1178 slack: "need help getting to Quillon Pharma. Tanvi Eastcott-Lindqvist is the SVP Digital there, cold outbound is going nowhere"
+!! 2026-05-16  intro_requests.csv   Bertrand Vandermolen R1178 raised by Bertrand Vandermolen (AE, EMEA): wants SVP Digital, $750,000, High urgency, filed "Closed - no path"  [15 paths in supply_reach.csv]
+
+   2025-10-11  slack_threads.jsonl  Yusuf Petrossian     R1198 slack: "no idea sorry"
+   2025-10-10  slack_threads.jsonl  Curtis Hartigan      R1198 slack: "did we not already lose this one?"
+   2025-10-09  slack_threads.jsonl  Sloane Fairweather   R1198 slack: "no idea sorry"
+   2025-10-07  slack_threads.jsonl  Sloane Fairweather   R1198 slack: "who do we know at Quillon Pharma? Chief Operating Officer would be ideal but I'll take anyone senior"
+!! 2025-10-07  intro_requests.csv   Sloane Fairweather   R1198 raised by Sloane Fairweather (Strategic AE): wants Chief Operating Officer, $750,000, Critical urgency, filed "Closed - no path"  [15 paths in supply_reach.csv]
 
 !! 2025-07-07  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1019  [426 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network
 
-5 people from investor_network.csv, 0 askable as investor_network paths, 3 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+5 people from investor_network.csv, 3 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
 
 | person | role | fund | board seat | source | warm path |
 |---|---|---|---|---|---|
 | Casper Bellinger | Operator (work history) |  | no | prior_employer | via Aldridge, Raghunathan |
 | Kian Merriweather | Operator (work history) |  | no | prior_employer | via Duvall, Trask |
-| Matteo Ferreira-Yarrow | Private equity investor | Ironvale Partners | no | portfolio_company | no warm path |
-| Otto Cathcart-Brenneman | Venture capital investor | Ashgrove Capital | no | portfolio_company | no warm path |
-| Xiomara Achterberg-Norrington | Growth equity investor | Northgate Growth | no | portfolio_company | no warm path |
+| Matteo Ferreira-Yarrow | Private equity investor | Ironvale Partners | no | portfolio_company | investor_network path (section 3, 10% haircut) |
+| Otto Cathcart-Brenneman | Venture capital investor | Ashgrove Capital | no | portfolio_company | investor_network path (section 3, 10% haircut) |
+| Xiomara Achterberg-Norrington | Growth equity investor | Northgate Growth | no | portfolio_company | investor_network path (section 3, 10% haircut) |

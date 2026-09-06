@@ -7,33 +7,35 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
+| 0.215 | 0.900 | Espen Rushworth-Oyelaran (investor network) | investor_network (board seat) | CEO / exec team — Silverbrook Capital board seat | investor_network.csv: Espen Rushworth-Oyelaran (Venture capital investor), portfolio_company=Glasspoint Health, board_seat=True |
+| 0.172 | 0.720 | Priya Crowther-Kirkbride (investor network) | investor_network | CEO / exec team — Northgate Growth portfolio company | investor_network.csv: Priya Crowther-Kirkbride (Growth equity investor), portfolio_company=Glasspoint Health, board_seat=False |
 | 0.094 | 0.600 | Marcus Aldridge (Advisor) | direct | Sunniva Oldfield — Chief Operating Officer | connections_aldridge.csv: Sunniva Oldfield, Chief Operating Officer at Glasspoint Health, connected 2026-09-15 |
 | 0.000 | 0.600 | Elena Duvall (Advisor) | direct | Sunniva Oldfield — Chief Operating Officer | connections_duvall.csv: Sunniva Oldfield, Chief Operating Officer at Glasspoint Health, connected 2027-08-22 |
 
-## 4. Chronology (9 events, 1 request, as of 2026-09-06)
+## 4. Chronology (9 events, 1 request, newest first, as of 2026-09-06)
 
 ```
-   2026-02-25  intro_requests.csv   Sloane Fairweather   R1025 raised by Sloane Fairweather (Strategic AE): wants Chief Information Officer, $1,200,000, Medium urgency, filed "Open"
-   2026-02-25  slack_threads.jsonl  Sloane Fairweather   R1025 slack: "does anyone know anyone at Glasspoint Health? looking for Chief Information Officer, ideally warm"
-   2026-02-25  slack_threads.jsonl  Nadia Okonkwo        R1025 slack: "adding Sloane Fairweather who might know"
-   2026-02-27  slack_threads.jsonl  Imani Mkhize         R1025 slack: "I think their procurement is frozen until Q1"
-   2026-02-28  slack_threads.jsonl  Curtis Hartigan      R1025 slack: "adding Bertrand Vandermolen who might know"
-   2026-02-28  intro_outcomes.csv   Elena Duvall         R1025 asked
-++ 2026-03-07  intro_outcomes.csv   Elena Duvall         R1025 replied (7 days after the ask)
 <- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1025 said yes 183 days ago and never forwarded
+++ 2026-03-07  intro_outcomes.csv   Elena Duvall         R1025 replied (7 days after the ask)
+   2026-02-28  intro_outcomes.csv   Elena Duvall         R1025 asked
+   2026-02-28  slack_threads.jsonl  Curtis Hartigan      R1025 slack: "adding Bertrand Vandermolen who might know"
+   2026-02-27  slack_threads.jsonl  Imani Mkhize         R1025 slack: "I think their procurement is frozen until Q1"
+   2026-02-25  slack_threads.jsonl  Nadia Okonkwo        R1025 slack: "adding Sloane Fairweather who might know"
+   2026-02-25  slack_threads.jsonl  Sloane Fairweather   R1025 slack: "does anyone know anyone at Glasspoint Health? looking for Chief Information Officer, ideally warm"
+   2026-02-25  intro_requests.csv   Sloane Fairweather   R1025 raised by Sloane Fairweather (Strategic AE): wants Chief Information Officer, $1,200,000, Medium urgency, filed "Open"
 
    2026-06-20  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1017
 ```
 
 ## 5. Additional Investor and Operator Network
 
-2 people from investor_network.csv, 0 askable as investor_network paths, 2 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+2 people from investor_network.csv, 2 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
 
 | person | role | fund | board seat | source | warm path |
 |---|---|---|---|---|---|
-| Espen Rushworth-Oyelaran | Venture capital investor | Silverbrook Capital | yes | portfolio_company | no warm path |
-| Priya Crowther-Kirkbride | Growth equity investor | Northgate Growth | no | portfolio_company | no warm path |
+| Espen Rushworth-Oyelaran | Venture capital investor | Silverbrook Capital | yes | portfolio_company | investor_network path (section 3, 10% haircut) |
+| Priya Crowther-Kirkbride | Growth equity investor | Northgate Growth | no | portfolio_company | investor_network path (section 3, 10% haircut) |

@@ -10,7 +10,7 @@ Five sections: the header (identity, request counts and the routing stage), wher
 disagree (skipped when they don't), who can reach them (supply_reach.csv ranked
 by route score = strength x focus fit x delivery rate, the allocator's own sort
 key, with the reason the top row did not take every live request), the chronology (every event from intro_requests.csv,
-slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, oldest first)
+slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, newest first)
 and the additional investor and operator network (network_orbit.csv: everyone
 investor_network.csv puts around the company, board seats first, then those a
 connector knows, then those nobody has a warm path to; skipped when the file
@@ -83,6 +83,12 @@ def money(s: str) -> str:
 
 def days_ago(d: date | None, today: date) -> str:
     return f"{(today - d).days} days ago" if d else "undated"
+
+
+def request_number(rid: str) -> tuple[int, str]:
+    """R1178 -> (1178, 'R1178'), so ids sort numerically."""
+    m = re.search(r"\d+", rid)
+    return (int(m.group()) if m else sys.maxsize, rid)
 
 
 @dataclass
@@ -337,7 +343,7 @@ class Trace:
             out.append(f"- golden_companies.csv: owners disagree: {self.c['owner']}")
 
         n_paths = len(self.paths)
-        for r in self.requests:
+        for r in sorted(self.requests, key=lambda r: request_number(r["request_id"])):
             rid, status = r["request_id"], r["status_as_filed"]
             f = self.d.filed.get(rid)
             logged = self.intro_logged(rid)
@@ -465,20 +471,25 @@ class Trace:
                              WARN if stale >= STALE_TOUCH_DAYS else PLAIN, "", 4))
         return evs
 
+    def blocks(self) -> list[list[Event]]:
+        """Events grouped by request, newest first: blocks by their latest event,
+        lines within a block newest first; the CRM touch (no request) goes last."""
+        by_rid: dict[str, list[Event]] = defaultdict(list)
+        for e in self.events():
+            by_rid[e.request_id].append(e)
+        ordered = sorted(by_rid.items(), key=lambda kv: (kv[0] != "", max(e.when for e in kv[1]), kv[0]), reverse=True)
+        # ascending then reversed, so same-day events keep their thread order, latest on top
+        return [sorted(es, key=lambda e: (e.when, e.order))[::-1] for _, es in ordered]
+
     def chronology(self) -> list[str]:
-        evs = self.events()
-        if not evs:
+        blocks = self.blocks()
+        if not blocks:
             return ["nothing on record"]
-        blocks: dict[str, list[Event]] = defaultdict(list)
-        for e in evs:
-            blocks[e.request_id].append(e)
-        # blocks ordered by their first event; the CRM touch (no request) goes last
-        ordered = sorted(blocks.items(), key=lambda kv: (kv[0] == "", min(e.when for e in kv[1]), kv[0]))
         out = ["```"]
-        for i, (_, es) in enumerate(ordered):
+        for i, es in enumerate(blocks):
             if i:
                 out.append("")
-            out.extend(e.line() for e in sorted(es, key=lambda e: (e.when, e.order)))
+            out.extend(e.line() for e in es)
         out.append("```")
         return out
 
@@ -515,7 +526,7 @@ class Trace:
             sections.append(["## 2. Where the files disagree", "", *dis])
         sections.append(["## 3. Who can reach them", "", *self.reach()])
         sections.append([f"## 4. Chronology ({len(self.events())} events, {n_req} request{'s' if n_req != 1 else ''},"
-                         f" as of {self.today.isoformat()})", "",
+                         f" newest first, as of {self.today.isoformat()})", "",
                          *self.chronology()])
         if self.orbit:
             sections.append(["## 5. Additional Investor and Operator Network", "", *self.orbit_table()])
@@ -524,11 +535,6 @@ class Trace:
     def as_dict(self) -> dict:
         """The same four sections as data, for the dashboard."""
         c = self.c
-        evs = self.events()
-        blocks: dict[str, list[Event]] = defaultdict(list)
-        for e in evs:
-            blocks[e.request_id].append(e)
-        ordered = sorted(blocks.items(), key=lambda kv: (kv[0] == "", min(e.when for e in kv[1]), kv[0]))
         return {
             "company_id": c["company_id"],
             "company_name": c["company_name"],
@@ -553,8 +559,8 @@ class Trace:
                       for p in self.paths],
             "as_of": self.today.isoformat(),
             "chronology": [[{"mark": e.mark, "date": e.when.isoformat(), "source": e.source, "who": e.who, "what": e.what,
-                             "request_id": e.request_id} for e in sorted(es, key=lambda e: (e.when, e.order))]
-                           for _, es in ordered],
+                             "request_id": e.request_id} for e in es]
+                           for es in self.blocks()],
             "orbit": [{"person": r["person"], "role": r["role"], "fund": r["fund"], "board_seat": r["board_seat"] == "yes",
                        "source": r["source"], "reachable_via": r["reachable_via"], "route": self.orbit_route(r)}
                       for r in self.orbit],

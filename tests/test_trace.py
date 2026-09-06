@@ -90,10 +90,16 @@ class HarrowgateTest(unittest.TestCase):
         self.assertEqual(sum(e.source == "slack_threads.jsonl" for e in events), n_slack)
         marks = {e.mark for e in events}
         self.assertTrue({MISSED, WORKED, OFFER, WARN} <= marks)
-        # within a request block the lines are oldest first
-        for line_block in "\n".join(self.trace.chronology()).split("\n\n"):
+        # within a request block the lines are newest first, and so are the blocks
+        line_blocks = "\n".join(self.trace.chronology()).split("\n\n")
+        newest = []
+        for line_block in line_blocks:
             dates = [ln[3:13] for ln in line_block.splitlines() if ln[3:7].isdigit()]
-            self.assertEqual(dates, sorted(dates))
+            self.assertEqual(dates, sorted(dates, reverse=True))
+            newest.append(dates[0])
+        request_blocks = newest[:-1]  # the CRM touch is its own block, last
+        self.assertEqual(request_blocks, sorted(request_blocks, reverse=True))
+        self.assertIn("newest first", self.text)
         self.assertNotIn("Next steps", self.text)
 
 
