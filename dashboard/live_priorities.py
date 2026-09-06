@@ -1103,6 +1103,7 @@ class Live:
             "cues": [{"label": label, **js_regex(pat), "score": score} for label, pat, score in gp._CUES],
             "split": js_regex(gp._SPLIT), "domain": js_regex(gp._DOMAIN), "title": js_regex(gp.TITLE_RE),
             "domain_cue": gp.DOMAIN_CUE, "domain_score": gp.DOMAIN_SCORE,
+            "known": js_regex(res.names_regex()), "known_cue": gp.KNOWN_CUE, "known_score": gp.KNOWN_SCORE,
             "offer": js_regex(bg.OFFER_RE), "noise": js_regex(bg.NOISE_RE),
             "offer_title": js_regex(bg._OFFER_TITLE_RE), "offer_person": js_regex(bg._OFFER_PERSON_RE),
             "resolver": {

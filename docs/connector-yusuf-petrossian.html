@@ -559,6 +559,15 @@ const LP = (function () {
       const key = at + '\u0000' + dom;
       if (!seen.has(key)) seen.set(key, { text: dom, cue: P.domain_cue, score: P.domain_score, start: at, is_domain: true });
     }
+    if (resolver && P.known) {
+      // every name the resolver knows, in any case; a bare one is the target only when it is alone and no cue fired positively
+      const taken = [...seen.values()].map(x => [x.start, x.start + x.text.length]);
+      const kre = new RegExp(P.known.source, P.known.flags + 'g');
+      const found = [...text.matchAll(kre)].filter(m => !taken.some(([s, e]) => m.index < e && s < m.index + m[0].length));
+      const positive = [...seen.values()].some(x => x.score > 0);
+      const score = found.length === 1 && !positive ? P.known_score : 0;
+      for (const m of found) seen.set(m.index + '\u0000' + m[0], { text: m[0], cue: P.known_cue, score, start: m.index, is_domain: false });
+    }
     const mentions = [...seen.values()].sort((a, b) => a.start - b.start);
     if (resolver) for (const x of mentions) x.resolution = x.is_domain ? resolver.resolve('', x.text) : resolver.resolve(x.text);
     let target = null;
@@ -603,7 +612,11 @@ const LP = (function () {
         const ex = extract(first.text || '', P, resolver);
         row.mentions = ex.mentions;
         const tg = ex.target;
-        if (!tg) { row.resolved_by = 'no company named in the ask'; human.push('no company named, so the build files it with no company_id'); }
+        if (!tg) {
+          const bare = ex.mentions.filter(m => m.cue === P.known_cue).length;
+          row.resolved_by = bare > 1 ? `${bare} companies named, nothing says which is wanted` : 'no company named in the ask';
+          human.push(bare > 1 ? 'several companies named and none asked for, so the build files it with no company_id' : 'no company named, so the build files it with no company_id');
+        }
         else {
           row.company_as_written = tg.text;
           const r = tg.resolution;
@@ -668,7 +681,9 @@ const LP = (function () {
     const tg = ex.target;
     const out = { text, title: tm ? tm.groups.t : '', mentions: ex.mentions, target: null, company: null, crm: false,
                   others: [], candidates: [], paths: [], top: null, priority: null, status: '', note: '' };
+    const bare = ex.mentions.filter(m => m.cue === P.known_cue).length;
     const lost = m => {
+      if (m.cue === P.known_cue) return 'a known company, named but not asked for';
       if (m.score <= 0) return `mentioned, but as a bridge or in passing: “${m.cue}” scores ${m.score}`;
       if (m.score < tg.score) return `asked for too, but with a weaker cue: “${m.cue}” scores +${m.score} against +${tg.score}`;
       return `same cue strength (+${m.score}), but named later in the message`;
@@ -679,7 +694,8 @@ const LP = (function () {
     }));
     if (!tg) {
       out.status = 'no-target';
-      out.note = ex.mentions.length ? 'no target: every company named is negative or in passing' : 'no target: no company is named in the message';
+      out.note = bare > 1 ? `no target: ${bare} known companies are named and nothing says which one is wanted; lead with the company or ask`
+        : ex.mentions.length ? 'no target: every company named is negative or in passing' : 'no target: no company is named in the message';
       return out;
     }
     const r = tg.resolution;

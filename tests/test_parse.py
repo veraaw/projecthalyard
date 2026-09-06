@@ -39,6 +39,11 @@ CASES = {
     "connect with": "Can we connect with Quillon Pharma?",
     "warm intro": "looking for a warm intro to Quillon Pharma, COO ideally",
     "reach with title": "trying to reach Head of Platform Engineering at Thistledown Energy — anyone have a path?",
+    "bare lowercase name": "how about quillon pharma",
+    "bare name only": "Quillon Pharma?",
+    "caps-only crm spelling": "how about thornbury financial",
+    "two bare names": "harrowgate health or quillon pharma, whichever is easier",
+    "cue beats bare name": "can we connect with Quillon Pharma? harrowgate health is already a customer",
 }
 
 
@@ -183,6 +188,45 @@ class ParseTargetTest(unittest.TestCase):
         self.assertEqual(self.scores(ex.text), {"Yarrowdale Media": -1})
         self.assertIsNone(ex.target)
 
+    def test_known_name_without_a_cue_is_the_target_in_any_case(self):
+        harrowgate = self.res.resolve("Harrowgate Health").entity_id
+        for text, written in [("how about harrowgate health", "harrowgate health"),
+                              ("Harrowgate Health?", "Harrowgate Health"),
+                              ("HARROWGATE HEALTH - any thoughts", "HARROWGATE HEALTH")]:
+            ex = extract(text, self.res)
+            self.assertEqual(ex.target.text, written, text)
+            self.assertEqual(ex.target.cue, gp.KNOWN_CUE)
+            self.assertEqual(ex.target.score, gp.KNOWN_SCORE)
+            self.assertEqual(ex.target_id, harrowgate, text)
+
+    def test_known_name_finds_crm_caps_spellings_written_as_words(self):
+        ex = extract("how about thornbury financial", self.res)
+        self.assertEqual(ex.target.text, "thornbury financial")
+        self.assertEqual(ex.target_id, self.res.resolve("THORNBURYFINANCIAL").entity_id)
+        ex = extract("apex logistics, inc. anyone?", self.res)
+        self.assertEqual(ex.target_id, self.res.resolve("Apex Logistics").entity_id)
+
+    def test_known_name_never_fires_without_a_resolver(self):
+        self.assertEqual(extract("how about harrowgate health").mentions, [])
+
+    def test_two_bare_known_names_refuse_to_guess(self):
+        ex = extract("harrowgate health or quillon pharma, whichever is easier", self.res)
+        self.assertIsNone(ex.target)
+        self.assertEqual(self.scores(ex.text), {"harrowgate health": 0, "quillon pharma": 0})
+
+    def test_cue_still_decides_when_a_bare_known_name_is_around(self):
+        ex = extract("can we connect with Quillon Pharma? harrowgate health is already a customer", self.res)
+        self.assertEqual(ex.target.text, "Quillon Pharma")
+        self.assertEqual(self.scores(ex.text), {"Quillon Pharma": 2, "harrowgate health": 0})
+        ex = extract("Not Harrowgate Health", self.res)   # a negative cue owns the span; no bare-name rescue
+        self.assertIsNone(ex.target)
+        self.assertEqual(self.scores(ex.text), {"Harrowgate Health": -3})
+        ex = extract("Quillon Pharma introduced us to Pelham Beverage", self.res)
+        self.assertIsNone(ex.target)
+
+    def test_known_names_do_not_match_inside_words(self):
+        self.assertEqual(extract("the apexlogisticsgroupies are in town", self.res).mentions, [])
+
 
 @unittest.skipUnless(shutil.which("node"), "node is needed to run the exported rules")
 class ExportedRulesTest(unittest.TestCase):
@@ -221,6 +265,10 @@ class ExportedRulesTest(unittest.TestCase):
         self.assertEqual(self.P["domain_score"], gp.DOMAIN_SCORE)
         self.assertEqual(self.P["domain"]["source"], gp._DOMAIN.pattern)
         self.assertEqual(self.P["title"]["source"], gp.TITLE_RE.pattern.replace("(?P<", "(?<"))
+        self.assertEqual(self.P["known"]["source"], self.res.names_regex().pattern)
+        self.assertIn("i", self.P["known"]["flags"])
+        self.assertEqual(self.P["known_cue"], gp.KNOWN_CUE)
+        self.assertEqual(self.P["known_score"], gp.KNOWN_SCORE)
 
     def test_resolver_index_covers_every_entity(self):
         R = self.P["resolver"]

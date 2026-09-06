@@ -628,6 +628,9 @@ class ParserParityTest(unittest.TestCase):
         texts = [t["first"]["text"] for t in self.live.threads.values()]
         texts += [r["raw_ask"] for r in self.live.requests]
         texts += [t["messages"][0]["text"] for t in NEW_THREADS]
+        texts += ["how about harrowgate health", "Harrowgate Health?", "how about thornbury financial",
+                  "harrowgate health or quillon pharma, whichever is easier",
+                  "can we connect with Quillon Pharma? harrowgate health is already a customer", "Not Harrowgate Health"]
         js = run_node(self.parser, texts, [])["extracted"]
         self.assertEqual(len(js), len(texts))
         bad = []
