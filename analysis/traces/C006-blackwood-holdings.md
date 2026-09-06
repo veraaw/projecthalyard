@@ -1,6 +1,6 @@
 # Blackwood Holdings  (C006)
 
-- stage: Negotiation | industry: Industrials | owner: Imani Mkhize | deal value: $400,000 | largest request: $1,200,000
+- stage: Negotiation | industry: Industrials | owner: Imani Mkhize | deal value: $400,000 (CRM ARR potential) | by request: R1022 $1,200,000, R1091 $150,000, R1130 $80,000, R1179 $250,000
 - CRM accounts: A1010 (blackwoodindustrial.com)
 - also goes by: Blackwood Industrial
 - 4 requests from 3 people wanting 3 different titles: Chief Digital Officer | Director of Software Engineering | SVP Digital

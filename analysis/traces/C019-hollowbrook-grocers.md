@@ -1,6 +1,6 @@
 # Hollowbrook Grocers  (C019)
 
-- stage: Pilot | industry: Retail | owner: Imani Mkhize | Nadia Okonkwo | deal value: $600,000 | largest request: $2,000,000
+- stage: Pilot | industry: Retail | owner: Imani Mkhize | Nadia Okonkwo | deal value: $600,000 (CRM ARR potential) | by request: R1084 $2,000,000, R1065 $80,000, R1159 $1,200,000, R1124 $1,200,000
 - CRM accounts: A1024 | A91024 (hollowbrook.com) | duplicates: yes - owners disagree
 - also goes by: Hollowbrook Grocers Inc.
 - 4 requests from 2 people wanting 3 different titles: Director of Software Engineering | VP Engineering | VP Enterprise Architecture

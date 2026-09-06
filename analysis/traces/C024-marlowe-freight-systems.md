@@ -1,6 +1,6 @@
 # Marlowe Freight Systems  (C024)
 
-- stage: Pilot | industry: Logistics | owner: Imani Mkhize | deal value: $600,000 | largest request: $1,200,000
+- stage: Pilot | industry: Logistics | owner: Imani Mkhize | deal value: $600,000 (CRM ARR potential) | by request: R1129 $1,200,000, R1134 $1,200,000, R1045 $750,000
 - CRM accounts: A1047 (marlowefreight.com)
 - also goes by: nothing else
 - 3 requests from 3 people wanting 3 different titles: Chief Digital Officer | Chief Technology Officer | VP Enterprise Architecture

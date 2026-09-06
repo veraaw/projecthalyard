@@ -1,6 +1,6 @@
 # Sablefield Motors  (C034)
 
-- stage: Closed Lost | industry: Automotive | owner: Hana Nakashima | deal value: $3,500,000 | largest request: $2,000,000
+- stage: Closed Lost | industry: Automotive | owner: Hana Nakashima | deal value: $3,500,000 (CRM ARR potential) | by request: R1036 $150,000, R1117 $250,000, R1138 $80,000, R1182 $2,000,000, R1081 $80,000
 - CRM accounts: A1005 (sablefield.com)
 - also goes by: nothing else
 - 5 requests from 2 people wanting 4 different titles: Chief Data Officer | Chief Information Officer | SVP Digital | VP Data & Analytics

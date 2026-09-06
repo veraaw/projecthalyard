@@ -11,7 +11,7 @@ rules (golden/parse.py cues, golden/build_golden.py OFFER_RE, and the
 golden/resolver.py lookup tables) are exported into the payload and applied
 verbatim by the browser, so a dropped .jsonl previews exactly what
 `python3 golden/build_golden.py --threads FILE` would file. And Submit: the
-tick-boxes on Top priorities (an ask sent), Core bottlenecks (a nudge sent) and
+tick-boxes on Top Priorities (an ask sent), Core Introduction Bottlenecks (a nudge sent) and
 the connector pages' "already sitting on" (a nudge or a chase sent) are posted,
 one row each, to the Supabase
 `completions` table with the anon key (insert-only; the
@@ -57,7 +57,6 @@ STAGE_WEIGHT = {
 }
 NO_CRM_WEIGHT = 0.25   # a requested company with no CRM account
 AGE_CAP_DAYS = 365     # age factor = 1 + min(days waiting, cap) / cap  (1.0 .. 2.0)
-CHECKIN_DAYS = 60
 TOP_N = 5
 NUDGE_QUIET_DAYS = 14  # a bottleneck nudged this recently is off the list until the quiet period passes
 BUILD_STAMP = DOCS / "build_stamp.json"  # when the site was last generated; the page shows it
@@ -72,19 +71,18 @@ CONNECTOR_PAGE = "connector-{slug}.html"
 BANDS = [
     ("intake", "Intake: Preview a Routed Request Summary",
      "Does it accept input the build doesn't have yet?",
-     [("route", "Route a request"), ("upload", "Preview an export")]),
+     [("route", "Route a Request"), ("upload", "Preview an Export")]),
     ("orientation", "Orientation: Deal Value by Stage",
      "Is it a single aggregate with no rows?",
-     [("stages", "Deal value by stage")]),
+     [("stages", "Deal Value by Stage")]),
     ("now", "Actionable Routing Steps",
      "Does ticking it change what the queue proposes tomorrow?",
-     [("top", "Top priorities"), ("offers", "Already offered"), ("bottlenecks", "Core bottlenecks"), ("crm", "CRM Updates")]),
+     [("top", "Top Priorities"), ("crm", "CRM Updates")]),
     ("cycle", "Current Cycle Overview",
      "Does it describe a decision the allocator already made?",
-     [("asks", "Current asks"), ("introduced", "Already introduced"), ("connectors", "Roster Connectors")]),
-    ("stuck", "Not Moving",
-     "Does the action belong to someone who isn't reading this page?",
-     [("unrouted", "Unrouted"), ("checkins", "Check-ins")]),
+     [("asks", "Current Asks"), ("introduced", "Already Introduced"), ("connectors", "Roster Connectors Capacity"),
+      ("exceptions", "Unrouted Exceptions"), ("unrouted", "Suggested Unrouted Company Connectors"),
+      ("bottlenecks", "Core Introduction Bottlenecks")]),
 ]
 # every section in page order; drives the header nav
 SECTIONS = [s for _, _, _, sections in BANDS for s in sections]
@@ -280,18 +278,12 @@ class Live:
 
     def route_priority(self, cid: str) -> dict:
         """Request priority for a message about this company pasted today: deal value is
-        the CRM's ARR potential (a Slack message carries none), else the largest live
-        request on the company; age is 1.0 (posted today); reps waiting counts the
-        requesters already live on the company, at least one (the poster)."""
+        the company's one $ (company_value: CRM ARR potential, else the latest request
+        with one; a Slack message carries none); age is 1.0 (posted today); reps waiting
+        counts the requesters already live on the company, at least one (the poster)."""
         c = self.companies[cid]
-        acct = next((self.accounts[a] for a in bar(c["crm_account_ids"]) if a in self.accounts), None)
-        live = [usd(r["value_usd"]) for r in self.by_company.get(cid, []) if r["status_as_filed"] in bg.OPEN_STATUSES]
-        if acct and usd(acct["arr_potential_usd"]):
-            deal, source = usd(acct["arr_potential_usd"]), "CRM ARR potential"
-        elif live and max(live):
-            deal, source = max(live), "largest live request on the company"
-        else:
-            deal, source = 0, "no deal value on file"
+        deal, src = self.company_value(cid)
+        source = {"crm": "CRM ARR potential", "deal": "latest request on the company with a deal value"}.get(src, "no deal value on file")
         comp = {
             "deal_value_musd": deal / 1e6,
             "stage_weight": STAGE_WEIGHT.get(c["stage"], NO_CRM_WEIGHT) if c["crm_account_ids"] else NO_CRM_WEIGHT,
@@ -454,9 +446,28 @@ class Live:
                 return usd(r["value_usd"]), "deal"
         return 0, "none"
 
+    def dollars(self, cid: str, request_value: str = "") -> int:
+        """The one $ shown for a row: company_value() when the row has a company;
+        a request that resolved to no company stands at its own deal value."""
+        return self.company_value(cid)[0] if cid else usd(request_value)
+
+    def dollars_total(self, rows: list[dict]) -> int:
+        """Sum of one $ per distinct company across rows carrying company_id (and
+        value_usd for the unresolved ones), so a company on two rows counts once."""
+        seen: set[str] = set()
+        total = 0
+        for r in rows:
+            cid = r.get("company_id", "")
+            if not cid:
+                total += usd(r.get("value_usd", ""))
+            elif cid not in seen:
+                seen.add(cid)
+                total += self.dollars(cid)
+        return total
+
     def company_stage(self, cid: str) -> str:
         """The furthest stage any of the company's requests has reached: a company
-        already won stays won however many fresh asks are open on it. 'closed'
+        with a meeting booked stays there however many fresh asks are open on it. 'closed'
         only when every request is Closed - no path."""
         stages = {self.stage_of(r) for r in self.by_company.get(cid, [])}
         return max((s for s in stages if s != "closed"), key=STAGES.index, default="closed")
@@ -550,8 +561,9 @@ class Live:
                 "target_title": a["target_title"],
                 "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                 "connector": connector,
+                "on_roster": connector in self.roster,
                 "path": bg.path_label(p),
-                "value_fmt": money(a["value_usd"]),
+                "value_fmt": money(self.dollars(cid)),
                 "crm_stage": self.crm_stage(cid),
                 "days_waiting": days,
                 "reps": reps,
@@ -621,15 +633,15 @@ class Live:
                     "path_type": a["path_type"],
                     "contact": p["contact_name"] or p["contact_title"],
                     "why": "; ".join(why),
-                    "value_usd": sum(usd(g["value_usd"]) for g in group),
-                    "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
+                    "value_usd": self.dollars_total(group),
+                    "value_fmt": money(self.dollars_total(group)),
                     "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
                     "retry": self.retry_of(cid),
                 })
             out.append({
                 "batch_id": batch_id, "connector": connector, "slug": slug(connector),
                 "connector_type": self.connector_facts.get(connector, {}).get("type", ""),
-                "size": len(rows), "value_fmt": money(sum(usd(a["value_usd"]) for a in rows)),
+                "size": len(rows), "value_fmt": money(self.dollars_total(rows)),
                 "companies": companies,
             })
 
@@ -641,7 +653,7 @@ class Live:
                     "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
                     "detail": detail,
                     "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
-                    "value_fmt": money(a["value_usd"]), "urgency": a["urgency_declared"],
+                    "value_fmt": money(self.dollars(a["company_id"], a["value_usd"])), "urgency": a["urgency_declared"],
                     "status": a["status_as_filed"], "best_path": a["best_path_if_unbudgeted"],
                     "crm_stage": self.crm_stage(a["company_id"]) if a["company_id"] else "",
                     "sector_cover": self.sector_cover(a["company_id"]) if a["company_id"] else None,
@@ -654,8 +666,8 @@ class Live:
                             key=lambda c: (-c["value_usd"], c["company_name"]))
         return {
             "cycle": self.cycle, "allocated": sum(b["size"] for b in out), "batches": out,
-            "all": everything, "value_fmt": money(sum(c["value_usd"] for c in everything)),
-            "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(sum(usd(self.by_rid[r["request_id"]]["value_usd"]) for r in v)),
+            "all": everything, "value_fmt": money(self.dollars_total([self.by_rid[a["request_id"]] for b in batches.values() for a in b])),
+            "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in v])),
                             "rows": v} for k, v in sorted(exceptions.items(), key=lambda kv: -len(kv[1]))],
             "exception_count": n_exc,
         }
@@ -682,8 +694,8 @@ class Live:
                 "request_ids": sorted(g["request_id"] for g in group),
                 "wanted": wanted,
                 "waiting": sorted({self.by_rid[g["request_id"]]["requested_by"] for g in group}),
-                "value_usd": sum(usd(g["value_usd"]) for g in group),
-                "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
+                "value_usd": self.dollars(cid),
+                "value_fmt": money(self.dollars(cid)),
                 "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
                 "crm_stage": self.crm_stage(cid),
                 "intro": intro,
@@ -707,8 +719,8 @@ class Live:
                 "request_ids": sorted(g["request_id"] for g in group),
                 "wanted": self.wanted([self.by_rid[g["request_id"]] for g in group]),
                 "connectors": sorted({g["allocated_to"] for g in group}),
-                "value_usd": sum(usd(g["value_usd"]) for g in group),
-                "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
+                "value_usd": self.dollars(cid),
+                "value_fmt": money(self.dollars(cid)),
                 "retry": self.retry_of(cid),
             })
         retries.sort(key=lambda r: (-r["value_usd"], r["company_name"]))
@@ -719,30 +731,7 @@ class Live:
             "retries": retries, "retry_requests": sum(len(r["request_ids"]) for r in retries),
         }
 
-    # -- 4. already offered, needs response -----------------------------------
-    def offer_gaps(self) -> dict:
-        rows = []
-        for r in self.requests:
-            rid = r["request_id"]
-            if r["offer_in_thread"] != "Y" or rid in self.outcome_by_rid:
-                continue
-            th = self.threads.get(rid, {"offers": []})
-            rows.append({
-                "request_id": rid, **self.company_ref(r["company_id"], r["company_as_written"]),
-                "target_title": r["target_title"], "requested_by": r["requested_by"],
-                "value_usd": usd(r["value_usd"]), "value_fmt": money(r["value_usd"]),
-                "status": r["status_as_filed"], "routed_to": r["routed_to"],
-                "offers": [{"who": m["user"], "text": m["text"], "date": m["ts"][:10],
-                            "on_roster": m["user"] in self.roster,
-                            "days_ago": (self.today - (parse_date(m["ts"]) or self.today)).days} for m in th["offers"]],
-                "note": ("filed as Closed - no path with an offer sitting in the thread" if r["status_as_filed"] == "Closed - no path"
-                         else "filed as Intro sent but no ask or intro was ever logged" if r["status_as_filed"] == "Intro sent"
-                         else f"routed to {r['routed_to']} on paper, never asked" if r["routed_to"] else "open, nobody asked"),
-            })
-        rows.sort(key=lambda r: -r["value_usd"])
-        return {"rows": rows, "count": len(rows), "value_fmt": money(sum(r["value_usd"] for r in rows))}
-
-    # -- 5. core bottlenecks --------------------------------------------------
+    # -- 4. core bottlenecks --------------------------------------------------
     def bottlenecks(self) -> dict:
         """Asks the connector agreed to and never delivered. One nudged in the last
         NUDGE_QUIET_DAYS (golden_requests.nudged_on, from completions.csv) is
@@ -754,13 +743,14 @@ class Live:
             r = self.by_rid.get(o["request_id"], {})
             agreed = parse_date(o["response_date"]) or parse_date(o["asked_date"]) or self.today
             last_nudge = parse_date(r.get("nudged_on", ""))
+            value, source = self.company_value(r["company_id"]) if r.get("company_id") else (usd(r.get("value_usd", "")), "request")
             row = {
                 "request_id": o["request_id"], **self.company_ref(r.get("company_id", ""), r.get("company_as_written", "")),
                 "connector": o["connector_asked"], "on_roster": o["connector_asked"] in self.roster,
                 "target_title": r.get("target_title", ""), "requested_by": r.get("requested_by", ""),
                 "asked_date": o["asked_date"], "agreed_date": o["response_date"],
                 "days_since_agreed": (self.today - agreed).days,
-                "value_fmt": money(r.get("value_usd", "")), "value_usd": usd(r.get("value_usd", "")),
+                "value_fmt": money(value), "value_usd": value, "value_source": source,
                 "status": r.get("status_as_filed", ""), "action": "nudge",
                 "nudged_on": r.get("nudged_on", ""),
                 "days_since_nudged": (self.today - last_nudge).days if last_nudge else None,
@@ -769,10 +759,8 @@ class Live:
         rows.sort(key=lambda r: -r["days_since_agreed"])
         nudged.sort(key=lambda r: (r["nudged_on"], r["request_id"]))
         by_connector = Counter(r["connector"] for r in rows)
-        return {"rows": rows, "count": len(rows), "value_fmt": money(sum(r["value_usd"] for r in rows)),
-                "nudged": nudged, "quiet_days": NUDGE_QUIET_DAYS,
-                "by_connector": [{"connector": k, "count": n, "on_roster": k in self.roster,
-                                  "value_fmt": money(sum(r["value_usd"] for r in rows if r["connector"] == k))}
+        return {"rows": rows, "count": len(rows), "nudged": nudged, "quiet_days": NUDGE_QUIET_DAYS,
+                "by_connector": [{"connector": k, "count": n, "on_roster": k in self.roster}
                                  for k, n in by_connector.most_common()]}
 
     # -- 6. per-connector -----------------------------------------------------
@@ -803,7 +791,7 @@ class Live:
                 "target_title": r.get("target_title", ""), "requested_by": r.get("requested_by", ""),
                 "connector": name, "asked_date": asked_on, "responded": responded,
                 "days_since_asked": (self.today - (parse_date(asked_on) or self.today)).days,
-                "value_fmt": money(r.get("value_usd", "")),
+                "value_fmt": money(self.dollars(r.get("company_id", ""), r.get("value_usd", ""))),
                 "action": "nudge" if responded else "chase",
                 "retry": self.own_retry(o) if o["reasked_date"] else None,
                 "nudged_on": r.get("nudged_on", ""), "days_since_nudged": since,
@@ -831,7 +819,7 @@ class Live:
                 "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
                 "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                 "path_type": a["path_type"], "contact": a["contact_name"], "route_score": a["route_score"],
-                "value_fmt": money(a["value_usd"]), "urgency": a["urgency_declared"],
+                "value_fmt": money(self.dollars(a["company_id"], a["value_usd"])), "urgency": a["urgency_declared"],
                 "retry": self.retry_of(a["company_id"]),
             } for a in queue],
         }
@@ -882,7 +870,7 @@ class Live:
         return {
             "as_of": self.today.isoformat(), "cycle": self.cycle, "trace_page": TRACE_PAGE,
             "messages": [{**m, "page": pages.get(m["connector"], ""),
-                          "requests": [{**q, **self.company_ref(q["company_id"], q["company_name"]), "value_fmt": money(q["value_usd"])}
+                          "requests": [{**q, **self.company_ref(q["company_id"], q["company_name"]), "value_fmt": money(self.dollars(q["company_id"], q["value_usd"]))}
                                        for q in m["requests"]]} for m in messages],
             "templates": batch_ask.TEMPLATES.relative_to(ROOT).as_posix(),
         }
@@ -893,7 +881,7 @@ class Live:
         extra = Counter()
         for a in self.allocation:
             if a["allocated_to"] and a["allocated_to"] not in self.roster:
-                extra[a["allocated_to"]] += usd(a["value_usd"])
+                extra[a["allocated_to"]] += self.dollars(a["company_id"], a["value_usd"])
         return list(self.roster) + [n for n, _ in sorted(extra.items(), key=lambda kv: (-kv[1], kv[0]))]
 
     def connectors(self) -> list[dict]:
@@ -909,73 +897,12 @@ class Live:
             out.append({
                 **self.connector_card(name),
                 "top": mine[:TOP_N], "rest": mine[TOP_N:], "ranked_count": len(mine),
-                "ranked_value_fmt": money(sum(usd(self.by_rid[r["request_id"]]["value_usd"]) for r in mine)),
+                "ranked_value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in mine])),
                 "no_slot": sum(1 for r in mine if not r["allocated"]),
                 "strongest_elsewhere": self.strongest_elsewhere(name),
                 "formula": self.formula(), "completions": self.completion_export(), "as_of": self.today.isoformat(),
             })
         return out
-
-    # -- 7. overdue a check-in ------------------------------------------------
-    def owned_elsewhere(self) -> dict[str, str]:
-        """company_id -> the first section, in page order, that already holds an
-        action on the company: an ask to send (Top priorities, Current asks), an
-        offer to answer, a nudge, a connector's follow-up, an unrouted ask to
-        place, a CRM fix. A company in none of them is this section's alone."""
-        listed = {
-            "top": [r["company_id"] for r in self.priorities()["top"]],
-            "asks": [c["company_id"] for b in self.asks()["batches"] for c in b["companies"]],
-            "introduced": [r["company_id"] for r in self.introduced()["rows"]],
-            "offers": [r["company_id"] for r in self.offer_gaps()["rows"]],
-            "bottlenecks": [r["company_id"] for r in self.bottlenecks()["rows"]],
-            "connectors": [s["company_id"] for c in self.connectors() for s in c["sitting_on"]],
-            "unrouted": [x["company_id"] for c in self.unrouted()["per_connector"] for x in c["companies"]],
-            "crm": [r["company_id"] for g in self.crm()["groups"] for r in g["rows"]],
-        }
-        out: dict[str, str] = {}
-        for section, _ in SECTIONS:
-            for cid in listed.get(section, []):
-                if cid:
-                    out.setdefault(cid, section)
-        return out
-
-    def checkins(self) -> dict:
-        """Companies with live requests and a CRM account nobody has touched (CRM
-        last_touch_date) in CHECKIN_DAYS; `both` of them have had no connector asked
-        about them in that window either. Every row already listed in another
-        section carries `owned_by`, the section that owns the action on it; the rows
-        nothing else owns sort first, so the page's sections stay mutually exclusive."""
-        titles = dict(SECTIONS)
-        owned = self.owned_elsewhere()
-        rows = []
-        for cid, c in self.companies.items():
-            accts = [self.accounts[a] for a in bar(c["crm_account_ids"]) if a in self.accounts]
-            live = [r for r in self.by_company.get(cid, []) if r["status_as_filed"] in bg.OPEN_STATUSES]
-            if not accts or not live:
-                continue
-            touch = max((parse_date(a["last_touch_date"]) for a in accts if a["last_touch_date"]), default=None)
-            asks = [parse_date(self.outcome_by_rid[r["request_id"]]["asked_date"]) for r in self.by_company.get(cid, [])
-                    if r["request_id"] in self.outcome_by_rid]
-            last_ask = max((d for d in asks if d), default=None)
-            touch_days = (self.today - touch).days if touch else None
-            ask_days = (self.today - last_ask).days if last_ask else None
-            if touch_days is not None and touch_days <= CHECKIN_DAYS:
-                continue
-            ask_failed = ask_days is None or ask_days > CHECKIN_DAYS
-            rows.append({
-                **self.company_ref(cid), "owner": c["owner"], "stage": c["stage"],
-                "last_touch_date": touch.isoformat() if touch else "", "touch_days": touch_days,
-                "last_ask_date": last_ask.isoformat() if last_ask else "", "ask_days": ask_days,
-                "failed": ["CRM touch", "intro ask"] if ask_failed else ["CRM touch"],
-                "live_requests": len(live), "live_value_fmt": money(sum(usd(r["value_usd"]) for r in live)),
-                "live_value_usd": sum(usd(r["value_usd"]) for r in live),
-                "owned_by": owned.get(cid, ""), "owned_by_title": titles.get(owned.get(cid, ""), ""),
-            })
-        rows.sort(key=lambda r: (bool(r["owned_by"]), -len(r["failed"]), -r["live_value_usd"], r["company_name"]))
-        return {"days": CHECKIN_DAYS, "rows": rows, "count": len(rows),
-                "both": sum(1 for r in rows if len(r["failed"]) == 2),
-                "unique": sum(1 for r in rows if not r["owned_by"]),
-                "owned": sum(1 for r in rows if r["owned_by"])}
 
     # -- 8. unrouted company asks, per connector -------------------------------
     def unrouted(self) -> dict:
@@ -1007,8 +934,8 @@ class Live:
                     "reasons": sorted({g["exception_reason"] for g in group}),
                     "wanted": self.wanted([self.by_rid[g["request_id"]] for g in group]),
                     "waiting": sorted({self.by_rid[g["request_id"]]["requested_by"] for g in group}),
-                    "value_usd": sum(usd(g["value_usd"]) for g in group),
-                    "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
+                    "value_usd": self.dollars(cid),
+                    "value_fmt": money(self.dollars(cid)),
                     "has_path": bool(own),
                     "path": bg.path_label(max(own, key=lambda p: float(p["strength"]))) if own else "no known path; ask them if they know anyone",
                 })
@@ -1036,11 +963,11 @@ class Live:
         imports = w.import_rows()
 
         def rows(group: str) -> list[dict]:
-            return [{**asdict(r), "value_fmt": money(r.value_at_stake_usd), "href": self.company_ref(r.company_id)["href"],
+            return [{**asdict(r), "value_fmt": money(self.dollars(r.company_id)), "href": self.company_ref(r.company_id)["href"],
                      "request_ids": bar(r.request_ids)} for r in review if r.group == group]
 
         groups = [{"group": g, "title": wb.GROUP_TITLES[g], "rows": rows(g), "count": len(rows(g)),
-                   "value_fmt": money(sum(r["value_at_stake_usd"] for r in rows(g)))}
+                   "value_fmt": money(self.dollars_total(rows(g)))}
                   for g in (wb.CREATE, wb.MERGE, wb.OWNERS, wb.REOPEN)]
         return {
             "groups": groups,
@@ -1168,8 +1095,8 @@ class Live:
             "bands": [{"id": bid, "title": title, "test": test, "sections": [sid for sid, _ in sections]}
                       for bid, title, test, sections in BANDS],
             "stages": self.stages(), "priorities": self.priorities(), "asks": self.asks(), "introduced": self.introduced(),
-            "offer_gaps": self.offer_gaps(), "bottlenecks": self.bottlenecks(), "connectors": self.connectors(),
-            "checkins": self.checkins(), "unrouted": self.unrouted(), "crm": self.crm(), "parser": self.parser(),
+"bottlenecks": self.bottlenecks(), "connectors": self.connectors(),
+            "unrouted": self.unrouted(), "crm": self.crm(), "parser": self.parser(),
             "completions": self.completion_export(),
             "connector_pages": [{"connector": c["connector"], "page": c["page"], "on_roster": c["on_roster"]}
                                 for c in self.connector_pages()],
@@ -1217,10 +1144,7 @@ if __name__ == "__main__":
     print("top 5      ", ", ".join(f"{r['request_id']} {r['company_name']} -> {r['connector']} EV {r['expected_value']}" for r in p["priorities"]["top"]))
     print(f"asks        {p['asks']['allocated']} allocated in {len(p['asks']['batches'])} batches; "
           + ", ".join(f"{e['count']} {e['reason']}" for e in p["asks"]["exceptions"]))
-    print(f"offer gaps  {p['offer_gaps']['count']} ({p['offer_gaps']['value_fmt']}): "
-          + ", ".join(r["request_id"] for r in p["offer_gaps"]["rows"]))
     print(f"bottlenecks {p['bottlenecks']['count']} nudges" + (f", {len(p['bottlenecks']['nudged'])} nudged recently" if p['bottlenecks']['nudged'] else ""))
     print(f"completions {p['completions']['count']} on file")
-    print(f"check-ins   {p['checkins']['count']} overdue ({p['checkins']['both']} failed both, {p['checkins']['unique']} owned by no other section)")
     print("unrouted   ", ", ".join(f"{c['connector'].split()[0]} {c['count']}" for c in p["unrouted"]["per_connector"]))
     print("crm        ", ", ".join(f"{g['count']} {g['group']}" for g in p["crm"]["groups"]))

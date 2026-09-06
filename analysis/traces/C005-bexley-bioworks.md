@@ -1,6 +1,6 @@
 # Bexley Bioworks  (C005)
 
-- stage: Negotiation | industry: Biotech | owner: Sloane Fairweather | deal value: $1,400,000 | largest request: $750,000
+- stage: Negotiation | industry: Biotech | owner: Sloane Fairweather | deal value: $1,400,000 (CRM ARR potential) | by request: R1048 $750,000
 - CRM accounts: A1045 (bexleybio.com)
 - also goes by: nothing else
 - 1 request from 1 person wanting 1 different title: Chief Data Officer

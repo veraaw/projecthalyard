@@ -1,6 +1,6 @@
 # Ironvale Steel  (C020)
 
-- stage: Negotiation | industry: Industrials | owner: Hana Nakashima | deal value: $600,000 | largest request: $400,000
+- stage: Negotiation | industry: Industrials | owner: Hana Nakashima | deal value: $600,000 (CRM ARR potential) | by request: R1040 $80,000, R1089 $400,000, R1086 $150,000, R1031 $80,000, R1141 $400,000
 - CRM accounts: A1009 (ironvalesteel.com)
 - also goes by: nothing else
 - 5 requests from 4 people wanting 3 different titles: Chief Data Officer | Chief Technology Officer | VP Enterprise Architecture

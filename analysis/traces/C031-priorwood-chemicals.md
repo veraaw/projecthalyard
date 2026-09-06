@@ -1,6 +1,6 @@
 # Priorwood Chemicals  (C031)
 
-- stage: Discovery | industry: Chemicals | owner: Bertrand Vandermolen | deal value: $3,500,000 | largest request: $2,000,000
+- stage: Discovery | industry: Chemicals | owner: Bertrand Vandermolen | deal value: $3,500,000 (CRM ARR potential) | by request: R1033 $750,000, R1174 $150,000, R1092 $750,000, R1098 $150,000, R1150 $750,000, R1196 $1,200,000, R1118 $1,200,000, R1052 $80,000, R1192 $2,000,000
 - CRM accounts: A1030 (priorwood.com)
 - also goes by: nothing else
 - 9 requests from 6 people wanting 7 different titles: Chief Data Officer | Chief Information Officer | Chief Operating Officer | Chief Technology Officer | Head of Developer Productivity | Head of Platform Engineering | VP Enterprise Architecture

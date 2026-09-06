@@ -1,6 +1,6 @@
 # Volney Industrial Systems  (C042)
 
-- stage: Closed Lost | industry: Industrials | owner: Yusuf Petrossian | deal value: $2,200,000 | largest request: $2,000,000
+- stage: Closed Lost | industry: Industrials | owner: Yusuf Petrossian | deal value: $2,200,000 (CRM ARR potential) | by request: R1080 $750,000, R1073 $80,000, R1191 $2,000,000, R1002 $400,000
 - CRM accounts: A1049 (volney.com)
 - also goes by: nothing else
 - 4 requests from 4 people wanting 4 different titles: Chief Digital Officer | Chief Information Officer | VP Data & Analytics | VP Engineering

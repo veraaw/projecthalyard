@@ -1,6 +1,6 @@
 # Vireo Systems  (C046)
 
-- stage: ? | industry: ? | owner: none | deal value: ? | largest request: $1,200,000
+- stage: ? | industry: ? | owner: none | deal value: $1,200,000 (latest request with a deal value, R1055) | by request: R1055 $1,200,000, R1155 $1,200,000, R1131 $1,200,000, R1075 $750,000, R1199 $750,000, R1166 $750,000, R1017 $250,000, R1107 $750,000, R1060 $80,000
 - CRM accounts: none (vireosystems.com)
 - also goes by: vireosystems.com
 - 9 requests from 4 people wanting 6 different titles: Chief Data Officer | Chief Digital Officer | Chief Operating Officer | Head of Developer Productivity | VP Engineering | VP Enterprise Architecture

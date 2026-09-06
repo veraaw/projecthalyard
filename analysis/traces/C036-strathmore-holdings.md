@@ -1,6 +1,6 @@
 # Strathmore Holdings  (C036)
 
-- stage: Prospect | industry: Transport | owner: Imani Mkhize | deal value: $250,000 | largest request: $1,200,000
+- stage: Prospect | industry: Transport | owner: Imani Mkhize | deal value: $250,000 (CRM ARR potential) | by request: R1125 $400,000, R1027 $400,000, R1094 $750,000, R1053 $400,000, R1093 $1,200,000, R1132 $150,000, R1102 $400,000
 - CRM accounts: A1026 (strathmorerail.com)
 - also goes by: Strathmore Rail
 - 7 requests from 5 people wanting 5 different titles: Chief Operating Officer | Chief Technology Officer | Head of Platform Engineering | VP Data & Analytics | VP Engineering

@@ -1,6 +1,6 @@
 # Marrow Point Airways  (C059)
 
-- stage: ? | industry: ? | owner: none | deal value: ? | largest request: $2,000,000
+- stage: ? | industry: ? | owner: none | deal value: $750,000 (latest request with a deal value, R1194) | by request: R1194 $750,000, R1116 $2,000,000, R1133 $1,200,000, R1189 $750,000, R1035 $400,000
 - CRM accounts: none
 - also goes by: nothing else
 - 5 requests from 5 people wanting 5 different titles: Chief Digital Officer | Chief Information Officer | Chief Technology Officer | VP Data & Analytics | VP Engineering

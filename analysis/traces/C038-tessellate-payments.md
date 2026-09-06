@@ -1,6 +1,6 @@
 # Tessellate Payments  (C038)
 
-- stage: Negotiation | industry: Fintech | owner: Nadia Okonkwo | deal value: $120,000 | largest request: $1,200,000
+- stage: Negotiation | industry: Fintech | owner: Nadia Okonkwo | deal value: $120,000 (CRM ARR potential) | by request: R1026 $1,200,000
 - CRM accounts: A1037 (tessellate.co)
 - also goes by: nothing else
 - 1 request from 1 person wanting 1 different title: Chief Data Officer

@@ -286,20 +286,43 @@ class Trace:
         return (f"{who}, {top['reach_type']} {float(top['strength']):.3f}, " + ", ".join(why)
                 + (f", holds {', '.join(holds)}" if holds else "") + "; " + ", ".join(went))
 
+    def request_rows(self) -> list[dict]:
+        """One line per request, newest first, with the dates it picked up along the
+        way (filed, routed, asked, replied, intro) - the hover detail behind the
+        header counts, so each number can be traced to its request ids."""
+        rows = []
+        for r in sorted(self.requests, key=lambda r: (r["request_date"], r["request_id"]), reverse=True):
+            o = self.d.outcome_by_rid.get(r["request_id"]) or {}
+            a = self.d.alloc_by_rid.get(r["request_id"]) or {}
+            rows.append({
+                "request_id": r["request_id"], "date": r["request_date"], "requested_by": r["requested_by"],
+                "target_title": r["target_title"], "status": r["status_as_filed"], "stage": self.stage_of(r),
+                "routed_to": r["routed_to"] or a.get("allocated_to", ""), "routed_on": r["routed_on"],
+                "asked_date": o.get("asked_date") or r["asked_date"], "response_date": o.get("response_date", ""),
+                "intro_date": o.get("intro_date", ""), "meeting_booked": (o.get("meeting_booked") or r["meeting_booked"]) == "Y",
+            })
+        return rows
+
     def routing(self) -> dict:
         """Where the company sits in the routing funnel: the furthest stage any of
         its requests reached ('closed' only when every request is Closed - no
         path), the stage of its latest request, how many requests sit at each
-        stage, and of those asked, how many connectors agreed vs never replied."""
+        stage, and of those asked, how many connectors agreed vs never replied.
+        `booked` names the intro that landed the meeting (the newest, if several):
+        the outcome log has no meeting date, so its intro_date is the date shown."""
         stages = {r["request_id"]: self.stage_of(r) for r in self.requests}
         counts = Counter(stages.values())
         asked = [rid for rid, s in stages.items() if s == "asked"]
         agreed = sum(1 for rid in asked if (self.d.outcome_by_rid.get(rid) or {}).get("responded") == "Y")
+        booked = [{"request_id": rid, "connector": o["connector_asked"], "intro_date": o["intro_date"]}
+                  for rid, s in stages.items() if s == "meeting booked"
+                  for o in self.d.outcomes.get(rid, []) if o["meeting_booked"] == "Y"]
         return {
             "furthest": max((s for s in stages.values() if s != "closed"), key=STAGES.index, default="closed"),
             "latest": stages.get(self.c["latest_request_id"], ""),
             "counts": {s: counts[s] for s in [*STAGES, "closed"] if counts[s]},
             "awaiting_intro": {"agreed": agreed, "silent": len(asked) - agreed},
+            "booked": max(booked, key=lambda b: (b["intro_date"], b["request_id"]), default=None),
         }
 
     def last_touch(self) -> tuple[date | None, dict | None]:
@@ -311,15 +334,33 @@ class Trace:
         return best, acct
 
     # -- section 1 --------------------------------------------------------------
+    def deal_value(self) -> dict:
+        """The company's one $, the same rule as Live Priorities (company_value): CRM
+        ARR potential when it has an account with one, else the deal value on its
+        most recent request that carries one; every request's own $ alongside."""
+        c = self.c
+        by_request = [{"request_id": r["request_id"], "date": r["request_date"], "target_title": r["target_title"],
+                       "value_usd": money(r["value_usd"]) if r["value_usd"] else ""}
+                      for r in sorted(self.requests, key=lambda r: (r["request_date"], r["request_id"]), reverse=True)]
+        if c["crm_account_ids"] and int(c["value_usd"] or 0):
+            return {"value_usd": money(c["value_usd"]), "source": "CRM ARR potential", "by_request": by_request}
+        latest = next((q for q in by_request if q["value_usd"]), None)
+        if latest:
+            return {"value_usd": latest["value_usd"], "source": f"latest request with a deal value, {latest['request_id']}",
+                    "by_request": by_request}
+        return {"value_usd": "?", "source": "no deal value on file", "by_request": by_request}
+
     def header(self) -> list[str]:
         c = self.c
         people = {r["requested_by"] for r in self.requests}
         titles = {r["target_title"] for r in self.requests if r["target_title"]}
         aka = self.spellings()
+        v = self.deal_value()
         out = [f"# {c['company_name']}  ({c['company_id']})", ""]
         out.append(f"- stage: {c['stage'] or '?'} | industry: {c['industry'] or '?'} | owner: {c['owner'] or 'none'}"
-                   f" | deal value: {money(c['value_usd'])}"
-                   + (f" | largest request: {money(c['largest_request_usd'])}" if c["largest_request_usd"] else ""))
+                   f" | deal value: {v['value_usd']} ({v['source']})"
+                   + (" | by request: " + ", ".join(f"{q['request_id']} {q['value_usd']}" for q in v["by_request"] if q["value_usd"])
+                      if any(q["value_usd"] for q in v["by_request"]) else ""))
         out.append(f"- CRM accounts: {c['crm_account_ids'] or 'none'}"
                    + (f" ({c['domain']})" if c["domain"] else "")
                    + (f" | duplicates: {c['duplicate_accounts']}" if c["duplicate_accounts"] not in ("", "no") else ""))
@@ -548,11 +589,12 @@ class Trace:
             "search": " ".join([c["company_id"], c["company_name"], *self.spellings(), *split_bar(c["crm_account_ids"])]),
             "header": {
                 "stage": c["stage"], "industry": c["industry"], "owner": c["owner"],
-                "value_usd": money(c["value_usd"]), "largest_request_usd": money(c["largest_request_usd"]) if c["largest_request_usd"] else "",
+                "value": self.deal_value(),
                 "crm_account_ids": c["crm_account_ids"], "domain": c["domain"], "duplicate_accounts": c["duplicate_accounts"],
                 "also_known_as": self.spellings(),
                 "routing": self.routing(),
                 "requests": len(self.requests),
+                "request_rows": self.request_rows(),
                 "people": len({r["requested_by"] for r in self.requests}),
                 "titles": sorted({r["target_title"] for r in self.requests if r["target_title"]}),
             },

@@ -1,6 +1,6 @@
 # Marchford Clinics  (C023)
 
-- stage: Prospect | industry: Healthcare | owner: Curtis Hartigan | deal value: $2,200,000 | largest request: $2,000,000
+- stage: Prospect | industry: Healthcare | owner: Curtis Hartigan | deal value: $2,200,000 (CRM ARR potential) | by request: R1004 $750,000, R1162 $80,000, R1009 $1,200,000, R1114 $2,000,000, R1142 $2,000,000, R1121 $80,000
 - CRM accounts: A1018 (marchfordclinics.com)
 - also goes by: nothing else
 - 6 requests from 5 people wanting 6 different titles: Chief Information Officer | Chief Technology Officer | Head of Developer Productivity | Head of Platform Engineering | SVP Digital | VP Engineering

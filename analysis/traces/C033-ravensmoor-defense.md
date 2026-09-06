@@ -1,6 +1,6 @@
 # Ravensmoor Defense  (C033)
 
-- stage: Negotiation | industry: Defense | owner: Hana Nakashima | deal value: $1,400,000 | largest request: $2,000,000
+- stage: Negotiation | industry: Defense | owner: Hana Nakashima | deal value: $1,400,000 (CRM ARR potential) | by request: R1005 $150,000, R1039 $2,000,000, R1109 $150,000, R1049 $750,000
 - CRM accounts: A1031 (ravensmoor.com)
 - also goes by: nothing else
 - 4 requests from 3 people wanting 4 different titles: Chief Data Officer | Chief Digital Officer | Head of Developer Productivity | VP Engineering

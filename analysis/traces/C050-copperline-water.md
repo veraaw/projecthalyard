@@ -1,6 +1,6 @@
 # Copperline Water  (C050)
 
-- stage: ? | industry: ? | owner: none | deal value: ? | largest request: $250,000
+- stage: ? | industry: ? | owner: none | deal value: $250,000 (latest request with a deal value, R1151) | by request: R1151 $250,000, R1043 $150,000, R1175 $80,000
 - CRM accounts: none
 - also goes by: nothing else
 - 3 requests from 3 people wanting 3 different titles: Chief Digital Officer | Chief Technology Officer | VP Engineering

@@ -1,6 +1,6 @@
 # Kingsmere Retail Group  (C058)
 
-- stage: ? | industry: ? | owner: none | deal value: ? | largest request: $1,200,000
+- stage: ? | industry: ? | owner: none | deal value: $750,000 (latest request with a deal value, R1066) | by request: R1066 $750,000, R1006 $750,000, R1193 $250,000, R1070 $400,000, R1147 $1,200,000, R1113 $150,000, R1171 $1,200,000, R1128 $80,000
 - CRM accounts: none
 - also goes by: nothing else
 - 8 requests from 5 people wanting 5 different titles: Chief Digital Officer | Chief Operating Officer | SVP Digital | VP Engineering | VP Enterprise Architecture

@@ -1,6 +1,6 @@
 # Wrenfield Robotics  (C043)
 
-- stage: Discovery | industry: Technology | owner: Rafael Salcedo | deal value: $1,400,000 | largest request: $1,200,000
+- stage: Discovery | industry: Technology | owner: Rafael Salcedo | deal value: $1,400,000 (CRM ARR potential) | by request: R1018 $1,200,000, R1195 $1,200,000, R1156 $1,200,000
 - CRM accounts: A1036 (wrenfield.ai)
 - also goes by: WRENFIELDROBOTICS
 - 3 requests from 3 people wanting 3 different titles: Chief Technology Officer | Head of Developer Productivity | SVP Digital
