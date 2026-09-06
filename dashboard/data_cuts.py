@@ -133,12 +133,15 @@ def company_key(g):
     return key, name, True
 
 
-def company_rows(data):
+def company_rows(data, since=None):
     """One row per resolved company plus one per unresolvable bucket:
-    demand, routing and outcome counts."""
+    demand, routing and outcome counts. `since` (YYYY-MM-DD) keeps only
+    requests dated on or after it, the same rolling window as the funnel."""
     by_company = {}
     for r in data["requests"]:
         g = data["golden_requests"][r["request_id"]]
+        if since and g["request_date"].strip()[:10] < since:
+            continue
         key, bucket_name, unresolvable = company_key(g)
         cid = g["company_id"]
         gc = data["golden_companies"].get(cid, {})
@@ -171,17 +174,19 @@ def company_rows(data):
     return list(by_company.values())
 
 
-def account_demand_cut(data):
+def account_demand_cut(data, since=None):
     """Companies ranked by number of asks, split routed vs never routed.
     `companies` holds the resolved companies; `unresolvable` the buckets of
-    asks that never got a company_id."""
-    rows = sorted(company_rows(data), key=lambda b: (-b["requests"], b["name"]))
+    asks that never got a company_id. `since` restricts to requests dated on
+    or after it (the last-12-months view); `asks` is the total in the window."""
+    rows = sorted(company_rows(data, since), key=lambda b: (-b["requests"], b["name"]))
     companies = [b for b in rows if not b["unresolvable"]]
+    asks = sum(b["requests"] for b in rows)
     return {"companies": companies,
             "unresolvable": [b for b in rows if b["unresolvable"]],
+            "asks": asks, "since": since,
             "singletons": sum(1 for b in companies if b["requests"] == 1),
-            "repeat_share": (sum(b["requests"] for b in companies if b["requests"] > 1)
-                             / sum(b["requests"] for b in rows))}
+            "repeat_share": (sum(b["requests"] for b in companies if b["requests"] > 1) / asks) if asks else 0.0}
 
 
 def top_accounts_cut(data, n=20):

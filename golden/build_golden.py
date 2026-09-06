@@ -11,7 +11,7 @@ become supply. The Live Priorities tab previews exactly this before it is run.
 
 golden/completions.csv is the third fact source, next to the raw exports and
 the Slack threads: one row per thing someone did from the Live Priorities tab
-(action = ask_sent / nudged / account_created). The tab's Submit button
+(action = ask_sent / nudged / chased / checked_in). The tab's Submit button
 posts those rows to the Supabase `completions` table; the build pulls the
 table into the CSV, and the CSV is what the build reads:
 
@@ -26,11 +26,12 @@ completion_id (<request_id>:<action>:<date>), so the same completion pulled,
 applied or committed twice is a no-op. An `ask_sent` row is an ask that happened
 with nothing logged back yet: it counts as an outcome everywhere
 intro_outcomes.csv does (the request leaves the live queue, the connector's
-slot is spent, asked_date is filed on the request). A `nudged` row files
-nudged_on on the request. An `account_created` row is read by
-analysis/crm/writeback.py, which marks the recommendation executed. A row
-with an unknown action, an unparseable completed_at or a missing key fails
-the build.
+slot is spent, asked_date is filed on the request). A `nudged` row (the
+connector agreed and never delivered) or a `chased` row (the connector never
+replied) files nudged_on on the request: the latest follow-up of either kind.
+A `checked_in` row (someone touched the company: CRM account or connector)
+files checked_in_on on the company. A row with an unknown action, an
+unparseable completed_at or a missing key fails the build.
 
 golden/ is the state; dataset/ is read-only input and is never written.
 
@@ -54,8 +55,8 @@ Writes four CSVs (UTF-8, no BOM, CRLF):
                                thread columns are filed once and kept, except
                                that OUTCOME_COLUMNS still empty on a filed row
                                are filled in when an ask is first logged for
-                               it, and nudged_on advances to the latest nudge.
-                               New columns may be added to the schema.
+                               it, and nudged_on advances to the latest nudge
+                               or chase. New columns may be added to the schema.
                                contradicts_log flags a filed status the outcome
                                log disagrees with; blocked_reason says what
                                would unblock a request nobody is routed to.
@@ -172,6 +173,7 @@ COMPANY_COLUMNS = [
     "open_requests", "distinct_requesters", "targets_wanted", "latest_request_id",
     "latest_request_date", "latest_request_status", "routed_to", "routed_on", "route_reason",
     "paths_available", "durable_paths", "best_path_type", "someone_offered", "days_since_movement",
+    "checked_in_on",
 ]
 SUPPLY_COLUMNS = [
     "connector", "connector_type", "company_id", "company_name", "reach_type", "board_seat", "contact_name",
@@ -182,8 +184,10 @@ SUPPLY_COLUMNS = [
 COMPLETION_COLUMNS = [
     "completion_id", "completed_at", "completed_by", "action", "request_id", "company_id", "connector", "note",
 ]
-ASKED, NUDGED, CRM_CREATED = "ask_sent", "nudged", "account_created"  # the table's action check
-COMPLETION_KINDS = (ASKED, NUDGED, CRM_CREATED)
+ASKED, NUDGED, CHASED, CHECKED_IN = "ask_sent", "nudged", "chased", "checked_in"  # the table's action check
+COMPLETION_KINDS = (ASKED, NUDGED, CHASED, CHECKED_IN)
+REQUEST_KINDS = (ASKED, NUDGED, CHASED)  # keyed on request_id + connector; CHECKED_IN is keyed on company_id
+FOLLOW_UPS = (NUDGED, CHASED)  # both advance nudged_on
 ALLOCATION_COLUMNS = [
     "cycle", "request_id", "decided_at", "company_id", "company_name", "target_title", "value_usd",
     "urgency_declared", "request_date", "status_as_filed", "allocated_to", "batch_id", "batch_size",
@@ -310,7 +314,7 @@ def load_completions(path: Path = COMPLETIONS_OUT) -> list[dict]:
     an id wins, so a file that repeats a row applies it once). Rows come back
     in file order with every COMPLETION_COLUMNS key present. A malformed row
     ends the build: an unknown action, a completed_at that does not start with a date,
-    `ask_sent`/`nudged` without a request_id and connector, `account_created`
+    `ask_sent`/`nudged`/`chased` without a request_id and connector, `checked_in`
     without a company_id."""
     if not path.exists():
         return []
@@ -343,9 +347,9 @@ def completion_problem(r: dict) -> str | None:
         return f"{who}: action {r['action']!r} is not one of {', '.join(COMPLETION_KINDS)}"
     if not parse_date(r["completed_at"]):
         return f"{who}: completed_at {r['completed_at']!r} does not start with YYYY-MM-DD"
-    if r["action"] in (ASKED, NUDGED) and not (r["request_id"] and r["connector"]):
+    if r["action"] in REQUEST_KINDS and not (r["request_id"] and r["connector"]):
         return f"{who}: {r['action']} needs request_id and connector"
-    if r["action"] == CRM_CREATED and not r["company_id"]:
+    if r["action"] == CHECKED_IN and not r["company_id"]:
         return f"{who}: {r['action']} needs company_id"
     return None
 
@@ -458,11 +462,11 @@ def completed_on(c: dict) -> str:
     return c["completed_at"].strip()[:10]
 
 
-def completions_of(completions: list[dict], kind: str) -> dict[str, list[dict]]:
-    """request_id (company_id for account_created) -> that key's rows of one action, oldest first."""
-    key = "company_id" if kind == CRM_CREATED else "request_id"
+def completions_of(completions: list[dict], *kinds: str) -> dict[str, list[dict]]:
+    """request_id (company_id for checked_in) -> that key's rows of the given actions, oldest first."""
+    key = "company_id" if kinds == (CHECKED_IN,) else "request_id"
     out: dict[str, list[dict]] = defaultdict(list)
-    for c in sorted((c for c in completions if c["action"] == kind), key=lambda c: (c["completed_at"], c["completion_id"])):
+    for c in sorted((c for c in completions if c["action"] in kinds), key=lambda c: (c["completed_at"], c["completion_id"])):
         out[c[key]].append(c)
     return out
 
@@ -1194,7 +1198,7 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
                    allocation: dict[str, dict], filed: list[dict], outcomes: list[dict],
                    completions: list[dict] | None = None) -> list[dict]:
     outcomes = {o["request_id"]: o for o in outcomes}
-    nudges = completions_of(completions or [], NUDGED)
+    nudges = completions_of(completions or [], *FOLLOW_UPS)
     filed_by = {r["request_id"]: r for r in filed}
     rows = []
     for rid, rq in resolved.items():
@@ -1357,7 +1361,8 @@ def merge_write(rows: list[dict], source: dict[str, dict | None]) -> tuple[int, 
 # companies: rebuilt from golden_requests.csv every run
 # ---------------------------------------------------------------------------
 def build_companies(reg: Registry, supply: list[dict], requests: list[dict], today: date,
-                    outcomes: list[dict] | None = None) -> list[dict]:
+                    outcomes: list[dict] | None = None, completions: list[dict] | None = None) -> list[dict]:
+    checkins = completions_of(completions or [], CHECKED_IN)
     by_company = defaultdict(list)
     for r in requests:
         if r["company_id"]:
@@ -1420,6 +1425,7 @@ def build_companies(reg: Registry, supply: list[dict], requests: list[dict], tod
             "best_path_type": best["reach_type"] if best else "",
             "someone_offered": "yes" if any(r["offer_in_thread"] == "Y" for r in reqs) else "no",
             "days_since_movement": (today - max(moves)).days if moves else "",
+            "checked_in_on": completed_on(checkins[c.company_id][-1]) if c.company_id in checkins else "",
         })
     return rows
 
@@ -1522,7 +1528,7 @@ def main() -> None:
     supply = finish_supply(supply, roster, rates, outcomes, allocation, threads, signals.fatigue)
     alloc_rows = sorted(allocation.values(), key=lambda a: (a["allocated_to"] == "", a["batch_id"], a["request_id"]))
     all_alloc, prior_cycles, prior_rows, replaced = merge_allocation(history, alloc_rows, cycle)
-    companies = build_companies(reg, supply, read_csv(REQUESTS_OUT), today, outcomes)
+    companies = build_companies(reg, supply, read_csv(REQUESTS_OUT), today, outcomes, completions)
     write_derived(supply, all_alloc, companies)
 
     if completions:
