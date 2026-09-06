@@ -39,11 +39,12 @@ from os.path import commonprefix
 
 from analysis.crm import writeback as wb
 from analysis.trace import all_traces
+from dashboard import batch_ask
 from golden import build_golden as bg
 from golden import parse as gp
 from golden import resolver as gr
 from golden.resolve_cli import load_resolver
-from paths import DASHBOARD, DATASET, DOCS, GOLDEN
+from paths import DASHBOARD, DATASET, DOCS, GOLDEN, ROOT
 
 # ---------------------------------------------------------------------------
 # constants the ranking uses; every one is shown on the tab
@@ -63,6 +64,7 @@ BUILD_STAMP = DOCS / "build_stamp.json"  # when the site was last generated; the
 WORKFLOW_FILE = "rebuild.yml"  # .github/workflows/, the scheduled rebuild the page reports the last run of
 
 PAGE = "livepriorities.html"
+BATCH_PAGE = "batchask.html"
 TRACE_PAGE = "companytrace.html"
 CONNECTOR_PAGE = "connector-{slug}.html"
 # section ids as rendered by live_priorities.js boot(), in page order; drives the header nav
@@ -171,6 +173,7 @@ class Live:
         self.rates = bg.delivery_rates(self.roster, self.outcomes, self.threads)
         self.cycle = self.allocation[0]["cycle"] if self.allocation else today.strftime("%Y-%m")
         self.fatigue = bg.history_signals(self.history, self.outcomes, today).fatigue
+        self.batch_asks = batch_ask.compose(self.history, self.requests, self.roster)
         self.traceable = {t["company_id"] for t in all_traces(today)}
         self._ranked: list[dict] | None = None
 
@@ -700,6 +703,7 @@ class Live:
             "used": asked_cycle + len(queue), "idle": max(0, cap - asked_cycle - len(queue)),
             "delivery_rate": round(self.rate(name), 3), "asks_all_time": len(asks), "intros_all_time": len(intros),
             "intros_this_cycle": cycles[-1]["intros"], "cycles": cycles,
+            "batch_ask": self.batch_ask(name),
             # actionable rows first (oldest ask first), then the ones followed up recently
             "sitting_on": sorted((sitting_row(o) for o in sitting), key=lambda s: (s["quiet"], s["asked_date"], s["request_id"])),
             "quiet_days": NUDGE_QUIET_DAYS,
@@ -709,6 +713,26 @@ class Live:
                 "path_type": a["path_type"], "contact": a["contact_name"], "route_score": a["route_score"],
                 "value_fmt": money(a["value_usd"]), "urgency": a["urgency_declared"],
             } for a in queue],
+        }
+
+    def batch_ask(self, name: str) -> dict | None:
+        """The connector's drafted message for the current cycle, or None when
+        nothing routes to them."""
+        return next((m for m in self.batch_asks if m["cycle"] == self.cycle and m["connector"] == name), None)
+
+    def batch_page(self) -> dict:
+        """The Batched-Ask tab: every drafted message, current cycle first, each
+        with the structured rows the message itself may not spell out."""
+        order = self.connector_names()
+        rank = {n: i for i, n in enumerate(order)}
+        messages = sorted(self.batch_asks, key=lambda m: (m["cycle"] != self.cycle, m["cycle"], rank.get(m["connector"], len(rank)), m["connector"]))
+        pages = {c["connector"]: c["page"] for c in self.connector_pages()}
+        return {
+            "as_of": self.today.isoformat(), "cycle": self.cycle, "trace_page": TRACE_PAGE,
+            "messages": [{**m, "page": pages.get(m["connector"], ""),
+                          "requests": [{**q, **self.company_ref(q["company_id"], q["company_name"]), "value_fmt": money(q["value_usd"])}
+                                       for q in m["requests"]]} for m in messages],
+            "templates": batch_ask.TEMPLATES.relative_to(ROOT).as_posix(),
         }
 
     def connector_names(self) -> list[str]:
@@ -1001,6 +1025,10 @@ def cycles(today: date | None = None) -> dict:
 def connector_fragments(today: date | None = None) -> list[tuple[dict, str]]:
     """(card, html) per connector page; card["page"] is the file name under docs/."""
     return [(c, _fragment(c, "bootConnector")) for c in Live(today or date.today()).connector_pages()]
+
+
+def batch_fragment(today: date | None = None) -> str:
+    return _fragment(Live(today or date.today()).batch_page(), "bootBatch")
 
 
 if __name__ == "__main__":

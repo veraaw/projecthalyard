@@ -497,12 +497,59 @@ const LP = (function () {
       + `<td class="num">${r.intros}</td><td class="num">${r.intros_cumulative}</td></tr>`).join('')
     + `</tbody></table><p class="foot">A cycle is a calendar month, the allocator's unit. Asks by <code>asked_date</code>, intros by <code>intro_date</code> from <code>intro_outcomes.csv</code>; capacity is ${esc(who)}'s stated monthly capacity in <code>connector_roster.csv</code>. This cycle's allocation counts as slots used because those asks are about to go out.</p>`;
 
-  // one connector's page (docs/connector-<slug>.html): top 5, then the longer list
+  // ------------------------------------------------- batched-ask composer
+  // The drafted message dashboard/batch_ask.py wrote for one connector's cycle batch,
+  // with a copy button. A drafting aid only: copying writes nothing anywhere; the
+  // ask_sent tick on the queue rows stays the record that the ask went out.
+  const composeBlock = (m, id, tick = 'tick <i>ask sent</i> on the rows below once it has gone out') => !m ? '' : `<div class="compose" id="${esc(id)}"><div class="bar"><b>Batched ask · ${esc(m.connector)}</b>
+      <span class="foot">cycle ${esc(m.cycle)} · ${plural(m.request_count, 'request')} across ${plural(m.company_count, 'company')} · ${m.template === 'offerer' ? 'offerer template — not on the roster, being asked because they offered' : 'roster template'}${m.over_capacity ? ` · <b class="warn">${m.request_count} asks against a stated capacity of ${m.capacity}</b>` : ''}</span>
+      <button type="button" class="copy" data-copy="${esc(id)}">Copy message</button></div>
+      <pre class="msg">${esc(m.message)}</pre>
+      <p class="foot">Paste into the thread or a DM. Nothing is written by copying — ${tick}.</p></div>`;
+  const wireCopy = root => root.querySelectorAll('button.copy').forEach(b => b.onclick = async () => {
+    const pre = root.querySelector(`#${b.dataset.copy} pre.msg`), text = pre ? pre.textContent : '';
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+      ta.remove();
+    }
+    const label = b.textContent;
+    b.textContent = ok ? 'Copied' : 'Select and copy';
+    b.classList.toggle('copied', ok);
+    if (!ok && pre) { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+    setTimeout(() => { b.textContent = label; b.classList.remove('copied'); }, 1600);
+  });
+
+  // the Batched-Ask tab (docs/batchask.html): every drafted message, current cycle first
+  function bootBatch(D, root) {
+    const now = D.messages.filter(m => m.cycle === D.cycle), past = D.messages.filter(m => m.cycle !== D.cycle);
+    const detail = m => `<details><summary>${plural(m.request_count, 'request')} behind this message — ids, scores, values and urgency stay here, out of the text</summary>
+      <table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>for</th><th>path</th><th class="num">score</th><th>value</th><th>urgency</th></tr></thead><tbody>`
+      + m.requests.map(q => `<tr><td class="rid">${esc(q.request_id)}</td><td>${co(q)}</td><td>${esc(q.target_title)}</td><td>${esc(q.requested_by)}</td><td>${esc(q.path_type)}${q.contact_name ? ` <span class="foot">via ${esc(q.contact_name)}</span>` : q.offer_date ? ` <span class="foot">offered ${esc(q.offer_date)}</span>` : ''}</td><td class="num">${esc(q.route_score)}</td><td>${esc(q.value_fmt)}</td><td>${esc(q.urgency)}</td></tr>`).join('')
+      + `</tbody></table></details>`;
+    const card = m => `<section id="${esc(m.slug)}"><h2>${esc(m.connector)} <span class="foot">${m.on_roster ? esc(m.type) : 'not on the roster'} · batch <code>${esc(m.batch_id)}</code>${m.page ? ` · <a href="${esc(m.page)}">their page →</a>` : ''}</span></h2>`
+      + composeBlock(m, `ask-${m.cycle}-${m.slug}`, `tick <i>ask sent</i> on ${m.page ? `<a href="${esc(m.page)}">their page</a>` : 'their page'} or <a href="livepriorities.html#connectors">Live Priorities</a> once it has gone out`) + detail(m) + `</section>`;
+    let out = `<p class="stamp" id="lp-stamp">as of <b>${esc(D.as_of)}</b></p>
+      <section id="about"><p class="lede">One message per connector for cycle <b>${esc(D.cycle)}</b>: their whole batch from <code>golden_allocation.csv</code>, grouped by company and ordered by the batch's best route, requesters named from <code>golden_requests.csv</code>. Connectors on the roster get the roster wording; someone off the roster who is being asked because they offered in a thread gets the offerer wording, quoting the thread date. The wording lives in <code>${esc(D.templates)}</code>. No dollar value, route score, request id or urgency label appears in the text; those stay in the table under each message.</p>
+      <p class="foot">${plural(now.length, 'message')} this cycle: ${now.map(m => `<a href="#${esc(m.slug)}">${esc(m.connector)}</a>`).join(' · ') || 'nothing allocated'}. Copying writes nothing; the <i>ask sent</i> tick on Live Priorities and the connector's page remains the record that the ask went out.</p></section>`;
+    out += now.map(card).join('') || `<p class="empty">nothing allocated in cycle ${esc(D.cycle)}</p>`;
+    if (past.length) out += `<section id="past">${fold(`Earlier cycles <span class="foot">${plural(past.length, 'message')} kept for reference</span>`)}${past.map(card).join('')}</details></section>`;
+    root.innerHTML = out;
+    wireCopy(root);
+    openFoldAt(root);
+    buildStamp(D, root.querySelector('#lp-stamp'));
+  }
+
+  // one connector's page (docs/connector-<slug>.html): the drafted ask, top 5, then the longer list
   function bootConnector(c, root) {
     const X = c.completions, state = loadTicks(X);
     const cap = c.capacity ? `${c.used} / ${c.capacity}` : `${c.used}`;
     const now = c.cycles[c.cycles.length - 1];
-    let out = `<section id="top"><h2>Top ${c.top.length} for ${esc(c.connector)} <span class="foot">do these next — ${esc(c.connector)}'s share of the ${c.ranked_count} live requests routed to them this cycle, sorted by expected value${c.no_slot ? `; ${c.no_slot} have no slot until capacity frees up` : ''}</span></h2>
+    let out = c.batch_ask ? `<section id="ask"><h2>This cycle's ask <span class="foot">the batch drafted as one message — copy it, send it, then tick the rows below as the asks go out</span></h2>${composeBlock(c.batch_ask, `ask-${c.slug}`)}</section>` : '';
+    out += `<section id="top"><h2>Top ${c.top.length} for ${esc(c.connector)} <span class="foot">do these next — ${esc(c.connector)}'s share of the ${c.ranked_count} live requests routed to them this cycle, sorted by expected value${c.no_slot ? `; ${c.no_slot} have no slot until capacity frees up` : ''}</span></h2>
       <p class="lede">${c.on_roster ? `${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''}` : `<b>not on the roster</b> · ${esc(c.type)} · no stated capacity or focus areas`}${c.notes ? `<br><span class="foot">${esc(c.notes)}</span>` : ''}</p>
       <div class="kpis"><div class="kpi"><div class="v">${cap}</div><div class="l">${c.capacity ? 'capacity used this cycle' : 'asks this cycle'}</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated${c.capacity ? ` · ${c.idle} idle` : ''}</div></div>
         <div class="kpi"><div class="v">${c.intros_this_cycle}</div><div class="l">intros made this cycle</div><div class="s">${esc(now.cycle)} · ${c.capacity ? `${pctOf(now.capacity_pct)} of capacity used` : 'no stated capacity'}</div></div>
@@ -523,6 +570,7 @@ const LP = (function () {
 
     root.innerHTML = `<p class="stamp" id="lp-stamp">as of <b>${esc(c.as_of)}</b></p>` + out + submitBar(X);
     wireCompletions(root, X, state);
+    wireCopy(root);
     buildStamp(c, root.querySelector('#lp-stamp'));
   }
 
@@ -585,8 +633,9 @@ const LP = (function () {
         <div class="kpis"><div class="kpi"><div class="v">${c.used} / ${c.capacity}</div><div class="l">capacity used this cycle</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated · ${c.idle} idle</div></div>
           <div class="kpi"><div class="v">${Math.round(c.delivery_rate * 100)}%</div><div class="l">delivery rate</div><div class="s">${c.intros_all_time} intros / ${c.asks_all_time} asks, shrunk toward the prior</div></div>
           <div class="kpi ${c.sitting_on.length ? 'warn' : ''}"><div class="v">${c.sitting_on.length}</div><div class="l">already sitting on</div><div class="s">asked, live, no intro yet</div></div>
-          <div class="kpi"><div class="v">${c.queue.length}</div><div class="l">in this cycle's ask</div><div class="s">${c.queue.length ? 'one consolidated batch' : 'nothing allocated'}</div></div></div>
-        <h3>queue this cycle</h3>` + (c.queue.length ? `<table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>for</th><th>path</th><th class="num">score</th><th>value</th><th>urgency</th></tr></thead><tbody>`
+          <div class="kpi"><div class="v">${c.queue.length}</div><div class="l">in this cycle's ask</div><div class="s">${c.queue.length ? 'one consolidated batch' : 'nothing allocated'}</div></div></div>`
+        + composeBlock(c.batch_ask, `ask-${c.slug}`, `tick <i>ask sent</i> under <a href="#top">Top priorities</a> or on <a href="${esc(c.page)}">their page</a> once it has gone out`)
+        + `<h3>queue this cycle</h3>` + (c.queue.length ? `<table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>for</th><th>path</th><th class="num">score</th><th>value</th><th>urgency</th></tr></thead><tbody>`
           + c.queue.map(q => `<tr><td class="rid">${esc(q.request_id)}</td><td>${co(q)}</td><td>${esc(q.target_title)}</td><td>${esc(q.requested_by)}</td><td>${esc(q.path_type)}${q.contact ? ` <span class="foot">via ${esc(q.contact)}</span>` : ''}</td><td class="num">${esc(q.route_score)}</td><td>${esc(q.value_fmt)}</td><td>${esc(q.urgency)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing allocated to ${esc(c.connector)} this cycle</p>`)
         + `<h3>already sitting on</h3>` + sittingTable(c, X, state))
       + `</details></section>`;
@@ -725,6 +774,6 @@ const LP = (function () {
     el.querySelector('#lp-dl-preview').onclick = () => download(`${name}_preview.csv`, toCsv(P.preview_columns, pv.rows));
   }
 
-  return { boot, bootConnector, extract, makeResolver, previewThreads, parseJsonl, route, normStrict, toCsv, completionRows, completionId, tickKey, postCompletions };
+  return { boot, bootConnector, bootBatch, extract, makeResolver, previewThreads, parseJsonl, route, normStrict, toCsv, completionRows, completionId, tickKey, postCompletions };
 })();
 if (typeof module !== 'undefined') module.exports = LP;

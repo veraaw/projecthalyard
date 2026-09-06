@@ -31,8 +31,9 @@ import plotly.io as pio
 from analysis.integrity.integrity_audit import fragment as integrity_fragment
 from dashboard import data_cuts, theme
 from dashboard.funnel_overview import dropoff_rows, ratios
-from dashboard.live_priorities import (BUILD_STAMP, PAGE as PRIORITIES_HTML, SECTIONS as PRIORITIES_SECTIONS,
-                                       connector_fragments, cycles as connector_cycles, fragment as priorities_fragment)
+from dashboard.live_priorities import (BATCH_PAGE as BATCH_HTML, BUILD_STAMP, PAGE as PRIORITIES_HTML,
+                                       SECTIONS as PRIORITIES_SECTIONS, batch_fragment, connector_fragments,
+                                       cycles as connector_cycles, fragment as priorities_fragment)
 from dashboard.sankey_funnel import GOLDEN as GOLDEN_REQUESTS, build_figure, funnel_stages
 from dashboard.trace_section import fragment as trace_fragment
 from golden import build_golden as bg
@@ -510,6 +511,12 @@ img{{max-width:100%}}
 #lp .submitbar.failed{{border-top-color:var(--warn)}}
 #lp .submitbar button:disabled{{opacity:.5;cursor:default}}
 #lp .stamp{{margin:0 0 10px;font-family:var(--sans);font-size:13px;color:var(--mute)}}
+#lp .compose{{margin:14px 0 18px;border:1px solid var(--line);border-left:2px solid var(--baton);background:var(--surface)}}
+#lp .compose .bar{{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--bg);font-family:var(--sans);font-size:14px}}
+#lp .compose .bar .foot{{flex:1 1 240px}}
+#lp .compose pre.msg{{margin:0;padding:14px 16px;white-space:pre-wrap;overflow-wrap:anywhere;font:15px/1.55 var(--serif);color:var(--ink);background:var(--surface)}}
+#lp .compose>.foot{{margin:0;padding:8px 14px;border-top:1px solid var(--line)}}
+#lp .compose button.copied{{background:var(--ink);color:var(--surface);border-color:var(--ink)}}
 #lp .stamp a{{color:inherit}}
 #lp table.top .tick:disabled{{opacity:.55}}
 #lp table.preview tr.flag td{{background:rgba(159,45,0,.035)}}
@@ -577,6 +584,7 @@ img{{max-width:100%}}
 RAW_HTML, LIVE_HTML, TRACE_HTML = "halyardscoping.html", "livedata.html", "companytrace.html"
 TABS = [
     (PRIORITIES_HTML, "Live Priorities"),
+    (BATCH_HTML, "Batched-Ask for Connectors"),
     (TRACE_HTML, "Company Trace"),
     (LIVE_HTML, "Live Data Dashboard"),
     (RAW_HTML, "Raw Sept Data Dashboard"),
@@ -1081,6 +1089,21 @@ priorities_page = f"""{head("live priorities")}
 """
 
 
+batch_page = f"""{head("batched-ask for connectors")}
+<body>
+{tabs(BATCH_HTML)}
+<header>
+  <h1>Batched-Ask for Connectors — one message per connector, this cycle's batch</h1>
+  <p>Each connector's allocated requests from <code>golden/golden_allocation.csv</code>, drafted as a single plain-text ask by <code>dashboard/batch_ask.py</code> at build time with the wording in <code>config/batch_ask_templates.json</code>. Copy, send, then tick <i>ask sent</i> on <a href="{PRIORITIES_HTML}#connectors">Live Priorities</a> or the connector's page — copying writes nothing. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
+</header>
+<main>
+{batch_fragment(TODAY)}
+<p class="foot">Regenerate with <code>python3 build.py dashboard</code>. Print the messages with <code>python3 -m dashboard.batch_ask</code>.</p>
+</main>
+</body></html>
+"""
+
+
 def connector_page(c, frag):
     who = f"{esc(c['role'])} · {esc(c['type'])}" if c["on_roster"] else "not on the roster"
     return f"""{head(esc(c["connector"]))}
@@ -1107,6 +1130,7 @@ for name, markup in (
     (LIVE_HTML, live_page),
     (TRACE_HTML, trace_page),
     (PRIORITIES_HTML, priorities_page),
+    (BATCH_HTML, batch_page),
     *((c["page"], connector_page(c, frag)) for c, frag in connector_pages),
 ):
     out_path = str(DOCS / name)
