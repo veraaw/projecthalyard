@@ -12,11 +12,13 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.472 | Priya Raghunathan (Investor) | direct | Dev Ingleby — Head of Platform Engineering | connections_raghunathan.csv: Dev Ingleby, Head of Platform Engineering at Meridian Peak Foods, connected 2024-11-02 |
-| 0.415 | Dana Whitfield (Internal) | direct | Desmond Cardoso — Director of IT | connections_whitfield.csv: Desmond Cardoso, Director of IT at Meridian Peak Foods, connected 2022-03-01 |
-| 0.346 | Owen Trask (Investor) | direct | Desmond Cardoso — Director of IT | connections_trask.csv: Desmond Cardoso, Director of IT at Meridian Peak Foods, connected 2019-10-24 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.178 | 0.415 | Dana Whitfield (Internal) | direct | Desmond Cardoso — Director of IT | connections_whitfield.csv: Desmond Cardoso, Director of IT at Meridian Peak Foods, connected 2022-03-01 |
+| 0.097 | 0.472 | Priya Raghunathan (Investor) | direct | Dev Ingleby — Head of Platform Engineering | connections_raghunathan.csv: Dev Ingleby, Head of Platform Engineering at Meridian Peak Foods, connected 2024-11-02 |
+| 0.039 | 0.346 | Owen Trask (Investor) | direct | Desmond Cardoso — Director of IT | connections_trask.csv: Desmond Cardoso, Director of IT at Meridian Peak Foods, connected 2019-10-24 |
 
 ## 4. Chronology (15 events, 2 requests, as of 2026-09-06)
 

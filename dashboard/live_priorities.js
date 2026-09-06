@@ -541,6 +541,20 @@ const LP = (function () {
     buildStamp(D, root.querySelector('#lp-stamp'));
   }
 
+  // read-only: the strongest raw path into a company is this connector's, but the allocator sent every
+  // live request elsewhere (capacity, or a focus area they decline outside of). Not an ask, so no tick.
+  const strongestTable = c => {
+    const rows = c.strongest_elsewhere || [];
+    if (!rows.length) return '';
+    const cap = c.capacity ? `you're at ${c.used}/${c.capacity}` : `${c.used} asked this cycle`;
+    const why = s => [s.capacity && s.used >= s.capacity ? `at capacity ${s.used}/${s.capacity}` : '', s.outside_focus ? `${esc(s.industry)} is outside your focus` : ''].filter(Boolean).join(' · ');
+    const went = s => [s.routed_to.length ? `routed to ${s.routed_to.map(esc).join(', ')}` : '', s.unrouted ? `${plural(s.unrouted, 'request')} unrouted` : ''].filter(Boolean).join(' · ');
+    return `<h3>strongest path here, not routed to you <span class="foot">read-only — ${plural(rows.length, 'company')} where your path is the strongest on file and this cycle's requests went elsewhere; ${cap}. Nobody has asked you; there is nothing to tick.</span></h3>`
+      + `<table class="top"><thead><tr><th>company</th><th>your path</th><th class="num">strength</th><th class="num">route score</th><th>why not you</th><th>this cycle</th><th>requests</th></tr></thead><tbody>`
+      + rows.map(s => `<tr class="quiet"><td>${co(s)}</td><td>${esc(s.reach_type)}</td><td class="num">${s.strength.toFixed(3)}</td><td class="num">${s.route_score.toFixed(3)}</td><td>${why(s) || 'the allocator ranked another path higher'}</td><td>${went(s)}</td><td class="rid">${s.requests.map(esc).join(', ')}</td></tr>`).join('')
+      + `</tbody></table><p class="foot">route score = strength × focus fit × delivery rate, the allocator's sort key; a 0.000 is a focus area you decline outside of. An ask only appears above, under "already sitting on", once it is logged in intro_outcomes.csv.</p>`;
+  };
+
   // one connector's page (docs/connector-<slug>.html): the drafted ask, top 5, then the longer list
   function bootConnector(c, root) {
     const X = c.completions, state = loadTicks(X);
@@ -561,6 +575,7 @@ const LP = (function () {
     out += `<section id="rest"><h2>The longer list <span class="foot">everything else on ${esc(c.connector)}'s plate: ${plural(c.rest.length, 'more request')} to ask, then ${plural(c.sitting_on.length, 'ask')} already made and waiting on them</span></h2>
       <h3>after the top ${c.top.length}</h3>` + (c.rest.length ? priorityTable(c.rest, X, state, 'rank_here', false) : `<p class="empty">${c.ranked_count ? 'the top ' + c.top.length + ' is the whole list' : 'nothing to ask'}</p>`)
       + `<h3>already sitting on</h3>` + sittingTable(c, X, state)
+      + strongestTable(c)
       + formulaNote(c.formula) + `</section>`;
 
     out += `<section id="cycles"><h2>By cycle <span class="foot">${esc(c.connector)}'s asks against capacity, intros made and the running total, one row per month since ${esc(c.cycles[0].cycle)}</span></h2>`

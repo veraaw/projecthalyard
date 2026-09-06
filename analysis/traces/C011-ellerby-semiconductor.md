@@ -11,12 +11,14 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.330 | Dana Whitfield (Internal) | direct | Sunniva Højgaard — Chief Digital Officer | connections_whitfield.csv: Sunniva Højgaard, Chief Digital Officer at Ellerby Semiconductor, connected 2014-07-24 |
-| 0.330 | Tomás Beckett (Internal) | direct | Sunniva Højgaard — Chief Digital Officer | connections_beckett.csv: Sunniva Højgaard, Chief Digital Officer at Ellerby Semiconductor, connected 2016-10-23 |
-| 0.187 | Dana Whitfield (Internal) | alumni | Sunniva Højgaard — ex-Ellerby Semiconductor (2013-2015), now Chief Digital Officer at Ellerby Semiconductor | investor_network.csv: Sunniva Højgaard prior_employer=Ellerby Semiconductor (2013-2015); connections_whitfield.csv: connection of Dana Whitfield since 2014-07-24 |
-| 0.187 | Tomás Beckett (Internal) | alumni | Sunniva Højgaard — ex-Ellerby Semiconductor (2013-2015), now Chief Digital Officer at Ellerby Semiconductor | investor_network.csv: Sunniva Højgaard prior_employer=Ellerby Semiconductor (2013-2015); connections_beckett.csv: connection of Tomás Beckett since 2016-10-23 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.064 | 0.330 | Dana Whitfield (Internal) | direct | Sunniva Højgaard — Chief Digital Officer | connections_whitfield.csv: Sunniva Højgaard, Chief Digital Officer at Ellerby Semiconductor, connected 2014-07-24 |
+| 0.053 | 0.330 | Tomás Beckett (Internal) | direct | Sunniva Højgaard — Chief Digital Officer | connections_beckett.csv: Sunniva Højgaard, Chief Digital Officer at Ellerby Semiconductor, connected 2016-10-23 |
+| 0.036 | 0.187 | Dana Whitfield (Internal) | alumni | Sunniva Højgaard — ex-Ellerby Semiconductor (2013-2015), now Chief Digital Officer at Ellerby Semiconductor | investor_network.csv: Sunniva Højgaard prior_employer=Ellerby Semiconductor (2013-2015); connections_whitfield.csv: connection of Dana Whitfield since 2014-07-24 |
+| 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Sunniva Højgaard — ex-Ellerby Semiconductor (2013-2015), now Chief Digital Officer at Ellerby Semiconductor | investor_network.csv: Sunniva Højgaard prior_employer=Ellerby Semiconductor (2013-2015); connections_beckett.csv: connection of Tomás Beckett since 2016-10-23 |
 
 ## 4. Chronology (9 events, 1 request, as of 2026-09-06)
 

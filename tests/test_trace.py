@@ -55,10 +55,31 @@ class HarrowgateTest(unittest.TestCase):
         self.assertIn('R1090: filed "Closed - no path" but supply_reach.csv has 11 paths', dis)
         self.assertIn("R1136: Elena Duvall offered", dis)
 
-    def test_reach_sorted_by_strength(self):
-        strengths = [float(p["strength"]) for p in self.trace.paths]
-        self.assertEqual(strengths, sorted(strengths, reverse=True))
-        self.assertEqual(self.trace.paths[0]["connector"], "Elena Duvall")
+    def test_reach_sorted_by_route_score_not_strength(self):
+        """Elena's Slack offer is the strongest raw path (0.800) but Healthcare is
+        outside her focus, so the allocator scores it 0 and it ranks last; the
+        table sorts the way the allocator does and shows both numbers."""
+        scores = [self.trace.route_score(p) for p in self.trace.paths]
+        self.assertEqual(scores, sorted(scores, reverse=True))
+        self.assertEqual(self.trace.strongest()["connector"], "Elena Duvall")
+        self.assertEqual(self.trace.paths[-1]["connector"], "Elena Duvall")
+        self.assertNotEqual(self.trace.paths[0]["connector"], "Elena Duvall")
+        reach = self.trace.as_dict()["reach"]
+        self.assertEqual([r["route_score"] for r in reach], sorted((r["route_score"] for r in reach), reverse=True))
+        self.assertEqual((reach[-1]["strength"], reach[-1]["route_score"], reach[-1]["fit"]), (0.8, 0.0, 0.0))
+        self.assertIn("| route score | strength | connector |", self.text)
+
+    def test_bypass_reason_sits_on_the_strongest_row(self):
+        """Read off the roster, supply_reach.csv and this cycle's allocation rows,
+        not best_path_if_unbudgeted."""
+        why = self.trace.bypass()
+        self.assertTrue(why.startswith("Elena Duvall, offer 0.800, at capacity 3/3, Healthcare is outside their focus (route score 0.000); "), why)
+        self.assertIn("R1136 routed to Dana Whitfield", why)
+        self.assertIn("R1153 routed to Tomás Beckett", why)
+        reach = self.trace.as_dict()["reach"]
+        self.assertEqual([r["connector"] for r in reach if r["bypass"]], ["Elena Duvall"])
+        self.assertEqual(reach[-1]["bypass"], why)
+        self.assertIn(f"strongest path, not where it went: {why}", self.text)
 
     def test_chronology(self):
         events = self.trace.events()

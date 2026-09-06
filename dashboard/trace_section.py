@@ -42,6 +42,10 @@ def fragment() -> str:
 #trace .legend b.missed{{color:var(--warn)}} #trace .legend b.worked{{color:#1d6b2a}} #trace .legend b.offer{{color:var(--blue)}} #trace .legend b.warning{{color:var(--warn)}}
 #trace td.order{{font-family:var(--mono);color:var(--mute)}}
 #trace .empty{{color:var(--mute);font-style:italic}}
+#trace .bar.raw{{background:var(--mute);opacity:.55}}
+#trace td.score,#trace td.raw{{white-space:nowrap;font-variant-numeric:tabular-nums}}
+#trace tr.bypass td{{color:var(--mute);font-size:13px;border-top:none;padding-top:0}}
+#trace tr.bypass b{{color:var(--ink);font-weight:600}}
 @media(max-width:720px){{#trace h2.co{{font-size:22px}}}}
 </style>
 <div id="trace-body"></div>
@@ -81,9 +85,11 @@ def fragment() -> str:
     out += `<h3>3. Who can reach them</h3>`;
     if (!t.reach.length) out += `<p class="empty">nobody in the network reaches this company</p>`;
     else {{
-      const max = t.reach[0].strength || 1;
-      out += `<table><thead><tr><th>strength</th><th>connector</th><th>reach</th><th>contact</th><th>evidence</th></tr></thead><tbody>` +
-        t.reach.map(p => `<tr><td><span class="bar" style="width:${{Math.round(90 * p.strength / max)}}px"></span>${{p.strength.toFixed(3)}}</td><td>${{esc(p.connector)}} <span class="foot">${{esc(p.connector_type)}}</span></td><td>${{esc(p.reach_type)}}</td><td>${{esc([p.contact_name, p.contact_title].filter(Boolean).join(', ') || '?')}}</td><td class="foot">${{esc(p.evidence)}}</td></tr>`).join('') +
+      const maxScore = t.reach[0].route_score || 1, maxRaw = Math.max(...t.reach.map(p => p.strength)) || 1;
+      out += `<p class="foot">ranked by route score = strength × focus fit × delivery rate, the allocator's sort key; strength is the raw path alone</p>`;
+      out += `<table><thead><tr><th>route score</th><th>strength</th><th>connector</th><th>reach</th><th>contact</th><th>evidence</th></tr></thead><tbody>` +
+        t.reach.map(p => `<tr><td class="score"><span class="bar" style="width:${{Math.round(90 * p.route_score / maxScore)}}px"></span>${{p.route_score.toFixed(3)}}</td><td class="raw" title="fit ${{p.fit}} × delivery rate ${{p.rate}}"><span class="bar raw" style="width:${{Math.round(90 * p.strength / maxRaw)}}px"></span>${{p.strength.toFixed(3)}}</td><td>${{esc(p.connector)}} <span class="foot">${{esc(p.connector_type)}}</span></td><td>${{esc(p.reach_type)}}</td><td>${{esc([p.contact_name, p.contact_title].filter(Boolean).join(', ') || '?')}}</td><td class="foot">${{esc(p.evidence)}}</td></tr>`
+          + (p.bypass ? `<tr class="bypass"><td colspan="6"><b>strongest path, not where it went:</b> ${{esc(p.bypass)}}</td></tr>` : '')).join('') +
         `</tbody></table>`;
     }}
 

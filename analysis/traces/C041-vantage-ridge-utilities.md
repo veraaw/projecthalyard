@@ -11,10 +11,14 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.546 | Tomás Beckett (Internal) | direct | Sabine Dellinger — Chief Data Officer | connections_beckett.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2024-11-09 |
-| 0.492 | Marcus Aldridge (Advisor) | direct | Sabine Dellinger — Chief Data Officer | connections_aldridge.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2022-12-23 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.171 | 0.492 | Marcus Aldridge (Advisor) | direct | Sabine Dellinger — Chief Data Officer | connections_aldridge.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2022-12-23 |
+| 0.088 | 0.546 | Tomás Beckett (Internal) | direct | Sabine Dellinger — Chief Data Officer | connections_beckett.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2024-11-09 |
+
+strongest path, not where it went: Tomás Beckett, direct 0.546, at capacity 8/8; R1001 routed to Marcus Aldridge
 
 ## 4. Chronology (9 events, 2 requests, as of 2026-09-06)
 

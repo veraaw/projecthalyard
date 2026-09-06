@@ -7,16 +7,20 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Bexley Bioworks, board_seat=True |
-| 0.600 | Priya Raghunathan (Investor) | direct | Yusuf Wolstenholme — Chief Information Officer | connections_raghunathan.csv: Yusuf Wolstenholme, Chief Information Officer at Bexley Bioworks, connected 2026-07-07 |
-| 0.600 | Tomás Beckett (Internal) | direct | Yusuf Wolstenholme — Chief Information Officer | connections_beckett.csv: Yusuf Wolstenholme, Chief Information Officer at Bexley Bioworks, connected 2026-11-16 |
-| 0.465 | Priya Raghunathan (Investor) | direct | Malik Egerton — Chief Digital Officer | connections_raghunathan.csv: Malik Egerton, Chief Digital Officer at Bexley Bioworks, connected 2021-07-21 |
-| 0.438 | Dana Whitfield (Internal) | direct | Sabine Nakashima — Chief Data Officer | connections_whitfield.csv: Sabine Nakashima, Chief Data Officer at Bexley Bioworks, connected 2020-05-27 |
-| 0.411 | Marcus Aldridge (Advisor) | direct | Sabine Nakashima — Chief Data Officer | connections_aldridge.csv: Sabine Nakashima, Chief Data Officer at Bexley Bioworks, connected 2019-05-20 |
-| 0.411 | Tomás Beckett (Internal) | direct | Malik Egerton — Chief Digital Officer | connections_beckett.csv: Malik Egerton, Chief Digital Officer at Bexley Bioworks, connected 2019-09-28 |
-| 0.379 | Elena Duvall (Advisor) | direct | Kwame Achterberg — Head of Platform Engineering | connections_duvall.csv: Kwame Achterberg, Head of Platform Engineering at Bexley Bioworks, connected 2020-09-15 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.409 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Bexley Bioworks, board_seat=True |
+| 0.273 | 0.600 | Priya Raghunathan (Investor) | direct | Yusuf Wolstenholme — Chief Information Officer | connections_raghunathan.csv: Yusuf Wolstenholme, Chief Information Officer at Bexley Bioworks, connected 2026-07-07 |
+| 0.211 | 0.465 | Priya Raghunathan (Investor) | direct | Malik Egerton — Chief Digital Officer | connections_raghunathan.csv: Malik Egerton, Chief Digital Officer at Bexley Bioworks, connected 2021-07-21 |
+| 0.096 | 0.600 | Tomás Beckett (Internal) | direct | Yusuf Wolstenholme — Chief Information Officer | connections_beckett.csv: Yusuf Wolstenholme, Chief Information Officer at Bexley Bioworks, connected 2026-11-16 |
+| 0.084 | 0.438 | Dana Whitfield (Internal) | direct | Sabine Nakashima — Chief Data Officer | connections_whitfield.csv: Sabine Nakashima, Chief Data Officer at Bexley Bioworks, connected 2020-05-27 |
+| 0.066 | 0.411 | Tomás Beckett (Internal) | direct | Malik Egerton — Chief Digital Officer | connections_beckett.csv: Malik Egerton, Chief Digital Officer at Bexley Bioworks, connected 2019-09-28 |
+| 0.064 | 0.411 | Marcus Aldridge (Advisor) | direct | Sabine Nakashima — Chief Data Officer | connections_aldridge.csv: Sabine Nakashima, Chief Data Officer at Bexley Bioworks, connected 2019-05-20 |
+| 0.000 | 0.379 | Elena Duvall (Advisor) | direct | Kwame Achterberg — Head of Platform Engineering | connections_duvall.csv: Kwame Achterberg, Head of Platform Engineering at Bexley Bioworks, connected 2020-09-15 |
+
+strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3; R1048 routed to Tomás Beckett
 
 ## 4. Chronology (5 events, 1 request, as of 2026-09-06)
 

@@ -7,10 +7,12 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.600 | Elena Duvall (Advisor) | direct | Sunniva Oldfield — Chief Operating Officer | connections_duvall.csv: Sunniva Oldfield, Chief Operating Officer at Glasspoint Health, connected 2027-08-22 |
-| 0.600 | Marcus Aldridge (Advisor) | direct | Sunniva Oldfield — Chief Operating Officer | connections_aldridge.csv: Sunniva Oldfield, Chief Operating Officer at Glasspoint Health, connected 2026-09-15 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.094 | 0.600 | Marcus Aldridge (Advisor) | direct | Sunniva Oldfield — Chief Operating Officer | connections_aldridge.csv: Sunniva Oldfield, Chief Operating Officer at Glasspoint Health, connected 2026-09-15 |
+| 0.000 | 0.600 | Elena Duvall (Advisor) | direct | Sunniva Oldfield — Chief Operating Officer | connections_duvall.csv: Sunniva Oldfield, Chief Operating Officer at Glasspoint Health, connected 2027-08-22 |
 
 ## 4. Chronology (9 events, 1 request, as of 2026-09-06)
 

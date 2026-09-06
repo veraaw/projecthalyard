@@ -12,14 +12,16 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.600 | Marcus Aldridge (Advisor) | direct | Tanvi Eastcott — Chief Data Officer | connections_aldridge.csv: Tanvi Eastcott, Chief Data Officer at Ironvale Steel, connected 2026-07-05 |
-| 0.600 | Priya Raghunathan (Investor) | direct | Tanvi Eastcott — Chief Data Officer | connections_raghunathan.csv: Tanvi Eastcott, Chief Data Officer at Ironvale Steel, connected 2027-07-04 |
-| 0.349 | Marcus Aldridge (Advisor) | direct | Tomás Ferreira — VP Enterprise Architecture | connections_aldridge.csv: Tomás Ferreira, VP Enterprise Architecture at Ironvale Steel, connected 2018-11-19 |
-| 0.325 | Priya Raghunathan (Investor) | direct | Tomás Ferreira — VP Enterprise Architecture | connections_raghunathan.csv: Tomás Ferreira, VP Enterprise Architecture at Ironvale Steel, connected 2017-06-21 |
-| 0.218 | Marcus Aldridge (Advisor) | alumni | Tomás Ferreira — ex-Ironvale Steel (2015-2020), now VP Enterprise Architecture at Ironvale Steel | investor_network.csv: Tomás Ferreira prior_employer=Ironvale Steel (2015-2020); connections_aldridge.csv: connection of Marcus Aldridge since 2018-11-19 |
-| 0.202 | Priya Raghunathan (Investor) | alumni | Tomás Ferreira — ex-Ironvale Steel (2015-2020), now VP Enterprise Architecture at Ironvale Steel | investor_network.csv: Tomás Ferreira prior_employer=Ironvale Steel (2015-2020); connections_raghunathan.csv: connection of Priya Raghunathan since 2017-06-21 |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.208 | 0.600 | Marcus Aldridge (Advisor) | direct | Tanvi Eastcott — Chief Data Officer | connections_aldridge.csv: Tanvi Eastcott, Chief Data Officer at Ironvale Steel, connected 2026-07-05 |
+| 0.123 | 0.600 | Priya Raghunathan (Investor) | direct | Tanvi Eastcott — Chief Data Officer | connections_raghunathan.csv: Tanvi Eastcott, Chief Data Officer at Ironvale Steel, connected 2027-07-04 |
+| 0.121 | 0.349 | Marcus Aldridge (Advisor) | direct | Tomás Ferreira — VP Enterprise Architecture | connections_aldridge.csv: Tomás Ferreira, VP Enterprise Architecture at Ironvale Steel, connected 2018-11-19 |
+| 0.076 | 0.218 | Marcus Aldridge (Advisor) | alumni | Tomás Ferreira — ex-Ironvale Steel (2015-2020), now VP Enterprise Architecture at Ironvale Steel | investor_network.csv: Tomás Ferreira prior_employer=Ironvale Steel (2015-2020); connections_aldridge.csv: connection of Marcus Aldridge since 2018-11-19 |
+| 0.067 | 0.325 | Priya Raghunathan (Investor) | direct | Tomás Ferreira — VP Enterprise Architecture | connections_raghunathan.csv: Tomás Ferreira, VP Enterprise Architecture at Ironvale Steel, connected 2017-06-21 |
+| 0.041 | 0.202 | Priya Raghunathan (Investor) | alumni | Tomás Ferreira — ex-Ironvale Steel (2015-2020), now VP Enterprise Architecture at Ironvale Steel | investor_network.csv: Tomás Ferreira prior_employer=Ironvale Steel (2015-2020); connections_raghunathan.csv: connection of Priya Raghunathan since 2017-06-21 |
 
 ## 4. Chronology (31 events, 5 requests, as of 2026-09-06)
 

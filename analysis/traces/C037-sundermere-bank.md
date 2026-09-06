@@ -12,9 +12,11 @@
 
 ## 3. Who can reach them
 
-| strength | connector | reach | contact | evidence |
-|---|---|---|---|---|
-| 0.800 | Nadia Okonkwo (not on roster) | offer | Head of Platform | slack_threads.jsonl R1034 2025-10-13 Nadia Okonkwo: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+
+| route score | strength | connector | reach | contact | evidence |
+|---|---|---|---|---|---|
+| 0.213 | 0.800 | Nadia Okonkwo (not on roster) | offer | Head of Platform | slack_threads.jsonl R1034 2025-10-13 Nadia Okonkwo: "their Head of Platform reports to someone I've known for a decade, leave it with me" |
 
 ## 4. Chronology (6 events, 1 request, as of 2026-09-06)
 
