@@ -71,19 +71,19 @@ CONNECTOR_PAGE = "connector-{slug}.html"
 # sections are (section id, nav label) as rendered by live_priorities.js boot(), in page order.
 BANDS = [
     ("intake", "Intake: Preview a Routed Request Summary",
-     "does it accept input the build doesn't have yet?",
+     "Does it accept input the build doesn't have yet?",
      [("route", "Route a request"), ("upload", "Preview an export")]),
     ("orientation", "Orientation: Deal Value by Stage",
-     "is it a single aggregate with no rows?",
+     "Is it a single aggregate with no rows?",
      [("stages", "Deal value by stage")]),
-    ("now", "Actionable Now",
-     "does ticking it change what the queue proposes tomorrow?",
+    ("now", "Actionable Routing Steps",
+     "Does ticking it change what the queue proposes tomorrow?",
      [("top", "Top priorities"), ("offers", "Already offered"), ("bottlenecks", "Core bottlenecks"), ("crm", "CRM Updates")]),
     ("cycle", "Current Cycle Overview",
-     "does it describe a decision the allocator already made?",
+     "Does it describe a decision the allocator already made?",
      [("asks", "Current asks"), ("connectors", "Roster Connectors")]),
     ("stuck", "Not Moving",
-     "does the action belong to someone who isn't reading this page?",
+     "Does the action belong to someone who isn't reading this page?",
      [("unrouted", "Unrouted"), ("checkins", "Check-ins")]),
 ]
 # every section in page order; drives the header nav
@@ -575,6 +575,7 @@ class Live:
                     "path_type": a["path_type"],
                     "contact": p["contact_name"] or p["contact_title"],
                     "why": "; ".join(why),
+                    "value_usd": sum(usd(g["value_usd"]) for g in group),
                     "value_fmt": money(sum(usd(g["value_usd"]) for g in group)),
                     "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
                 })
@@ -598,8 +599,13 @@ class Live:
                     "company_as_written": self.by_rid[a["request_id"]]["company_as_written"],
                 })
         n_exc = sum(len(v) for v in exceptions.values())
+        # every allocated company across all batches, biggest first: the Aggregate tab
+        everything = sorted(({**c, "connector": b["connector"], "slug": b["slug"], "batch_id": b["batch_id"]}
+                             for b in out for c in b["companies"]),
+                            key=lambda c: (-c["value_usd"], c["company_name"]))
         return {
             "cycle": self.cycle, "allocated": sum(b["size"] for b in out), "batches": out,
+            "all": everything, "value_fmt": money(sum(c["value_usd"] for c in everything)),
             "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(sum(usd(self.by_rid[r["request_id"]]["value_usd"]) for r in v)),
                             "rows": v} for k, v in sorted(exceptions.items(), key=lambda kv: -len(kv[1]))],
             "exception_count": n_exc,

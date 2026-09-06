@@ -20,7 +20,7 @@ const LP = (function () {
   };
   const get = (o, k, d) => has(o, k) ? o[k] : d;
   // a row of sub-tab buttons and one panel per button, the first open; wireTabs() makes them switch
-  const tabs = (id, items, panel) => `<div class="subtabs" data-tabs="${id}">${items.map((x, i) => `<button data-i="${i}" class="${i ? '' : 'on'}">${esc(x.label)}${x.n == null ? '' : `<span class="n">${esc(x.n)}</span>`}</button>`).join('')}</div>`
+  const tabs = (id, items, panel) => `<div class="subtabs" data-tabs="${id}">${items.map((x, i) => `<button data-i="${i}" class="${[i ? '' : 'on', x.cls || ''].join(' ').trim()}">${esc(x.label)}${x.n == null ? '' : `<span class="n">${esc(x.n)}</span>`}</button>`).join('')}</div>`
     + items.map((x, i) => `<div class="tabpanel" data-tabs="${id}" data-i="${i}" ${i ? 'hidden' : ''}>${panel(x, i)}</div>`).join('');
   const wireTabs = root => root.querySelectorAll('.subtabs').forEach(bar => bar.querySelectorAll('button').forEach(b => b.onclick = () => {
     bar.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
@@ -659,9 +659,14 @@ const LP = (function () {
     // what is going out
     const A = D.asks;
     sec.asks = `<section id="asks">${fold(`Current asks <span class="foot">cycle ${esc(A.cycle)}: ${A.allocated} requests allocated in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code> · the drafted messages are on <a href="${esc(D.batch_page)}">Batched-Ask</a></span>`)}`
-      + tabs('asks', A.batches.map(b => ({ label: b.connector, n: b.size, b })), ({ b }) => `<p class="foot">${esc(b.connector_type)} · ${plural(b.size, 'request')} · ${esc(b.value_fmt)} · one consolidated ask, batch <code>${esc(b.batch_id)}</code> · <a href="${esc(D.batch_page)}#${esc(b.slug)}">the message</a></p>
+      + tabs('asks', [...A.batches.map(b => ({ label: b.connector, n: b.size, b })), { label: 'Aggregate', n: A.allocated, cls: 'agg' }], ({ b }) => b
+        ? `<p class="foot">${esc(b.connector_type)} · ${plural(b.size, 'request')} · ${esc(b.value_fmt)} · one consolidated ask, batch <code>${esc(b.batch_id)}</code> · <a href="${esc(D.batch_page)}#${esc(b.slug)}">the message</a></p>
         <table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>why this connector</th></tr></thead><tbody>`
         + b.companies.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td class="foot">${esc(c.why)}</td></tr>`).join('')
+        + `</tbody></table>`
+        : `<p class="foot">everything going out this cycle · ${plural(A.allocated, 'request')} across ${plural(A.batches.length, 'connector')} · ${esc(A.value_fmt)} · biggest first; a company listed twice is being asked of two connectors</p>
+        <table><thead><tr><th>company</th><th>connector</th><th>everyone wanted</th><th>who is waiting</th><th>path</th></tr></thead><tbody>`
+        + A.all.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span></td><td><b>${esc(c.connector)}</b><br><a class="foot" href="${esc(D.batch_page)}#${esc(c.slug)}">the message</a></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td></tr>`).join('')
         + `</tbody></table>`);
     const EXCEPTION_TITLE = { 'no path to this company in the network': 'no direct path to this company in the network' };
     const EXCEPTION_NOTE = { 'no path to this company in the network': 'Not routable this cycle (sourcing issue vs. allocation)' };
@@ -715,7 +720,7 @@ const LP = (function () {
     // ---- assemble: five labelled bands, each carrying its membership test
     let out = `<p class="stamp" id="lp-stamp">as of <b>${esc(D.as_of)}</b></p>`;
     D.bands.forEach((b, i) => {
-      out += `<div class="band" id="band-${esc(b.id)}"><div class="band-h"><span class="k">Band ${i + 1}</span><span class="t">${esc(b.title)}</span><span class="foot">membership test: ${esc(b.test)}</span></div>`
+      out += `<div class="band" id="band-${esc(b.id)}"><div class="band-h"><span class="k">Band ${i + 1}</span><span class="t">${esc(b.title)}</span><span class="foot">${esc(b.test)}</span></div>`
         + b.sections.map(id => sec[id]).join('') + `</div>`;
     });
 

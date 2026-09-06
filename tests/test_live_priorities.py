@@ -179,6 +179,13 @@ class PayloadTest(unittest.TestCase):
             for c in b["companies"]:
                 self.assertTrue(c["wanted"], "every person wanted, not just one")
                 self.assertTrue(c["waiting"] and c["path_type"] and c["why"])
+        self.assertEqual(sorted(c["company_id"] for c in A["all"]),
+                         sorted(c["company_id"] for b in A["batches"] for c in b["companies"]),
+                         "the Aggregate tab is every batch's companies")
+        values = [c["value_usd"] for c in A["all"]]
+        self.assertEqual(values, sorted(values, reverse=True), "biggest first")
+        self.assertEqual(sum(len(c["request_ids"]) for c in A["all"]), A["allocated"])
+        self.assertTrue(all(c["connector"] and c["slug"] and c["batch_id"] for c in A["all"]))
         self.assertEqual(A["exception_count"], len(alloc) - len(allocated), 50)
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
                          {"no path to this company in the network": 32, "capacity exhausted this cycle": 10,
