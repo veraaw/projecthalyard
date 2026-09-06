@@ -13,7 +13,7 @@
 ## Currently routing to: Amara Brenneman-Fairweather
 
 - this cycle: R1183 -> Amara Brenneman-Fairweather
-- top askable path: Amara Brenneman-Fairweather, investor_network via CEO / exec team, route score 0.215, 2/2 capacity used this cycle
+- top askable path: Amara Brenneman-Fairweather, investor_network via CEO / exec team, route score 0.215, 1/2 capacity used this cycle
 - not asked again here: Priya Raghunathan agreed on 2025-08-17 (R1082), no intro - nudge
 
 ## 3. Who can reach them

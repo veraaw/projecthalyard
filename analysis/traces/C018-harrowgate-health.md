@@ -15,7 +15,7 @@
 
 ## Currently routing to: Priya Raghunathan
 
-- this cycle: R1136, R1140 (retry) unrouted (capacity exhausted this cycle); R1153 -> Priya Raghunathan
+- this cycle: R1136, R1140 (retry), R1153 -> Priya Raghunathan
 - top askable path: Priya Raghunathan, direct via Amara Thackeray, route score 0.079, 3/3 capacity used this cycle
 - not asked again here: Tomás Beckett agreed on 2026-07-03 (R1057), no intro - nudge
 
@@ -44,7 +44,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 |---|---|---|---|---|---|---|
 | 0.079 | 0.492 | Tomás Beckett (Internal) | direct | Marcus Salcedo — Director of Software Engineering | connections_beckett.csv: Marcus Salcedo, Director of Software Engineering at Harrowgate Health, connected 2026-03-16 | Tomás Beckett agreed on 2026-07-03 (R1057), no intro - nudge |
 
-why not #1: Elena Duvall at capacity 3/3, outside focus (Healthcare) -> R1136, R1140 unrouted (capacity exhausted); R1153 to Priya Raghunathan
+why not #1: Elena Duvall outside focus (Healthcare) -> R1136, R1140, R1153 to Priya Raghunathan
 
 ## 4. Chronology (51 events, 9 requests, newest first, as of 2026-09-06)
 

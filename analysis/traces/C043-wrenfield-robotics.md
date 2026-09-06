@@ -11,7 +11,7 @@
 
 ## Currently routing to: Matteo Ferreira-Yarrow
 
-- this cycle: R1018, R1156 (retry) -> Matteo Ferreira-Yarrow; R1195 unrouted (capacity exhausted this cycle)
+- this cycle: R1018, R1156 (retry), R1195 -> Matteo Ferreira-Yarrow
 - top askable path: Priya Raghunathan, direct via Saoirse Prendergast, route score 0.130, 3/3 capacity used this cycle
 
 ## 3. Who can reach them
@@ -30,8 +30,6 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.172 | 0.720 | Matteo Ferreira-Yarrow (investor network) | investor_network | CEO / exec team — Ironvale Partners portfolio company | investor_network.csv: Matteo Ferreira-Yarrow (Private equity investor), portfolio_company=Wrenfield Robotics, board_seat=False |  |
-
-why not #1: Matteo Ferreira-Yarrow at capacity 2/2 (holds R1018, R1156) -> R1195 unrouted (capacity exhausted)
 
 ## 4. Chronology (14 events, 3 requests, newest first, as of 2026-09-06)
 

@@ -13,7 +13,7 @@
 ## Currently routing to: Dana Whitfield
 
 - this cycle: R1003 (retry), R1067, R1074 -> Dana Whitfield
-- top askable path: Dana Whitfield, offer via ?, route score 0.240, 6/6 capacity used this cycle
+- top askable path: Dana Whitfield, offer via ?, route score 0.240, 3/6 capacity used this cycle
 - not asked again here: Priya Raghunathan agreed on 2025-12-16 (R1135), no intro - nudge
 
 ## 3. Who can reach them

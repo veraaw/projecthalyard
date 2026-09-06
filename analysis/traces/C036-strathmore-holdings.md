@@ -12,7 +12,7 @@
 ## Currently routing to: Tomás Beckett
 
 - this cycle: R1027, R1125, R1132 -> Tomás Beckett
-- top askable path: Tomás Beckett, direct via Bertrand Lomsadze, route score 0.053, 8/8 capacity used this cycle
+- top askable path: Tomás Beckett, direct via Bertrand Lomsadze, route score 0.053, 3/8 capacity used this cycle
 - not asked again here: Marcus Aldridge agreed on 2025-11-01 (R1102), no intro - nudge
 
 ## 3. Who can reach them

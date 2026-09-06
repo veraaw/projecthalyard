@@ -12,7 +12,7 @@
 
 ## Currently routing to: Marcus Aldridge
 
-- the next request goes to the top askable path: Marcus Aldridge, direct via Tanvi Eastcott, route score 0.208, 4/4 capacity used this cycle
+- the next request goes to the top askable path: Marcus Aldridge, direct via Tanvi Eastcott, route score 0.208, 2/4 capacity used this cycle
 
 ## 3. Who can reach them
 

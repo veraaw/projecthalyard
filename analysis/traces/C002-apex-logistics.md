@@ -12,8 +12,8 @@
 
 ## Currently routing to: Marcus Aldridge
 
-- this cycle: R1024 -> Marcus Aldridge; R1041 unrouted (capacity exhausted this cycle)
-- top askable path: Marcus Aldridge, direct via Curtis Prendergast, route score 0.133, 4/4 capacity used this cycle
+- this cycle: R1024, R1041 -> Marcus Aldridge
+- top askable path: Marcus Aldridge, direct via Curtis Prendergast, route score 0.133, 2/4 capacity used this cycle
 - not asked again here: Elena Duvall agreed on 2025-08-24 (R1197), no intro - nudge
 
 ## 3. Who can reach them
@@ -32,7 +32,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 |---|---|---|---|---|---|---|
 | 0.000 | 0.459 | Elena Duvall (Advisor) | direct | Curtis Prendergast — SVP Digital | connections_duvall.csv: Curtis Prendergast, SVP Digital at Apex Logistics, connected 2022-02-04 | Elena Duvall agreed on 2025-08-24 (R1197), no intro - nudge |
 
-why not #1: Elena Duvall at capacity 3/3, outside focus (Logistics), not asked again here: Elena Duvall agreed on 2025-08-24 (R1197), no intro - nudge -> R1024 to Marcus Aldridge; R1041 unrouted (capacity exhausted)
+why not #1: Elena Duvall outside focus (Logistics), not asked again here: Elena Duvall agreed on 2025-08-24 (R1197), no intro - nudge -> R1024, R1041 to Marcus Aldridge
 
 ## 4. Chronology (25 events, 4 requests, newest first, as of 2026-09-06)
 

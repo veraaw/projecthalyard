@@ -12,7 +12,7 @@
 
 ## Currently routing to: Tomás Beckett
 
-- the next request goes to the top askable path: Tomás Beckett, direct via Renata Petrossian, route score 0.096, 8/8 capacity used this cycle
+- the next request goes to the top askable path: Tomás Beckett, direct via Renata Petrossian, route score 0.096, 3/8 capacity used this cycle
 
 ## 3. Who can reach them
 

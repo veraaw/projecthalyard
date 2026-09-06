@@ -69,9 +69,12 @@ class ComposerTest(unittest.TestCase):
                 continue
             checked += 1
             self.assertEqual(m["capacity"], int(r["stated_monthly_capacity"]))
-            self.assertLessEqual(m["request_count"], int(r["stated_monthly_capacity"]),
-                                 f"{m['cycle']} {m['connector']} covers {m['request_count']} requests")
+            self.assertLessEqual(m["company_count"], int(r["stated_monthly_capacity"]),
+                                 f"{m['cycle']} {m['connector']} covers {m['company_count']} companies")
+            self.assertFalse(m["over_capacity"])
         self.assertGreater(checked, 0, "at least one roster connector holds an allocation")
+        self.assertTrue(any(m["request_count"] > m["company_count"] for m in self.records),
+                        "a company with several live requests is one ask, so requests can outnumber slots")
 
     def test_companies_with_multiple_requests_collapse_to_one_block(self):
         multi = 0

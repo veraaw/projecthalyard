@@ -13,7 +13,7 @@
 ## Currently routing to: Dana Whitfield
 
 - this cycle: R1065, R1084, R1159 -> Dana Whitfield
-- top askable path: Dana Whitfield, direct via Freya Havercamp, route score 0.128, 6/6 capacity used this cycle
+- top askable path: Dana Whitfield, direct via Freya Havercamp, route score 0.128, 3/6 capacity used this cycle
 
 ## 3. Who can reach them
 

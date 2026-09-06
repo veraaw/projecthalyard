@@ -240,7 +240,7 @@ class RebuildTest(ScratchRootTest):
         expected = {rid: dict(rows[rid]) for rid in (asked["request_id"], placed["request_id"], parked["request_id"])}
         # the file says what an older build concluded, before these paths were known
         for r in (placed, parked):
-            r.update({"routed_to": "", "route_score": "", "route_reason": "not asked; no path to this company in the network"})
+            r.update({"routed_to": "", "route_score": "", "route_reason": "not asked; what an older build concluded"})
         asked.update({"routed_to": "Someone Asked", "route_score": "0.999", "route_reason": "as filed with the ask"})
         write_csv(self.requests, list(rows.values()))
 
@@ -290,7 +290,8 @@ class RebuildTest(ScratchRootTest):
         oct_before = self.cycle_rows("2026-10")
         # a request live in both cycles is closed before the October rerun: it
         # leaves October's allocation and stays in September's as filed
-        closed = next(a["request_id"] for a in oct_before if a["allocated_to"])
+        closed = next(a["request_id"] for a in oct_before
+                      if a["allocated_to"] or a["exception_reason"].startswith(STALE_ASK))
         self.assertIn(closed, {a["request_id"] for a in self.cycle_rows("2026-09")})
         requests = read_csv(self.requests)
         next(r for r in requests if r["request_id"] == closed)["status_as_filed"] = "Closed - lost"
@@ -344,9 +345,11 @@ class RebuildTest(ScratchRootTest):
                 self.assertEqual(cycle, "2026-09")
                 self.assertIn((connector, again["company_id"]), sep_pairs, again["request_id"])
         self.assertEqual(sep, self.cycle_rows("2026-09"), "the September proposal stands as filed")
-        # the headroom the flagged asks leave goes to requests September could not place
-        newly = [a for a in oct_by_rid.values() if a["allocated_to"] and a["request_id"] not in {p["request_id"] for p in proposed}]
-        self.assertTrue(newly, "October still allocates something")
+        # the headroom the flagged asks leave goes to the requests September could not place
+        unplaced = {a["request_id"] for a in sep if a["exception_reason"] == bg.CAPACITY_EXHAUSTED}
+        newly = {a["request_id"] for a in oct_by_rid.values()
+                 if a["allocated_to"] and a["request_id"] not in {p["request_id"] for p in proposed}}
+        self.assertEqual(newly, unplaced, "October allocates exactly what September ran out of room for")
 
 
 def completion(action: str, key: str, day: str, connector: str = "", who: str = "vera", **more) -> dict:

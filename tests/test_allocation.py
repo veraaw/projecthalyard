@@ -7,7 +7,9 @@ current allocation is its latest cycle. Within a cycle: one row per live,
 not-yet-asked request, plus one per asked request whose own intro fizzled with
 no re-ask logged since (back as a retry); each row is either an allocation
 (allocated_to + batch_id) or an exception (exception_reason), never both and
-never neither.
+never neither. A company is one ask: its allocated rows share one connector,
+path and contact, one of them is the lead (rides_with empty) and the rest ride
+on it (rides_with = the lead's request_id); capacity and batch_size count asks.
 Counts are derived from golden_requests.csv, golden_companies.csv and
 dataset/, never fixed: the request file grows on every merge.
 """
@@ -23,9 +25,9 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from golden.build_golden import (  # noqa: E402
     ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, HOLD_LAST, HOLD_NUDGE, HOLD_WINDOW, INTRO_LIVE_DAYS, MULTI, NOTIFY_STAGES,
-    OPEN_STATUSES, STALE_ASK, UNANSWERED_ASK_DAYS, UNRESOLVED_ASK, Company, cycle_budget, history_signals, hold_reason,
-    intro_of, introductions, latest_cycle, load_roster, meeting_stalled, owner_to_notify, parse_date, path_rank,
-    retriable, unresolved_asks,
+    OPEN_STATUSES, STALE_ASK, UNANSWERED_ASK_DAYS, UNRESOLVED_ASK, URGENCY_RANK, Company, cycle_budget, history_signals,
+    hold_reason, intro_of, introductions, is_lead, latest_cycle, load_roster, meeting_stalled, owner_to_notify, parse_date,
+    path_rank, retriable, unresolved_asks,
 )
 
 G = ROOT / "golden"
@@ -33,10 +35,11 @@ D = ROOT / "dataset"
 
 NO_PATH = "no path to this company in the network"
 UNRESOLVED = "company unresolved"
-ALWAYS_PRESENT = {NO_PATH, CAPACITY_EXHAUSTED, UNRESOLVED}
-# STALE_ASK needs a prior cycle, ALREADY_INTRODUCED a live intro and UNRESOLVED_ASK a company
-# whose every path is held by an unresolved ask, so any of them may be absent
-KNOWN_EXCEPTIONS = ALWAYS_PRESENT | {STALE_ASK, ALREADY_INTRODUCED, UNRESOLVED_ASK}
+ALWAYS_PRESENT = {NO_PATH, UNRESOLVED}
+# STALE_ASK needs a prior cycle, ALREADY_INTRODUCED a live intro, CAPACITY_EXHAUSTED more
+# companies asked for than the roster has slots and UNRESOLVED_ASK a company whose every
+# path is held by an unresolved ask, so any of them may be absent
+KNOWN_EXCEPTIONS = ALWAYS_PRESENT | {STALE_ASK, ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, UNRESOLVED_ASK}
 BATCH_COLUMNS = ("batch_id", "batch_size", "path_type", "route_score")
 
 
@@ -57,6 +60,8 @@ class AllocationTest(unittest.TestCase):
         cls.outcomes = rows(D / "intro_outcomes.csv")
         cls.asked = {o["request_id"] for o in cls.outcomes}
         cls.allocated = [a for a in cls.alloc if a["allocated_to"]]
+        cls.leads = [a for a in cls.allocated if is_lead(a)]
+        cls.riders = [a for a in cls.allocated if not is_lead(a)]
         cls.exceptions = [a for a in cls.alloc if a["exception_reason"]]
         cls.cycle = cls.alloc[0]["cycle"] if cls.alloc else ""
         decided = parse_date(cls.alloc[0]["decided_at"]) if cls.alloc else None
@@ -149,8 +154,8 @@ class AllocationTest(unittest.TestCase):
 
     def test_every_live_request_has_exactly_one_row(self):
         # The other direction: nothing live is skipped. Together with one row
-        # per request_id this is what makes two reps wanting the same title
-        # both show up rather than collapsing into one ask.
+        # per request_id this is what keeps two reps wanting the same title
+        # both on file even though the company is asked for once.
         self.assertEqual({a["request_id"] for a in self.alloc}, self.live)
 
     def test_every_company_id_exists_in_golden_companies(self):
@@ -164,20 +169,56 @@ class AllocationTest(unittest.TestCase):
         # (OFF_ROSTER_CAPACITY for anyone else) less the asks the prior cycles
         # of this file proposed to them in the trailing window beyond one
         # month's capacity. intro_outcomes.csv plays no part.
+        # An ask is a company: riders on a lead's ask cost no slot.
         today = parse_date(self.alloc[0]["decided_at"])
         fatigue = history_signals(self.history, self.outcomes, today).fatigue
-        load = Counter(a["allocated_to"] for a in self.allocated)
+        load = Counter(a["allocated_to"] for a in self.leads)
         over = {n: (k, cycle_budget(self.roster_full, fatigue, n)) for n, k in load.items()
                 if k > cycle_budget(self.roster_full, fatigue, n)}
-        self.assertEqual(over, {}, "allocated > budget")
+        self.assertEqual(over, {}, "asks > budget")
         self.assertTrue(set(load) & set(self.roster), "no roster connector allocated to")
+        rows_by = Counter(a["allocated_to"] for a in self.allocated)
+        self.assertTrue(any(rows_by[n] > cycle_budget(self.roster_full, fatigue, n) for n in rows_by),
+                        "the golden allocation has a connector carrying more requests than slots, thanks to riders")
+
+    # ── 4b. a company is one ask ─────────────────────────────────────────
+    def test_a_company_goes_to_one_connector_as_one_ask(self):
+        by_company = defaultdict(list)
+        for a in self.allocated:
+            by_company[a["company_id"]].append(a)
+        for cid, rows_ in by_company.items():
+            with self.subTest(company_id=cid):
+                self.assertEqual(len({(a["allocated_to"], a["batch_id"], a["path_type"], a["contact_name"], a["route_score"])
+                                      for a in rows_}), 1, "one connector, path and contact for the company")
+                leads = [a for a in rows_ if is_lead(a)]
+                self.assertEqual(len(leads), 1, "exactly one row paid the slot")
+                lead = leads[0]
+                for a in rows_:
+                    if a is not lead:
+                        self.assertEqual(a["rides_with"], lead["request_id"])
+                # the lead is the company's highest-priority request: urgency, value, age, id
+                key = lambda a: (URGENCY_RANK.get(a["urgency_declared"], 9), -float(a["value_usd"] or 0),
+                                 a["request_date"], a["request_id"])
+                self.assertEqual(min(rows_, key=key)["request_id"], lead["request_id"])
+        self.assertTrue(self.riders, "the golden allocation has a company with more than one live request")
+        self.assertTrue(all(not a["rides_with"] for a in self.exceptions), "an exception rides on nothing")
+        # Blackwood: three live requests, one ask
+        blackwood = [a for a in self.allocated if a["company_id"] == "C006"]
+        self.assertGreater(len(blackwood), 1)
+        self.assertEqual(len({a["allocated_to"] for a in blackwood}), 1, "Blackwood asked of one connector, not three")
 
     # ── 5. batches ─────────────────────────────────────────────────────
-    def test_batch_size_equals_the_rows_in_that_batch(self):
-        sizes = Counter(a["batch_id"] for a in self.allocated)
+    def test_batch_size_counts_the_companies_in_that_batch(self):
+        sizes = Counter(a["batch_id"] for a in self.leads)
         wrong = [(a["request_id"], a["batch_size"], sizes[a["batch_id"]]) for a in self.allocated
                  if a["batch_size"] != str(sizes[a["batch_id"]])]
         self.assertEqual(wrong, [])
+        companies = defaultdict(set)
+        for a in self.allocated:
+            companies[a["batch_id"]].add(a["company_id"])
+        self.assertEqual({b: len(c) for b, c in companies.items()}, dict(sizes))
+        self.assertTrue(any(a["batch_size"] != str(Counter(x["batch_id"] for x in self.allocated)[a["batch_id"]])
+                            for a in self.allocated), "some batch carries more requests than asks")
 
     def test_one_batch_per_connector_per_cycle(self):
         per_connector = defaultdict(set)
@@ -198,9 +239,10 @@ class AllocationTest(unittest.TestCase):
         self.assertEqual(drifted, [])
 
     def test_two_reps_wanting_the_same_title_are_both_present(self):
-        # Two reps asking for the same title at the same company are two asks,
-        # not one: the file must list both request_ids rather than collapsing
-        # them, each allocated on its own row.
+        # Two reps asking for the same title at the same company are one ask
+        # to the connector, but two requests to us: the file must list both
+        # request_ids rather than collapsing them, each allocated on its own
+        # row (one the lead, one riding on it).
         wanted = defaultdict(set)
         for rid in self.live:
             r = self.requests[rid]
@@ -215,6 +257,11 @@ class AllocationTest(unittest.TestCase):
         routed = Counter((a["company_id"], a["target_title"]) for a in self.allocated)
         self.assertTrue(any(routed[k] > 1 for k in contested),
                         "no contested title has both requests allocated")
+        for k in contested:
+            both = [a for a in self.allocated if (a["company_id"], a["target_title"]) == k]
+            if len(both) > 1:
+                self.assertEqual(sum(1 for a in both if is_lead(a)) + sum(1 for a in both if a["rides_with"]), len(both))
+                self.assertLessEqual(sum(1 for a in both if is_lead(a)), 1, "one ask, not two")
 
     # ── 7. exception reasons ───────────────────────────────────────────
     def test_exception_reason_is_one_of_the_known_set(self):

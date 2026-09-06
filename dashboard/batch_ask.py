@@ -14,7 +14,9 @@ under `message` and everything the message may not say — dollar values, route
 scores, request ids, urgency — kept in the structured fields for the page.
 
 The message groups the batch by company, then by contact within the company,
-one block per company ordered by the batch's highest route score. Two requests
+one block per company ordered by the batch's highest route score: a company is
+one ask however many requests ride on it (rides_with), so company_count is the
+asks and over_capacity compares it with stated capacity. Two requests
 for the same company and title render once with ", asked twice" (or "Nx"); both
 request ids stay on the record. A company whose earlier intro went nowhere
 (the allocator only routes such a company afresh once that intro has fizzled)
@@ -224,7 +226,7 @@ def _record(cycle: str, who: str, rows: list[dict], by_rid: dict, offers: dict, 
         "type": r["type"] if r else "", "notes": r["notes"] if r else "",
         "capacity": int(r["stated_monthly_capacity"] or 0) if r else None,
         "request_ids": [q["request_id"] for q in reqs], "request_count": len(reqs), "company_count": len(companies),
-        "over_capacity": bool(r) and len(reqs) > int(r["stated_monthly_capacity"] or 0),
+        "over_capacity": bool(r) and len(companies) > int(r["stated_monthly_capacity"] or 0),
         "requests": reqs, "companies": companies,
         "offers": [{"company_id": c["company_id"], "company_name": c["company_name"], "date": g["offer_date"]}
                    for c in companies for g in c["contacts"][:1] if g["path_type"] == OFFER],
@@ -263,7 +265,7 @@ def main(argv: list[str]) -> None:
     for rec in compose():
         if argv and rec["cycle"] not in argv:
             continue
-        print(f"=== {rec['cycle']} · {rec['connector']} · {rec['template']} · {rec['request_count']} requests")
+        print(f"=== {rec['cycle']} · {rec['connector']} · {rec['template']} · {rec['company_count']} asks, {rec['request_count']} requests")
         print(rec["message"])
 
 
