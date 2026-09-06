@@ -10,7 +10,7 @@ clicking a company swaps the rendered trace in place. Opens on the most-requeste
 """
 import json
 
-from analysis.trace import all_traces
+from analysis.trace import BYPASS_LABEL, all_traces
 from golden.build_golden import INVESTOR_NETWORK, NETWORK_HAIRCUT
 
 MARK_LABEL = {"<-": "missed", "++": "worked", "**": "offer", "!!": "warning", "  ": ""}
@@ -104,7 +104,7 @@ def fragment() -> str:
       out += `<p class="foot">ranked by route score = strength × focus fit × delivery rate, the allocator's sort key${{haircut}}; strength is the raw path alone</p>`;
       out += `<table><thead><tr><th>route score</th><th>strength</th><th>connector</th><th>reach</th><th>contact</th><th>evidence</th></tr></thead><tbody>` +
         t.reach.map(p => `<tr><td class="score"><span class="bar" style="width:${{Math.round(90 * p.route_score / maxScore)}}px"></span>${{p.route_score.toFixed(3)}}</td><td class="raw" title="fit ${{p.fit}} × delivery rate ${{p.rate}}"><span class="bar raw" style="width:${{Math.round(90 * p.strength / maxRaw)}}px"></span>${{p.strength.toFixed(3)}}</td><td>${{esc(p.connector)}} <span class="foot">${{esc(p.connector_type)}}</span></td><td>${{esc(p.reach_type)}}</td><td>${{esc([p.contact_name, p.contact_title].filter(Boolean).join(', ') || '?')}}</td><td class="foot">${{esc(p.evidence)}}</td></tr>`
-          + (p.bypass ? `<tr class="bypass"><td colspan="6"><b>strongest path, not where it went:</b> ${{esc(p.bypass)}}</td></tr>` : '')).join('') +
+          + (p.bypass ? `<tr class="bypass"><td colspan="6"><b>{BYPASS_LABEL}:</b> ${{esc(p.bypass)}}</td></tr>` : '')).join('') +
         `</tbody></table>`;
     }}
 

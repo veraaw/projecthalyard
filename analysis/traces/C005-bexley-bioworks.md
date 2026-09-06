@@ -20,7 +20,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.064 | 0.411 | Marcus Aldridge (Advisor) | direct | Sabine Nakashima — Chief Data Officer | connections_aldridge.csv: Sabine Nakashima, Chief Data Officer at Bexley Bioworks, connected 2019-05-20 |
 | 0.000 | 0.379 | Elena Duvall (Advisor) | direct | Kwame Achterberg — Head of Platform Engineering | connections_duvall.csv: Kwame Achterberg, Head of Platform Engineering at Bexley Bioworks, connected 2020-09-15 |
 
-strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3; R1048 routed to Tomás Beckett
+why not #1: Priya Raghunathan at capacity 3/3 -> R1048 to Tomás Beckett
 
 ## 4. Chronology (5 events, 1 request, newest first, as of 2026-09-06)
 

@@ -21,7 +21,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.021 | 0.187 | Owen Trask (Investor) | alumni | Bertrand Glückstein — ex-Cindermill Mining (2011-2016), now Chief Data Officer at Cindermill Mining | investor_network.csv: Bertrand Glückstein prior_employer=Cindermill Mining (2011-2016); connections_trask.csv: connection of Owen Trask since 2015-05-17 |
 | 0.172 | 0.720 | Camille Merriweather-Balogun (investor network) | investor_network | CEO / exec team — Silverbrook Capital portfolio company | investor_network.csv: Camille Merriweather-Balogun (Venture capital investor), portfolio_company=Cindermill Mining, board_seat=False |
 
-strongest path, not where it went: Camille Merriweather-Balogun, investor_network 0.720, 0/2 used this cycle; R1059 routed to Tomás Beckett, R1144 routed to Elena Duvall, R1184 routed to Elena Duvall
+why not #1: Camille Merriweather-Balogun investor network, roster asked first -> R1059 to Tomás Beckett; R1144, R1184 to Elena Duvall
 
 ## 4. Chronology (17 events, 4 requests, newest first, as of 2026-09-06)
 

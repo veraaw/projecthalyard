@@ -29,7 +29,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.000 | 0.187 | Elena Duvall (Advisor) | alumni | Yusuf Vasquez — ex-Strathmore Rail (2014-2017), now Director of Software Engineering at Strathmore Rail | investor_network.csv: Yusuf Vasquez prior_employer=Strathmore Rail (2014-2017); connections_duvall.csv: connection of Elena Duvall since 2015-02-06 |
 | 0.172 | 0.720 | Freya Oldfield-Ibarra (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Freya Oldfield-Ibarra (Venture capital investor), portfolio_company=Strathmore Rail, board_seat=False |
 
-strongest path, not where it went: Freya Oldfield-Ibarra, investor_network 0.720, 0/2 used this cycle; R1027 routed to Tomás Beckett, R1125 routed to Tomás Beckett, R1132 routed to Tomás Beckett
+why not #1: Freya Oldfield-Ibarra investor network, roster asked first -> R1027, R1125, R1132 to Tomás Beckett
 
 ## 4. Chronology (36 events, 7 requests, newest first, as of 2026-09-06)
 

@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import re
 import sys
 import unittest
 from collections import Counter
@@ -12,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from analysis.trace import MISSED, OFFER, WARN, WORKED, Data, Trace, find_company, money  # noqa: E402
+from analysis.trace import BYPASS_LABEL, MISSED, OFFER, WARN, WORKED, Data, Trace, find_company, money, short_reason  # noqa: E402
 from dashboard import live_priorities as lp  # noqa: E402
 from golden import build_golden as bg  # noqa: E402
 
@@ -95,17 +96,42 @@ class HarrowgateTest(unittest.TestCase):
         why = self.trace.bypass()
         used = sum(a["allocated_to"] == "Elena Duvall" for a in self.data.allocation)
         cap = bg.capacity(self.data.roster, "Elena Duvall")
-        load = f"at capacity {used}/{cap}" if used >= cap else f"{used}/{cap} used this cycle"
-        self.assertTrue(why.startswith(f"Elena Duvall, offer 0.800, {load}, Healthcare is outside their focus (route score 0.000); "), why)
+        self.assertGreaterEqual(used, cap)
+        head, went = why.split(" -> ")
+        self.assertEqual(head, f"Elena Duvall at capacity {used}/{cap}, outside focus (Healthcare)", why)
+        self.assertNotIn("0.800", why, "the strength is on the row above, not repeated")
         rows = [a for a in self.data.allocation if a["company_id"] == "C018"]
         self.assertIn("R1153", [a["request_id"] for a in rows])
+        groups = dict(re.fullmatch(r"((?:R\d+, )*R\d+) (.+)", g).groups()[::-1] for g in went.split("; "))  # destination -> 'R1136, R1140'
         for a in rows:
-            self.assertIn(f"{a['request_id']} routed to {a['allocated_to']}" if a["allocated_to"]
-                          else f"{a['request_id']} unrouted ({a['exception_reason']})", why)
+            dest = f"to {a['allocated_to']}" if a["allocated_to"] else f"unrouted ({short_reason(a['exception_reason'])})"
+            self.assertIn(a["request_id"], groups[dest].split(", "), why)
+        self.assertEqual(went.count("capacity exhausted"), 1, "one group per destination, requests listed once each")
         reach = self.trace.as_dict()["reach"]
         self.assertEqual([r["connector"] for r in reach if r["bypass"]], ["Elena Duvall"])
         self.assertEqual(reach[-1]["bypass"], why)
-        self.assertIn(f"strongest path, not where it went: {why}", self.text)
+        self.assertIn(f"{BYPASS_LABEL}: {why}", self.text)
+
+    def test_bypass_parked_on_live_intro_names_only_the_intro(self):
+        """Gravenhurst Motors: every live request is parked on Curtis Hartigan's
+        intro, so nobody is asked afresh and the strongest path is beside the
+        point; the line is the intro once, then the parked requests."""
+        t = Trace(self.data, find_company(self.data, "Gravenhurst Motors"), AS_OF)
+        parked = sorted((a for a in self.data.allocation if a["company_id"] == "C016" and a["exception_reason"].startswith(bg.ALREADY_INTRODUCED)),
+                        key=lambda a: a["request_id"])
+        self.assertTrue(parked)
+        self.assertEqual(t.bypass(), "parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting booked): "
+                         + ", ".join(a["request_id"] for a in parked))
+        self.assertEqual(t.bypass().count("Curtis Hartigan"), 1)
+
+    def test_short_reason(self):
+        self.assertEqual(short_reason(bg.introduced_reason({"connector": "Curtis Hartigan", "intro_date": "2026-08-10", "request_id": "R1122", "meeting_booked": True})),
+                         "parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting booked)")
+        self.assertEqual(short_reason(bg.introduced_reason({"connector": "Curtis Hartigan", "intro_date": "2026-08-10", "request_id": "R1122", "meeting_booked": False})),
+                         "parked on live intro (R1122, Curtis Hartigan, 2026-08-10)")
+        self.assertEqual(short_reason(bg.CAPACITY_EXHAUSTED), "capacity exhausted")
+        self.assertEqual(short_reason(f"{bg.STALE_ASK}: Owen Trask in 2026-08"), "already proposed to Owen Trask in 2026-08")
+        self.assertEqual(short_reason("company unresolved"), "company unresolved")
 
     def test_chronology(self):
         events = self.trace.events()
