@@ -227,6 +227,16 @@ class PayloadTest(unittest.TestCase):
         held = next(e for e in A["exceptions"] if e["reason"] == bg.UNRESOLVED_ASK)
         for r in held["rows"]:
             self.assertRegex(r["detail"], r"agreed on \d{4}-\d{2}-\d{2} \(R1\d{3}\), no intro - nudge|no reply - day \d+ of \d+")
+        # capacity exhausted: the other requests on the account routed this cycle are named
+        capacity = next(e for e in A["exceptions"] if e["reason"] == bg.CAPACITY_EXHAUSTED)
+        routed = {a["request_id"]: a["allocated_to"] for a in allocated}
+        for r in capacity["rows"]:
+            self.assertEqual(r["routed_here"],
+                             [{"request_id": rid, "connector": routed[rid]} for rid in sorted(routed)
+                              if next(a for a in alloc if a["request_id"] == rid)["company_id"] == r["company_id"]])
+        by_rid = {r["request_id"]: r for r in capacity["rows"]}
+        self.assertEqual(by_rid["R1041"]["routed_here"], [{"request_id": "R1024", "connector": "Marcus Aldridge"}])
+        self.assertEqual(by_rid["R1004"]["routed_here"], [], "nothing else on Marchford Clinics routed this cycle")
         parked = next(e for e in A["exceptions"] if e["reason"] == "already introduced")
         for r in parked["rows"]:
             self.assertRegex(r["detail"], r"^.+ on \d{4}-\d{2}-\d{2} \(R1\d{3}(, meeting booked)?\)$", "the reason names the intro")
@@ -582,16 +592,16 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual([sid for sid, _ in lp.SECTIONS], re.findall(r'<section id="([^"]+)"', boot),
                          "SECTIONS is the header nav; it must list every section boot() renders, in order")
         self.assertEqual([sid for sid, _ in lp.SECTIONS],
-                         ["route", "upload", "stages", "top", "crm", "asks", "introduced", "connectors", "exceptions", "unrouted", "bottlenecks"],
-                         "intake, orientation, actionable now, current cycle")
-        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 2, 6], "no Not Moving band")
+                         ["route", "upload", "stages", "top", "asks", "connectors", "introduced", "exceptions", "unrouted", "bottlenecks", "crm"],
+                         "intake, orientation, actionable now, current cycle, other")
+        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 1, 6, 1], "no Not Moving band")
         self.assertTrue(all(all(w[0].isupper() or w in ("a", "an", "and", "by", "of", "the") for w in label.replace("—", " ").split())
                             for _, label in lp.SECTIONS), "nav labels in Title Case")
         self.assertIn("Unrouted Exceptions <span", boot)
         asks = boot.split('<section id="asks"')[1].split('<section id=')[0]
         self.assertNotIn("EXCEPTION_TITLE", asks, "exceptions have their own section, not a fold inside Current Asks")
         folded = re.findall(r'<section id="([^"]+)">\$\{fold\(', boot)
-        self.assertEqual(folded, ["crm", "asks", "introduced", "connectors", "exceptions", "unrouted", "bottlenecks"], "the long tables start collapsed")
+        self.assertEqual(folded, ["asks", "connectors", "introduced", "exceptions", "unrouted", "bottlenecks", "crm"], "the long tables start collapsed")
         self.assertIn('<section id="stages" class="masthead">', boot)
         self.assertNotIn("<table", boot.split('<section id="stages"')[1].split("</section>")[0], "orientation is one strip, no rows")
         self.assertIn("CRM Updates <span", boot)
@@ -599,7 +609,7 @@ class PayloadTest(unittest.TestCase):
 
     def test_bands_are_in_the_payload_and_cover_every_section(self):
         bands = lp.payload(AS_OF)["bands"]
-        self.assertEqual([b["id"] for b in bands], ["intake", "orientation", "now", "cycle"])
+        self.assertEqual([b["id"] for b in bands], ["intake", "orientation", "now", "cycle", "other"])
         self.assertEqual([s for b in bands for s in b["sections"]], [sid for sid, _ in lp.SECTIONS])
         self.assertTrue(all(b["title"] and b["test"].endswith("?") for b in bands))
 
@@ -617,6 +627,35 @@ class FunnelWindowTest(unittest.TestCase):
         self.assertTrue(all(b <= a for (_, a), (_, b) in zip(allt, rolling)))
         self.assertLess(rolling[0][1], allt[0][1])
         self.assertEqual(funnel_stages(since="1900-01-01"), allt)
+
+
+class RequesterCutTest(unittest.TestCase):
+    """Live Data's per-requester charts: asks, accounts, CRM value, intro rate, urgency."""
+
+    def test_requesters_partition_the_requests(self):
+        from dashboard import data_cuts
+        cuts = data_cuts.load()
+        cut = data_cuts.requester_cut(cuts)
+        rows = cut["requesters"]
+        self.assertEqual({b["name"] for b in rows}, {r["requested_by"].strip() for r in cuts["requests"]})
+        self.assertEqual(sum(b["requests"] for b in rows), len(cuts["requests"]))
+        self.assertEqual([b["requests"] for b in rows], sorted((b["requests"] for b in rows), reverse=True))
+        self.assertTrue(all(b["kind"] in ("SDR", "AE") for b in rows))
+        for b in rows:
+            mine = [r for r in cuts["requests"] if r["requested_by"].strip() == b["name"]]
+            companies = {cuts["golden_requests"][r["request_id"]]["company_id"] for r in mine} - {""}
+            self.assertEqual(b["accounts"], len(companies), b["name"])
+            self.assertEqual(b["unresolved"], sum(1 for r in mine if not cuts["golden_requests"][r["request_id"]]["company_id"]))
+            in_crm = {c for c in companies if cuts["golden_companies"][c]["crm_account_ids"]}
+            self.assertEqual(b["crm_accounts"], len(in_crm))
+            self.assertAlmostEqual(b["crm_value"], sum(float(cuts["golden_companies"][c]["value_usd"]) for c in in_crm))
+            self.assertAlmostEqual(b["intro_rate"], b["intros"] / b["requests"])
+            self.assertTrue(b["intros"] <= b["routed"] <= b["requests"], b["name"])
+            self.assertEqual(b["critical"], sum(1 for r in mine if r["urgency"].strip().lower() == "critical"))
+            self.assertEqual(b["critical_high"], sum(1 for r in mine if r["urgency"].strip().lower() in ("critical", "high")))
+            self.assertTrue(0 <= b["critical_share"] <= b["critical_high_share"] <= 1)
+        self.assertAlmostEqual(cut["intro_rate"], sum(b["intros"] for b in rows) / cut["requests"])
+        self.assertLessEqual(cut["crm_value"], sum(b["crm_value"] for b in rows), "the total counts a shared account once")
 
 
 @unittest.skipUnless((ROOT / "docs" / "livedata.html").exists(), "run `python3 build.py dashboard` first")
