@@ -197,7 +197,7 @@ ALLOCATION_COLUMNS = [
 MULTI = " | "  # delimiter for multi-value cells (never a comma)
 OPEN_STATUSES = {"Open", "Routed", "Stalled"}
 # routing stages a request moves through, in order; "closed" (Closed - no path) sits outside the strip
-STAGES = ["needs data", "to be routed", "routed", "asked", "introduced", "won"]
+STAGES = ["needs data", "to be routed", "routed", "asked", "introduced", "meeting booked"]
 URGENCY_RANK = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
 OFF_ROSTER_CAPACITY = 2  # monthly asks assumed for anyone askable who is not on the roster
 FATIGUE_DAYS = 60  # asks proposed to a connector in this trailing window count against their capacity
@@ -1210,7 +1210,7 @@ def stage_of(request: dict, outcome: dict | None, alloc: dict | None) -> str:
     `alloc` its row in the current allocation cycle; either may be None."""
     r, o, a = request, outcome, alloc
     if (o and o["meeting_booked"] == "Y") or r["meeting_booked"] == "Y":
-        return "won"
+        return "meeting booked"
     if (o and o["intro_sent"] == "Y") or r["intro_sent"] == "Y" or r["status_as_filed"] == "Intro sent":
         return "introduced"
     if r["status_as_filed"] == "Closed - no path":

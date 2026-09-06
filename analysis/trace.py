@@ -289,16 +289,22 @@ class Trace:
         """Where the company sits in the routing funnel: the furthest stage any of
         its requests reached ('closed' only when every request is Closed - no
         path), the stage of its latest request, how many requests sit at each
-        stage, and of those asked, how many connectors agreed vs never replied."""
+        stage, and of those asked, how many connectors agreed vs never replied.
+        `booked` names the intro that landed the meeting (the newest, if several):
+        the outcome log has no meeting date, so its intro_date is the date shown."""
         stages = {r["request_id"]: self.stage_of(r) for r in self.requests}
         counts = Counter(stages.values())
         asked = [rid for rid, s in stages.items() if s == "asked"]
         agreed = sum(1 for rid in asked if (self.d.outcome_by_rid.get(rid) or {}).get("responded") == "Y")
+        booked = [{"request_id": rid, "connector": o["connector_asked"], "intro_date": o["intro_date"]}
+                  for rid, s in stages.items() if s == "meeting booked"
+                  for o in self.d.outcomes.get(rid, []) if o["meeting_booked"] == "Y"]
         return {
             "furthest": max((s for s in stages.values() if s != "closed"), key=STAGES.index, default="closed"),
             "latest": stages.get(self.c["latest_request_id"], ""),
             "counts": {s: counts[s] for s in [*STAGES, "closed"] if counts[s]},
             "awaiting_intro": {"agreed": agreed, "silent": len(asked) - agreed},
+            "booked": max(booked, key=lambda b: (b["intro_date"], b["request_id"]), default=None),
         }
 
     def last_touch(self) -> tuple[date | None, dict | None]:

@@ -109,7 +109,7 @@ class PayloadTest(unittest.TestCase):
     def test_stages_are_point_in_time(self):
         S = self.P["stages"]
         self.assertEqual([s["stage"] for s in S["stages"]],
-                         ["needs data", "to be routed", "routed", "asked", "introduced", "won"])
+                         ["needs data", "to be routed", "routed", "asked", "introduced", "meeting booked"])
         reqs = read_csv(ROOT / "golden" / "golden_requests.csv")
         companies = {r["company_id"] for r in reqs if r["company_id"]}
         unresolved = [r for r in reqs if not r["company_id"]]
@@ -122,7 +122,8 @@ class PayloadTest(unittest.TestCase):
 
     def test_stage_dollars_are_one_value_per_company(self):
         """CRM ARR potential first, else the latest request's deal value; never the
-        sum of a company's requests. A won company stays won whatever else is open on it."""
+        sum of a company's requests. A company with a meeting booked stays there whatever
+        else is open on it."""
         L = lp.Live(AS_OF)
         cos = read_csv(ROOT / "golden" / "golden_companies.csv")
         by_stage = {s["stage"]: s for s in self.P["stages"]["stages"]}
@@ -139,8 +140,8 @@ class PayloadTest(unittest.TestCase):
                 value = next((int(r["value_usd"]) for r in reversed(reqs) if r["value_usd"]), 0)
             self.assertEqual(L.company_value(cid)[0], value, cid)
             stages = {L.stage_of(r) for r in reqs}
-            if "won" in stages:
-                self.assertEqual(stage, "won", f"{cid} is won, whatever else is open")
+            if "meeting booked" in stages:
+                self.assertEqual(stage, "meeting booked", f"{cid} has a meeting booked, whatever else is open")
             if stage != "closed":
                 expect[stage] += value
         for r in L.requests:

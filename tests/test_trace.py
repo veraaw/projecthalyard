@@ -143,6 +143,13 @@ class RoutingStageTest(unittest.TestCase):
             self.assertIn(rt["latest"], [*bg.STAGES, "closed"], c["company_id"])
             if rt["furthest"] == "closed":
                 self.assertEqual(set(rt["counts"]), {"closed"}, c["company_id"])
+            if rt["furthest"] == "meeting booked":
+                b = rt["booked"]
+                self.assertTrue(b and b["request_id"] and b["connector"], c["company_id"])
+                o = next(o for o in self.data.outcomes[b["request_id"]] if o["connector_asked"] == b["connector"])
+                self.assertEqual((o["meeting_booked"], o["intro_date"]), ("Y", b["intro_date"]), "the intro that landed the meeting, dated by its intro_date")
+            else:
+                self.assertIsNone(rt["booked"], c["company_id"])
 
     def test_stage_of_agrees_with_live_priorities(self):
         """build_golden.stage_of is the one taxonomy: Live Priorities' stage_of is a

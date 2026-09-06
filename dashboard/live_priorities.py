@@ -430,7 +430,7 @@ class Live:
 
     def company_stage(self, cid: str) -> str:
         """The furthest stage any of the company's requests has reached: a company
-        already won stays won however many fresh asks are open on it. 'closed'
+        with a meeting booked stays there however many fresh asks are open on it. 'closed'
         only when every request is Closed - no path."""
         stages = {self.stage_of(r) for r in self.by_company.get(cid, [])}
         return max((s for s in stages if s != "closed"), key=STAGES.index, default="closed")
