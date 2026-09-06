@@ -11,6 +11,7 @@ GOLDEN = ROOT / "golden"
 ANALYSIS = ROOT / "analysis"
 DASHBOARD = ROOT / "dashboard"
 DOCS = ROOT / "docs"
+CONFIG = ROOT / "config"
 
 JOINS = ANALYSIS / "joins"
 ROUTING = ANALYSIS / "routing"

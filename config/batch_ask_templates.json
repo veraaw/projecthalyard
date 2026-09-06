@@ -1,0 +1,34 @@
+{
+  "_comment": "Plain-text templates for dashboard/batch_ask.py. {placeholders} are filled from the structured record; nothing here may carry a dollar amount, route score, request id or urgency label. Edit and rebuild (`python3 build.py dashboard`).",
+  "roster": {
+    "greeting": "Hi {first_name},",
+    "opening": "here is what routes to you this cycle, reply with what you can take.",
+    "closing": "Anything you can't take, say so and it goes back into the pool for next cycle."
+  },
+  "offerer": {
+    "greeting": "Hi {first_name},",
+    "opening": "you offered on {offers}; these asks are still open.",
+    "offer": "{company} in the thread on {date}",
+    "offer_join": " and ",
+    "closing": "If the door is still open, reply with which of these you can make happen and we will send the details."
+  },
+  "path": {
+    "direct": "via {contact}",
+    "investor": "via the board / exec team",
+    "board": "via the board / exec team",
+    "offer": "per your offer in the thread on {date}",
+    "offer_undated": "per your offer in the thread",
+    "unknown": "path to be confirmed"
+  },
+  "block": {
+    "company": "{company} — {path}",
+    "company_many_paths": "{company}",
+    "path_line": "  {path}",
+    "title": "  - {title} ({requesters}){repeat}",
+    "title_nested": "    - {title} ({requesters}){repeat}",
+    "requester_join": ", ",
+    "requester_unknown": "unattributed",
+    "asked_twice": ", asked twice",
+    "asked_n": ", asked {n}x"
+  }
+}

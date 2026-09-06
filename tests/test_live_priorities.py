@@ -416,7 +416,7 @@ class BuiltPagesTest(unittest.TestCase):
             self.assertEqual(html.count('.html" class="on">'), 1, f"{name}: exactly one tab is on")
             tabs = html.split('<div class="tabs">')[1].split("</div>")[0]
             self.assertEqual(re.findall(r'href="([^"#]+)"', tabs),
-                             ["livepriorities.html", "companytrace.html", "livedata.html", "halyardscoping.html"], name)
+                             ["livepriorities.html", "batchask.html", "companytrace.html", "livedata.html", "halyardscoping.html"], name)
             if name in data_tabs:
                 self.assertNotIn('<div class="tabs people">', html, f"{name}: the connector row belongs to Live Priorities")
                 continue
