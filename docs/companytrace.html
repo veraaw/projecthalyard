@@ -172,11 +172,18 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 @media(max-width:900px){#lp .strip{grid-template-columns:repeat(3,1fr)}}
 #lp table.top td.order{color:var(--mute)}
 #lp table.top td.ev{font-size:18px;font-weight:500;color:var(--blue)}
-#lp table.top tr.done td{color:var(--mute);text-decoration:line-through}
+#lp tr.done td{color:var(--mute);text-decoration:line-through}
 #lp table.top tr.done td.ev{color:var(--mute)}
 #lp table.top tr.quiet td{color:var(--mute)}
 #lp table.top tr.owned td{color:var(--mute)}
-#lp table.top .tick{width:16px;height:16px;accent-color:var(--blue)}
+#lp .tick{width:16px;height:16px;accent-color:var(--blue)}
+#lp .sent{display:none}
+#lp tr.done .sent{display:inline-block;color:var(--blue);font-weight:500}
+#lp td.pick{white-space:nowrap}
+#lp td.pick .tick{vertical-align:middle;margin-right:6px}
+#lp td.pick select{font-family:var(--sans);font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--line);padding:4px 6px;max-width:190px}
+#lp td.pick select.need{border-color:var(--warn)}
+#lp td.pick .pick-note{display:block;margin-top:3px;white-space:normal;max-width:220px}
 #lp .parts .c,#lp table.preview .c{border-bottom:1px dotted var(--mute);cursor:help}
 #lp th .fm{font-weight:400;font-size:11px;text-transform:none;letter-spacing:0}
 #lp .formula{margin-top:14px;padding:12px 16px;background:var(--bg);border-left:2px solid var(--blue)}
@@ -213,7 +220,7 @@ nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-
 #lp details.rest{margin:14px 0 0}
 #lp details.rest>summary h3{display:inline;margin:0}
 #lp .stamp a{color:inherit}
-#lp table.top .tick:disabled{opacity:.55}
+#lp .tick:disabled{opacity:.55}
 #lp table.preview tr.flag td{background:rgba(159,45,0,.035)}
 #lp table.preview tr.pick{cursor:pointer}
 #lp table.preview tr.pick:hover td{background:var(--bg)}

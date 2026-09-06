@@ -755,7 +755,10 @@ class Live:
         """What is going out this cycle (one batch per connector, the Aggregate
         across them) and what the allocator could not place, by reason. A request
         whose only fault is that its connector's slots are gone is not an exception
-        here: it keeps its connector and its expected value on the ranked list."""
+        here: it keeps its connector and its expected value on the ranked list.
+        A batch row's box is the ask_sent tick of every request in it (the same
+        tick as Top Priorities and the connector's page); a no-path exception can
+        be ticked with whoever was actually asked, `roster` being the picker's list."""
         batches: dict[str, list[dict]] = defaultdict(list)
         for a in self.allocation:
             if a["allocated_to"]:
@@ -805,6 +808,7 @@ class Live:
             "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in v])),
                             "rows": v} for k, v in sorted(exceptions.items(), key=lambda kv: -len(kv[1]))],
             "exception_count": n_exc, "no_slot": no_slot, "focus": self.focus_finding(),
+            "roster": list(self.roster),
         }
 
     # -- 3b. already introduced: extend the intro, don't ask afresh -------------
@@ -952,6 +956,8 @@ class Live:
             "hard_decline": r["hard_decline"] if r else False, "notes": r["notes"] if r else "",
             "capacity": cap, "asked_this_cycle": asked_cycle, "allocated_this_cycle": len(queue),
             "used": asked_cycle + len(queue), "idle": max(0, cap - asked_cycle - len(queue)),
+            # an ask recorded outside the allocation (a path not on file) counts, so used can pass stated capacity
+            "over_capacity": max(0, asked_cycle + len(queue) - cap) if cap else 0,
             "delivery_rate": round(self.rate(name), 3), "asks_all_time": len(asks), "intros_all_time": len(intros),
             "prior_rate": bg.PRIOR_RATE,
             "intros_this_cycle": cycles[-1]["intros"], "cycles": cycles,
@@ -963,6 +969,7 @@ class Live:
             "companies": self.batch_companies(queue),
             "queue": [{
                 "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
+                "connector": name,
                 "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                 "path_type": a["path_type"], "contact": a["contact_name"], "route_score": a["route_score"],
                 "value_fmt": money(self.dollars(a["company_id"], a["value_usd"])), "urgency": a["urgency_declared"],
