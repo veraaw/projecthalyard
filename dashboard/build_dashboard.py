@@ -502,11 +502,12 @@ img{{max-width:100%}}
 
 RAW_HTML, LIVE_HTML, TRACE_HTML = "halyardscoping.html", "livedata.html", "companytrace.html"
 TABS = [
-    (TRACE_HTML, "Company Trace"),
     (PRIORITIES_HTML, "Live Priorities"),
+    (TRACE_HTML, "Company Trace"),
     (LIVE_HTML, "Live Data Dashboard"),
     (RAW_HTML, "Raw Sept Data Dashboard"),
 ]
+NO_PEOPLE_ROW = {LIVE_HTML, RAW_HTML}
 
 
 connector_pages = connector_fragments(TODAY)
@@ -517,9 +518,10 @@ MASTHEAD = (f'<a class="mast" href="{LIVE_HTML}">{theme.logo()}'
 def tabs(active):
     """The sticky bar on every page: the masthead across the top, the page tabs, and
     under Live Priorities a sub-row in the baton colour with one tab per connector.
-    The rows are right-aligned so the connector row hangs from the Live Priorities tab;
-    on a connector's page that tab is marked as the parent."""
+    The connector row belongs to Live Priorities, so the two data dashboards go without
+    it; on a connector's page the Live Priorities tab is marked as the parent."""
     on_connector = any(c["page"] == active for c, _ in connector_pages)
+    people_row = active not in NO_PEOPLE_ROW
 
     def link(href, label, extra=""):
         cls = "on" if href == active else "parent" if href == PRIORITIES_HTML and on_connector else ""
@@ -530,7 +532,9 @@ def tabs(active):
                      for c, _ in connector_pages)
     return (f'<div class="topbar"><div class="mastrow">{MASTHEAD}<span class="built">{built}</span></div>'
             f'<div class="tabs">{pages}</div>'
-            f'<div class="tabs people"><span class="lbl">Live Priorities · by connector</span>{people}</div></div>{TOTOP}')
+            + (f'<div class="tabs people"><span class="lbl">Live Priorities · by connector</span>{people}</div>' if people_row
+               else '<style>section{scroll-margin-top:110px}</style>')
+            + f'</div>{TOTOP}')
 
 
 TOTOP = """<button class="totop" type="button" title="Back to top" aria-label="Back to top">&uarr;</button>
