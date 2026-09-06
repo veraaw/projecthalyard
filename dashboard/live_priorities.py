@@ -89,6 +89,10 @@ BANDS = [
 # every section in page order; drives the header nav
 SECTIONS = [s for _, _, _, sections in BANDS for s in sections]
 THREADS_COMMAND = "python3 golden/build_golden.py --threads {file} && python3 build.py"
+# the heads-up to the account owner behind an allocation row's notify_owner (build_golden.NOTIFY_STAGES);
+# drafted here so it can be copied, never sent
+OWNER_HEADS_UP = ("Heads up: {requester} asked for an intro to the {title} at {company}, queued to {connector}. "
+                  "You own the account and it's in {stage}. Say if you'd rather I hold it.")
 
 # "Route a live request" presets: real message shapes, one per thing the router must get right
 ROUTE_PRESETS = [
@@ -360,6 +364,20 @@ class Live:
     def crm_stage(self, cid: str) -> str:
         """The company's CRM stage (golden_companies.stage) or 'no CRM account'."""
         return self.companies.get(cid, {}).get("stage", "") or "no CRM account"
+
+    def owner_notice(self, a: dict) -> dict | None:
+        """The heads-up owed to the account owner(s) an allocation row flags
+        (notify_owner), with the message drafted; None when the row is not flagged."""
+        if not a["notify_owner"]:
+            return None
+        stage = self.crm_stage(a["company_id"])
+        requester = self.by_rid[a["request_id"]]["requested_by"]
+        return {
+            "request_id": a["request_id"], "requester": requester,
+            "owner": a["notify_owner"], "owners": a["notify_owner"].split(bg.MULTI), "stage": stage,
+            "message": OWNER_HEADS_UP.format(requester=requester, title=a["target_title"] or "contact",
+                                             company=a["company_name"], connector=a["allocated_to"], stage=stage),
+        }
 
     def sector_cover(self, cid: str) -> dict:
         """Who on the roster covers the company's industry (it is in their focus
@@ -702,6 +720,7 @@ class Live:
                     "value_fmt": money(self.dollars_total(group)),
                     "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
                     "retry": self.retry_of(cid),
+                    "notify": [n for n in (self.owner_notice(g) for g in group) if n],
                 })
             out.append({
                 "batch_id": batch_id, "connector": connector, "slug": slug(connector),
@@ -732,7 +751,7 @@ class Live:
                             key=lambda c: (-c["value_usd"], c["company_name"]))
         return {
             "cycle": self.cycle, "allocated": sum(b["size"] for b in out), "batches": out,
-            "all": everything, "value_fmt": money(self.dollars_total([self.by_rid[a["request_id"]] for b in batches.values() for a in b])),
+            "all": everything, "notify_count": sum(len(c["notify"]) for c in everything), "value_fmt": money(self.dollars_total([self.by_rid[a["request_id"]] for b in batches.values() for a in b])),
             "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in v])),
                             "rows": v} for k, v in sorted(exceptions.items(), key=lambda kv: -len(kv[1]))],
             "exception_count": n_exc,
@@ -1172,9 +1191,12 @@ class Live:
             }
         return {
             "cues": [{"label": label, **js_regex(pat), "score": score} for label, pat, score in gp._CUES],
+            "lower_cues": [{"label": label, **js_regex(pat), "score": score} for label, pat, score in gp._LOWER_CUES],
+            "word": js_regex(gp._WORD),
             "split": js_regex(gp._SPLIT), "domain": js_regex(gp._DOMAIN), "title": js_regex(gp.TITLE_RE),
             "domain_cue": gp.DOMAIN_CUE, "domain_score": gp.DOMAIN_SCORE,
             "known": js_regex(self.known_regex(res)), "known_cue": gp.KNOWN_CUE, "known_score": gp.KNOWN_SCORE,
+            "bare": js_regex(gp._BARE), "bare_cue": gp.BARE_CUE, "bare_score": gp.BARE_SCORE,
             "offer": js_regex(bg.OFFER_RE), "noise": js_regex(bg.NOISE_RE),
             "offer_title": js_regex(bg._OFFER_TITLE_RE), "offer_person": js_regex(bg._OFFER_PERSON_RE),
             "resolver": {

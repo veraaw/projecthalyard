@@ -238,7 +238,7 @@ FOLLOW_UPS = (NUDGED, CHASED)  # both advance nudged_on
 ALLOCATION_COLUMNS = [
     "cycle", "request_id", "decided_at", "company_id", "company_name", "target_title", "value_usd",
     "urgency_declared", "request_date", "status_as_filed", "allocated_to", "batch_id", "batch_size",
-    "path_type", "contact_name", "route_score", "exception_reason", "best_path_if_unbudgeted",
+    "path_type", "contact_name", "route_score", "exception_reason", "best_path_if_unbudgeted", "notify_owner",
 ]
 
 MULTI = " | "  # delimiter for multi-value cells (never a comma)
@@ -286,6 +286,10 @@ NETWORK_TYPE = "investor network"  # connector_type of such a person (roster peo
 NETWORK_HAIRCUT = 0.90  # route_score multiplier for investor_network paths
 # reach types that outlast the request they were observed on; offers are request-scoped
 DURABLE_REACH = {"direct", "investor", "alumni", INVESTOR_NETWORK}
+# notify_owner: an allocated request on an account this far along, made by someone other
+# than its owner, carries the owner's name (every owner, MULTI-joined, when duplicate
+# accounts disagree) so the AE gets a heads-up. A flag only: it never changes the routing.
+NOTIFY_STAGES = {"Negotiation", "Pilot", "Evaluation"}
 
 # ---------------------------------------------------------------------------
 # routing constants (same weights as halyard/relay)
@@ -616,6 +620,7 @@ class Registry:
         self._strict: dict[str, Company] = {}
         self._loose: dict[str, Company] = {}
         self._stem: dict[str, Company] = {}
+        self._known_re: re.Pattern | None = None
         for a in accounts:
             c = self.by_domain.setdefault(a["domain"].lower(), Company(a["domain"].lower()))
             c.accounts.append(a)
@@ -629,6 +634,7 @@ class Registry:
     def _index(self, name: str, c: Company) -> None:
         self._strict.setdefault(normalize_strict(name), c)
         self._loose.setdefault(normalize(name), c)
+        self._known_re = None
 
     def resolve(self, raw: str, domain_hint: str = "") -> tuple[Company | None, str]:
         """Return (company, method). Never creates. A bare name the canonical
@@ -677,9 +683,14 @@ class Registry:
                 *(n for c in self.by_domain.values() for n in c.names),
                 *self.network_names]
 
+    def known_regex(self) -> re.Pattern:
+        if self._known_re is None:
+            self._known_re = names_regex(self.known_names())
+        return self._known_re
+
     def target_from_message(self, text: str) -> tuple[str, str]:
         """(company_as_written, domain_hint) named by a Slack message, via golden/parse.py."""
-        t = extract_target(text, self._canon, names_regex(self.known_names())).target
+        t = extract_target(text, self._canon, self.known_regex()).target
         if t is None:
             return "", ""
         return ("", t.text) if t.is_domain else (t.text, "")
@@ -768,30 +779,6 @@ class Registry:
 
     def companies(self) -> list[Company]:
         return sorted(self.by_domain.values(), key=lambda c: c.company_id)
-
-
-# ---------------------------------------------------------------------------
-# raw_ask parsing for requests with no target_company_raw
-# ---------------------------------------------------------------------------
-_ASK_PATTERNS = [
-    re.compile(r"account I actually need is (?P<c>[^(.,]+?)\s*[\(.]"),
-    re.compile(r"^(?P<c>[^.]+?) is the target\."),
-    re.compile(r"trying to reach [^.]+? at (?P<c>[^.]+?)\.\s"),
-    re.compile(r"we need (?P<c>[^.]+?)\.\s"),
-]
-_DOMAIN_RE = re.compile(r"email domain is (?P<d>[a-z0-9.-]+\.[a-z]{2,})", re.I)
-
-
-def company_from_ask(text: str) -> tuple[str, str]:
-    """-> (company string, domain hint)"""
-    m = _DOMAIN_RE.search(text)
-    if m:
-        return "", m.group("d").lower()
-    for pat in _ASK_PATTERNS:
-        m = pat.search(text)
-        if m:
-            return m.group("c").strip(), ""
-    return "", ""
 
 
 # ---------------------------------------------------------------------------
@@ -1342,6 +1329,19 @@ def hold_paths(paths: list[dict], held: dict[tuple[str, str], dict], company_id:
     return clean + last, sorted(skipped.values(), key=hold_rank)
 
 
+def owner_to_notify(company: Company, requested_by: str) -> str:
+    """The account owner(s) owed a heads-up about a request on their company:
+    blank unless the CRM stage is in NOTIFY_STAGES and the requester is not one
+    of the owners. Both owners are listed when duplicate accounts disagree."""
+    s = company.survivor
+    if not s or s["stage"] not in NOTIFY_STAGES:
+        return ""
+    owners = sorted({a["owner"] for a in company.accounts if a["owner"]})
+    if not owners or requested_by in owners:
+        return ""
+    return MULTI.join(owners)
+
+
 def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company: dict[str, list[dict]],
              resolved: dict[str, dict], today: date, decided_at: str, signals: HistorySignals) -> dict[str, dict]:
     """request_id -> allocation row for every live request not yet asked,
@@ -1414,7 +1414,7 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
             "request_date": facts["request_date"],
             "status_as_filed": facts["status_as_filed"],
             "allocated_to": "", "batch_id": "", "batch_size": "", "path_type": "", "contact_name": "",
-            "route_score": "", "exception_reason": "", "best_path_if_unbudgeted": "",
+            "route_score": "", "exception_reason": "", "best_path_if_unbudgeted": "", "notify_owner": "",
         }
         out[rid] = row
         if company is None:
@@ -1452,6 +1452,7 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
                 "path_type": p["reach_type"],
                 "contact_name": p["contact_name"],
                 "route_score": f"{sc:.3f}",
+                "notify_owner": owner_to_notify(company, facts["requested_by"]),
             })
             break
         else:
@@ -1478,12 +1479,13 @@ def _looks_like_domain(s: str) -> bool:
     return "." in s and " " not in s
 
 
-def request_target(rq: dict) -> tuple[str, str, bool]:
-    """(company_as_written, domain_hint, parsed_from_raw_ask) for a raw request."""
+def request_target(reg: Registry, rq: dict) -> tuple[str, str, bool]:
+    """(company_as_written, domain_hint, parsed_from_raw_ask) for a raw request:
+    the filed target_company_raw, else what golden/parse.py reads in raw_ask."""
     written = rq["target_company_raw"].strip()
     if written:
         return written, "", False
-    written, domain_hint = company_from_ask(rq["raw_ask"])
+    written, domain_hint = reg.target_from_message(rq["raw_ask"])
     return written, domain_hint, bool(written or domain_hint)
 
 
@@ -1498,9 +1500,9 @@ def resolve_target(reg: Registry, written: str, domain_hint: str,
     return company, method
 
 
-def source_facts(rq: dict) -> dict:
+def source_facts(reg: Registry, rq: dict) -> dict:
     """FACT_COLUMNS as a raw intro_requests.csv row states them."""
-    written, domain_hint, _ = request_target(rq)
+    written, domain_hint, _ = request_target(reg, rq)
     return {
         "request_id": rq["request_id"], "requested_by": rq["requested_by"], "request_date": rq["request_date"],
         "raw_ask": rq["raw_ask"], "company_as_written": written or domain_hint,
@@ -1539,7 +1541,7 @@ def resolve_requests(reg: Registry, filed: list[dict], ingest: dict[str, dict] |
         rid = r["request_id"]
         rq = raw.get(rid)
         written = r["company_as_written"]
-        domain_hint = request_target(rq)[1] if rq else ""
+        domain_hint = request_target(reg, rq)[1] if rq else ""
         if not domain_hint and _looks_like_domain(written):
             domain_hint = written
         company, method = resolve_target(reg, "" if written == domain_hint else written, domain_hint,
@@ -1547,13 +1549,13 @@ def resolve_requests(reg: Registry, filed: list[dict], ingest: dict[str, dict] |
         out[rid] = {
             "company": company, "method": method,
             "target_title": rq["target_title_raw"].strip() if rq else r["target_title"],
-            "facts": {c: r[c] for c in FACT_COLUMNS}, "source": source_facts(rq) if rq else None,
+            "facts": {c: r[c] for c in FACT_COLUMNS}, "source": source_facts(reg, rq) if rq else None,
         }
     for rid, rq in raw.items():
         if rid in out:
             continue
-        company, method = resolve_target(reg, *request_target(rq))
-        facts = source_facts(rq)
+        company, method = resolve_target(reg, *request_target(reg, rq))
+        facts = source_facts(reg, rq)
         out[rid] = {"company": company, "method": method, "target_title": rq["target_title_raw"].strip(),
                     "facts": facts, "source": facts}
     for rid, th in (ingest or {}).items():

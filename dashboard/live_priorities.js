@@ -110,9 +110,21 @@ const LP = (function () {
   }
 
   // --------------------------------------------------- golden/parse.py, ported
+  // a span in any case is a company when it is a known spelling entire, or the resolver reads it as the
+  // start of a name it knows (a match or a refusal with candidates), not a run of words containing one
+  function isCompany(resolver, part, kfull) {
+    if (kfull && kfull.test(part)) return true;
+    const r = resolver.resolve(part);
+    if (r.method === 'unmatched' || r.method === 'empty') return false;
+    const loose = resolver.normLoose(part);
+    const ents = r.candidates.length ? r.candidates : (r.entity ? [r.entity] : []);
+    return ents.length > 0 && ents.every(e => [...e.names.map(resolver.normLoose), domainStem(e.domain)].some(k => k.startsWith(loose)));
+  }
+
   function extract(text, P, resolver) {
     text = text || '';
     const seen = new Map();
+    const kfull = P.known ? new RegExp('^(?:' + P.known.source + ')$', P.known.flags) : null;
     const split = new RegExp(P.split.source, P.split.flags);
     for (const cue of P.cues) {
       const re = new RegExp(cue.source, cue.flags + 'gd');
@@ -125,6 +137,26 @@ const LP = (function () {
           const key = at + '\u0000' + part;
           if (!seen.has(key)) seen.set(key, { text: part, cue: cue.label, score: cue.score, start: at, is_domain: false });
           start = at + part.length;
+        }
+      }
+    }
+    if (resolver && P.lower_cues) {
+      // the same cues over a span in any case; the resolver says how many words are the company, longest first
+      const starts = new Set([...seen.values()].map(x => x.start));
+      const wre = new RegExp(P.word.source, P.word.flags + 'g');
+      for (const cue of P.lower_cues) {
+        const re = new RegExp(cue.source, cue.flags + 'gd');
+        for (const m of text.matchAll(re)) {
+          const start = m.indices.groups.co[0], span = m.groups.co;
+          if (starts.has(start)) continue;
+          for (const w of [...span.matchAll(wre)].reverse()) {
+            const part = span.slice(0, w.index + w[0].length);
+            if (isCompany(resolver, part, kfull)) {
+              seen.set(start + '\u0000' + part, { text: part, cue: cue.label, score: cue.score, start, is_domain: false });
+              starts.add(start);
+              break;
+            }
+          }
         }
       }
     }
@@ -142,6 +174,14 @@ const LP = (function () {
       const positive = [...seen.values()].some(x => x.score > 0);
       const score = found.length === 1 && !positive ? P.known_score : 0;
       for (const m of found) seen.set(m.index + '\u0000' + m[0], { text: m[0], cue: P.known_cue, score, start: m.index, is_domain: false });
+    }
+    if (resolver && P.bare && !seen.size) {
+      // a message that is nothing but a few words goes to the resolver whole: a match or a refusal with candidates is a mention
+      const m = new RegExp(P.bare.source, P.bare.flags + 'd').exec(text);
+      if (m && isCompany(resolver, m.groups.co, kfull)) {
+        const start = m.indices.groups.co[0];
+        seen.set(start + '\u0000' + m.groups.co, { text: m.groups.co, cue: P.bare_cue, score: P.bare_score, start, is_domain: false });
+      }
     }
     const mentions = [...seen.values()].sort((a, b) => a.start - b.start);
     if (resolver) for (const x of mentions) x.resolution = x.is_domain ? resolver.resolve('', x.text) : resolver.resolve(x.text);
@@ -697,15 +737,18 @@ const LP = (function () {
     // ---- band 4 · current cycle: decisions the allocator already made — read-only
     // what is going out
     const A = D.asks;
-    sec.asks = `<section id="asks">${fold(`Current Asks <span class="foot">cycle ${esc(A.cycle)}: ${A.allocated} requests allocated in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code> · the drafted messages are on <a href="${esc(D.batch_page)}">Batched-Ask</a></span>`)}`
-      + tabs('asks', [...A.batches.map(b => ({ label: b.connector, n: b.size, b })), { label: 'Aggregate', n: A.allocated, cls: 'agg' }], ({ b }) => b
+    // notify owner: the account owner(s) owed a heads-up (golden_allocation.notify_owner), one drafted
+    // message per flagged request with a copy button. A flag only: the row is routed regardless
+    const notifyCell = (c, tab) => c.notify.length ? c.notify.map(n => { const id = `notify-${tab}-${n.request_id}`; return `<div class="notify" id="${esc(id)}"><b>${n.owners.map(esc).join('<br>')}</b><br><span class="foot">${esc(n.request_id)} · ${esc(n.stage)} · not ${esc(n.requester)}'s account</span><br><button type="button" class="copy secondary" data-copy="${esc(id)}" title="${esc(n.message)}">Copy heads-up</button><pre class="msg" hidden>${esc(n.message)}</pre></div>`; }).join('') : '';
+    sec.asks = `<section id="asks">${fold(`Current Asks <span class="foot">cycle ${esc(A.cycle)}: ${A.allocated} requests allocated in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code> · the drafted messages are on <a href="${esc(D.batch_page)}">Batched-Ask</a>${A.notify_count ? ` · ${plural(A.notify_count, 'request')} on a late-stage account someone other than its owner asked for: the owner gets a heads-up, nothing is held` : ''}</span>`)}`
+      + tabs('asks', [...A.batches.map(b => ({ label: b.connector, n: b.size, b })), { label: 'Aggregate', n: A.allocated, cls: 'agg' }], ({ b }, i) => b
         ? `<p class="foot">${esc(b.connector_type)} · ${plural(b.size, 'request')} · ${esc(b.value_fmt)} · one consolidated ask, batch <code>${esc(b.batch_id)}</code> · <a href="${esc(D.batch_page)}#${esc(b.slug)}">the message</a></p>
-        <table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>why this connector</th></tr></thead><tbody>`
-        + b.companies.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td class="foot">${esc(c.why)}</td></tr>`).join('')
+        <table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>why this connector</th><th>notify owner</th></tr></thead><tbody>`
+        + b.companies.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td class="foot">${esc(c.why)}</td><td>${notifyCell(c, i)}</td></tr>`).join('')
         + `</tbody></table>`
         : `<p class="foot">everything going out this cycle · ${plural(A.allocated, 'request')} across ${plural(A.batches.length, 'connector')} · ${esc(A.value_fmt)} · biggest first; a company listed twice is being asked of two connectors</p>
-        <table><thead><tr><th>company</th><th>connector</th><th>everyone wanted</th><th>who is waiting</th><th>path</th></tr></thead><tbody>`
-        + A.all.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td><b>${esc(c.connector)}</b><br><a class="foot" href="${esc(D.batch_page)}#${esc(c.slug)}">the message</a></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td></tr>`).join('')
+        <table><thead><tr><th>company</th><th>connector</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>notify owner</th></tr></thead><tbody>`
+        + A.all.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td><b>${esc(c.connector)}</b><br><a class="foot" href="${esc(D.batch_page)}#${esc(c.slug)}">the message</a></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td>${notifyCell(c, 'all')}</td></tr>`).join('')
         + `</tbody></table>`);
     sec.asks += `</details></section>`;
 
@@ -794,6 +837,7 @@ const LP = (function () {
 
     // wiring: ticks + Submit, build stamp, connector tabs, downloads, upload
     wireCompletions(root, X, state);
+    wireCopy(root);
     buildStamp(D, root.querySelector('#lp-stamp'));
     wireTabs(root);
     root.querySelector('#lp-dl-import').onclick = () => download(C.import.filename, C.import.csv);
