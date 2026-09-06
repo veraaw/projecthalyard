@@ -239,31 +239,59 @@ class PayloadTest(unittest.TestCase):
             quiet = [s["quiet"] for s in c["sitting_on"]]
             self.assertEqual(quiet, sorted(quiet), "actionable rows first, recently followed-up rows last")
 
-    def test_checkins_are_two_sixty_day_tests(self):
+    def test_checkins_lead_with_no_crm_touch_on_live_requests(self):
         K = self.P["checkins"]
         self.assertEqual(K["days"], 60)
         self.assertEqual(K["count"], len(K["rows"]))
         for r in K["rows"]:
-            self.assertGreater(r["touch_days"], 60, "only companies with no CRM touch in 60 days are listed")
+            self.assertGreater(r["live_requests"], 0, "only companies with live requests are listed")
+            self.assertTrue(r["touch_days"] is None or r["touch_days"] > 60, "only companies with no CRM touch in 60 days are listed")
             self.assertIn("CRM touch", r["failed"])
             self.assertEqual("intro ask" in r["failed"], r["ask_days"] is None or r["ask_days"] > 60, r)
         self.assertEqual(K["both"], sum(1 for r in K["rows"] if len(r["failed"]) == 2))
+        self.assertEqual((K["unique"], K["owned"]), (sum(1 for r in K["rows"] if not r["owned_by"]), sum(1 for r in K["rows"] if r["owned_by"])))
+        self.assertEqual(K["unique"] + K["owned"], K["count"])
+        self.assertGreater(K["unique"], 0)
+        self.assertGreater(K["owned"], 0)
         for r in K["rows"]:
-            self.assertTrue(r["company_id"], "the tick is on the company")
-            self.assertFalse(0 <= (r["days_since_checked_in"] or 60) < 60, "checked in on this window: not listed")
-        for r in K["checked_in"]:
-            self.assertTrue(0 <= r["days_since_checked_in"] < 60)
+            self.assertNotIn("checked_in_on", r, "no Supabase completion on this section")
+        self.assertNotIn("checked_in", K)
+
+    def test_checkins_point_at_the_section_that_owns_the_action(self):
+        P, K = self.P, self.P["checkins"]
+        elsewhere = {
+            "top": {r["company_id"] for r in P["priorities"]["top"]},
+            "asks": {c["company_id"] for b in P["asks"]["batches"] for c in b["companies"]},
+            "connectors": {s["company_id"] for c in P["connectors"] for s in c["sitting_on"]},
+            "offers": {r["company_id"] for r in P["offer_gaps"]["rows"]},
+            "bottlenecks": {r["company_id"] for r in P["bottlenecks"]["rows"]},
+            "unrouted": {x["company_id"] for c in P["unrouted"]["per_connector"] for x in c["companies"]},
+            "crm": {r["company_id"] for g in P["crm"]["groups"] for r in g["rows"]},
+        }
+        order = [s for s, _ in lp.SECTIONS]
+        titles = dict(lp.SECTIONS)
+        for r in K["rows"]:
+            owners = [s for s in order if r["company_id"] in elsewhere.get(s, set())]
+            self.assertEqual(r["owned_by"], owners[0] if owners else "", f"{r['company_name']}: first section in page order that lists it")
+            self.assertEqual(r["owned_by_title"], titles.get(r["owned_by"], ""))
+        owned_flags = [bool(r["owned_by"]) for r in K["rows"]]
+        self.assertEqual(owned_flags, sorted(owned_flags), "the rows nothing else owns sort to the top")
+        for group in ([r for r in K["rows"] if not r["owned_by"]], [r for r in K["rows"] if r["owned_by"]]):
+            keys = [(-len(r["failed"]), -r["live_value_usd"], r["company_name"]) for r in group]
+            self.assertEqual(keys, sorted(keys), "within each half: both tests failed first, then largest live value")
 
     def test_completion_actions_cover_every_tick_and_no_crm(self):
         X = self.P["completions"]
-        self.assertEqual(X["actions"], {"top": "ask_sent", "bottlenecks": "nudged", "nudge": "nudged",
-                                        "chase": "chased", "checkins": "checked_in"})
-        self.assertEqual(sorted(set(X["actions"].values())), sorted(lp.bg.COMPLETION_KINDS))
-        self.assertEqual((X["quiet_days"], X["checkin_days"]), (lp.NUDGE_QUIET_DAYS, lp.CHECKIN_DAYS))
+        self.assertEqual(X["actions"], {"top": "ask_sent", "bottlenecks": "nudged", "nudge": "nudged", "chase": "chased"})
+        self.assertNotIn(lp.bg.CHECKED_IN, X["actions"].values(), "a check-in is not ticked or posted anywhere")
+        self.assertEqual(X["quiet_days"], lp.NUDGE_QUIET_DAYS)
+        self.assertNotIn("checkin_days", X)
         js = (ROOT / "dashboard" / "live_priorities.js").read_text(encoding="utf-8")
         self.assertNotIn("account_created", js)
         self.assertNotIn("crmTick", js)
-        for name in ("askTick", "nudgeTick", "followTick", "checkinTick"):
+        self.assertNotIn("checkinTick", js)
+        self.assertNotIn("checked_in", js)
+        for name in ("askTick", "nudgeTick", "followTick"):
             self.assertIn(f"const {name} = ", js)
 
     def test_unrouted_in_focus(self):
