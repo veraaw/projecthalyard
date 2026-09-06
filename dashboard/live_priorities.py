@@ -270,6 +270,10 @@ class Live:
         return {"request_priority": round(comp["deal_value_musd"] * comp["stage_weight"] * comp["age"] * comp["reps_waiting"], 3),
                 "components": {k: round(v, 3) for k, v in comp.items()}, "deal_source": source}
 
+    def crm_stage(self, cid: str) -> str:
+        """The company's CRM stage (golden_companies.stage) or 'no CRM account'."""
+        return self.companies.get(cid, {}).get("stage", "") or "no CRM account"
+
     def company_ref(self, cid: str, name: str = "") -> dict:
         c = self.companies.get(cid)
         return {
@@ -484,7 +488,7 @@ class Live:
                 "connector": connector,
                 "path": bg.path_label(p),
                 "value_fmt": money(a["value_usd"]),
-                "crm_stage": stage or "no CRM account",
+                "crm_stage": self.crm_stage(cid),
                 "days_waiting": days,
                 "reps": reps,
                 "capacity_note": capacity_note,
@@ -570,6 +574,7 @@ class Live:
                     "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                     "value_fmt": money(a["value_usd"]), "urgency": a["urgency_declared"],
                     "status": a["status_as_filed"], "best_path": a["best_path_if_unbudgeted"],
+                    "crm_stage": self.crm_stage(a["company_id"]) if a["company_id"] else "",
                     "company_as_written": self.by_rid[a["request_id"]]["company_as_written"],
                 })
         n_exc = sum(len(v) for v in exceptions.values())

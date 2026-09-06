@@ -566,8 +566,9 @@ const LP = (function () {
         + `</tbody></table>`);
     out += `<details><summary>${plural(A.exception_count, 'exception')} — not allocated this cycle: ${A.exceptions.map(e => `${e.count} ${esc(e.reason.replace(' to this company in the network', ''))}`).join(', ')}</summary>`;
     for (const e of A.exceptions) {
-      out += `<h3>${esc(e.reason)} <span class="foot">${e.count} · ${esc(e.value_fmt)}</span></h3><table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>who</th><th>value</th><th>urgency</th><th>status</th><th>${e.reason.startsWith('capacity') ? 'best path (no slot)' : e.reason.startsWith('company') ? 'as written' : 'note'}</th></tr></thead><tbody>`
-        + e.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}</td><td>${co(r)}</td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td><td>${esc(r.value_fmt)}</td><td>${esc(r.urgency)}</td><td>${esc(r.status)}</td><td class="foot">${esc(r.best_path || (e.reason.startsWith('company') ? r.company_as_written || '(nothing parseable)' : 'nobody in the network reaches them'))}</td></tr>`).join('')
+      const withStage = !e.reason.startsWith('company');
+      out += `<h3>${esc(e.reason)} <span class="foot">${e.count} · ${esc(e.value_fmt)}</span></h3><table><thead><tr><th>request</th><th>company</th>${withStage ? '<th>CRM stage</th>' : ''}<th>wanted</th><th>who</th><th>value</th><th>urgency</th><th>status</th><th>${e.reason.startsWith('capacity') ? 'best path (no slot)' : e.reason.startsWith('company') ? 'as written' : 'note'}</th></tr></thead><tbody>`
+        + e.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}</td><td>${co(r)}</td>${withStage ? `<td>${esc(r.crm_stage)}</td>` : ''}<td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td><td>${esc(r.value_fmt)}</td><td>${esc(r.urgency)}</td><td>${esc(r.status)}</td><td class="foot">${esc(r.best_path || (e.reason.startsWith('company') ? r.company_as_written || '(nothing parseable)' : 'nobody in the network reaches them'))}</td></tr>`).join('')
         + `</tbody></table>`;
     }
     out += `</details></section>`;

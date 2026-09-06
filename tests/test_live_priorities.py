@@ -183,6 +183,13 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
                          {"no path to this company in the network": 32, "capacity exhausted this cycle": 10,
                           "company unresolved": 8})
+        companies = {c["company_id"]: c for c in read_csv(ROOT / "golden" / "golden_companies.csv")}
+        for e in A["exceptions"]:
+            for r in e["rows"]:
+                if e["reason"] == "company unresolved":
+                    self.assertEqual(r["crm_stage"], "")
+                else:
+                    self.assertEqual(r["crm_stage"], companies[r["company_id"]]["stage"] or "no CRM account")
 
     def test_offer_gaps(self):
         O = self.P["offer_gaps"]
