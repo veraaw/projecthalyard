@@ -233,8 +233,10 @@ class Live:
             if p["reach_type"] == "offer":
                 via = "Offered in Slack" + (f" (knows {p['contact_title']})" if p["contact_title"] else "")
                 via += f" · {p['offer_age_days']} days ago" if p["offer_age_days"] else ""
-            elif p["reach_type"] == "investor":
+            elif p["reach_type"] in ("investor", bg.INVESTOR_NETWORK):
                 via = f"{'Board seat' if p['board_seat'] == 'yes' else 'Investor'} · {p['contact_title']}" if p["contact_title"] else "Investor path"
+                if p["reach_type"] == bg.INVESTOR_NETWORK:
+                    via += f" · in our network, not on the roster ({round((1 - bg.NETWORK_HAIRCUT) * 100)}% haircut)"
             elif p["reach_type"] == "alumni":
                 via = f"Via {p['contact_name']} ({p['contact_title']})" if p["contact_title"] else f"Via {p['contact_name']}"
                 via += f" · alumni link {when}" if when else ""
@@ -253,7 +255,7 @@ class Live:
             cap = bg.capacity(self.roster, n)
             idle = self.connector_facts.get(n, {}).get("idle", cap)
             capacity_left = max(0, idle) / cap if cap else 0.0
-            score = float(p["strength"]) * fit * rate
+            score = bg.path_score(p, self.roster, self.rates, ind)
             out.append({
                 "connector": n, "connector_type": p["connector_type"], "on_roster": r is not None, "reach_type": p["reach_type"],
                 "contact": p["contact_name"], "title": p["contact_title"], "connected": when, "board_seat": p["board_seat"] == "yes",

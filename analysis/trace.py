@@ -14,8 +14,9 @@ slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, oldest first)
 and the additional investor and operator network (network_orbit.csv: everyone
 investor_network.csv puts around the company, board seats first, then those a
 connector knows, then those nobody has a warm path to; skipped when the file
-has no row for the company). That last section is context, not supply: nothing
-in it is scored, allocated or counted against a connector.
+has no row for the company). That last section is a view, not supply: an
+off-roster investor's own portfolio company is already an investor_network row
+in section 3 (scored with the haircut); nothing else in it is scored or allocated.
 
 Chronology markers:  <- missed   ++ worked   ** offer   !! warning
 
@@ -38,9 +39,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.build_golden import (NETWORK_OUT, OFFER_RE, OPEN_STATUSES, PRIOR_RATE, REACHABLE_AS_CONNECTOR, STAGES, capacity,  # noqa: E402
-                                 delivery_rates, fit, latest_cycle, load_completions, load_roster, load_threads, path_score,
-                                 stage_of, with_completions)
+from golden.build_golden import (INVESTOR_NETWORK, NETWORK_HAIRCUT, NETWORK_OUT, OFFER_RE, OPEN_STATUSES, PRIOR_RATE,  # noqa: E402
+                                 REACHABLE_AS_CONNECTOR, STAGES, capacity, delivery_rates, fit, latest_cycle, load_completions,
+                                 load_roster, load_threads, path_score, stage_of, with_completions)
 from golden.resolver import normalize, normalize_strict  # noqa: E402
 from paths import ANALYSIS, DATASET, GOLDEN  # noqa: E402
 
@@ -372,7 +373,9 @@ class Trace:
     def reach(self) -> list[str]:
         if not self.paths:
             return ["nobody in the network reaches this company"]
-        out = ["ranked by route score = strength x focus fit x delivery rate, the allocator's sort key", "",
+        note = (f"; {INVESTOR_NETWORK} rows take a {round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score"
+                if any(p["reach_type"] == INVESTOR_NETWORK for p in self.paths) else "")
+        out = [f"ranked by route score = strength x focus fit x delivery rate, the allocator's sort key{note}", "",
                "| route score | strength | connector | reach | contact | evidence |", "|---|---|---|---|---|---|"]
         for p in self.paths:
             contact = " — ".join(x for x in (p["contact_name"], p["contact_title"]) if x) or "?"
@@ -486,14 +489,18 @@ class Trace:
         via = r["reachable_via"]
         if via == REACHABLE_AS_CONNECTOR:
             return "on the roster"
+        if via == INVESTOR_NETWORK:
+            return f"{INVESTOR_NETWORK} path (section 3, {round((1 - NETWORK_HAIRCUT) * 100)}% haircut)"
         if via:
             return "via " + ", ".join(split_bar(via))
         return NO_WARM_PATH
 
     def orbit_table(self) -> list[str]:
         n_cold = sum(1 for r in self.orbit if not r["reachable_via"])
+        n_net = sum(1 for r in self.orbit if r["reachable_via"] == INVESTOR_NETWORK)
         out = [f"{len(self.orbit)} {'person' if len(self.orbit) == 1 else 'people'} from investor_network.csv, "
-               f"{n_cold} with no warm path; read-only: not scored, not allocated, not on supply_reach.csv", "",
+               f"{n_net} askable as {INVESTOR_NETWORK} paths, {n_cold} with no warm path; a view of section 3 and the "
+               "roster's exports, nothing here is scored or allocated on its own", "",
                "| person | role | fund | board seat | source | warm path |", "|---|---|---|---|---|---|"]
         for r in self.orbit:
             out.append(f"| {r['person']} | {r['role']} | {r['fund']} | {r['board_seat']} | {r['source']} | {self.orbit_route(r)} |")

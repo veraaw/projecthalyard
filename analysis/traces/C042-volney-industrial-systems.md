@@ -36,7 +36,7 @@ nobody in the network reaches this company
 
 ## 5. Additional Investor and Operator Network
 
-4 people from investor_network.csv, 4 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+4 people from investor_network.csv, 0 askable as investor_network paths, 4 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
 
 | person | role | fund | board seat | source | warm path |
 |---|---|---|---|---|---|

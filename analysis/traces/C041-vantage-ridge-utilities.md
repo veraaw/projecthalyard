@@ -38,7 +38,7 @@ strongest path, not where it went: Tomás Beckett, direct 0.546, 6/8 used this c
 
 ## 5. Additional Investor and Operator Network
 
-1 person from investor_network.csv, 1 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+1 person from investor_network.csv, 0 askable as investor_network paths, 1 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
 
 | person | role | fund | board seat | source | warm path |
 |---|---|---|---|---|---|

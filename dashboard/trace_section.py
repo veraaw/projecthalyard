@@ -2,7 +2,7 @@
 
     from dashboard.trace_section import fragment, sidebar
     aside = sidebar()          # search box + the company list, for the page's left rail
-    html = fragment()          # the four trace sections, rendered client-side
+    html = fragment()          # the five trace sections, rendered client-side
 
 Every company trace (analysis/trace.py, `Trace.as_dict()`) is embedded as JSON;
 the search box filters the company list on id, name, alias, or CRM account id and
@@ -11,6 +11,7 @@ clicking a company swaps the rendered trace in place. Opens on the most-requeste
 import json
 
 from analysis.trace import all_traces
+from golden.build_golden import INVESTOR_NETWORK, NETWORK_HAIRCUT
 
 MARK_LABEL = {"<-": "missed", "++": "worked", "**": "offer", "!!": "warning", "  ": ""}
 
@@ -88,7 +89,8 @@ def fragment() -> str:
     if (!t.reach.length) out += `<p class="empty">nobody in the network reaches this company</p>`;
     else {{
       const maxScore = t.reach[0].route_score || 1, maxRaw = Math.max(...t.reach.map(p => p.strength)) || 1;
-      out += `<p class="foot">ranked by route score = strength × focus fit × delivery rate, the allocator's sort key; strength is the raw path alone</p>`;
+      const haircut = t.reach.some(p => p.reach_type.startsWith('{INVESTOR_NETWORK}')) ? `; {INVESTOR_NETWORK} rows (our network, not our roster) take a {round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score` : '';
+      out += `<p class="foot">ranked by route score = strength × focus fit × delivery rate, the allocator's sort key${{haircut}}; strength is the raw path alone</p>`;
       out += `<table><thead><tr><th>route score</th><th>strength</th><th>connector</th><th>reach</th><th>contact</th><th>evidence</th></tr></thead><tbody>` +
         t.reach.map(p => `<tr><td class="score"><span class="bar" style="width:${{Math.round(90 * p.route_score / maxScore)}}px"></span>${{p.route_score.toFixed(3)}}</td><td class="raw" title="fit ${{p.fit}} × delivery rate ${{p.rate}}"><span class="bar raw" style="width:${{Math.round(90 * p.strength / maxRaw)}}px"></span>${{p.strength.toFixed(3)}}</td><td>${{esc(p.connector)}} <span class="foot">${{esc(p.connector_type)}}</span></td><td>${{esc(p.reach_type)}}</td><td>${{esc([p.contact_name, p.contact_title].filter(Boolean).join(', ') || '?')}}</td><td class="foot">${{esc(p.evidence)}}</td></tr>`
           + (p.bypass ? `<tr class="bypass"><td colspan="6"><b>strongest path, not where it went:</b> ${{esc(p.bypass)}}</td></tr>` : '')).join('') +
@@ -109,9 +111,9 @@ def fragment() -> str:
     out += `</tbody></table>`;
 
     if (t.orbit.length) {{
-      const cold = t.orbit.filter(r => !r.reachable_via).length;
+      const cold = t.orbit.filter(r => !r.reachable_via).length, net = t.orbit.filter(r => r.reachable_via === '{INVESTOR_NETWORK}').length;
       out += `<h3>5. Additional Investor and Operator Network</h3>`;
-      out += `<p class="foot">${{t.orbit.length}} ${{t.orbit.length === 1 ? 'person' : 'people'}} from investor_network.csv, ${{cold}} with no warm path · read-only context: not scored, not allocated, not on supply_reach.csv, no connector capacity spent</p>`;
+      out += `<p class="foot">${{t.orbit.length}} ${{t.orbit.length === 1 ? 'person' : 'people'}} from investor_network.csv, ${{net}} askable as {INVESTOR_NETWORK} paths, ${{cold}} with no warm path · a view of section 3 and the roster's exports: nothing here is scored or allocated on its own</p>`;
       out += `<table><thead><tr><th>person</th><th>role</th><th>fund</th><th>board seat</th><th>source</th><th>warm path</th></tr></thead><tbody>` +
         t.orbit.map(r => `<tr class="${{r.reachable_via ? '' : 'cold'}}"><td>${{esc(r.person)}}</td><td class="foot">${{esc(r.role)}}</td><td>${{esc(r.fund)}}</td><td class="seat">${{r.board_seat ? 'yes' : ''}}</td><td class="src">${{esc(r.source)}}</td><td class="route">${{esc(r.route)}}</td></tr>`).join('') +
         `</tbody></table>`;

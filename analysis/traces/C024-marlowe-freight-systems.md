@@ -49,7 +49,7 @@ strongest path, not where it went: Marcus Aldridge, direct 0.465, at capacity 4/
 
 ## 5. Additional Investor and Operator Network
 
-2 people from investor_network.csv, 2 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
+2 people from investor_network.csv, 0 askable as investor_network paths, 2 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
 
 | person | role | fund | board seat | source | warm path |
 |---|---|---|---|---|---|
