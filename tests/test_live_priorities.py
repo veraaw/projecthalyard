@@ -228,8 +228,10 @@ class PayloadTest(unittest.TestCase):
         for r in parked["rows"]:
             self.assertRegex(r["detail"], r"^.+ on \d{4}-\d{2}-\d{2} \(R1\d{3}(, meeting booked)?\)$", "the reason names the intro")
         companies = {c["company_id"]: c for c in read_csv(ROOT / "golden" / "golden_companies.csv")}
+        blocked_by_rid = {r["request_id"]: r["blocked_reason"] for r in read_csv(ROOT / "golden" / "golden_requests.csv")}
         for e in A["exceptions"]:
             for r in e["rows"]:
+                self.assertEqual(r["blocked_reason"], blocked_by_rid[r["request_id"]], "golden_requests.blocked_reason, rendered as one column")
                 if e["reason"] == "company unresolved":
                     self.assertEqual(r["crm_stage"], "")
                 else:
