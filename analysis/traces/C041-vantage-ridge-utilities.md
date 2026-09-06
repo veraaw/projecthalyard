@@ -11,14 +11,15 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
 | 0.171 | 0.492 | Marcus Aldridge (Advisor) | direct | Sabine Dellinger — Chief Data Officer | connections_aldridge.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2022-12-23 |
 | 0.088 | 0.546 | Tomás Beckett (Internal) | direct | Sabine Dellinger — Chief Data Officer | connections_beckett.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2024-11-09 |
+| 0.172 | 0.720 | Ravi Underhill-Halloran (investor network) | investor_network | CEO / exec team — Blackwood Ventures portfolio company | investor_network.csv: Ravi Underhill-Halloran (Venture capital investor), portfolio_company=Vantage Ridge Utilities, board_seat=False |
 
-strongest path, not where it went: Tomás Beckett, direct 0.546, 6/8 used this cycle; R1001 routed to Marcus Aldridge
+strongest path, not where it went: Ravi Underhill-Halloran, investor_network 0.720, 0/2 used this cycle; R1001 routed to Marcus Aldridge
 
 ## 4. Chronology (9 events, 2 requests, newest first, as of 2026-09-06)
 
@@ -35,3 +36,11 @@ strongest path, not where it went: Tomás Beckett, direct 0.546, 6/8 used this c
 
 !! 2026-03-19  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1007  [171 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 1 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Ravi Underhill-Halloran | Venture capital investor | Blackwood Ventures | no | portfolio_company | investor_network path (section 3, 10% haircut) |

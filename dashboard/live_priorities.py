@@ -220,12 +220,13 @@ class Live:
         return self.rates.get(connector, bg.PRIOR_RATE)
 
     def ranked_paths(self, cid: str) -> list[dict]:
-        """Every path into a company from supply_reach.csv, best first, scored as the
-        build scores them (strength x focus fit x delivery rate), each with the one
-        line of reasoning the route panel shows."""
+        """Every path into a company from supply_reach.csv, in the allocator's order
+        (bg.path_rank: roster before investor_network, then route score = strength x
+        focus fit x delivery rate), each with the one line of reasoning the route
+        panel shows."""
         ind = self.industry(cid)
         out = []
-        for p in self.paths.get(cid, []):
+        for p in sorted(self.paths.get(cid, []), key=lambda p: bg.path_rank(p, self.roster, self.rates, ind)):
             n = p["connector"]
             fit, rate = self.fit(n, ind), self.rate(n)
             r = self.roster.get(n)
@@ -233,8 +234,10 @@ class Live:
             if p["reach_type"] == "offer":
                 via = "Offered in Slack" + (f" (knows {p['contact_title']})" if p["contact_title"] else "")
                 via += f" · {p['offer_age_days']} days ago" if p["offer_age_days"] else ""
-            elif p["reach_type"] == "investor":
+            elif p["reach_type"] in ("investor", bg.INVESTOR_NETWORK):
                 via = f"{'Board seat' if p['board_seat'] == 'yes' else 'Investor'} · {p['contact_title']}" if p["contact_title"] else "Investor path"
+                if p["reach_type"] == bg.INVESTOR_NETWORK:
+                    via += f" · in our network, not on the roster ({round((1 - bg.NETWORK_HAIRCUT) * 100)}% haircut, asked after the roster)"
             elif p["reach_type"] == "alumni":
                 via = f"Via {p['contact_name']} ({p['contact_title']})" if p["contact_title"] else f"Via {p['contact_name']}"
                 via += f" · alumni link {when}" if when else ""
@@ -253,7 +256,7 @@ class Live:
             cap = bg.capacity(self.roster, n)
             idle = self.connector_facts.get(n, {}).get("idle", cap)
             capacity_left = max(0, idle) / cap if cap else 0.0
-            score = float(p["strength"]) * fit * rate
+            score = bg.path_score(p, self.roster, self.rates, ind)
             out.append({
                 "connector": n, "connector_type": p["connector_type"], "on_roster": r is not None, "reach_type": p["reach_type"],
                 "contact": p["contact_name"], "title": p["contact_title"], "connected": when, "board_seat": p["board_seat"] == "yes",
@@ -263,7 +266,6 @@ class Live:
                 "evidence": p["evidence"], "label": bg.path_label(p),
                 "reason": f"{via} · delivers {round(rate * 100)}% of asks · {focus}",
             })
-        out.sort(key=lambda p: -p["score"])
         return out
 
     def route_priority(self, cid: str) -> dict:

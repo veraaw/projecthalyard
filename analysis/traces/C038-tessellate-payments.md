@@ -31,3 +31,11 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 !! 2025-08-01  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1037  [401 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 0 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Ilse Mkhize | Operator (work history) |  | no | prior_employer | via Raghunathan, Trask |

@@ -8,11 +8,11 @@
 ## 2. Where the files disagree
 
 - R1040: filed "Intro sent" but intro_outcomes.csv has no row at all
-- R1089: filed "Closed - no path" but supply_reach.csv has 6 paths into Ironvale Steel
+- R1089: filed "Closed - no path" but supply_reach.csv has 8 paths into Ironvale Steel
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
 
 | route score | strength | connector | reach | contact | evidence |
 |---|---|---|---|---|---|
@@ -22,6 +22,8 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.076 | 0.218 | Marcus Aldridge (Advisor) | alumni | Tomás Ferreira — ex-Ironvale Steel (2015-2020), now VP Enterprise Architecture at Ironvale Steel | investor_network.csv: Tomás Ferreira prior_employer=Ironvale Steel (2015-2020); connections_aldridge.csv: connection of Marcus Aldridge since 2018-11-19 |
 | 0.067 | 0.325 | Priya Raghunathan (Investor) | direct | Tomás Ferreira — VP Enterprise Architecture | connections_raghunathan.csv: Tomás Ferreira, VP Enterprise Architecture at Ironvale Steel, connected 2017-06-21 |
 | 0.041 | 0.202 | Priya Raghunathan (Investor) | alumni | Tomás Ferreira — ex-Ironvale Steel (2015-2020), now VP Enterprise Architecture at Ironvale Steel | investor_network.csv: Tomás Ferreira prior_employer=Ironvale Steel (2015-2020); connections_raghunathan.csv: connection of Priya Raghunathan since 2017-06-21 |
+| 0.215 | 0.900 | Callum Oldfield-Fairweather (investor network) | investor_network (board seat) | CEO / exec team — Cobalt Lane Ventures board seat | investor_network.csv: Callum Oldfield-Fairweather (Venture capital investor), portfolio_company=Ironvale Steel, board_seat=True |
+| 0.172 | 0.720 | Matteo Falkenrath-Merriweather (investor network) | investor_network | CEO / exec team — Cobalt Lane Ventures portfolio company | investor_network.csv: Matteo Falkenrath-Merriweather (Venture capital investor), portfolio_company=Ironvale Steel, board_seat=False |
 
 ## 4. Chronology (31 events, 5 requests, newest first, as of 2026-09-06)
 
@@ -50,7 +52,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
    2026-02-22  slack_threads.jsonl  Imani Mkhize         R1089 slack: "what's the deal size here?"
    2026-02-18  slack_threads.jsonl  Hana Nakashima       R1089 slack: "who do we know at Ironvale Steel? VP Enterprise Architecture would be ideal but I'll take anyone senior"
-!! 2026-02-18  intro_requests.csv   Hana Nakashima       R1089 raised by Hana Nakashima (AE, Healthcare): wants VP Enterprise Architecture, $400,000, High urgency, filed "Closed - no path"  [6 paths in supply_reach.csv; same title as R1141, 85 days earlier]
+!! 2026-02-18  intro_requests.csv   Hana Nakashima       R1089 raised by Hana Nakashima (AE, Healthcare): wants VP Enterprise Architecture, $400,000, High urgency, filed "Closed - no path"  [8 paths in supply_reach.csv; same title as R1141, 85 days earlier]
 
 ++ 2025-12-06  intro_outcomes.csv   Priya Raghunathan    R1141 intro sent
 ++ 2025-11-28  intro_outcomes.csv   Priya Raghunathan    R1141 replied (3 days after the ask)
@@ -63,3 +65,13 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 !! 2026-04-16  crm_accounts.csv     Hana Nakashima       last CRM touch on A1009  [143 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+3 people from investor_network.csv, 2 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Callum Oldfield-Fairweather | Venture capital investor | Cobalt Lane Ventures | yes | portfolio_company | investor_network path (section 3, 10% haircut) |
+| Matteo Falkenrath-Merriweather | Venture capital investor | Cobalt Lane Ventures | no | portfolio_company | investor_network path (section 3, 10% haircut) |
+| Tomás Ferreira | Operator (work history) |  | no | prior_employer | via Aldridge, Raghunathan |
