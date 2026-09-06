@@ -76,7 +76,8 @@ def fragment() -> str:
     const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
     let out = `<h2 class="co">${{esc(t.company_name)}} <span class="foot">${{esc(t.company_id)}}${{h.crm_account_ids ? ' · ' + esc(h.crm_account_ids) : ''}}${{h.domain ? ' · ' + esc(h.domain) : ''}}</span></h2>`;
     out += `<p class="aka">${{h.also_known_as.length ? 'also goes by ' + h.also_known_as.map(esc).join(' · ') : 'no other spellings on file'}}${{h.duplicate_accounts && h.duplicate_accounts !== 'no' ? ' · duplicate accounts: ' + esc(h.duplicate_accounts) : ''}}</p>`;
-    out += `<div class="kpis">${{kpi(h.stage || '?', 'stage', h.industry)}}${{kpi(h.owner || 'none', 'CRM owner')}}${{kpi(h.value_usd, 'deal value', h.largest_request_usd ? 'largest request ' + h.largest_request_usd : '')}}${{kpi(h.requests, 'requests')}}${{kpi(h.people, 'people asking')}}${{kpi(h.titles.length, 'different titles wanted', h.titles.join(' · '))}}</div>`;
+    const rt = h.routing;
+    out += `<div class="kpis">${{kpi(rt.furthest, 'routing stage', rt.latest && rt.latest !== rt.furthest ? 'latest ask: ' + rt.latest : '')}}${{kpi(h.stage || '?', 'CRM stage', h.industry)}}${{kpi(h.owner || 'none', 'CRM owner')}}${{kpi(h.value_usd, 'deal value', h.largest_request_usd ? 'largest request ' + h.largest_request_usd : '')}}${{kpi(h.requests, 'requests')}}${{kpi(h.people, 'people asking')}}${{kpi(h.titles.length, 'different titles wanted', h.titles.join(' · '))}}</div>`;
 
     if (t.disagreements.length) {{
       out += `<h3>2. Where the files disagree</h3>` + t.disagreements.map(d => `<div class="finding warn">${{esc(d)}}</div>`).join('');

@@ -6,7 +6,7 @@
     python3 analysis/trace.py                            # every company with a
                                                          # request -> analysis/traces/
 
-Five sections: the header (identity and request counts), where the files
+Five sections: the header (identity, request counts and the routing stage), where the files
 disagree (skipped when they don't), who can reach them (supply_reach.csv by
 strength), the chronology (every event from intro_requests.csv,
 slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, oldest first)
@@ -26,14 +26,14 @@ import csv
 import json
 import re
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.build_golden import OFFER_RE, OPEN_STATUSES, latest_cycle  # noqa: E402
+from golden.build_golden import OFFER_RE, OPEN_STATUSES, STAGES, latest_cycle, load_completions, stage_of, with_completions  # noqa: E402
 from golden.resolver import normalize, normalize_strict  # noqa: E402
 from paths import ANALYSIS, DATASET, GOLDEN  # noqa: E402
 
@@ -87,12 +87,16 @@ class Data:
     supply: list[dict]
     allocation: list[dict]
     roster: dict[str, dict]
+    outcome_by_rid: dict[str, dict]  # the ask log as the build reads it (completions applied), one row per request
+    alloc_by_rid: dict[str, dict]    # the current cycle's allocation by request_id
 
     @classmethod
     def load(cls) -> "Data":
         outcomes: dict[str, list[dict]] = defaultdict(list)
-        for o in read_csv(DATASET / SOURCES["outcomes"]):
+        logged = read_csv(DATASET / SOURCES["outcomes"])
+        for o in logged:
             outcomes[o["request_id"]].append(o)
+        allocation = latest_cycle(read_csv(GOLDEN / "golden_allocation.csv"))
         threads = {}
         with open(DATASET / SOURCES["slack"], encoding="utf-8") as fh:
             for line in fh:
@@ -107,8 +111,10 @@ class Data:
             threads=threads,
             accounts={a["account_id"]: a for a in read_csv(DATASET / SOURCES["crm"])},
             supply=read_csv(GOLDEN / "supply_reach.csv"),
-            allocation=latest_cycle(read_csv(GOLDEN / "golden_allocation.csv")),
+            allocation=allocation,
             roster={r["name"]: r for r in read_csv(DATASET / "connector_roster.csv")},
+            outcome_by_rid={o["request_id"]: o for o in with_completions(logged, load_completions())},
+            alloc_by_rid={a["request_id"]: a for a in allocation},
         )
 
 
@@ -220,6 +226,26 @@ class Trace:
         if person in split_bar(self.c["owner"]):
             return "CRM owner"
         return "off-roster connector"
+
+    def stage_of(self, r: dict) -> str:
+        rid = r["request_id"]
+        return stage_of(r, self.d.outcome_by_rid.get(rid), self.d.alloc_by_rid.get(rid))
+
+    def routing(self) -> dict:
+        """Where the company sits in the routing funnel: the furthest stage any of
+        its requests reached ('closed' only when every request is Closed - no
+        path), the stage of its latest request, how many requests sit at each
+        stage, and of those asked, how many connectors agreed vs never replied."""
+        stages = {r["request_id"]: self.stage_of(r) for r in self.requests}
+        counts = Counter(stages.values())
+        asked = [rid for rid, s in stages.items() if s == "asked"]
+        agreed = sum(1 for rid in asked if (self.d.outcome_by_rid.get(rid) or {}).get("responded") == "Y")
+        return {
+            "furthest": max((s for s in stages.values() if s != "closed"), key=STAGES.index, default="closed"),
+            "latest": stages.get(self.c["latest_request_id"], ""),
+            "counts": {s: counts[s] for s in [*STAGES, "closed"] if counts[s]},
+            "awaiting_intro": {"agreed": agreed, "silent": len(asked) - agreed},
+        }
 
     def last_touch(self) -> tuple[date | None, dict | None]:
         best, acct = None, None
@@ -513,6 +539,7 @@ class Trace:
                 "value_usd": money(c["value_usd"]), "largest_request_usd": money(c["largest_request_usd"]) if c["largest_request_usd"] else "",
                 "crm_account_ids": c["crm_account_ids"], "domain": c["domain"], "duplicate_accounts": c["duplicate_accounts"],
                 "also_known_as": self.spellings(),
+                "routing": self.routing(),
                 "requests": len(self.requests),
                 "people": len({r["requested_by"] for r in self.requests}),
                 "titles": sorted({r["target_title"] for r in self.requests if r["target_title"]}),

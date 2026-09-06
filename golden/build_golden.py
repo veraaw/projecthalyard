@@ -196,6 +196,8 @@ ALLOCATION_COLUMNS = [
 
 MULTI = " | "  # delimiter for multi-value cells (never a comma)
 OPEN_STATUSES = {"Open", "Routed", "Stalled"}
+# routing stages a request moves through, in order; "closed" (Closed - no path) sits outside the strip
+STAGES = ["needs data", "to be routed", "routed", "asked", "introduced", "won"]
 URGENCY_RANK = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
 OFF_ROSTER_CAPACITY = 2  # monthly asks assumed for anyone askable who is not on the roster
 FATIGUE_DAYS = 60  # asks proposed to a connector in this trailing window count against their capacity
@@ -1159,6 +1161,26 @@ def resolve_requests(reg: Registry, filed: list[dict], ingest: dict[str, dict] |
         facts["company_as_written"] = written or domain_hint
         out[rid] = {"company": company, "method": method, "target_title": "", "facts": facts, "source": facts}
     return out
+
+
+def stage_of(request: dict, outcome: dict | None, alloc: dict | None) -> str:
+    """Point in time: each request sits in exactly one stage; 'closed' is excluded from the strip.
+    `outcome` is the request's intro_outcomes.csv row (with completions applied),
+    `alloc` its row in the current allocation cycle; either may be None."""
+    r, o, a = request, outcome, alloc
+    if (o and o["meeting_booked"] == "Y") or r["meeting_booked"] == "Y":
+        return "won"
+    if (o and o["intro_sent"] == "Y") or r["intro_sent"] == "Y" or r["status_as_filed"] == "Intro sent":
+        return "introduced"
+    if r["status_as_filed"] == "Closed - no path":
+        return "closed"
+    if o or r["asked_date"]:
+        return "asked"
+    if r["routed_to"] or (a and a["allocated_to"]):
+        return "routed"
+    if not r["company_id"] or not r["value_usd"]:
+        return "needs data"
+    return "to be routed"
 
 
 def contradicts_log(status: str, outcome: dict | None) -> str:
