@@ -33,7 +33,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Curtis Marchetti — ex-Priorwood Chemicals (2010-2017), now VP Enterprise Architecture at Priorwood Chemicals | investor_network.csv: Curtis Marchetti prior_employer=Priorwood Chemicals (2010-2017); connections_beckett.csv: connection of Tomás Beckett since 2014-07-13 | Tomás Beckett agreed on 2026-06-11 (R1033), no intro - nudge |
 | 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Margot Havercamp — ex-Priorwood Chemicals (2011-2017), now Director of Software Engineering at Priorwood Chemicals | investor_network.csv: Margot Havercamp prior_employer=Priorwood Chemicals (2011-2017); connections_beckett.csv: connection of Tomás Beckett since 2015-01-12 | Tomás Beckett agreed on 2026-06-11 (R1033), no intro - nudge |
 
-strongest path, not where it went: Otto Cathcart-Brenneman, investor_network 0.900, 0/2 used this cycle; R1092 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked)), R1174 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked))
+why not #1: parked on live intro (R1150, Tomás Beckett, 2026-03-16, meeting booked): R1092, R1174
 
 ## 4. Chronology (56 events, 9 requests, newest first, as of 2026-09-06)
 

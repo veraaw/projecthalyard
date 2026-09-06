@@ -37,7 +37,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.000 | 0.800 | Elena Duvall (Advisor) | offer | Head of Platform | slack_threads.jsonl R1136 2026-03-16 Elena Duvall: "their Head of Platform reports to someone I've known for a decade, leave it with me" |  |
 | 0.079 | 0.492 | Tomás Beckett (Internal) | direct | Marcus Salcedo — Director of Software Engineering | connections_beckett.csv: Marcus Salcedo, Director of Software Engineering at Harrowgate Health, connected 2026-03-16 | Tomás Beckett agreed on 2026-07-03 (R1057), no intro - nudge |
 
-strongest path, not where it went: Elena Duvall, offer 0.800, at capacity 3/3, Healthcare is outside their focus (route score 0.000); R1136 unrouted (capacity exhausted this cycle), R1140 unrouted (capacity exhausted this cycle), R1153 routed to Priya Raghunathan
+why not #1: Elena Duvall at capacity 3/3, outside focus (Healthcare) -> R1136, R1140 unrouted (capacity exhausted); R1153 to Priya Raghunathan
 
 ## 4. Chronology (51 events, 9 requests, newest first, as of 2026-09-06)
 

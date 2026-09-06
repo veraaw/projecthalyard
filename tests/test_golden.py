@@ -184,6 +184,33 @@ class GoldenTest(unittest.TestCase):
         offers = [x for x in self.reach if x["reach_type"] == "offer"]
         self.assertEqual(len(offers), 15)
 
+    def test_no_path_blocked_reason_says_who_was_tried(self):
+        """'no path in the roster or investor network' only when supply_reach has
+        nothing for the company; 'no path on the roster' only when what it has is
+        all off-roster. Since routing follows the allocation, a request whose only
+        paths are off-roster is normally routed to one of them, so the second label
+        is checked on the function directly."""
+        roster = bg.load_roster()
+        reach = defaultdict(list)
+        for x in self.reach:
+            reach[x["company_id"]].append(x["connector"])
+        by_reason = defaultdict(list)
+        for r in self.requests:
+            by_reason[r["blocked_reason"]].append(r)
+        self.assertTrue(by_reason[bg.BLOCK_NO_PATH])
+        self.assertEqual([r["request_id"] for r in by_reason[bg.BLOCK_NO_PATH] if reach[r["company_id"]]], [])
+        self.assertEqual([r["request_id"] for r in by_reason[bg.BLOCK_NO_ROSTER_PATH]
+                          if not reach[r["company_id"]] or any(n in roster for n in reach[r["company_id"]])], [])
+
+        company = bg.Company("example.com")
+        company.accounts.append({"account_id": "A0001", "account_name": "Example", "stage": "Open"})
+        on, off = next(iter(roster)), "Someone Off Roster"
+        self.assertNotIn(off, roster)
+        self.assertEqual(bg.blocked_reason(company, [], roster, None), bg.BLOCK_NO_PATH)
+        self.assertEqual(bg.blocked_reason(company, [{"connector": off}], roster, None), bg.BLOCK_NO_ROSTER_PATH)
+        self.assertEqual(bg.blocked_reason(company, [{"connector": off}, {"connector": on}], roster, None),
+                         bg.BLOCK_NEVER_ROUTED)
+
 
 if __name__ == "__main__":
     unittest.main()

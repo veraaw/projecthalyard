@@ -26,7 +26,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.035 | 0.310 | Owen Trask (Investor) | direct | Teodor Zubkov — Program Manager | connections_trask.csv: Teodor Zubkov, Program Manager at Marchford Clinics, connected 2020-05-24 |  |
 | 0.081 | 0.519 | Marcus Aldridge (Advisor) | direct | Kofi Jarrold — Chief Information Officer | connections_aldridge.csv: Kofi Jarrold, Chief Information Officer at Marchford Clinics, connected 2023-09-18 | Marcus Aldridge agreed on 2026-02-24 (R1114), no intro - nudge |
 
-strongest path, not where it went: Marcus Aldridge, direct 0.519, at capacity 4/4, not asked again here: Marcus Aldridge agreed on 2026-02-24 (R1114), no intro - nudge; R1004 unrouted (capacity exhausted this cycle), R1121 unrouted (capacity exhausted this cycle), R1142 unrouted (capacity exhausted this cycle)
+why not #1: Marcus Aldridge at capacity 4/4, not asked again here: Marcus Aldridge agreed on 2026-02-24 (R1114), no intro - nudge -> R1004, R1121, R1142 unrouted (capacity exhausted)
 
 ## 4. Chronology (31 events, 6 requests, newest first, as of 2026-09-06)
 

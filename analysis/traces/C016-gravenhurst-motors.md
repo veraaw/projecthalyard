@@ -38,7 +38,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.038 | 0.187 | Priya Raghunathan (Investor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_raghunathan.csv: connection of Priya Raghunathan since 2016-11-20 | Priya Raghunathan asked on 2026-01-02 (R1058), no reply for 247 days - askable, ranked last |
 | 0.182 | 0.800 | Hana Nakashima (not on roster) | offer | Chief Digital Officer | slack_threads.jsonl R1108 2025-10-09 Hana Nakashima: "I met their Chief Digital Officer at a conference last spring, happy to reach out" | Hana Nakashima agreed on 2025-10-23 (R1108), no intro - nudge |
 
-strongest path, not where it went: Curtis Hartigan, offer 0.800, 0/2 used this cycle; R1143 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)), R1158 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)), R1185 unrouted (already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked))
+why not #1: parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting booked): R1143, R1158, R1185
 
 ## 4. Chronology (56 events, 9 requests, newest first, as of 2026-09-06)
 

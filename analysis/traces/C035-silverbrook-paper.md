@@ -22,7 +22,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 |---|---|---|---|---|---|---|
 | 0.041 | 0.356 | Owen Trask (Investor) | direct | Elena Rushworth — Head of Automation | connections_trask.csv: Elena Rushworth, Head of Automation at Silverbrook Paper, connected 2019-11-27 | Owen Trask asked on 2026-01-07 (R1008), no reply for 242 days - askable, ranked last |
 
-strongest path, not where it went: Owen Trask, direct 0.356, at capacity 2/2, ranked last: Owen Trask asked on 2026-01-07 (R1008), no reply for 242 days - askable, ranked last; R1063 unrouted (capacity exhausted this cycle)
+why not #1: Owen Trask at capacity 2/2, ranked last: Owen Trask asked on 2026-01-07 (R1008), no reply for 242 days - askable, ranked last -> R1063 unrouted (capacity exhausted)
 
 ## 4. Chronology (12 events, 2 requests, newest first, as of 2026-09-06)
 

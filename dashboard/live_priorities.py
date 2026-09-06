@@ -43,6 +43,7 @@ from dashboard import batch_ask
 from golden import build_golden as bg
 from golden import parse as gp
 from golden import resolver as gr
+from golden.clock import as_of
 from golden.resolve_cli import load_resolver
 from paths import DASHBOARD, DATASET, DOCS, GOLDEN, ROOT
 
@@ -1222,7 +1223,7 @@ class Live:
 
 
 def payload(today: date | None = None) -> dict:
-    return Live(today or date.today()).payload()
+    return Live(today or as_of()).payload()
 
 
 def _fragment(data: dict, entry: str) -> str:
@@ -1243,16 +1244,16 @@ def fragment(today: date | None = None) -> str:
 
 
 def cycles(today: date | None = None) -> dict:
-    return Live(today or date.today()).cycles()
+    return Live(today or as_of()).cycles()
 
 
 def connector_fragments(today: date | None = None) -> list[tuple[dict, str]]:
     """(card, html) per connector page; card["page"] is the file name under docs/."""
-    return [(c, _fragment(c, "bootConnector")) for c in Live(today or date.today()).connector_pages()]
+    return [(c, _fragment(c, "bootConnector")) for c in Live(today or as_of()).connector_pages()]
 
 
 def batch_fragment(today: date | None = None) -> str:
-    return _fragment(Live(today or date.today()).batch_page(), "bootBatch")
+    return _fragment(Live(today or as_of()).batch_page(), "bootBatch")
 
 
 if __name__ == "__main__":

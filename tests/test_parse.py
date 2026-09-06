@@ -25,6 +25,8 @@ DATASET = ROOT / "dataset"
 # texts through the exported cue table + resolver index under node.
 CASES = {
     "distractor": "Calderon Aerospace introduced us to Kestrel Airlines, but the account I actually need is Ironvale Steel",
+    "first person need": "Calderon Aerospace introduced us to Kestrel Airlines, but I need Ironvale Steel",
+    "first person need, new company": "Calderon Aerospace introduced us to Kestrel Airlines, but I need Bluewater Foods",
     "bridge": "trying to reach the COO at Apex Logistics. I know we sell into Larkhall Software and Cindermill Mining",
     "negation": ("we need Cobalt Lane Capital Markets. Not Ferrowick Insurance — that's a different entity "
                  "and we already have that one. Also spoke to Apex Logistics last week, unrelated."),
@@ -87,6 +89,20 @@ class ParseTargetTest(unittest.TestCase):
         self.assertGreater(s["Apex Logistics"], 0)
         self.assertLess(s["Larkhall Software"], 0)    # we sell into: existing customers, not targets
         self.assertLess(s["Cindermill Mining"], 0)
+
+    def test_first_person_need_outranks_the_bridge(self):
+        """"X introduced us to Y, but I need Z": Z is asked for, X and Y are the
+        bridge. Z is the target whether or not the CRM knows it; without the cue
+        an unknown Z left the message with no target at all."""
+        for z, method in [("Ironvale Steel", "name-exact"), ("Bluewater Foods", "unmatched")]:
+            with self.subTest(z):
+                ex = extract(f"Calderon Aerospace introduced us to Kestrel Airlines, but I need {z}", self.res)
+                self.assertEqual(ex.target.text, z)
+                self.assertEqual(ex.target.cue, "we need")
+                self.assertEqual(ex.target.score, 2)
+                self.assertEqual(ex.target.resolution.method, method)
+                self.assertEqual(self.scores(ex.text), {"Calderon Aerospace": -1, "Kestrel Airlines": -1, z: 2})
+        self.assertIsNone(extract("Rafael Kirkbride-Ibarra is the person I need.", self.res).target)
 
     def test_r1076_weak_cue_beats_explicit_negation(self):
         text = ("we need Cobalt Lane Capital Markets. Not Ferrowick Insurance — that's a different entity "

@@ -24,7 +24,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.085 | 0.187 | Priya Raghunathan (Investor) | alumni | Saoirse Prendergast — ex-Wrenfield Robotics (2012-2015), now Head of Platform Engineering at Wrenfield Robotics | investor_network.csv: Saoirse Prendergast prior_employer=Wrenfield Robotics (2012-2015); connections_raghunathan.csv: connection of Priya Raghunathan since 2014-01-26 |  |
 | 0.172 | 0.720 | Matteo Ferreira-Yarrow (investor network) | investor_network | CEO / exec team — Ironvale Partners portfolio company | investor_network.csv: Matteo Ferreira-Yarrow (Private equity investor), portfolio_company=Wrenfield Robotics, board_seat=False |  |
 
-strongest path, not where it went: Matteo Ferreira-Yarrow, investor_network 0.720, at capacity 2/2, holds R1018, R1156; R1195 unrouted (capacity exhausted this cycle)
+why not #1: Matteo Ferreira-Yarrow at capacity 2/2 (holds R1018, R1156) -> R1195 unrouted (capacity exhausted)
 
 ## 4. Chronology (14 events, 3 requests, newest first, as of 2026-09-06)
 

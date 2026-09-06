@@ -19,7 +19,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.215 | 0.900 | Espen Rushworth-Oyelaran (investor network) | investor_network (board seat) | CEO / exec team — Silverbrook Capital board seat | investor_network.csv: Espen Rushworth-Oyelaran (Venture capital investor), portfolio_company=Kestrel Airlines, board_seat=True |  |
 | 0.215 | 0.900 | Wren Petrossian-Norrington (investor network) | investor_network (board seat) | CEO / exec team — Silverbrook Capital board seat | investor_network.csv: Wren Petrossian-Norrington (Venture capital investor), portfolio_company=Kestrel Airlines, board_seat=True |  |
 
-strongest path, not where it went: Espen Rushworth-Oyelaran, investor_network 0.900, at capacity 2/2; R1054 routed to Wren Petrossian-Norrington
+why not #1: Espen Rushworth-Oyelaran at capacity 2/2 -> R1054 to Wren Petrossian-Norrington
 
 ## 4. Chronology (5 events, 1 request, newest first, as of 2026-09-06)
 

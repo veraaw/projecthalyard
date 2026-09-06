@@ -29,7 +29,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.172 | 0.720 | Amara Brenneman-Fairweather (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Amara Brenneman-Fairweather (Growth equity investor), portfolio_company=Vireo Systems, board_seat=False |  |
 | 0.131 | 0.519 | Elena Duvall (Advisor) | direct | Arjun Cathcart — Head of Developer Productivity | connections_duvall.csv: Arjun Cathcart, Head of Developer Productivity at Vireo Systems, connected 2026-01-23 | Elena Duvall agreed on 2025-11-21 (R1166), no intro - nudge |
 
-strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3, holds R1055; R1075 routed to Amara Brenneman-Fairweather
+why not #1: Priya Raghunathan at capacity 3/3 (holds R1055) -> R1075 to Amara Brenneman-Fairweather
 
 ## 4. Chronology (48 events, 9 requests, newest first, as of 2026-09-06)
 

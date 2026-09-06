@@ -28,7 +28,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Chief Operating Officer | slack_threads.jsonl R1124 2025-11-10 Priya Raghunathan: "I met their Chief Operating Officer at a conference last spring, happy to reach out" | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last |
 | 0.069 | 0.337 | Priya Raghunathan (Investor) | direct | Freya Havercamp — Staff Engineer | connections_raghunathan.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2022-05-16 | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last |
 
-strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3, ranked last: Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last; R1065 routed to Dana Whitfield, R1084 routed to Dana Whitfield, R1159 routed to Dana Whitfield
+why not #1: Priya Raghunathan at capacity 3/3, ranked last: Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last -> R1065, R1084, R1159 to Dana Whitfield
 
 ## 4. Chronology (18 events, 4 requests, newest first, as of 2026-09-06)
 

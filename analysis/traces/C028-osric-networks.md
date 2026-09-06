@@ -30,7 +30,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.172 | 0.720 | Freya Oldfield-Ibarra (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Freya Oldfield-Ibarra (Venture capital investor), portfolio_company=Osric Networks, board_seat=False |  |
 | 0.172 | 0.720 | Perrine Brenneman-Wexford (investor network) | investor_network | CEO / exec team — Meridian Peak Partners portfolio company | investor_network.csv: Perrine Brenneman-Wexford (Private equity investor), portfolio_company=Osric Networks, board_seat=False |  |
 
-strongest path, not where it went: Malik Thackeray-Okonkwo, investor_network 0.900, 0/2 used this cycle; R1028 unrouted (already introduced: Elena Duvall on 2026-04-02 (R1163, meeting booked)), R1170 unrouted (already introduced: Elena Duvall on 2026-04-02 (R1163, meeting booked))
+why not #1: parked on live intro (R1163, Elena Duvall, 2026-04-02, meeting booked): R1028, R1170
 
 ## 4. Chronology (24 events, 4 requests, newest first, as of 2026-09-06)
 

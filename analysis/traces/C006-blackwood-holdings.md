@@ -33,7 +33,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.053 | 0.330 | Tomás Beckett (Internal) | direct | Marcus Højgaard — Chief Technology Officer | connections_beckett.csv: Marcus Højgaard, Chief Technology Officer at Blackwood Industrial, connected 2015-01-02 | Tomás Beckett agreed on 2026-02-19 (R1130), no intro - nudge |
 | 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Marcus Højgaard — ex-Blackwood Industrial (2014-2017), now Chief Technology Officer at Blackwood Industrial | investor_network.csv: Marcus Højgaard prior_employer=Blackwood Industrial (2014-2017); connections_beckett.csv: connection of Tomás Beckett since 2015-01-02 | Tomás Beckett agreed on 2026-02-19 (R1130), no intro - nudge |
 
-strongest path, not where it went: Otto Cathcart-Brenneman, investor_network 0.900, 0/2 used this cycle; R1022 routed to Elena Duvall, R1091 routed to Marcus Aldridge, R1179 routed to Marcus Aldridge
+why not #1: Otto Cathcart-Brenneman investor network, roster asked first -> R1022 to Elena Duvall; R1091, R1179 to Marcus Aldridge
 
 ## 4. Chronology (25 events, 4 requests, newest first, as of 2026-09-06)
 

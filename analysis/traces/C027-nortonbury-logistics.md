@@ -31,7 +31,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.172 | 0.720 | Renata Halloran-Quillane (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Renata Halloran-Quillane (Growth equity investor), portfolio_company=Nortonbury Logistics, board_seat=False |  |
 | 0.180 | 0.519 | Marcus Aldridge (Advisor) | direct | Anouk Kirkbride — Head of Developer Productivity | connections_aldridge.csv: Anouk Kirkbride, Head of Developer Productivity at Nortonbury Logistics, connected 2026-07-07 | Marcus Aldridge asked on 2026-03-04 (R1077), no reply for 186 days - askable, ranked last |
 
-strongest path, not where it went: Amara Brenneman-Fairweather, investor_network 0.900, at capacity 2/2; R1013 routed to Perrine Brenneman-Wexford
+why not #1: Amara Brenneman-Fairweather at capacity 2/2 -> R1013 to Perrine Brenneman-Wexford
 
 ## 4. Chronology (13 events, 3 requests, newest first, as of 2026-09-06)
 

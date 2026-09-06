@@ -31,7 +31,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.182 | 0.800 | Yusuf Petrossian (not on roster) | offer | exec team | slack_threads.jsonl R1066 2026-06-27 Yusuf Petrossian: "I'll take this one — I've got a direct line to their exec team" | Yusuf Petrossian agreed on 2026-07-06 (R1066), no intro - nudge |
 | 0.145 | 0.484 | Dana Whitfield (Internal) | direct | Saoirse Quillane — VP Data & Analytics | connections_whitfield.csv: Saoirse Quillane, VP Data & Analytics at Kingsmere Retail Group, connected 2023-12-11 | Dana Whitfield agreed on 2026-02-04 (R1113), no intro - nudge |
 
-strongest path, not where it went: Yusuf Petrossian, offer 0.800, 0/2 used this cycle, not asked again here: Yusuf Petrossian agreed on 2026-07-06 (R1066), no intro - nudge; R1006 routed to Tomás Beckett, R1070 routed to Tomás Beckett, R1128 routed to Tomás Beckett, R1171 unrouted (capacity exhausted this cycle), R1193 unrouted (capacity exhausted this cycle)
+why not #1: Yusuf Petrossian not asked again here: Yusuf Petrossian agreed on 2026-07-06 (R1066), no intro - nudge -> R1006, R1070, R1128 to Tomás Beckett; R1171, R1193 unrouted (capacity exhausted)
 
 ## 4. Chronology (35 events, 8 requests, newest first, as of 2026-09-06)
 

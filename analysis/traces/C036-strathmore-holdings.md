@@ -35,7 +35,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.034 | 0.218 | Marcus Aldridge (Advisor) | alumni | Tomás Dobrescu — ex-Strathmore Rail (2013-2018), now VP Engineering at Strathmore Rail | investor_network.csv: Tomás Dobrescu prior_employer=Strathmore Rail (2013-2018); connections_aldridge.csv: connection of Marcus Aldridge since 2018-12-16 | Marcus Aldridge agreed on 2025-11-01 (R1102), no intro - nudge |
 | 0.029 | 0.187 | Marcus Aldridge (Advisor) | alumni | Yusuf Vasquez — ex-Strathmore Rail (2014-2017), now Director of Software Engineering at Strathmore Rail | investor_network.csv: Yusuf Vasquez prior_employer=Strathmore Rail (2014-2017); connections_aldridge.csv: connection of Marcus Aldridge since 2015-08-28 | Marcus Aldridge agreed on 2025-11-01 (R1102), no intro - nudge |
 
-strongest path, not where it went: Freya Oldfield-Ibarra, investor_network 0.720, 0/2 used this cycle; R1027 routed to Tomás Beckett, R1125 routed to Tomás Beckett, R1132 routed to Tomás Beckett
+why not #1: Freya Oldfield-Ibarra investor network, roster asked first -> R1027, R1125, R1132 to Tomás Beckett
 
 ## 4. Chronology (36 events, 7 requests, newest first, as of 2026-09-06)
 
