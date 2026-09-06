@@ -78,15 +78,7 @@ strongest path, not where it went: Elena Duvall, direct 0.357, at capacity 3/3, 
    2026-06-23  crm_accounts.csv     Imani Mkhize         last CRM touch on A1026
 ```
 
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | nudge, don't re-ask | said yes on 2025-11-01 and never forwarded | R1102 |
-| 2 | Tomás Beckett | VP Partnerships (internal connector) | send the ask (batch 2026-09 Tomás Beckett) | allocated in golden_allocation.csv via direct path to Bertrand Lomsadze, score 0.053; allocated in golden_allocation.csv via direct path to Bertrand Lomsadze, score 0.053; allocated in golden_allocation.csv via direct path to Bertrand Lomsadze, score 0.053 | R1027, R1125, R1132 |
-| 3 | Yusuf Petrossian (314 days), Sloane Fairweather (267 days), Curtis Hartigan (264 days), Rafael Salcedo (82 days), Hana Nakashima (75 days) | 5 reps still waiting, longest first | tell them it's with Marcus Aldridge / Tomás Beckett | 5 reps raised this and have heard nothing; the oldest has been waiting 314 days | R1102, R1132, R1125, R1093, R1053, R1094, R1027 |
-
-## 6. Additional Investor and Operator Network
+## 5. Additional Investor and Operator Network
 
 4 people from investor_network.csv, 1 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
 

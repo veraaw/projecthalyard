@@ -37,10 +37,3 @@ strongest path, not where it went: Owen Trask, direct 0.356, at capacity 2/2; R1
 
 !! 2026-05-10  crm_accounts.csv     Curtis Hartigan      last CRM touch on A1032  [119 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Curtis Hartigan | CRM owner (A1032) | check in on the account | last touch 2026-05-10, 119 days ago | — |
-| 2 | Sloane Fairweather (304 days), Yusuf Petrossian (242 days) | 2 reps still waiting, longest first | tell them it's with Owen Trask | 2 reps raised this and have heard nothing; the oldest has been waiting 304 days | R1063, R1008 |

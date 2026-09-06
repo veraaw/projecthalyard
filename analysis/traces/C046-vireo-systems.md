@@ -85,16 +85,7 @@ strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacit
    2026-07-12  slack_threads.jsonl  Imani Mkhize         R1055 slack: "adding Imani Mkhize who might know"
 ```
 
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | nudge, don't re-ask | said yes on 2025-11-14 and never forwarded; said yes on 2025-11-21 and never forwarded | R1107, R1166 |
-| 2 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | send the ask (batch 2026-09 Marcus Aldridge) | allocated in golden_allocation.csv via direct path to Arjun Cathcart, score 0.120 | R1075 |
-| 3 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | send the ask (batch 2026-09 Priya Raghunathan) | allocated in golden_allocation.csv via investor path to CEO / exec team, score 0.287 | R1055 |
-| 4 | Nadia Okonkwo (387 days), Rafael Salcedo (302 days), Curtis Hartigan (271 days), Hana Nakashima (193 days) | 4 reps still waiting, longest first | tell them it's with Elena Duvall / Priya Raghunathan | 4 reps raised this and have heard nothing; the oldest has been waiting 387 days | R1060, R1107, R1017, R1166, R1131, R1055, R1199, R1075, R1155 |
-
-## 6. Additional Investor and Operator Network
+## 5. Additional Investor and Operator Network
 
 2 people from investor_network.csv, 1 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
 

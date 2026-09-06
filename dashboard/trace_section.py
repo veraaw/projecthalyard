@@ -2,7 +2,7 @@
 
     from dashboard.trace_section import fragment, sidebar
     aside = sidebar()          # search box + the company list, for the page's left rail
-    html = fragment()          # the trace sections, rendered client-side
+    html = fragment()          # the four trace sections, rendered client-side
 
 Every company trace (analysis/trace.py, `Trace.as_dict()`) is embedded as JSON;
 the search box filters the company list on id, name, alias, or CRM account id and
@@ -40,7 +40,6 @@ def fragment() -> str:
 #trace .legend{{color:var(--mute);font-size:13px;font-family:var(--sans);margin:0 0 8px}}
 #trace .legend b{{font-family:var(--mono);font-weight:600;margin:0 4px 0 12px}}
 #trace .legend b.missed{{color:var(--warn)}} #trace .legend b.worked{{color:#1d6b2a}} #trace .legend b.offer{{color:var(--blue)}} #trace .legend b.warning{{color:var(--warn)}}
-#trace td.order{{font-family:var(--mono);color:var(--mute)}}
 #trace .empty{{color:var(--mute);font-style:italic}}
 #trace .bar.raw{{background:var(--mute);opacity:.55}}
 #trace td.score,#trace td.raw{{white-space:nowrap;font-variant-numeric:tabular-nums}}
@@ -109,15 +108,9 @@ def fragment() -> str:
     }});
     out += `</tbody></table>`;
 
-    out += `<h3>5. Next steps, by person, cheapest first</h3>`;
-    if (!t.next_steps.length) out += `<p class="empty">nobody needs to do anything</p>`;
-    else out += `<table><thead><tr><th>#</th><th>who</th><th>role</th><th>action</th><th>why</th><th>requests</th></tr></thead><tbody>` +
-      t.next_steps.map((s, i) => `<tr><td class="order">${{i + 1}}</td><td>${{esc(s.who)}}</td><td class="foot">${{esc(s.role)}}</td><td><b>${{esc(s.action)}}</b></td><td>${{esc(s.why)}}</td><td class="rid">${{esc(s.request_ids.join(', ') || 'none')}}</td></tr>`).join('') +
-      `</tbody></table>`;
-
     if (t.orbit.length) {{
       const cold = t.orbit.filter(r => !r.reachable_via).length;
-      out += `<h3>6. Additional Investor and Operator Network</h3>`;
+      out += `<h3>5. Additional Investor and Operator Network</h3>`;
       out += `<p class="foot">${{t.orbit.length}} ${{t.orbit.length === 1 ? 'person' : 'people'}} from investor_network.csv, ${{cold}} with no warm path · read-only context: not scored, not allocated, not on supply_reach.csv, no connector capacity spent</p>`;
       out += `<table><thead><tr><th>person</th><th>role</th><th>fund</th><th>board seat</th><th>source</th><th>warm path</th></tr></thead><tbody>` +
         t.orbit.map(r => `<tr class="${{r.reachable_via ? '' : 'cold'}}"><td>${{esc(r.person)}}</td><td class="foot">${{esc(r.role)}}</td><td>${{esc(r.fund)}}</td><td class="seat">${{r.board_seat ? 'yes' : ''}}</td><td class="src">${{esc(r.source)}}</td><td class="route">${{esc(r.route)}}</td></tr>`).join('') +

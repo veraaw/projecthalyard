@@ -36,15 +36,7 @@ strongest path, not where it went: Tomás Beckett, direct 0.546, 6/8 used this c
 !! 2026-03-19  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1007  [171 days ago, nothing since]
 ```
 
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | send the ask (batch 2026-09 Marcus Aldridge) | allocated in golden_allocation.csv via direct path to Sabine Dellinger, score 0.171 | R1001 |
-| 2 | Rafael Salcedo | CRM owner (A1007) | check in on the account | last touch 2026-03-19, 171 days ago | — |
-| 3 | Imani Mkhize (220 days) | 1 rep still waiting, longest first | tell them it's with Marcus Aldridge | 1 rep raised this and has heard nothing; the oldest has been waiting 220 days | R1111, R1001 |
-
-## 6. Additional Investor and Operator Network
+## 5. Additional Investor and Operator Network
 
 1 person from investor_network.csv, 1 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
 

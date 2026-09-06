@@ -185,7 +185,7 @@ class OrbitTraceSectionTest(unittest.TestCase):
         t = self.trace("C042")
         self.assertFalse(t.paths, "C042 has no supply path")
         text = t.render()
-        self.assertIn("## 6. Additional Investor and Operator Network", text)
+        self.assertIn("## 5. Additional Investor and Operator Network", text)
         self.assertIn("nobody in the network reaches this company", text)
         d = t.as_dict()
         self.assertEqual(len(d["orbit"]), 4)
@@ -203,15 +203,15 @@ class OrbitTraceSectionTest(unittest.TestCase):
                      if int(c["total_requests"] or 0) and not any(r["company_id"] == c["company_id"] for r in self.data.orbit))
         t = Trace(self.data, empty, AS_OF)
         self.assertEqual(t.orbit, [])
-        self.assertNotIn("## 6.", t.render())
+        self.assertNotIn("## 5.", t.render())
         self.assertEqual(t.as_dict()["orbit"], [])
 
     def test_the_orbit_changes_nothing_the_allocator_reads(self):
-        """Sections 3-5 and the routing strip are computed without the orbit."""
+        """Sections 1-4 and the routing strip are computed without the orbit."""
         t = self.trace("C042")
         with_orbit = t.as_dict()
         bare = Trace(Data(**{**vars(self.data), "orbit": []}), t.c, AS_OF).as_dict()
-        for key in ("header", "disagreements", "reach", "chronology", "next_steps"):
+        for key in ("header", "disagreements", "reach", "chronology"):
             with self.subTest(section=key):
                 self.assertEqual(with_orbit[key], bare[key])
 

@@ -46,15 +46,7 @@ strongest path, not where it went: Priya Raghunathan, investor 0.720, at capacit
 !! 2026-01-22  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1039  [227 days ago, nothing since]
 ```
 
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Dana Whitfield | Chief Revenue Officer (internal connector) | send the ask (batch 2026-09 Dana Whitfield) | allocated in golden_allocation.csv via direct path to Zaid Fontaine, score 0.116 | R1013 |
-| 2 | Bertrand Vandermolen | CRM owner (A1039) | check in on the account | last touch 2026-01-22, 227 days ago | — |
-| 3 | Rafael Salcedo (192 days), Curtis Hartigan (160 days), Nadia Okonkwo (119 days) | 3 reps still waiting, longest first | tell them it's with Marcus Aldridge | 3 reps raised this and have heard nothing; the oldest has been waiting 192 days | R1077, R1016, R1013 |
-
-## 6. Additional Investor and Operator Network
+## 5. Additional Investor and Operator Network
 
 4 people from investor_network.csv, 3 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
 

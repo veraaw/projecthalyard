@@ -35,10 +35,3 @@ nobody in the network reaches this company
 
 !! 2026-04-11  crm_accounts.csv     Curtis Hartigan      last CRM touch on A1003  [148 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Curtis Hartigan | CRM owner (A1003) | check in on the account | last touch 2026-04-11, 148 days ago | — |
-| 2 | Bertrand Vandermolen (260 days), Nadia Okonkwo (248 days) | 2 reps still waiting, longest first | tell them nobody has it | 2 reps raised this and have heard nothing; the oldest has been waiting 260 days | R1161, R1188, R1019 |

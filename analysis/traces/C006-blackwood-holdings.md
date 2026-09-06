@@ -62,16 +62,7 @@ strongest path, not where it went: Tomás Beckett, offer 0.800, 6/8 used this cy
 !! 2025-09-26  crm_accounts.csv     Imani Mkhize         last CRM touch on A1010  [345 days ago, nothing since]
 ```
 
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask | said yes on 2026-02-19 and never forwarded | R1130 |
-| 2 | Marcus Aldridge | Advisor (former enterprise CIO) (advisor connector) | send the ask (batch 2026-09 Marcus Aldridge) | allocated in golden_allocation.csv via direct path to Bram Quillane, score 0.180 | R1179 |
-| 3 | Imani Mkhize | CRM owner (A1010) | check in on the account | last touch 2025-09-26, 345 days ago | — |
-| 4 | Nadia Okonkwo (270 days), Sloane Fairweather (214 days) | 2 reps still waiting, longest first | tell them it's with Elena Duvall / Tomás Beckett | 2 reps raised this and have heard nothing; the oldest has been waiting 270 days | R1179, R1130 |
-
-## 6. Additional Investor and Operator Network
+## 5. Additional Investor and Operator Network
 
 2 people from investor_network.csv, 1 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
 

@@ -33,9 +33,3 @@ nobody in the network reaches this company
    2026-07-02  slack_threads.jsonl  Nadia Okonkwo        R1194 slack: "wrong channel? this feels like a partner ask"
    2026-07-02  slack_threads.jsonl  Hana Nakashima       R1194 slack: "no idea sorry"
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Nadia Okonkwo (191 days), Sloane Fairweather (151 days), Curtis Hartigan (135 days), Imani Mkhize (70 days) | 4 reps still waiting, longest first | tell them nobody has it | 4 reps raised this and have heard nothing; the oldest has been waiting 191 days | R1189, R1133, R1116, R1194 |

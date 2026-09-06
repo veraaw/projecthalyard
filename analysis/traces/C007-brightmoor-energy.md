@@ -63,15 +63,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 !! 2025-12-22  crm_accounts.csv     Imani Mkhize         last CRM touch on A1006  [258 days ago, nothing since]
 ```
 
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | nudge, don't re-ask | said yes on 2026-07-06 and never forwarded | R1190 |
-| 2 | Imani Mkhize | CRM owner (A1006) | check in on the account | last touch 2025-12-22, 258 days ago | — |
-| 3 | Bertrand Vandermolen (313 days), Yusuf Petrossian (66 days), Rafael Salcedo (55 days) | 3 reps still waiting, longest first | tell them it's with Elena Duvall | 3 reps raised this and have heard nothing; the oldest has been waiting 313 days | R1139, R1190, R1029 |
-
-## 6. Additional Investor and Operator Network
+## 5. Additional Investor and Operator Network
 
 1 person from investor_network.csv, 0 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
 

@@ -54,11 +54,3 @@ strongest path, not where it went: Elena Duvall, direct 0.459, at capacity 3/3, 
 
 !! 2026-04-03  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1001  [156 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | nudge, don't re-ask | said yes on 2025-08-24 and never forwarded | R1197 |
-| 2 | Rafael Salcedo | CRM owner (A1001) | check in on the account | last touch 2026-04-03, 156 days ago | — |
-| 3 | Imani Mkhize (394 days), Hana Nakashima (278 days), Curtis Hartigan (64 days) | 3 reps still waiting, longest first | tell them it's with Elena Duvall / Marcus Aldridge | 3 reps raised this and have heard nothing; the oldest has been waiting 394 days | R1197, R1041, R1024 |

@@ -35,15 +35,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 !! 2025-09-18  crm_accounts.csv     Sloane Fairweather   last CRM touch on A1020  [353 days ago, nothing since]
 ```
 
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Tomás Beckett | VP Partnerships (internal connector) | nudge, don't re-ask | said yes on 2025-12-28 and never forwarded | R1104 |
-| 2 | Sloane Fairweather | CRM owner (A1020) | check in on the account | last touch 2025-09-18, 353 days ago | — |
-| 3 | Bertrand Vandermolen (260 days) | 1 rep still waiting, longest first | tell them it's with Tomás Beckett | 1 rep raised this and has heard nothing; the oldest has been waiting 260 days | R1104 |
-
-## 6. Additional Investor and Operator Network
+## 5. Additional Investor and Operator Network
 
 5 people from investor_network.csv, 4 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
 

@@ -57,14 +57,7 @@ strongest path, not where it went: Priya Raghunathan, offer 0.800, at capacity 3
 !! 2026-04-19  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1044  [140 days ago, nothing since]
 ```
 
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Nadia Okonkwo | CRM owner (A1044) | check in on the account | last touch 2026-04-19, 140 days ago | — |
-| 2 | Hana Nakashima (361 days), Yusuf Petrossian (50 days) | 2 reps still waiting, longest first | tell them nobody has it | 2 reps raised this and have heard nothing; the oldest has been waiting 361 days | R1170, R1028 |
-
-## 6. Additional Investor and Operator Network
+## 5. Additional Investor and Operator Network
 
 3 people from investor_network.csv, 3 with no warm path; read-only: not scored, not allocated, not on supply_reach.csv
 
