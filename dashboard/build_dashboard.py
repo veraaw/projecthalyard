@@ -31,7 +31,7 @@ import plotly.io as pio
 from analysis.integrity.integrity_audit import fragment as integrity_fragment
 from dashboard import data_cuts, theme
 from dashboard.funnel_overview import dropoff_rows, ratios
-from dashboard.live_priorities import (PAGE as PRIORITIES_HTML, connector_fragments,
+from dashboard.live_priorities import (PAGE as PRIORITIES_HTML, SECTIONS as PRIORITIES_SECTIONS, connector_fragments,
                                        cycles as connector_cycles, fragment as priorities_fragment)
 from dashboard.sankey_funnel import GOLDEN as GOLDEN_REQUESTS, build_figure, funnel_stages
 from dashboard.trace_section import fragment as trace_fragment
@@ -441,6 +441,9 @@ img{{max-width:100%}}
 .tabs.people a .n{{margin-left:6px;font-size:11.5px;color:var(--baton);font-variant-numeric:tabular-nums}}
 .tabs.people a:hover{{color:var(--navy)}}
 .tabs.people a.on{{color:var(--navy);background:var(--surface);border-color:{theme.rgba(theme.BATON, 0.35)} {theme.rgba(theme.BATON, 0.35)} var(--surface);box-shadow:inset 0 2px 0 var(--baton)}}
+.totop{{position:fixed;right:28px;bottom:28px;z-index:20;width:44px;height:44px;border:1px solid var(--ink);background:var(--surface);color:var(--ink);font:20px/1 var(--sans);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12);opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .2s,transform .2s,visibility .2s}}
+.totop.show{{opacity:1;visibility:visible;transform:none}}
+.totop:hover{{background:var(--ink);color:var(--surface)}}
 .seg{{display:inline-flex;border:1px solid var(--line);font-family:var(--sans);font-size:13px;margin:6px 0 4px}}
 .seg button{{background:var(--surface);color:var(--mute);border:0;padding:6px 14px;cursor:pointer;font:inherit}}
 .seg button+button{{border-left:1px solid var(--line)}}
@@ -448,6 +451,14 @@ img{{max-width:100%}}
 .fview[hidden]{{display:none}}
 /* live priorities */
 #lp h2 .foot{{display:block;font-weight:400;margin-top:2px}}
+#lp details.fold{{margin:0}}
+#lp .fold summary{{display:flex;align-items:flex-start;gap:16px;margin:0}}
+#lp .fold summary::before{{content:none}}
+#lp .fold summary h2{{flex:1}}
+#lp .fold summary::after{{content:"▾";color:var(--mute);font-size:24px;line-height:1.1;padding-top:2px;transform:rotate(-90deg);transition:transform .15s}}
+#lp .fold[open] summary::after{{transform:none}}
+#lp .fold summary:hover::after{{color:var(--ink)}}
+#lp .fold[open] summary{{margin-bottom:6px}}
 #lp .lede{{font-size:15.5px}}
 #lp q{{quotes:"\\201C" "\\201D";font-family:var(--serif);font-style:italic}}
 #lp b.warn,#lp .warn{{color:var(--warn)}}
@@ -499,11 +510,12 @@ img{{max-width:100%}}
 
 RAW_HTML, LIVE_HTML, TRACE_HTML = "halyardscoping.html", "livedata.html", "companytrace.html"
 TABS = [
-    (TRACE_HTML, "Company Trace"),
     (PRIORITIES_HTML, "Live Priorities"),
+    (TRACE_HTML, "Company Trace"),
     (LIVE_HTML, "Live Data Dashboard"),
     (RAW_HTML, "Raw Sept Data Dashboard"),
 ]
+NO_PEOPLE_ROW = {LIVE_HTML, RAW_HTML}
 
 
 connector_pages = connector_fragments(TODAY)
@@ -514,9 +526,10 @@ MASTHEAD = (f'<a class="mast" href="{LIVE_HTML}">{theme.logo()}'
 def tabs(active):
     """The sticky bar on every page: the masthead across the top, the page tabs, and
     under Live Priorities a sub-row in the baton colour with one tab per connector.
-    The rows are right-aligned so the connector row hangs from the Live Priorities tab;
-    on a connector's page that tab is marked as the parent."""
+    The connector row belongs to Live Priorities, so the two data dashboards go without
+    it; on a connector's page the Live Priorities tab is marked as the parent."""
     on_connector = any(c["page"] == active for c, _ in connector_pages)
+    people_row = active not in NO_PEOPLE_ROW
 
     def link(href, label, extra=""):
         cls = "on" if href == active else "parent" if href == PRIORITIES_HTML and on_connector else ""
@@ -527,7 +540,21 @@ def tabs(active):
                      for c, _ in connector_pages)
     return (f'<div class="topbar"><div class="mastrow">{MASTHEAD}<span class="built">{built}</span></div>'
             f'<div class="tabs">{pages}</div>'
-            f'<div class="tabs people"><span class="lbl">Live Priorities · by connector</span>{people}</div></div>')
+            + (f'<div class="tabs people"><span class="lbl">Live Priorities · by connector</span>{people}</div>' if people_row
+               else '<style>section{scroll-margin-top:110px}</style>')
+            + f'</div>{TOTOP}')
+
+
+TOTOP = """<button class="totop" type="button" title="Back to top" aria-label="Back to top">&uarr;</button>
+<script>
+(function () {
+  var b = document.querySelector('.totop');
+  var show = function () { b.classList.toggle('show', window.scrollY > 400); };
+  window.addEventListener('scroll', show, { passive: true });
+  show();
+  b.onclick = function () { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+})();
+</script>"""
 
 
 built = f"built {datetime.now():%Y-%m-%d}"
@@ -944,6 +971,7 @@ priorities_page = f"""{head("live priorities")}
 <header>
   <h1>Live priorities — what to do next, and who does it</h1>
   <p>Every number here is computed by <code>dashboard/live_priorities.py</code> from <code>golden/</code> and <code>dataset/</code> at build time and written into the page; the browser only renders it. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
+  <nav style="margin-top:12px">{"".join(f'<a href="#{sid}">{esc(label)}</a>' for sid, label in PRIORITIES_SECTIONS)}</nav>
 </header>
 <main>
 {priorities_fragment()}

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -331,6 +332,16 @@ class PayloadTest(unittest.TestCase):
         for token in ("deal_value_usd", "value_usd *", "* 0.9", "/ 365", "STAGE_WEIGHT"):
             self.assertNotIn(token, js, f"the browser renders; {token!r} would be it calculating")
 
+    def test_section_nav_matches_the_sections_the_page_renders(self):
+        js = (ROOT / "dashboard" / "live_priorities.js").read_text(encoding="utf-8")
+        boot = js.split("function boot(")[1].split("function renderPreview(")[0]
+        self.assertEqual([sid for sid, _ in lp.SECTIONS], re.findall(r'<section id="([^"]+)"', boot),
+                         "SECTIONS is the header nav; it must list every section boot() renders, in order")
+        folded = re.findall(r'<section id="([^"]+)">\$\{fold\(', boot)
+        self.assertEqual(folded, ["bottlenecks", "checkins", "unrouted", "crm"], "the long tables start collapsed")
+        self.assertIn("CRM Updates <span", boot)
+        self.assertNotIn("What the CRM is missing", js)
+
 
 class FunnelWindowTest(unittest.TestCase):
     """Live Data's cumulative / last-12-months toggle: both views are computed here."""
@@ -359,16 +370,23 @@ class BuiltPagesTest(unittest.TestCase):
                      ["halyardscoping.html", "livedata.html", "companytrace.html", "livepriorities.html"]
                      + [c["page"] for c in cls.cards]}
 
-    def test_masthead_and_both_tab_rows_on_every_page(self):
+    def test_masthead_and_tab_rows_on_every_page(self):
+        data_tabs = {"halyardscoping.html", "livedata.html"}
         for name, html in self.pages.items():
             self.assertIn("<b>Halyard Baton</b> / intro routing console", html, name)
             self.assertIn('<svg class="logo"', html, name)
+            self.assertEqual(html.count('.html" class="on">'), 1, f"{name}: exactly one tab is on")
+            tabs = html.split('<div class="tabs">')[1].split("</div>")[0]
+            self.assertEqual(re.findall(r'href="([^"#]+)"', tabs),
+                             ["livepriorities.html", "companytrace.html", "livedata.html", "halyardscoping.html"], name)
+            if name in data_tabs:
+                self.assertNotIn('<div class="tabs people">', html, f"{name}: the connector row belongs to Live Priorities")
+                continue
             self.assertIn('<div class="tabs people">', html, name)
             for c in self.cards:
                 self.assertIn(f'href="{c["page"]}"', html, f"{name} must link to {c['connector']}")
-            self.assertEqual(html.count('.html" class="on">'), 1, f"{name}: exactly one tab is on")
         self.assertIn(f'href="{self.cards[0]["page"]}" class="on"', self.pages[self.cards[0]["page"]])
-        self.assertIn("--baton", self.pages["livedata.html"], "the connector row has its own colour")
+        self.assertIn("--baton", self.pages["livepriorities.html"], "the connector row has its own colour")
 
     def test_connector_page_boots_its_own_card(self):
         for c in self.cards:
@@ -378,6 +396,13 @@ class BuiltPagesTest(unittest.TestCase):
             self.assertEqual(blob["connector"], c["connector"])
             self.assertEqual([r["request_id"] for r in blob["top"]], [r["request_id"] for r in c["top"]])
             self.assertEqual(len(blob["rest"]), len(c["rest"]))
+
+    def test_priorities_header_nav_and_back_to_top(self):
+        html = self.pages["livepriorities.html"]
+        for sid, label in lp.SECTIONS:
+            self.assertIn(f'<a href="#{sid}">{label}</a>', html)
+        for name, page in self.pages.items():
+            self.assertEqual(page.count('<button class="totop"'), 1, name)
 
     def test_live_data_has_both_funnel_views(self):
         html = self.pages["livedata.html"]
