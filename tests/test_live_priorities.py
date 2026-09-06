@@ -629,6 +629,35 @@ class FunnelWindowTest(unittest.TestCase):
         self.assertEqual(funnel_stages(since="1900-01-01"), allt)
 
 
+class RequesterCutTest(unittest.TestCase):
+    """Live Data's per-requester charts: asks, accounts, CRM value, intro rate, urgency."""
+
+    def test_requesters_partition_the_requests(self):
+        from dashboard import data_cuts
+        cuts = data_cuts.load()
+        cut = data_cuts.requester_cut(cuts)
+        rows = cut["requesters"]
+        self.assertEqual({b["name"] for b in rows}, {r["requested_by"].strip() for r in cuts["requests"]})
+        self.assertEqual(sum(b["requests"] for b in rows), len(cuts["requests"]))
+        self.assertEqual([b["requests"] for b in rows], sorted((b["requests"] for b in rows), reverse=True))
+        self.assertTrue(all(b["kind"] in ("SDR", "AE") for b in rows))
+        for b in rows:
+            mine = [r for r in cuts["requests"] if r["requested_by"].strip() == b["name"]]
+            companies = {cuts["golden_requests"][r["request_id"]]["company_id"] for r in mine} - {""}
+            self.assertEqual(b["accounts"], len(companies), b["name"])
+            self.assertEqual(b["unresolved"], sum(1 for r in mine if not cuts["golden_requests"][r["request_id"]]["company_id"]))
+            in_crm = {c for c in companies if cuts["golden_companies"][c]["crm_account_ids"]}
+            self.assertEqual(b["crm_accounts"], len(in_crm))
+            self.assertAlmostEqual(b["crm_value"], sum(float(cuts["golden_companies"][c]["value_usd"]) for c in in_crm))
+            self.assertAlmostEqual(b["intro_rate"], b["intros"] / b["requests"])
+            self.assertTrue(b["intros"] <= b["routed"] <= b["requests"], b["name"])
+            self.assertEqual(b["critical"], sum(1 for r in mine if r["urgency"].strip().lower() == "critical"))
+            self.assertEqual(b["critical_high"], sum(1 for r in mine if r["urgency"].strip().lower() in ("critical", "high")))
+            self.assertTrue(0 <= b["critical_share"] <= b["critical_high_share"] <= 1)
+        self.assertAlmostEqual(cut["intro_rate"], sum(b["intros"] for b in rows) / cut["requests"])
+        self.assertLessEqual(cut["crm_value"], sum(b["crm_value"] for b in rows), "the total counts a shared account once")
+
+
 @unittest.skipUnless((ROOT / "docs" / "livedata.html").exists(), "run `python3 build.py dashboard` first")
 class BuiltPagesTest(unittest.TestCase):
     """What `python3 build.py dashboard` writes under docs/."""
