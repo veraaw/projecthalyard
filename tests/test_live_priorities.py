@@ -582,16 +582,16 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual([sid for sid, _ in lp.SECTIONS], re.findall(r'<section id="([^"]+)"', boot),
                          "SECTIONS is the header nav; it must list every section boot() renders, in order")
         self.assertEqual([sid for sid, _ in lp.SECTIONS],
-                         ["route", "upload", "stages", "top", "crm", "asks", "introduced", "connectors", "exceptions", "unrouted", "bottlenecks"],
-                         "intake, orientation, actionable now, current cycle")
-        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 2, 6], "no Not Moving band")
+                         ["route", "upload", "stages", "top", "asks", "connectors", "introduced", "exceptions", "unrouted", "bottlenecks", "crm"],
+                         "intake, orientation, actionable now, current cycle, other")
+        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 1, 6, 1], "no Not Moving band")
         self.assertTrue(all(all(w[0].isupper() or w in ("a", "an", "and", "by", "of", "the") for w in label.replace("—", " ").split())
                             for _, label in lp.SECTIONS), "nav labels in Title Case")
         self.assertIn("Unrouted Exceptions <span", boot)
         asks = boot.split('<section id="asks"')[1].split('<section id=')[0]
         self.assertNotIn("EXCEPTION_TITLE", asks, "exceptions have their own section, not a fold inside Current Asks")
         folded = re.findall(r'<section id="([^"]+)">\$\{fold\(', boot)
-        self.assertEqual(folded, ["crm", "asks", "introduced", "connectors", "exceptions", "unrouted", "bottlenecks"], "the long tables start collapsed")
+        self.assertEqual(folded, ["asks", "connectors", "introduced", "exceptions", "unrouted", "bottlenecks", "crm"], "the long tables start collapsed")
         self.assertIn('<section id="stages" class="masthead">', boot)
         self.assertNotIn("<table", boot.split('<section id="stages"')[1].split("</section>")[0], "orientation is one strip, no rows")
         self.assertIn("CRM Updates <span", boot)
@@ -599,7 +599,7 @@ class PayloadTest(unittest.TestCase):
 
     def test_bands_are_in_the_payload_and_cover_every_section(self):
         bands = lp.payload(AS_OF)["bands"]
-        self.assertEqual([b["id"] for b in bands], ["intake", "orientation", "now", "cycle"])
+        self.assertEqual([b["id"] for b in bands], ["intake", "orientation", "now", "cycle", "other"])
         self.assertEqual([s for b in bands for s in b["sections"]], [sid for sid, _ in lp.SECTIONS])
         self.assertTrue(all(b["title"] and b["test"].endswith("?") for b in bands))
 
