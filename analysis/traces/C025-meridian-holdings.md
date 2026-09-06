@@ -12,7 +12,7 @@
 
 ## Currently routing to: Dana Whitfield
 
-- the next request goes to the top askable path: Dana Whitfield, direct via Desmond Cardoso, route score 0.178, 6/6 capacity used this cycle
+- the next request goes to the top askable path: Dana Whitfield, direct via Desmond Cardoso, route score 0.178, 3/6 capacity used this cycle
 
 ## 3. Who can reach them
 

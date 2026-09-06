@@ -205,12 +205,17 @@ class PayloadTest(unittest.TestCase):
         A = self.P["asks"]
         alloc = read_csv(ROOT / "golden" / "golden_allocation.csv")
         allocated = [r for r in alloc if r["allocated_to"]]
-        self.assertEqual(A["allocated"], len(allocated), 27)
-        self.assertEqual(len(A["batches"]), len({r["batch_id"] for r in allocated}), 8)
-        self.assertEqual(sum(len(c["request_ids"]) for b in A["batches"] for c in b["companies"]), A["allocated"])
+        leads = [r for r in allocated if bg.is_lead(r)]
+        self.assertEqual(A["allocated"], len(leads), "asks are companies")
+        self.assertEqual(A["requests"], len(allocated))
+        self.assertGreater(A["requests"], A["allocated"], "some company carries more than one request")
+        self.assertEqual(len(A["batches"]), len({r["batch_id"] for r in allocated}))
+        self.assertEqual(sum(len(c["request_ids"]) for b in A["batches"] for c in b["companies"]), A["requests"])
         for b in A["batches"]:
-            self.assertEqual(b["size"], sum(len(c["request_ids"]) for c in b["companies"]))
+            self.assertEqual(b["size"], len(b["companies"]))
+            self.assertEqual(b["requests"], sum(len(c["request_ids"]) for c in b["companies"]))
             for c in b["companies"]:
+                self.assertIn(c["lead"], c["request_ids"])
                 self.assertTrue(c["wanted"], "every person wanted, not just one")
                 self.assertTrue(c["waiting"] and c["path_type"] and c["why"])
         self.assertEqual(sorted(c["company_id"] for c in A["all"]),
@@ -218,12 +223,12 @@ class PayloadTest(unittest.TestCase):
                          "the Aggregate tab is every batch's companies")
         values = [c["value_usd"] for c in A["all"]]
         self.assertEqual(values, sorted(values, reverse=True), "biggest first")
-        self.assertEqual(sum(len(c["request_ids"]) for c in A["all"]), A["allocated"])
+        self.assertEqual(sum(len(c["request_ids"]) for c in A["all"]), A["requests"])
         self.assertTrue(all(c["connector"] and c["slug"] and c["batch_id"] for c in A["all"]))
-        self.assertEqual(A["exception_count"], len(alloc) - len(allocated), 56)
+        self.assertEqual(A["exception_count"], len(alloc) - len(allocated), 47)
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
                          {"no path to this company in the network": 28, "already introduced": 10,
-                          "company unresolved": 9, "capacity exhausted this cycle": 10, bg.UNRESOLVED_ASK: 1})
+                          "company unresolved": 9, "capacity exhausted this cycle": 3, bg.UNRESOLVED_ASK: 1})
         held = next(e for e in A["exceptions"] if e["reason"] == bg.UNRESOLVED_ASK)
         for r in held["rows"]:
             self.assertRegex(r["detail"], r"agreed on \d{4}-\d{2}-\d{2} \(R1\d{3}\), no intro - nudge|no reply - day \d+ of \d+")
@@ -419,7 +424,10 @@ class PayloadTest(unittest.TestCase):
         for c in C:
             self.assertEqual(c["used"], c["asked_this_cycle"] + c["allocated_this_cycle"])
             self.assertEqual(c["used"] + c["idle"], c["capacity"], c["connector"])
-            self.assertEqual(len(c["queue"]), c["allocated_this_cycle"])
+            self.assertEqual(len(c["queue"]), c["queued_requests"])
+            self.assertEqual(sum(1 for q in c["queue"] if not q["rides_with"]), c["allocated_this_cycle"],
+                             "a company is one slot; its riders queue without spending another")
+            self.assertEqual(len({q["company_id"] for q in c["queue"]}), c["allocated_this_cycle"])
             self.assertTrue(0 <= c["delivery_rate"] <= 1)
             self.assertEqual(c["quiet_days"], lp.NUDGE_QUIET_DAYS)
             for s in c["sitting_on"]:
@@ -508,8 +516,10 @@ class PayloadTest(unittest.TestCase):
         rows = elena["strongest_elsewhere"]
         row = next(r for r in rows if r["company_id"] == "C018")
         self.assertEqual((row["reach_type"], row["strength"], row["route_score"], row["outside_focus"]), ("offer", 0.8, 0.0, True))
-        used = sum(a["allocated_to"] == "Elena Duvall" for a in live.allocation)
+        used = sum(a["allocated_to"] == "Elena Duvall" and bg.is_lead(a) for a in live.allocation)
         self.assertEqual((row["used"], row["capacity"]), (used, 3))
+        self.assertLess(used, sum(a["allocated_to"] == "Elena Duvall" for a in live.allocation),
+                        "her slots are companies; she carries more requests than that")
         self.assertEqual(row["routed_to"], ["Priya Raghunathan"], "Tomás agreed to R1057 there and sent no intro: nudged, not asked again")
         self.assertEqual(live.held[("Tomás Beckett", "C018")]["hold"], bg.HOLD_NUDGE)
         self.assertEqual(row["requests"], ["R1136", "R1140", "R1153"])
@@ -550,8 +560,11 @@ class PayloadTest(unittest.TestCase):
                 self.assertEqual(r["used"], sum(1 for o in live.outcomes if o["asked_date"].startswith(r["cycle"])
                                                 and o["connector_asked"] in live.roster))
         cur = C["rows"][-1]
-        self.assertEqual(cur["allocated"], sum(1 for a in live.allocation if a["allocated_to"]))
-        self.assertEqual(cur["allocated_off_roster"], sum(1 for a in live.allocation if a["allocated_to"] and a["allocated_to"] not in live.roster))
+        self.assertEqual(cur["allocated"], sum(1 for a in live.allocation if bg.is_lead(a)), "one slot per company")
+        self.assertEqual(cur["allocated_requests"], sum(1 for a in live.allocation if a["allocated_to"]))
+        self.assertGreater(cur["allocated_requests"], cur["allocated"])
+        self.assertEqual(cur["allocated_off_roster"],
+                         sum(1 for a in live.allocation if bg.is_lead(a) and a["allocated_to"] not in live.roster))
         self.assertEqual(C["roster_capacity"], sum(int(r["stated_monthly_capacity"]) for r in live.roster.values()))
         # per connector: the same rows, one name at a time; the pages carry them
         self.assertEqual([p["connector"] for p in C["per_connector"]], list(live.roster))

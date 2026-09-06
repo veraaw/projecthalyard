@@ -7,7 +7,7 @@
 
 ## Currently routing to: Marcus Aldridge
 
-- the next request goes to the top askable path: Marcus Aldridge, direct via Sunniva Oldfield, route score 0.094, 4/4 capacity used this cycle
+- the next request goes to the top askable path: Marcus Aldridge, direct via Sunniva Oldfield, route score 0.094, 2/4 capacity used this cycle
 - not asked again here: Elena Duvall agreed on 2026-03-07 (R1025), no intro - nudge
 
 ## 3. Who can reach them

@@ -11,10 +11,10 @@
 - R1091: filed "Stalled" but intro_outcomes.csv says Elena Duvall sent the intro on 2026-05-02
 - R1130: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 9 paths
 
-## Currently routing to: Marcus Aldridge
+## Currently routing to: Elena Duvall
 
-- this cycle: R1022 (retry) -> Elena Duvall; R1091 (retry), R1179 -> Marcus Aldridge
-- top askable path: Elena Duvall, direct via Bram Quillane, route score 0.187, 3/3 capacity used this cycle
+- this cycle: R1022 (retry), R1091 (retry), R1179 -> Elena Duvall
+- top askable path: Elena Duvall, direct via Bram Quillane, route score 0.187, 2/3 capacity used this cycle
 - not asked again here: Tomás Beckett agreed on 2026-02-19 (R1130), no intro - nudge
 
 ## 3. Who can reach them
@@ -45,7 +45,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 | 0.053 | 0.330 | Tomás Beckett (Internal) | direct | Marcus Højgaard — Chief Technology Officer | connections_beckett.csv: Marcus Højgaard, Chief Technology Officer at Blackwood Industrial, connected 2015-01-02 | Tomás Beckett agreed on 2026-02-19 (R1130), no intro - nudge |
 | 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Marcus Højgaard — ex-Blackwood Industrial (2014-2017), now Chief Technology Officer at Blackwood Industrial | investor_network.csv: Marcus Højgaard prior_employer=Blackwood Industrial (2014-2017); connections_beckett.csv: connection of Tomás Beckett since 2015-01-02 | Tomás Beckett agreed on 2026-02-19 (R1130), no intro - nudge |
 
-why not #1: Otto Cathcart-Brenneman investor network, roster asked first -> R1022 to Elena Duvall; R1091, R1179 to Marcus Aldridge
+why not #1: Otto Cathcart-Brenneman investor network, roster asked first -> R1022, R1091, R1179 to Elena Duvall
 
 ## 4. Chronology (25 events, 4 requests, newest first, as of 2026-09-06)
 

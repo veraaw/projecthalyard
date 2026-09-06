@@ -12,7 +12,7 @@
 ## Currently routing to: Marcus Aldridge
 
 - this cycle: R1001 -> Marcus Aldridge
-- top askable path: Marcus Aldridge, direct via Sabine Dellinger, route score 0.171, 4/4 capacity used this cycle
+- top askable path: Marcus Aldridge, direct via Sabine Dellinger, route score 0.171, 2/4 capacity used this cycle
 
 ## 3. Who can reach them
 

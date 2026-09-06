@@ -11,7 +11,7 @@
 
 ## Currently routing to: Dana Whitfield
 
-- the next request goes to the top askable path: Dana Whitfield, direct via Sunniva Højgaard, route score 0.064, 6/6 capacity used this cycle
+- the next request goes to the top askable path: Dana Whitfield, direct via Sunniva Højgaard, route score 0.064, 3/6 capacity used this cycle
 - not asked again here: Tomás Beckett agreed on 2025-12-28 (R1104), no intro - nudge
 
 ## 3. Who can reach them

@@ -11,7 +11,7 @@
 
 ## Currently routing to: Tomás Beckett
 
-- the next request goes to the top askable path: Tomás Beckett, direct via Bertrand Cardoso, route score 0.164, 8/8 capacity used this cycle
+- the next request goes to the top askable path: Tomás Beckett, direct via Bertrand Cardoso, route score 0.164, 3/8 capacity used this cycle
 - not asked again here: Bertrand Vandermolen asked on 2026-07-12 (R1169), no reply - day 56 of 60
 
 ## 3. Who can reach them

@@ -9,9 +9,9 @@
 
 - R1016: filed "Intro sent" but intro_outcomes.csv has no row at all
 
-## Currently routing to: Perrine Brenneman-Wexford
+## Currently routing to: Dana Whitfield
 
-- this cycle: R1013 -> Perrine Brenneman-Wexford
+- this cycle: R1013 -> Dana Whitfield
 - top askable path: Priya Raghunathan, investor via CEO / exec team, route score 0.147, 3/3 capacity used this cycle
 
 ## 3. Who can reach them
@@ -43,7 +43,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 |---|---|---|---|---|---|---|
 | 0.180 | 0.519 | Marcus Aldridge (Advisor) | direct | Anouk Kirkbride — Head of Developer Productivity | connections_aldridge.csv: Anouk Kirkbride, Head of Developer Productivity at Nortonbury Logistics, connected 2026-07-07 | Marcus Aldridge asked on 2026-03-04 (R1077), no reply for 186 days - askable, ranked last |
 
-why not #1: Amara Brenneman-Fairweather at capacity 2/2 -> R1013 to Perrine Brenneman-Wexford
+why not #1: Amara Brenneman-Fairweather investor network, roster asked first -> R1013 to Dana Whitfield
 
 ## 4. Chronology (13 events, 3 requests, newest first, as of 2026-09-06)
 

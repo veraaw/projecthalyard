@@ -14,7 +14,7 @@
 ## Currently routing to: nobody (parked on live intro: R1150, Tomás Beckett, 2026-03-16, meeting booked)
 
 - this cycle: R1092, R1174 unrouted (already introduced)
-- nothing goes out this cycle; the top askable path is: Elena Duvall, direct via Curtis Marchetti, route score 0.108, 3/3 capacity used this cycle
+- nothing goes out this cycle; the top askable path is: Elena Duvall, direct via Curtis Marchetti, route score 0.108, 2/3 capacity used this cycle
 - not asked again here: Tomás Beckett agreed on 2026-06-11 (R1033), no intro - nudge
 
 ## 3. Who can reach them

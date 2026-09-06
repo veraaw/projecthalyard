@@ -14,7 +14,7 @@
 
 ## Currently routing to: Priya Raghunathan
 
-- this cycle: R1055 -> Priya Raghunathan; R1075 -> Amara Brenneman-Fairweather
+- this cycle: R1055, R1075 -> Priya Raghunathan
 - top askable path: Priya Raghunathan, investor via CEO / exec team, route score 0.287, 3/3 capacity used this cycle
 - not asked again here: Elena Duvall agreed on 2025-11-21 (R1166), no intro - nudge
 
@@ -40,8 +40,6 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.131 | 0.519 | Elena Duvall (Advisor) | direct | Arjun Cathcart — Head of Developer Productivity | connections_duvall.csv: Arjun Cathcart, Head of Developer Productivity at Vireo Systems, connected 2026-01-23 | Elena Duvall agreed on 2025-11-21 (R1166), no intro - nudge |
-
-why not #1: Priya Raghunathan at capacity 3/3 (holds R1055) -> R1075 to Amara Brenneman-Fairweather
 
 ## 4. Chronology (48 events, 9 requests, newest first, as of 2026-09-06)
 

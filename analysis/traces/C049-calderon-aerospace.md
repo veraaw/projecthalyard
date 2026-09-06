@@ -12,7 +12,7 @@
 
 ## Currently routing to: Elena Duvall
 
-- the next request goes to the top askable path: Elena Duvall, direct via Sabine Underhill, route score 0.113, 3/3 capacity used this cycle
+- the next request goes to the top askable path: Elena Duvall, direct via Sabine Underhill, route score 0.113, 2/3 capacity used this cycle
 
 ## 3. Who can reach them
 

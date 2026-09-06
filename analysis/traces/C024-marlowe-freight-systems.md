@@ -13,7 +13,7 @@
 ## Currently routing to: nobody (parked on live intro: R1129, Marcus Aldridge, 2026-05-19, meeting booked)
 
 - this cycle: R1134 unrouted (already introduced)
-- nothing goes out this cycle; the top askable path is: Marcus Aldridge, direct via Marcus Merriweather, route score 0.161, 4/4 capacity used this cycle
+- nothing goes out this cycle; the top askable path is: Marcus Aldridge, direct via Marcus Merriweather, route score 0.161, 2/4 capacity used this cycle
 
 ## 3. Who can reach them
 

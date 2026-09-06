@@ -130,7 +130,14 @@ Writes five CSVs (UTF-8, no BOM, CRLF):
                                than proposed again. Everything
                                allocated to one connector in a cycle shares
                                one batch_id (one consolidated ask per
-                               connector per cycle).
+                               connector per cycle). Within a cycle a company
+                               is one ask: its live requests go to one
+                               connector together and spend one slot. The
+                               request that paid the slot is the lead; every
+                               other one carries the lead's request_id in
+                               rides_with and inherits its connector, path
+                               and contact. batch_size counts asks
+                               (companies), not requests.
   golden/network_orbit.csv     one row per (person, company) pair in
                                investor_network.csv whose portfolio_company or
                                prior_employer resolves to an in-scope company:
@@ -239,6 +246,7 @@ ALLOCATION_COLUMNS = [
     "cycle", "request_id", "decided_at", "company_id", "company_name", "target_title", "value_usd",
     "urgency_declared", "request_date", "status_as_filed", "allocated_to", "batch_id", "batch_size",
     "path_type", "contact_name", "route_score", "exception_reason", "best_path_if_unbudgeted", "notify_owner",
+    "rides_with",
 ]
 
 MULTI = " | "  # delimiter for multi-value cells (never a comma)
@@ -815,7 +823,8 @@ class HistorySignals(NamedTuple):
 
     fatigue: connector -> asks allocated to them in a cycle before this one and
     decided in the trailing FATIGUE_DAYS (rows of the current cycle are about
-    to be replaced and are not counted).
+    to be replaced and are not counted). An ask is a lead row: riders share
+    the lead's slot and are not counted again.
     stale: (connector, company_id) -> the most recent prior-cycle row that
     allocated that company to that connector with no ask logged since: an ask
     proposed and never logged as made (see logged_since).
@@ -824,6 +833,13 @@ class HistorySignals(NamedTuple):
     fatigue: Counter
     stale: dict[tuple[str, str], dict]
     proposed: dict[str, dict]
+
+
+def is_lead(a: dict) -> bool:
+    """An allocation row that is an ask in its own right: allocated, and not
+    riding on another request's ask. Rows filed before rides_with existed were
+    one ask each and read as leads."""
+    return bool(a["allocated_to"]) and not a.get("rides_with", "")
 
 
 def logged_since(outcome: dict | None, alloc: dict) -> bool:
@@ -849,7 +865,7 @@ def history_signals(history: list[dict], outcomes: list[dict], today: date) -> H
     for a in sorted((a for a in history if a["cycle"] < cycle and a["allocated_to"]),
                     key=lambda a: (a["cycle"], a.get("decided_at") or "")):
         d = decided_date(a)
-        if d and 0 <= (today - d).days < FATIGUE_DAYS:
+        if d and 0 <= (today - d).days < FATIGUE_DAYS and is_lead(a):
             fatigue[a["allocated_to"]] += 1
         if not logged_since(outcome_of.get(a["request_id"]), a):
             proposed[a["request_id"]] = a
@@ -1165,13 +1181,13 @@ def finish_supply(rows: list[dict], roster: dict, rates: dict, outcomes: list[di
     then stamp idle_capacity on every row.
 
     idle_capacity = the connector's budget for the cycle (cycle_budget: stated
-    capacity less fatigue debt carried over from prior cycles) minus requests
-    the allocator assigned to them this cycle; never negative because the
-    allocator stops at the budget."""
+    capacity less fatigue debt carried over from prior cycles) minus asks
+    (companies, not requests) the allocator assigned to them this cycle; never
+    negative because the allocator stops at the budget."""
     paths = Counter(r["connector"] for r in rows)
     allocated = Counter()
     for a in allocation.values():
-        if a["allocated_to"]:
+        if is_lead(a):
             allocated[a["allocated_to"]] += 1
 
     network = network_people(roster)
@@ -1353,13 +1369,17 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     Each connector has a budget for the cycle (cycle_budget): stated monthly
     capacity (OFF_ROSTER_CAPACITY off the roster) less the asks the history
     says were proposed to them in the trailing FATIGUE_DAYS beyond one month's
-    capacity. Requests are taken in priority order (urgency, value, age) and
-    each goes to its best-scoring connector that still has budget. An ask the
+    capacity. A company is one ask: its live requests are placed together, at
+    the priority (urgency, value, age) of the highest-ranked one, and go to the
+    company's best-scoring connector that still has budget, spending one slot.
+    That request is the lead; the others ride on its ask (rides_with names the
+    lead) and inherit its connector, path and contact. An ask the
     history already holds with no outcome logged since is not proposed again:
-    a request allocated in a prior cycle, or a connector already proposed this
-    company in a prior cycle, is flagged (STALE_ASK, naming that connector and
-    cycle) instead of being allocated or falling through to the next
-    connector. A request on a company whose intro is still live
+    a connector already proposed this company in a prior cycle flags the whole
+    company (STALE_ASK, naming that connector and cycle) instead of it being
+    allocated or falling through to the next connector; a request allocated in
+    a prior cycle is flagged on its own and left out of the company's ask.
+    A request on a company whose intro is still live
     (introductions) is parked (ALREADY_INTRODUCED, naming the intro) rather
     than asked afresh: the rep who received the intro extends it. A meeting
     that has gone INTRO_LIVE_DAYS without an opportunity stops parking the
@@ -1373,9 +1393,9 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     request is an exception (UNRESOLVED_ASK, naming each ask) rather than a
     fresh ask to someone already sitting on one.
     Roster paths are tried before investor_network ones whatever their scores
-    (path_rank). Once every connector with a path is spent the request becomes
-    an exception. Requests
-    allocated to the same connector share a batch_id: one consolidated ask."""
+    (path_rank). Once every connector with a path is spent the company's
+    requests become exceptions. Companies allocated to the same connector share
+    a batch_id: one consolidated ask; batch_size counts those companies."""
     cycle = today.strftime("%Y-%m")
     fatigue, stale, proposed = signals
     budget: dict[str, int] = defaultdict(int)
@@ -1395,70 +1415,98 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
             if rq["facts"]["status_as_filed"] in OPEN_STATUSES and (rid not in asked or rid in retry)]
     live.sort(key=lambda t: (URGENCY_RANK.get(t[1]["facts"]["urgency_declared"], 9),
                              -float(t[1]["facts"]["value_usd"] or 0), t[1]["facts"]["request_date"], t[0]))
+    # one group per company, in the order its first (highest-priority) request appears;
+    # a request with no company is a group of one
+    groups: dict[str, list[tuple[str, dict]]] = {}
+    for rid, rq in live:
+        groups.setdefault(rq["company"].company_id if rq["company"] else f"?{rid}", []).append((rid, rq))
 
     out: dict[str, dict] = {}
-    for rid, rq in live:
-        company, facts = rq["company"], rq["facts"]
-        s = company.survivor if company else None
-        industry = s["industry"] if s else ""
-        paths = supply_by_company.get(company.company_id, []) if company else []
-        row = {
-            "cycle": cycle,
-            "request_id": rid,
-            "decided_at": decided_at,
-            "company_id": company.company_id if company else "",
-            "company_name": company.name if company else "",
-            "target_title": rq["target_title"],
-            "value_usd": facts["value_usd"],
-            "urgency_declared": facts["urgency_declared"],
-            "request_date": facts["request_date"],
-            "status_as_filed": facts["status_as_filed"],
-            "allocated_to": "", "batch_id": "", "batch_size": "", "path_type": "", "contact_name": "",
-            "route_score": "", "exception_reason": "", "best_path_if_unbudgeted": "", "notify_owner": "",
-        }
-        out[rid] = row
+    for members in groups.values():
+        company = members[0][1]["company"]
+        rows: dict[str, dict] = {}
+        requested_by: dict[str, str] = {}
+        for rid, rq in members:
+            facts = rq["facts"]
+            requested_by[rid] = facts["requested_by"]
+            rows[rid] = out[rid] = {
+                "cycle": cycle,
+                "request_id": rid,
+                "decided_at": decided_at,
+                "company_id": company.company_id if company else "",
+                "company_name": company.name if company else "",
+                "target_title": rq["target_title"],
+                "value_usd": facts["value_usd"],
+                "urgency_declared": facts["urgency_declared"],
+                "request_date": facts["request_date"],
+                "status_as_filed": facts["status_as_filed"],
+                "allocated_to": "", "batch_id": "", "batch_size": "", "path_type": "", "contact_name": "",
+                "route_score": "", "exception_reason": "", "best_path_if_unbudgeted": "", "notify_owner": "",
+                "rides_with": "",
+            }
+
+        def flag(reason: str, rids: list[str] | None = None) -> None:
+            for rid in rids if rids is not None else rows:
+                rows[rid]["exception_reason"] = reason
+
         if company is None:
-            row["exception_reason"] = "company unresolved"
+            flag("company unresolved")
             continue
+        s = company.survivor
+        industry = s["industry"] if s else ""
+        paths = supply_by_company.get(company.company_id, [])
         ordered = [p for rank, p in sorted(((path_rank(p, roster, rates, industry), p) for p in paths),
                                            key=lambda t: t[0]) if rank[1] < 0]
         askable, skipped = hold_paths(ordered, held, company.company_id)
         scored = [(path_score(p, roster, rates, industry), p) for p in askable]
         if ordered:
             best = askable[0] if askable else ordered[0]
-            row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {path_score(best, roster, rates, industry):.2f})"
+            for row in rows.values():
+                row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {path_score(best, roster, rates, industry):.2f})"
         intro = introduced.get(company.company_id)
         if intro and intro["live"]:
-            row["exception_reason"] = introduced_reason(intro)
+            flag(introduced_reason(intro))
             continue
         if not ordered:
-            row["exception_reason"] = NO_PATH
+            flag(NO_PATH)
             continue
         if not scored:
-            row["exception_reason"] = f"{UNRESOLVED_ASK}: " + "; ".join(hold_reason(u) for u in skipped)
+            flag(f"{UNRESOLVED_ASK}: " + "; ".join(hold_reason(u) for u in skipped))
             continue
+        asking = []
+        for rid in rows:
+            prior = proposed.get(rid)
+            if prior is not None:
+                flag(f"{STALE_ASK}: {prior['allocated_to']} in {prior['cycle']}", [rid])
+            else:
+                asking.append(rid)
+        if not asking:
+            continue
+        lead = asking[0]
         for sc, p in scored:
             n = p["connector"]
-            prior = proposed.get(rid) or stale.get((n, company.company_id))
+            prior = stale.get((n, company.company_id))
             if prior is not None:
-                row["exception_reason"] = f"{STALE_ASK}: {prior['allocated_to']} in {prior['cycle']}"
+                flag(f"{STALE_ASK}: {prior['allocated_to']} in {prior['cycle']}", asking)
                 break
             if budget[n] <= 0:
                 continue
             budget[n] -= 1
-            row.update({
-                "allocated_to": n,
-                "batch_id": f"{cycle} {n}",
-                "path_type": p["reach_type"],
-                "contact_name": p["contact_name"],
-                "route_score": f"{sc:.3f}",
-                "notify_owner": owner_to_notify(company, facts["requested_by"]),
-            })
+            for rid in asking:
+                rows[rid].update({
+                    "allocated_to": n,
+                    "batch_id": f"{cycle} {n}",
+                    "path_type": p["reach_type"],
+                    "contact_name": p["contact_name"],
+                    "route_score": f"{sc:.3f}",
+                    "notify_owner": owner_to_notify(company, requested_by[rid]),
+                    "rides_with": "" if rid == lead else lead,
+                })
             break
         else:
-            row["exception_reason"] = CAPACITY_EXHAUSTED
+            flag(CAPACITY_EXHAUSTED, asking)
 
-    sizes = Counter(r["batch_id"] for r in out.values() if r["batch_id"])
+    sizes = Counter(r["batch_id"] for r in out.values() if is_lead(r))
     for r in out.values():
         if r["batch_id"]:
             r["batch_size"] = sizes[r["batch_id"]]
@@ -1679,6 +1727,8 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
                 routed_to = a["allocated_to"]
                 route_score = a["route_score"]
                 route_reason = f"allocated to {a['batch_id']} batch, not yet asked; {path_label(bp)}"
+                if a["rides_with"]:
+                    route_reason += f"; one ask with {a['rides_with']}"
             else:
                 route_reason = f"not asked; {a['exception_reason']}"
                 if a["best_path_if_unbudgeted"]:
@@ -1992,10 +2042,11 @@ def main() -> None:
           + ", ".join(f"{k} {n}" for k, n in sorted(Counter(r['source'] for r in orbit).items()))
           + f"; {sum(1 for r in orbit if not r['reachable_via'])} with no warm route")
     n_alloc = sum(1 for a in alloc_rows if a["allocated_to"])
+    n_asks = sum(1 for a in alloc_rows if is_lead(a))
     reasons = Counter(a["exception_reason"].split(":")[0] for a in alloc_rows if a["exception_reason"])
     print(f"golden_allocation.csv {len(all_alloc)} rows in {prior_cycles + 1} cycles ({prior_rows} rows from "
           f"{prior_cycles} prior cycles carried forward; cycle {cycle}: {len(alloc_rows)} rows written, "
-          f"{replaced} replaced): {n_alloc} allocated, "
+          f"{replaced} replaced): {n_alloc} requests allocated as {n_asks} asks, "
           + ", ".join(f"{n} {k}" for k, n in sorted(reasons.items())))
     fatigue = signals.fatigue
     fatigued = {n: k for n, k in fatigue.items() if cycle_budget(roster, fatigue, n) < capacity(roster, n)}
