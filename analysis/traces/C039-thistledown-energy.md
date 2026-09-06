@@ -41,10 +41,3 @@ nobody in the network reaches this company
 
 !! 2026-05-13  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1046  [116 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Yusuf Petrossian | CRM owner (A1046) | check in on the account | last touch 2026-05-13, 116 days ago | — |
-| 2 | Yusuf Petrossian (388 days), Bertrand Vandermolen (320 days), Hana Nakashima (284 days), Rafael Salcedo (262 days), Nadia Okonkwo (94 days) | 5 reps still waiting, longest first | tell them nobody has it | 5 reps raised this and have heard nothing; the oldest has been waiting 388 days | R1064, R1023, R1037, R1148, R1152, R1083 |

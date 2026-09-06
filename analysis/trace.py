@@ -6,12 +6,11 @@
     python3 analysis/trace.py                            # every company with a
                                                          # request -> analysis/traces/
 
-Five sections: the header (identity, request counts and the routing stage), where the files
+Four sections: the header (identity, request counts and the routing stage), where the files
 disagree (skipped when they don't), who can reach them (supply_reach.csv ranked
 by route score = strength x focus fit x delivery rate, the allocator's own sort
-key, with the reason the top row did not take every live request), the chronology (every event from intro_requests.csv,
-slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, oldest first)
-and next steps, one row per person, cheapest action first.
+key, with the reason the top row did not take every live request) and the chronology (every event from intro_requests.csv,
+slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, oldest first).
 
 Chronology markers:  <- missed   ++ worked   ** offer   !! warning
 
@@ -28,15 +27,14 @@ import json
 import re
 import sys
 from collections import Counter, defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.build_golden import (ALREADY_INTRODUCED, OFFER_RE, OPEN_STATUSES, PRIOR_RATE, STAGES, capacity, delivery_rates, fit,  # noqa: E402
-                                 introductions, latest_cycle, load_completions, load_roster, load_threads, path_score, stage_of,
-                                 with_completions)
+from golden.build_golden import (OFFER_RE, OPEN_STATUSES, PRIOR_RATE, STAGES, capacity, delivery_rates, fit, latest_cycle,  # noqa: E402
+                                 load_completions, load_roster, load_threads, path_score, stage_of, with_completions)
 from golden.resolver import normalize, normalize_strict  # noqa: E402
 from paths import ANALYSIS, DATASET, GOLDEN  # noqa: E402
 
@@ -173,16 +171,6 @@ class Event:
         return f"{self.mark} {self.when.isoformat()}  {self.source:<20} {self.who:<20} {self.what}"
 
 
-@dataclass
-class Step:
-    order: int
-    who: str
-    role: str
-    action: str
-    why: str
-    request_ids: list[str] = field(default_factory=list)
-
-
 class Trace:
     def __init__(self, data: Data, company: dict, today: date):
         self.d = data
@@ -197,7 +185,6 @@ class Trace:
                             key=lambda p: (-self.route_score(p), -float(p["strength"])))
         self.accounts = [data.accounts[a] for a in split_bar(company["crm_account_ids"]) if a in data.accounts]
         self.live = [a for a in data.allocation if a["company_id"] == self.cid]
-        self.allocated = {a["request_id"]: a for a in self.live if a["allocated_to"]}
 
     # -- helpers --------------------------------------------------------------
     def spellings(self) -> list[str]:
@@ -216,31 +203,12 @@ class Trace:
                 return o
         return None
 
-    def introduction(self) -> dict | None:
-        """The intro that governs fresh asks on this company, as the allocator sees it:
-        live (meeting booked, or recent) parks every open request with the rep who
-        was introduced; fizzled puts the company back in the queue as a retry."""
-        rows = [o for rid in self.request_ids for o in self.d.outcomes.get(rid, [])]
-        return introductions(rows, dict.fromkeys(self.request_ids, self.cid), self.today).get(self.cid)
-
     def offers(self, rid: str) -> list[dict]:
         t = self.d.threads.get(rid)
         return [m for m in t["messages"][1:] if OFFER_RE.search(m["text"])] if t else []
 
     def asked(self, rid: str, person: str) -> bool:
         return any(o["connector_asked"] == person for o in self.d.outcomes.get(rid, []))
-
-    def role_of(self, person: str) -> str:
-        r = self.d.roster.get(person)
-        if r:
-            return f"{r['role']} ({r['type'].lower()} connector)"
-        for rq in self.requests:
-            f = self.d.filed.get(rq["request_id"])
-            if rq["requested_by"] == person:
-                return f["requester_role"] if f else "requester"
-        if person in split_bar(self.c["owner"]):
-            return "CRM owner"
-        return "off-roster connector"
 
     def stage_of(self, r: dict) -> str:
         rid = r["request_id"]
@@ -499,110 +467,6 @@ class Trace:
         out.append("```")
         return out
 
-    # -- section 5 --------------------------------------------------------------
-    def next_steps(self) -> list[Step]:
-        steps: dict[str, Step] = {}
-
-        def add(order: int, who: str, action: str, why: str, rids: list[str], role: str = "") -> None:
-            s = steps.get(who)
-            if s is None:
-                steps[who] = Step(order, who, role or self.role_of(who), action, why, list(rids))
-                return
-            if order < s.order:
-                s.order = order
-            if action not in s.action.split("; "):
-                s.action += f"; {action}"
-            s.why += f"; {why}"
-            s.request_ids += [r for r in rids if r not in s.request_ids]
-
-        for r in self.requests:
-            rid = r["request_id"]
-            for m in self.offers(rid):
-                if not self.asked(rid, m["user"]):
-                    add(1, m["user"], "take them up on it",
-                        f"offered on {m['ts'][:10]} (\"{m['text']}\") and was never asked — free, they already said yes", [rid])
-        for r in self.requests:
-            rid = r["request_id"]
-            for o in self.d.outcomes.get(rid, []):
-                if o["responded"] == "Y" and o["intro_sent"] != "Y":
-                    add(2, o["connector_asked"], "nudge, don't re-ask",
-                        f"said yes on {o['response_date']} and never forwarded", [rid])
-        for rid, a in self.allocated.items():
-            add(3, a["allocated_to"], f"send the ask (batch {a['batch_id']})",
-                f"allocated in golden_allocation.csv via {a['path_type']} path"
-                + (f" to {a['contact_name']}" if a["contact_name"] else "") + f", score {a['route_score']}", [rid])
-        touch, acct = self.last_touch()
-        if acct and acct["owner"] and touch and (self.today - touch).days >= STALE_TOUCH_DAYS:
-            add(4, acct["owner"], "check in on the account",
-                f"last touch {touch.isoformat()}, {(self.today - touch).days} days ago", [], role=f"CRM owner ({acct['account_id']})")
-
-        intro = self.introduction()
-        rep_introduced = ""
-        if intro:
-            req = next(r for r in self.requests if r["request_id"] == intro["request_id"])
-            rep_introduced = req["requested_by"]
-            made = (f"{intro['connector']} introduced {req['target_title']} on {intro['intro_date']} ({intro['request_id']}"
-                    + (", meeting booked)" if intro["meeting_booked"] else ")"))
-            parked = [a for a in self.live if a["exception_reason"].startswith(ALREADY_INTRODUCED)]
-            if intro["live"] and parked:
-                wanted = sorted({a["target_title"] for a in parked})
-                add(0, rep_introduced, "extend the intro, no connector is asked",
-                    f"{made}; the allocator parks every live request here, so {rep_introduced.split()[0]} asks that contact for "
-                    + ", ".join(wanted), [a["request_id"] for a in parked], role=f"{self.role_of(rep_introduced)}, holds the intro")
-            elif intro["live"]:
-                add(6, rep_introduced, "no action: intro already made", f"{made}; nothing else is open here",
-                    [intro["request_id"]], role=f"{self.role_of(rep_introduced)}, holds the intro")
-            else:
-                batches = sorted({a["batch_id"] for a in self.allocated.values()})
-                since = f" in {intro['days']} days" if intro["days"] is not None else ""
-                add(6, rep_introduced, "no action: intro already made",
-                    f"{made} and no meeting followed{since}, so the allocator treats the company as a retry"
-                    + (f" on {', '.join(batches)}" if batches else "; nothing is allocated this cycle"),
-                    [intro["request_id"]], role=f"{self.role_of(rep_introduced)}, was introduced")
-
-        waiting: dict[str, list[dict]] = defaultdict(list)
-        for r in self.requests:
-            rid = r["request_id"]
-            closed_for_real = r["status_as_filed"] == "Closed - no path" and not self.paths
-            if not closed_for_real and not self.intro_logged(rid):
-                waiting[r["requested_by"]].append(r)
-        if waiting:
-            def waited(r: dict) -> int:
-                return (self.today - (parse_date(r["request_date"]) or self.today)).days
-
-            longest = {rep: max(waited(r) for r in rs) for rep, rs in waiting.items()}
-            reps = sorted(waiting, key=lambda rep: (-longest[rep], rep))
-            rids = [r["request_id"] for rep in reps for r in sorted(waiting[rep], key=waited, reverse=True)]
-            holders = []
-            for rep in reps:
-                for r in waiting[rep]:
-                    alloc = self.allocated.get(r["request_id"])
-                    h = r["routed_to"] or (alloc["allocated_to"] if alloc else "")
-                    if h and h not in holders:
-                        holders.append(h)
-            n = len(reps)
-            if holders:
-                tell = f"tell them it's with {' / '.join(holders)}"
-            elif intro and intro["live"]:
-                tell = f"tell them it's with {rep_introduced}, who holds {intro['connector']}'s intro"
-            else:
-                tell = "tell them nobody has it"
-            steps["\u0000reps"] = Step(
-                5, ", ".join(f"{rep} ({longest[rep]} days)" for rep in reps),
-                f"{n} rep{'s' if n != 1 else ''} still waiting, longest first", tell,
-                f"{n} rep{'s' if n != 1 else ''} raised this and {'have' if n != 1 else 'has'} heard nothing; "
-                f"the oldest has been waiting {max(longest.values())} days", rids)
-        return sorted(steps.values(), key=lambda s: (s.order, s.who))
-
-    def next_steps_table(self) -> list[str]:
-        steps = self.next_steps()
-        if not steps:
-            return ["nobody needs to do anything"]
-        out = ["| # | who | role | action | why | requests |", "|---|---|---|---|---|---|"]
-        for i, s in enumerate(steps, 1):
-            out.append(f"| {i} | {s.who} | {s.role} | {s.action} | {s.why} | {', '.join(s.request_ids) or '—'} |")
-        return out
-
     # -- all --------------------------------------------------------------------
     def render(self) -> str:
         n_req = len(self.requests)
@@ -614,11 +478,10 @@ class Trace:
         sections.append([f"## 4. Chronology ({len(self.events())} events, {n_req} request{'s' if n_req != 1 else ''},"
                          f" as of {self.today.isoformat()})", "",
                          *self.chronology()])
-        sections.append(["## 5. Next steps, by person, cheapest first", "", *self.next_steps_table()])
         return "\n\n".join("\n".join(s) for s in sections) + "\n"
 
     def as_dict(self) -> dict:
-        """The same five sections as data, for the dashboard."""
+        """The same four sections as data, for the dashboard."""
         c = self.c
         evs = self.events()
         blocks: dict[str, list[Event]] = defaultdict(list)
@@ -651,8 +514,6 @@ class Trace:
             "chronology": [[{"mark": e.mark, "date": e.when.isoformat(), "source": e.source, "who": e.who, "what": e.what,
                              "request_id": e.request_id} for e in sorted(es, key=lambda e: (e.when, e.order))]
                            for _, es in ordered],
-            "next_steps": [{"order": s.order, "who": s.who, "role": s.role, "action": s.action, "why": s.why,
-                            "request_ids": s.request_ids} for s in self.next_steps()],
         }
 
 

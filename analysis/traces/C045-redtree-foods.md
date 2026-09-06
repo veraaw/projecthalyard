@@ -50,12 +50,3 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
    2026-06-05  slack_threads.jsonl  Curtis Hartigan      R1074 slack: "did we not already lose this one?"
    2026-06-07  slack_threads.jsonl  Sloane Fairweather   R1074 slack: "is this the same as the one from last month?"
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Priya Raghunathan | Partner, Redtree Capital (investor connector) | nudge, don't re-ask | said yes on 2025-12-16 and never forwarded | R1135 |
-| 2 | Dana Whitfield | Chief Revenue Officer (internal connector) | send the ask (batch 2026-09 Dana Whitfield) | allocated in golden_allocation.csv via offer path, score 0.240; allocated in golden_allocation.csv via offer path, score 0.240 | R1067, R1074 |
-| 3 | Curtis Hartigan (319 days), Bertrand Vandermolen (95 days) | 2 reps still waiting, longest first | tell them it's with Priya Raghunathan | 2 reps raised this and have heard nothing; the oldest has been waiting 319 days | R1067, R1135, R1074 |
-| 4 | Imani Mkhize | Enterprise AE, West, was introduced | no action: intro already made | Dana Whitfield introduced VP Engineering on 2026-03-18 (R1003) and no meeting followed in 172 days, so the allocator treats the company as a retry on 2026-09 Dana Whitfield | R1003 |

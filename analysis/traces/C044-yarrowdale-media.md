@@ -30,9 +30,3 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
    2026-07-28  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1028
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Curtis Hartigan (58 days) | 1 rep still waiting, longest first | tell them it's with Bertrand Vandermolen | 1 rep raised this and has heard nothing; the oldest has been waiting 58 days | R1169 |

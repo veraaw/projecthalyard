@@ -94,72 +94,7 @@ class HarrowgateTest(unittest.TestCase):
         for line_block in "\n".join(self.trace.chronology()).split("\n\n"):
             dates = [ln[3:13] for ln in line_block.splitlines() if ln[3:7].isdigit()]
             self.assertEqual(dates, sorted(dates))
-
-    def test_next_steps(self):
-        steps = self.trace.next_steps()
-        self.assertEqual(len(steps), 5)
-        self.assertEqual([s.order for s in steps], [1, 2, 4, 5, 6])
-        elena, tomas = steps[0], steps[1]
-        self.assertEqual(elena.who, "Elena Duvall")
-        self.assertEqual(elena.request_ids, ["R1136"])
-        self.assertEqual(tomas.who, "Tomás Beckett")
-        self.assertEqual(tomas.why.count("said yes"), 2)
-        # the cycle's fresh asks on Harrowgate all land with Tomás: once requests behind
-        # a live intro elsewhere stop consuming his slots, the strongest path gets R1136 too
-        self.assertEqual(set(tomas.request_ids) >= {"R1057", "R1157", "R1136", "R1153"}, True)
-        self.assertIn("send the ask", tomas.action)
-        self.assertEqual(steps[2].who, "Imani Mkhize")
-        reps = steps[3]
-        self.assertIn("7 reps", reps.role)
-        self.assertTrue(reps.who.startswith("Imani Mkhize (355 days)"), reps.who)
-        self.assertTrue(reps.who.endswith("Curtis Hartigan (81 days)"), reps.who)
-        self.assertEqual(reps.action, "tell them it's with Tomás Beckett")
-        self.assertIn("the oldest has been waiting 355 days", reps.why)
-        # the intro that landed is named, as done, not dropped: R1140 fizzled, so the company is a retry
-        done = steps[4]
-        self.assertEqual((done.who, done.action, done.request_ids), ("Yusuf Petrossian", "no action: intro already made", ["R1140"]))
-        self.assertIn("Tomás Beckett introduced Chief Digital Officer on 2025-10-08 (R1140) and no meeting followed", done.why)
-        self.assertIn("retry on 2026-09 Tomás Beckett", done.why)
-
-
-class IntroAlreadyMadeTest(unittest.TestCase):
-    """Section 5 says what happened to a request whose intro was already sent, the
-    way the allocator reads it: a fizzled intro is a retry, a live one parks the
-    company with the rep who was introduced."""
-    @classmethod
-    def setUpClass(cls):
-        cls.data = Data.load()
-
-    def trace(self, name: str) -> Trace:
-        return Trace(self.data, find_company(self.data, name), AS_OF)
-
-    def test_fizzled_intro_is_a_no_action_row(self):
-        t = self.trace("Redtree Foods")
-        intro = t.introduction()
-        self.assertEqual((intro["request_id"], intro["connector"], intro["live"]), ("R1003", "Dana Whitfield", False))
-        steps = t.next_steps()
-        self.assertEqual([s.request_ids for s in steps if "R1003" in s.request_ids], [["R1003"]])
-        done = steps[-1]
-        self.assertEqual((done.order, done.who, done.action), (6, "Imani Mkhize", "no action: intro already made"))
-        self.assertTrue(done.role.endswith(", was introduced"), done.role)
-        self.assertIn("Dana Whitfield introduced VP Engineering on 2026-03-18 (R1003) and no meeting followed in 171 days", done.why)
-        self.assertIn("retry on 2026-09 Dana Whitfield", done.why)
-        self.assertIn("| no action: intro already made |", t.render())
-        self.assertEqual(t.as_dict()["next_steps"][-1]["action"], "no action: intro already made")
-
-    def test_live_intro_parks_the_company_with_the_rep(self):
-        t = self.trace("Osric Networks")
-        intro = t.introduction()
-        self.assertEqual((intro["request_id"], intro["meeting_booked"], intro["live"]), ("R1163", True, True))
-        steps = t.next_steps()
-        first = steps[0]
-        self.assertEqual((first.order, first.who, first.action), (0, "Curtis Hartigan", "extend the intro, no connector is asked"))
-        self.assertEqual(first.request_ids, ["R1028", "R1170"])
-        self.assertIn("Elena Duvall introduced Chief Data Officer on 2026-04-02 (R1163, meeting booked)", first.why)
-        self.assertIn("Curtis asks that contact for Chief Digital Officer, SVP Digital", first.why)
-        self.assertFalse(any("send the ask" in s.action for s in steps))
-        reps = next(s for s in steps if s.order == 5)
-        self.assertEqual(reps.action, "tell them it's with Curtis Hartigan, who holds Elena Duvall's intro")
+        self.assertNotIn("## 5.", self.text)
 
 
 class RoutingStageTest(unittest.TestCase):

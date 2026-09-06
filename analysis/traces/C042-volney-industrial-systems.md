@@ -33,10 +33,3 @@ nobody in the network reaches this company
 
 !! 2026-01-13  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1049  [236 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Yusuf Petrossian | CRM owner (A1049) | check in on the account | last touch 2026-01-13, 236 days ago | — |
-| 2 | Imani Mkhize (357 days), Yusuf Petrossian (265 days), Hana Nakashima (235 days) | 3 reps still waiting, longest first | tell them nobody has it | 3 reps raised this and have heard nothing; the oldest has been waiting 357 days | R1002, R1191, R1080 |

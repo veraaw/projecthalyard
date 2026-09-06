@@ -73,12 +73,3 @@ strongest path, not where it went: Yusuf Petrossian, offer 0.800, at capacity 2/
 ++ 2026-07-06  intro_outcomes.csv   Yusuf Petrossian     R1066 replied (5 days after the ask)
 <- 2026-09-06  intro_outcomes.csv   Yusuf Petrossian     R1066 said yes 62 days ago and never forwarded
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Dana Whitfield | Chief Revenue Officer (internal connector) | nudge, don't re-ask; send the ask (batch 2026-09 Dana Whitfield) | said yes on 2026-02-04 and never forwarded; allocated in golden_allocation.csv via direct path to Saoirse Quillane, score 0.145; allocated in golden_allocation.csv via direct path to Saoirse Quillane, score 0.145 | R1113, R1070, R1193 |
-| 2 | Yusuf Petrossian | off-roster connector | nudge, don't re-ask; send the ask (batch 2026-09 Yusuf Petrossian) | said yes on 2026-07-06 and never forwarded; allocated in golden_allocation.csv via offer path, score 0.182; allocated in golden_allocation.csv via offer path, score 0.182 | R1066, R1006, R1128 |
-| 3 | Nadia Okonkwo (254 days), Imani Mkhize (217 days), Hana Nakashima (207 days), Rafael Salcedo (93 days), Curtis Hartigan (73 days) | 5 reps still waiting, longest first | tell them it's with Dana Whitfield / Yusuf Petrossian | 5 reps raised this and have heard nothing; the oldest has been waiting 254 days | R1128, R1113, R1070, R1147, R1193, R1006, R1066 |
-| 4 | Curtis Hartigan | AE, Financial Services, was introduced | no action: intro already made | Dana Whitfield introduced VP Enterprise Architecture on 2026-02-04 (R1171) and no meeting followed in 214 days, so the allocator treats the company as a retry on 2026-09 Dana Whitfield, 2026-09 Yusuf Petrossian | R1171 |

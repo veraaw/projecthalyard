@@ -37,10 +37,3 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 ++ 2026-05-30  intro_outcomes.csv   Priya Raghunathan    R1101 intro sent
 ++ 2026-05-30  intro_outcomes.csv   Priya Raghunathan    R1101 meeting booked
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Rafael Salcedo (204 days) | 1 rep still waiting, longest first | tell them it's with Priya Raghunathan | 1 rep raised this and has heard nothing; the oldest has been waiting 204 days | R1068 |
-| 2 | Imani Mkhize | Enterprise AE, West, holds the intro | no action: intro already made | Priya Raghunathan introduced Head of Developer Productivity on 2026-05-30 (R1101, meeting booked); nothing else is open here | R1101 |

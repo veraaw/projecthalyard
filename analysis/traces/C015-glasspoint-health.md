@@ -28,10 +28,3 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
    2026-06-20  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1017
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Elena Duvall | Advisor (former COO, industrial manufacturing) (advisor connector) | nudge, don't re-ask | said yes on 2026-03-07 and never forwarded | R1025 |
-| 2 | Sloane Fairweather (193 days) | 1 rep still waiting, longest first | tell them it's with Elena Duvall | 1 rep raised this and has heard nothing; the oldest has been waiting 193 days | R1025 |

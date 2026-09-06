@@ -39,10 +39,3 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 !! 2025-11-27  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1038  [283 days ago, nothing since]
 ```
-
-## 5. Next steps, by person, cheapest first
-
-| # | who | role | action | why | requests |
-|---|---|---|---|---|---|
-| 1 | Rafael Salcedo | CRM owner (A1038) | check in on the account | last touch 2025-11-27, 283 days ago | — |
-| 2 | Hana Nakashima | AE, Healthcare, holds the intro | no action: intro already made | Tomás Beckett introduced VP Engineering on 2025-11-26 (R1078, meeting booked); nothing else is open here | R1078 |
