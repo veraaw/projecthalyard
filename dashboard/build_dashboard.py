@@ -655,7 +655,7 @@ TABS = [
     (LIVE_HTML, "Live Data Dashboard"),
     (RAW_HTML, "Raw Sept Data Dashboard"),
 ]
-NO_PEOPLE_ROW = {LIVE_HTML, RAW_HTML}
+NO_PEOPLE_ROW = {TRACE_HTML, LIVE_HTML, RAW_HTML}
 
 
 connector_pages = connector_fragments(TODAY)
@@ -666,8 +666,9 @@ MASTHEAD = (f'<a class="mast" href="{LIVE_HTML}">{theme.logo()}'
 def tabs(active):
     """The sticky bar on every page: the masthead across the top, the page tabs, and
     under Live Priorities a sub-row in the baton colour with one tab per connector.
-    The connector row belongs to Live Priorities, so the two data dashboards go without
-    it; on a connector's page the Live Priorities tab is marked as the parent."""
+    The connector row belongs to Live Priorities, so Company Trace and the two data
+    dashboards go without it; on a connector's page the Live Priorities tab is marked
+    as the parent."""
     on_connector = any(c["page"] == active for c, _ in connector_pages)
     people_row = active not in NO_PEOPLE_ROW
 
@@ -1264,7 +1265,7 @@ trace_page = f"""<!doctype html>
 {sidebar(title=f'Companies <span class="foot" id="trace-count"></span>', body=trace_sidebar())}
 <main>
 <section id="trace">
-  <p class="lede">Pick a company on the left, or search by name, alias, company id or CRM account id. Four sections follow: the header, where the files disagree (left out when they agree), who can reach them by strength, and every event from <code>intro_requests.csv</code>, <code>slack_threads.jsonl</code>, <code>intro_outcomes.csv</code> and <code>crm_accounts.csv</code> oldest first. The same traces are written to <code>analysis/traces/</code> by <code>python3 build.py trace</code>.</p>
+  <p class="lede">Pick a company on the left, or search by name, alias, company id or CRM account id. Five sections follow: the header, where the files disagree (left out when they agree), who can reach them by strength, every event from <code>intro_requests.csv</code>, <code>slack_threads.jsonl</code>, <code>intro_outcomes.csv</code> and <code>crm_accounts.csv</code> newest first, and the additional investor and operator network around the company from <code>golden/network_orbit.csv</code> (left out when there is nobody; a view: an off-roster investor's own portfolio company is an <code>investor_network</code> path in section 3, asked only when the roster has no path or no capacity; nothing else here is scored or allocated). The same traces are written to <code>analysis/traces/</code> by <code>python3 build.py trace</code>.</p>
   {trace_fragment()}
 </section>
 <p class="foot">Regenerate with <code>python3 build.py dashboard</code>.</p>

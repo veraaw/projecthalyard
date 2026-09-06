@@ -21,7 +21,9 @@ request ids stay on the record. A company whose earlier intro went nowhere
 carries a retry line naming who introduced whom and when. The wording lives in
 config/batch_ask_templates.json — the roster template for connectors on the
 roster, the offerer template for someone off the roster who is being asked
-because they offered in a thread — so no names and no copy live in this file.
+because they offered in a thread, the network template for an investor_network
+person (our circle, not our roster) asked as a favour over their own portfolio
+or prior-employer path — so no names and no copy live in this file.
 
 This is a drafting aid. It writes nothing; the existing ask_sent tick stays the
 record that an ask went out.
@@ -44,9 +46,9 @@ REQUESTS = GOLDEN / "golden_requests.csv"
 ROSTER = DATASET / "connector_roster.csv"
 OUTCOMES = DATASET / "intro_outcomes.csv"
 
-ROSTER_TEMPLATE, OFFERER_TEMPLATE = "roster", "offerer"
+ROSTER_TEMPLATE, OFFERER_TEMPLATE, NETWORK_TEMPLATE = "roster", "offerer", "network"
 OFFER = "offer"
-INDIRECT = {"investor", "board"}
+INDIRECT = {"investor", "board", bg.INVESTOR_NETWORK}
 
 
 def load_templates(path: Path = TEMPLATES) -> dict:
@@ -108,11 +110,12 @@ def prior_intros(outcomes: list[dict], requests: list[dict]) -> dict[str, dict]:
     return out
 
 
-def retry_text(t: dict, intro: dict | None, who: str) -> str:
+def retry_text(t: dict, intro: dict | None, who: str, template: str = ROSTER_TEMPLATE) -> str:
     if not intro:
         return ""
     b = t["block"]
-    tpl = b["retry_own"] if intro["connector"] == who else b["retry"]
+    tpl = (b["retry_own"] if intro["connector"] == who
+           else b["retry_network"] if template == NETWORK_TEMPLATE else b["retry"])
     return tpl.format(connector=intro["connector"], requester=intro["requester"] or b["requester_unknown"],
                       date=intro["date"] or b["retry_undated"])
 
@@ -121,6 +124,8 @@ def path_text(t: dict, path_type: str, contact: str, date: str) -> str:
     p = t["path"]
     if path_type == "direct":
         return p["direct"].format(contact=contact) if contact else p["unknown"]
+    if path_type == bg.INVESTOR_NETWORK:
+        return p["investor_network"]
     if path_type in INDIRECT:
         return p["investor"]
     if path_type == OFFER:
@@ -155,6 +160,19 @@ def compose(allocation: list[dict] | None = None, requests: list[dict] | None = 
     return [_record(cycle, who, rows, by_rid, offers, intros, roster, t) for (cycle, who), rows in sorted(batches.items())]
 
 
+def pick_template(on_roster: bool, path_types: list[str]) -> str:
+    """Roster people get the work-queue wording. Off the roster, the whole batch
+    decides: all offer paths -> offerer (they volunteered), all investor_network
+    paths -> network (a favour asked of our circle), anything mixed -> roster."""
+    if on_roster:
+        return ROSTER_TEMPLATE
+    if all(p == OFFER for p in path_types):
+        return OFFERER_TEMPLATE
+    if all(p == bg.INVESTOR_NETWORK for p in path_types):
+        return NETWORK_TEMPLATE
+    return ROSTER_TEMPLATE
+
+
 def _record(cycle: str, who: str, rows: list[dict], by_rid: dict, offers: dict, intros: dict, roster: dict, t: dict) -> dict:
     r = roster.get(who)
     rows = sorted(rows, key=lambda a: (-score(a["route_score"]), a["company_id"], a["target_title"], a["request_id"]))
@@ -169,6 +187,8 @@ def _record(cycle: str, who: str, rows: list[dict], by_rid: dict, offers: dict, 
             "offer_date": offer_date(offers, a["company_id"], who, q.get("request_date", "")) if a["path_type"] == OFFER else "",
         })
 
+    on_roster = r is not None
+    template = pick_template(on_roster, [q["path_type"] for q in reqs])
     companies: list[dict] = []
     for q in reqs:  # rows arrive best-score-first, so first sight of a company fixes block order
         c = next((c for c in companies if c["company_id"] == q["company_id"]), None)
@@ -177,7 +197,7 @@ def _record(cycle: str, who: str, rows: list[dict], by_rid: dict, offers: dict, 
             if intro and intro["date"][:7] >= cycle:  # sent after this cycle's asks went out
                 intro = None
             c = {"company_id": q["company_id"], "company_name": q["company_name"], "route_score": q["route_score"],
-                 "request_ids": [], "contacts": [], "retry": intro, "retry_line": retry_text(t, intro, who)}
+                 "request_ids": [], "contacts": [], "retry": intro, "retry_line": retry_text(t, intro, who, template)}
             companies.append(c)
         c["request_ids"].append(q["request_id"])
         key = (q["path_type"], q["contact_name"])
@@ -198,8 +218,6 @@ def _record(cycle: str, who: str, rows: list[dict], by_rid: dict, offers: dict, 
             for x in g["titles"]:
                 x["count"] = len(x["request_ids"])
 
-    on_roster = r is not None
-    template = ROSTER_TEMPLATE if on_roster or not all(q["path_type"] == OFFER for q in reqs) else OFFERER_TEMPLATE
     rec = {
         "cycle": cycle, "connector": who, "slug": slug(who), "first_name": who.split()[0] if who.split() else who,
         "batch_id": rows[0]["batch_id"], "template": template, "on_roster": on_roster,

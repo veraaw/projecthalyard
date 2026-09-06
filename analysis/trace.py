@@ -6,11 +6,18 @@
     python3 analysis/trace.py                            # every company with a
                                                          # request -> analysis/traces/
 
-Four sections: the header (identity, request counts and the routing stage), where the files
+Five sections: the header (identity, request counts and the routing stage), where the files
 disagree (skipped when they don't), who can reach them (supply_reach.csv ranked
-by route score = strength x focus fit x delivery rate, the allocator's own sort
-key, with the reason the top row did not take every live request) and the chronology (every event from intro_requests.csv,
-slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, oldest first).
+as the allocator ranks them: roster paths before investor_network ones, then by
+route score = strength x focus fit x delivery rate, with the reason the top row did not take every live request), the chronology (every event from intro_requests.csv,
+slack_threads.jsonl, intro_outcomes.csv and crm_accounts.csv, newest first)
+and the additional investor and operator network (network_orbit.csv: everyone
+investor_network.csv puts around the company, board seats first, then those a
+connector knows, then those nobody has a warm path to; skipped when the file
+has no row for the company). That last section is a view, not supply: an
+off-roster investor's own portfolio company is already an investor_network row
+in section 3 (scored with the haircut, asked only once the roster has no path
+or no capacity); nothing else in it is scored or allocated.
 
 Chronology markers:  <- missed   ++ worked   ** offer   !! warning
 
@@ -33,13 +40,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.build_golden import (OFFER_RE, OPEN_STATUSES, PRIOR_RATE, STAGES, capacity, delivery_rates, fit, latest_cycle,  # noqa: E402
-                                 load_completions, load_roster, load_threads, path_score, stage_of, with_completions)
+from golden.build_golden import (INVESTOR_NETWORK, NETWORK_HAIRCUT, NETWORK_OUT, OFFER_RE, OPEN_STATUSES, PRIOR_RATE,  # noqa: E402
+                                 REACHABLE_AS_CONNECTOR, STAGES, capacity, delivery_rates, fit, latest_cycle, load_completions,
+                                 load_roster, load_threads, path_rank, path_score, stage_of, with_completions)
 from golden.resolver import normalize, normalize_strict  # noqa: E402
 from paths import ANALYSIS, DATASET, GOLDEN  # noqa: E402
 
 TRACES = ANALYSIS / "traces"
 STALE_TOUCH_DAYS = 90
+NO_WARM_PATH = "no warm path"  # the orbit table's label for a person no connector knows
 
 MISSED, WORKED, OFFER, WARN, PLAIN = "<-", "++", "**", "!!", "  "
 
@@ -77,6 +86,12 @@ def days_ago(d: date | None, today: date) -> str:
     return f"{(today - d).days} days ago" if d else "undated"
 
 
+def request_number(rid: str) -> tuple[int, str]:
+    """R1178 -> (1178, 'R1178'), so ids sort numerically."""
+    m = re.search(r"\d+", rid)
+    return (int(m.group()) if m else sys.maxsize, rid)
+
+
 @dataclass
 class Data:
     companies: list[dict]
@@ -91,6 +106,7 @@ class Data:
     outcome_by_rid: dict[str, dict]  # the ask log as the build reads it (completions applied), one row per request
     alloc_by_rid: dict[str, dict]    # the current cycle's allocation by request_id
     rates: dict[str, float]          # delivery rate per connector, as the allocator scores them
+    orbit: list[dict]                # network_orbit.csv: investors and operators around each company
 
     @classmethod
     def load(cls) -> "Data":
@@ -120,6 +136,7 @@ class Data:
             outcome_by_rid={o["request_id"]: o for o in as_read},
             alloc_by_rid={a["request_id"]: a for a in allocation},
             rates=delivery_rates(roster, as_read, load_threads()),
+            orbit=read_csv(NETWORK_OUT) if NETWORK_OUT.exists() else [],
         )
 
 
@@ -180,11 +197,15 @@ class Trace:
         self.requests = sorted((r for r in data.requests if r["company_id"] == self.cid),
                                key=lambda r: (r["request_date"], r["request_id"]))
         self.request_ids = [r["request_id"] for r in self.requests]
-        # ranked as the allocator ranks them: route score first, raw strength breaks ties
+        # ranked as the allocator ranks them: roster before investor_network, then
+        # route score, raw strength breaks ties
         self.paths = sorted((p for p in data.supply if p["company_id"] == self.cid and p["reach_type"] != "none"),
-                            key=lambda p: (-self.route_score(p), -float(p["strength"])))
+                            key=lambda p: (*self.rank(p), -float(p["strength"])))
         self.accounts = [data.accounts[a] for a in split_bar(company["crm_account_ids"]) if a in data.accounts]
         self.live = [a for a in data.allocation if a["company_id"] == self.cid]
+        # board seats first, then anyone a connector knows, then the cold rows
+        self.orbit = sorted((r for r in data.orbit if r["company_id"] == self.cid),
+                            key=lambda r: (r["board_seat"] != "yes", r["reachable_via"] == "", r["person"], r["source"]))
 
     # -- helpers --------------------------------------------------------------
     def spellings(self) -> list[str]:
@@ -220,6 +241,10 @@ class Trace:
 
     def rate_of(self, connector: str) -> float:
         return self.d.rates.get(connector, PRIOR_RATE)
+
+    def rank(self, p: dict) -> tuple[int, float]:
+        """The allocator's sort key: (0 roster / 1 investor_network, -route score)."""
+        return path_rank(p, self.d.roster, self.d.rates, self.c["industry"])
 
     def route_score(self, p: dict) -> float:
         """strength x focus fit x delivery rate: what build_golden.allocate sorts on."""
@@ -261,20 +286,43 @@ class Trace:
         return (f"{who}, {top['reach_type']} {float(top['strength']):.3f}, " + ", ".join(why)
                 + (f", holds {', '.join(holds)}" if holds else "") + "; " + ", ".join(went))
 
+    def request_rows(self) -> list[dict]:
+        """One line per request, newest first, with the dates it picked up along the
+        way (filed, routed, asked, replied, intro) - the hover detail behind the
+        header counts, so each number can be traced to its request ids."""
+        rows = []
+        for r in sorted(self.requests, key=lambda r: (r["request_date"], r["request_id"]), reverse=True):
+            o = self.d.outcome_by_rid.get(r["request_id"]) or {}
+            a = self.d.alloc_by_rid.get(r["request_id"]) or {}
+            rows.append({
+                "request_id": r["request_id"], "date": r["request_date"], "requested_by": r["requested_by"],
+                "target_title": r["target_title"], "status": r["status_as_filed"], "stage": self.stage_of(r),
+                "routed_to": r["routed_to"] or a.get("allocated_to", ""), "routed_on": r["routed_on"],
+                "asked_date": o.get("asked_date") or r["asked_date"], "response_date": o.get("response_date", ""),
+                "intro_date": o.get("intro_date", ""), "meeting_booked": (o.get("meeting_booked") or r["meeting_booked"]) == "Y",
+            })
+        return rows
+
     def routing(self) -> dict:
         """Where the company sits in the routing funnel: the furthest stage any of
         its requests reached ('closed' only when every request is Closed - no
         path), the stage of its latest request, how many requests sit at each
-        stage, and of those asked, how many connectors agreed vs never replied."""
+        stage, and of those asked, how many connectors agreed vs never replied.
+        `booked` names the intro that landed the meeting (the newest, if several):
+        the outcome log has no meeting date, so its intro_date is the date shown."""
         stages = {r["request_id"]: self.stage_of(r) for r in self.requests}
         counts = Counter(stages.values())
         asked = [rid for rid, s in stages.items() if s == "asked"]
         agreed = sum(1 for rid in asked if (self.d.outcome_by_rid.get(rid) or {}).get("responded") == "Y")
+        booked = [{"request_id": rid, "connector": o["connector_asked"], "intro_date": o["intro_date"]}
+                  for rid, s in stages.items() if s == "meeting booked"
+                  for o in self.d.outcomes.get(rid, []) if o["meeting_booked"] == "Y"]
         return {
             "furthest": max((s for s in stages.values() if s != "closed"), key=STAGES.index, default="closed"),
             "latest": stages.get(self.c["latest_request_id"], ""),
             "counts": {s: counts[s] for s in [*STAGES, "closed"] if counts[s]},
             "awaiting_intro": {"agreed": agreed, "silent": len(asked) - agreed},
+            "booked": max(booked, key=lambda b: (b["intro_date"], b["request_id"]), default=None),
         }
 
     def last_touch(self) -> tuple[date | None, dict | None]:
@@ -286,15 +334,33 @@ class Trace:
         return best, acct
 
     # -- section 1 --------------------------------------------------------------
+    def deal_value(self) -> dict:
+        """The company's one $, the same rule as Live Priorities (company_value): CRM
+        ARR potential when it has an account with one, else the deal value on its
+        most recent request that carries one; every request's own $ alongside."""
+        c = self.c
+        by_request = [{"request_id": r["request_id"], "date": r["request_date"], "target_title": r["target_title"],
+                       "value_usd": money(r["value_usd"]) if r["value_usd"] else ""}
+                      for r in sorted(self.requests, key=lambda r: (r["request_date"], r["request_id"]), reverse=True)]
+        if c["crm_account_ids"] and int(c["value_usd"] or 0):
+            return {"value_usd": money(c["value_usd"]), "source": "CRM ARR potential", "by_request": by_request}
+        latest = next((q for q in by_request if q["value_usd"]), None)
+        if latest:
+            return {"value_usd": latest["value_usd"], "source": f"latest request with a deal value, {latest['request_id']}",
+                    "by_request": by_request}
+        return {"value_usd": "?", "source": "no deal value on file", "by_request": by_request}
+
     def header(self) -> list[str]:
         c = self.c
         people = {r["requested_by"] for r in self.requests}
         titles = {r["target_title"] for r in self.requests if r["target_title"]}
         aka = self.spellings()
+        v = self.deal_value()
         out = [f"# {c['company_name']}  ({c['company_id']})", ""]
         out.append(f"- stage: {c['stage'] or '?'} | industry: {c['industry'] or '?'} | owner: {c['owner'] or 'none'}"
-                   f" | deal value: {money(c['value_usd'])}"
-                   + (f" | largest request: {money(c['largest_request_usd'])}" if c["largest_request_usd"] else ""))
+                   f" | deal value: {v['value_usd']} ({v['source']})"
+                   + (" | by request: " + ", ".join(f"{q['request_id']} {q['value_usd']}" for q in v["by_request"] if q["value_usd"])
+                      if any(q["value_usd"] for q in v["by_request"]) else ""))
         out.append(f"- CRM accounts: {c['crm_account_ids'] or 'none'}"
                    + (f" ({c['domain']})" if c["domain"] else "")
                    + (f" | duplicates: {c['duplicate_accounts']}" if c["duplicate_accounts"] not in ("", "no") else ""))
@@ -324,7 +390,7 @@ class Trace:
             out.append(f"- golden_companies.csv: owners disagree: {self.c['owner']}")
 
         n_paths = len(self.paths)
-        for r in self.requests:
+        for r in sorted(self.requests, key=lambda r: request_number(r["request_id"])):
             rid, status = r["request_id"], r["status_as_filed"]
             f = self.d.filed.get(rid)
             logged = self.intro_logged(rid)
@@ -360,7 +426,10 @@ class Trace:
     def reach(self) -> list[str]:
         if not self.paths:
             return ["nobody in the network reaches this company"]
-        out = ["ranked by route score = strength x focus fit x delivery rate, the allocator's sort key", "",
+        note = (f"; {INVESTOR_NETWORK} rows rank below every roster path and take a "
+                f"{round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score"
+                if any(p["reach_type"] == INVESTOR_NETWORK for p in self.paths) else "")
+        out = [f"ranked by route score = strength x focus fit x delivery rate, the allocator's sort key{note}", "",
                "| route score | strength | connector | reach | contact | evidence |", "|---|---|---|---|---|---|"]
         for p in self.paths:
             contact = " — ".join(x for x in (p["contact_name"], p["contact_title"]) if x) or "?"
@@ -450,21 +519,50 @@ class Trace:
                              WARN if stale >= STALE_TOUCH_DAYS else PLAIN, "", 4))
         return evs
 
+    def blocks(self) -> list[list[Event]]:
+        """Events grouped by request, newest first: blocks by their latest event,
+        lines within a block newest first; the CRM touch (no request) goes last."""
+        by_rid: dict[str, list[Event]] = defaultdict(list)
+        for e in self.events():
+            by_rid[e.request_id].append(e)
+        ordered = sorted(by_rid.items(), key=lambda kv: (kv[0] != "", max(e.when for e in kv[1]), kv[0]), reverse=True)
+        # ascending then reversed, so same-day events keep their thread order, latest on top
+        return [sorted(es, key=lambda e: (e.when, e.order))[::-1] for _, es in ordered]
+
     def chronology(self) -> list[str]:
-        evs = self.events()
-        if not evs:
+        blocks = self.blocks()
+        if not blocks:
             return ["nothing on record"]
-        blocks: dict[str, list[Event]] = defaultdict(list)
-        for e in evs:
-            blocks[e.request_id].append(e)
-        # blocks ordered by their first event; the CRM touch (no request) goes last
-        ordered = sorted(blocks.items(), key=lambda kv: (kv[0] == "", min(e.when for e in kv[1]), kv[0]))
         out = ["```"]
-        for i, (_, es) in enumerate(ordered):
+        for i, es in enumerate(blocks):
             if i:
                 out.append("")
-            out.extend(e.line() for e in sorted(es, key=lambda e: (e.when, e.order)))
+            out.extend(e.line() for e in es)
         out.append("```")
+        return out
+
+    # -- section 5 --------------------------------------------------------------
+    @staticmethod
+    def orbit_route(r: dict) -> str:
+        """How the person could be reached, as the table prints it."""
+        via = r["reachable_via"]
+        if via == REACHABLE_AS_CONNECTOR:
+            return "on the roster"
+        if via == INVESTOR_NETWORK:
+            return f"{INVESTOR_NETWORK} path (section 3, {round((1 - NETWORK_HAIRCUT) * 100)}% haircut)"
+        if via:
+            return "via " + ", ".join(split_bar(via))
+        return NO_WARM_PATH
+
+    def orbit_table(self) -> list[str]:
+        n_cold = sum(1 for r in self.orbit if not r["reachable_via"])
+        n_net = sum(1 for r in self.orbit if r["reachable_via"] == INVESTOR_NETWORK)
+        out = [f"{len(self.orbit)} {'person' if len(self.orbit) == 1 else 'people'} from investor_network.csv, "
+               f"{n_net} askable as {INVESTOR_NETWORK} paths, {n_cold} with no warm path; a view of section 3 and the "
+               "roster's exports, nothing here is scored or allocated on its own", "",
+               "| person | role | fund | board seat | source | warm path |", "|---|---|---|---|---|---|"]
+        for r in self.orbit:
+            out.append(f"| {r['person']} | {r['role']} | {r['fund']} | {r['board_seat']} | {r['source']} | {self.orbit_route(r)} |")
         return out
 
     # -- all --------------------------------------------------------------------
@@ -476,29 +574,27 @@ class Trace:
             sections.append(["## 2. Where the files disagree", "", *dis])
         sections.append(["## 3. Who can reach them", "", *self.reach()])
         sections.append([f"## 4. Chronology ({len(self.events())} events, {n_req} request{'s' if n_req != 1 else ''},"
-                         f" as of {self.today.isoformat()})", "",
+                         f" newest first, as of {self.today.isoformat()})", "",
                          *self.chronology()])
+        if self.orbit:
+            sections.append(["## 5. Additional Investor and Operator Network", "", *self.orbit_table()])
         return "\n\n".join("\n".join(s) for s in sections) + "\n"
 
     def as_dict(self) -> dict:
         """The same four sections as data, for the dashboard."""
         c = self.c
-        evs = self.events()
-        blocks: dict[str, list[Event]] = defaultdict(list)
-        for e in evs:
-            blocks[e.request_id].append(e)
-        ordered = sorted(blocks.items(), key=lambda kv: (kv[0] == "", min(e.when for e in kv[1]), kv[0]))
         return {
             "company_id": c["company_id"],
             "company_name": c["company_name"],
             "search": " ".join([c["company_id"], c["company_name"], *self.spellings(), *split_bar(c["crm_account_ids"])]),
             "header": {
                 "stage": c["stage"], "industry": c["industry"], "owner": c["owner"],
-                "value_usd": money(c["value_usd"]), "largest_request_usd": money(c["largest_request_usd"]) if c["largest_request_usd"] else "",
+                "value": self.deal_value(),
                 "crm_account_ids": c["crm_account_ids"], "domain": c["domain"], "duplicate_accounts": c["duplicate_accounts"],
                 "also_known_as": self.spellings(),
                 "routing": self.routing(),
                 "requests": len(self.requests),
+                "request_rows": self.request_rows(),
                 "people": len({r["requested_by"] for r in self.requests}),
                 "titles": sorted({r["target_title"] for r in self.requests if r["target_title"]}),
             },
@@ -512,8 +608,11 @@ class Trace:
                       for p in self.paths],
             "as_of": self.today.isoformat(),
             "chronology": [[{"mark": e.mark, "date": e.when.isoformat(), "source": e.source, "who": e.who, "what": e.what,
-                             "request_id": e.request_id} for e in sorted(es, key=lambda e: (e.when, e.order))]
-                           for _, es in ordered],
+                             "request_id": e.request_id} for e in es]
+                           for es in self.blocks()],
+            "orbit": [{"person": r["person"], "role": r["role"], "fund": r["fund"], "board_seat": r["board_seat"] == "yes",
+                       "source": r["source"], "reachable_via": r["reachable_via"], "route": self.orbit_route(r)}
+                      for r in self.orbit],
         }
 
 

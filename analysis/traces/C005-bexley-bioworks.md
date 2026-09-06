@@ -1,6 +1,6 @@
 # Bexley Bioworks  (C005)
 
-- stage: Negotiation | industry: Biotech | owner: Sloane Fairweather | deal value: $1,400,000 | largest request: $750,000
+- stage: Negotiation | industry: Biotech | owner: Sloane Fairweather | deal value: $1,400,000 (CRM ARR potential) | by request: R1048 $750,000
 - CRM accounts: A1045 (bexleybio.com)
 - also goes by: nothing else
 - 1 request from 1 person wanting 1 different title: Chief Data Officer
@@ -22,13 +22,21 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 
 strongest path, not where it went: Priya Raghunathan, investor 0.900, at capacity 3/3; R1048 routed to Tomás Beckett
 
-## 4. Chronology (5 events, 1 request, as of 2026-09-06)
+## 4. Chronology (5 events, 1 request, newest first, as of 2026-09-06)
 
 ```
-   2026-04-14  intro_requests.csv   Bertrand Vandermolen R1048 raised by Bertrand Vandermolen (AE, EMEA): wants Chief Data Officer, $750,000, High urgency, filed "Stalled"
-   2026-04-14  slack_threads.jsonl  Bertrand Vandermolen R1048 slack: "any connections into Bexley Bioworks? we're up against a renewal window and I need an intro to Chief Data Officer"
-   2026-04-15  slack_threads.jsonl  Yusuf Petrossian     R1048 slack: "I think their procurement is frozen until Q1"
    2026-04-18  slack_threads.jsonl  Hana Nakashima       R1048 slack: "adding Curtis Hartigan who might know"
+   2026-04-15  slack_threads.jsonl  Yusuf Petrossian     R1048 slack: "I think their procurement is frozen until Q1"
+   2026-04-14  slack_threads.jsonl  Bertrand Vandermolen R1048 slack: "any connections into Bexley Bioworks? we're up against a renewal window and I need an intro to Chief Data Officer"
+   2026-04-14  intro_requests.csv   Bertrand Vandermolen R1048 raised by Bertrand Vandermolen (AE, EMEA): wants Chief Data Officer, $750,000, High urgency, filed "Stalled"
 
 !! 2026-03-01  crm_accounts.csv     Sloane Fairweather   last CRM touch on A1045  [189 days ago, nothing since]
 ```
+
+## 5. Additional Investor and Operator Network
+
+1 person from investor_network.csv, 0 askable as investor_network paths, 0 with no warm path; a view of section 3 and the roster's exports, nothing here is scored or allocated on its own
+
+| person | role | fund | board seat | source | warm path |
+|---|---|---|---|---|---|
+| Priya Raghunathan | Partner, Redtree Capital | Redtree Capital | yes | portfolio_company | on the roster |

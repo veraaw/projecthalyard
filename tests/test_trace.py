@@ -6,12 +6,13 @@ from __future__ import annotations
 
 import sys
 import unittest
+from collections import Counter
 from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from analysis.trace import MISSED, OFFER, WARN, WORKED, Data, Trace, find_company  # noqa: E402
+from analysis.trace import MISSED, OFFER, WARN, WORKED, Data, Trace, find_company, money  # noqa: E402
 from dashboard import live_priorities as lp  # noqa: E402
 from golden import build_golden as bg  # noqa: E402
 
@@ -37,6 +38,25 @@ class HarrowgateTest(unittest.TestCase):
         self.assertEqual(len({r["requested_by"] for r in reqs}), 7)
         self.assertEqual(len({r["target_title"] for r in reqs}), 6)
         self.assertIn("9 requests from 7 people wanting 6 different titles", self.text)
+
+    def test_header_hover_detail_traces_each_count_to_its_requests(self):
+        h = self.trace.as_dict()["header"]
+        rows = h["request_rows"]
+        self.assertEqual(len(rows), h["requests"])
+        self.assertEqual([q["request_id"] for q in rows],
+                         [r["request_id"] for r in sorted(self.trace.requests, key=lambda r: (r["request_date"], r["request_id"]), reverse=True)],
+                         "newest first")
+        self.assertEqual(len({q["requested_by"] for q in rows}), h["people"])
+        self.assertEqual(Counter(q["stage"] for q in rows), Counter(h["routing"]["counts"]), "the routed / closed hovers list exactly the counted requests")
+        for q in rows:
+            self.assertRegex(q["date"], r"^\d{4}-\d{2}-\d{2}")
+            if q["stage"] == "routed":
+                self.assertTrue(q["routed_to"], q["request_id"])
+        self.assertTrue(any(q["intro_date"] for q in rows), "an intro on file shows its date along the way")
+        v = h["value"]
+        self.assertEqual(v["value_usd"], money(self.company["value_usd"]), "the company's one $, as on Live Priorities")
+        self.assertEqual(v["source"], "CRM ARR potential")
+        self.assertEqual([q["request_id"] for q in v["by_request"]], [q["request_id"] for q in rows], "the $ hover is per request, same order")
 
     def test_routing_furthest_and_latest_differ(self):
         """Two intros landed, but the latest request (R1057, Stalled) is still with the connector asked."""
@@ -73,9 +93,15 @@ class HarrowgateTest(unittest.TestCase):
         """Read off the roster, supply_reach.csv and this cycle's allocation rows,
         not best_path_if_unbudgeted."""
         why = self.trace.bypass()
-        self.assertTrue(why.startswith("Elena Duvall, offer 0.800, at capacity 3/3, Healthcare is outside their focus (route score 0.000); "), why)
-        self.assertIn("R1136 routed to Tomás Beckett", why)
-        self.assertIn("R1153 routed to Tomás Beckett", why)
+        used = sum(a["allocated_to"] == "Elena Duvall" for a in self.data.allocation)
+        cap = bg.capacity(self.data.roster, "Elena Duvall")
+        load = f"at capacity {used}/{cap}" if used >= cap else f"{used}/{cap} used this cycle"
+        self.assertTrue(why.startswith(f"Elena Duvall, offer 0.800, {load}, Healthcare is outside their focus (route score 0.000); "), why)
+        rows = [a for a in self.data.allocation if a["company_id"] == "C018"]
+        self.assertIn("R1153", [a["request_id"] for a in rows])
+        for a in rows:
+            self.assertIn(f"{a['request_id']} routed to {a['allocated_to']}" if a["allocated_to"]
+                          else f"{a['request_id']} unrouted ({a['exception_reason']})", why)
         reach = self.trace.as_dict()["reach"]
         self.assertEqual([r["connector"] for r in reach if r["bypass"]], ["Elena Duvall"])
         self.assertEqual(reach[-1]["bypass"], why)
@@ -90,11 +116,17 @@ class HarrowgateTest(unittest.TestCase):
         self.assertEqual(sum(e.source == "slack_threads.jsonl" for e in events), n_slack)
         marks = {e.mark for e in events}
         self.assertTrue({MISSED, WORKED, OFFER, WARN} <= marks)
-        # within a request block the lines are oldest first
-        for line_block in "\n".join(self.trace.chronology()).split("\n\n"):
+        # within a request block the lines are newest first, and so are the blocks
+        line_blocks = "\n".join(self.trace.chronology()).split("\n\n")
+        newest = []
+        for line_block in line_blocks:
             dates = [ln[3:13] for ln in line_block.splitlines() if ln[3:7].isdigit()]
-            self.assertEqual(dates, sorted(dates))
-        self.assertNotIn("## 5.", self.text)
+            self.assertEqual(dates, sorted(dates, reverse=True))
+            newest.append(dates[0])
+        request_blocks = newest[:-1]  # the CRM touch is its own block, last
+        self.assertEqual(request_blocks, sorted(request_blocks, reverse=True))
+        self.assertIn("newest first", self.text)
+        self.assertNotIn("Next steps", self.text)
 
 
 class RoutingStageTest(unittest.TestCase):
@@ -123,6 +155,13 @@ class RoutingStageTest(unittest.TestCase):
             self.assertIn(rt["latest"], [*bg.STAGES, "closed"], c["company_id"])
             if rt["furthest"] == "closed":
                 self.assertEqual(set(rt["counts"]), {"closed"}, c["company_id"])
+            if rt["furthest"] == "meeting booked":
+                b = rt["booked"]
+                self.assertTrue(b and b["request_id"] and b["connector"], c["company_id"])
+                o = next(o for o in self.data.outcomes[b["request_id"]] if o["connector_asked"] == b["connector"])
+                self.assertEqual((o["meeting_booked"], o["intro_date"]), ("Y", b["intro_date"]), "the intro that landed the meeting, dated by its intro_date")
+            else:
+                self.assertIsNone(rt["booked"], c["company_id"])
 
     def test_stage_of_agrees_with_live_priorities(self):
         """build_golden.stage_of is the one taxonomy: Live Priorities' stage_of is a

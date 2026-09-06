@@ -90,8 +90,18 @@ class ComposerTest(unittest.TestCase):
         self.assertGreater(multi, 0, "the golden allocation has a connector with two requests for one company")
 
     def test_duplicate_title_renders_once_with_a_count(self):
+        # Two live requests for one (company, title) may land in different batches;
+        # route the second down the first's path so one batch asks twice.
+        by_title = {}
+        allocation = [dict(a) for a in self.allocation]
+        for a in allocation:
+            if a["allocated_to"]:
+                first = by_title.setdefault((a["company_id"], a["target_title"]), a)
+                for k in ("allocated_to", "batch_id", "path_type", "contact_name"):
+                    a[k] = first[k]
+        records = batch_ask.compose(allocation, self.requests, self.roster, self.templates)
         hits = 0
-        for m in self.records:
+        for m in records:
             for c in m["companies"]:
                 for g in c["contacts"]:
                     for t in g["titles"]:
@@ -106,7 +116,7 @@ class ComposerTest(unittest.TestCase):
                         else:
                             self.assertNotIn(", asked", line[0])
                             self.assertEqual(len(t["request_ids"]), 1)
-        self.assertGreater(hits, 0, "the golden allocation has a company asked twice for the same title")
+        self.assertGreater(hits, 0, "the golden allocation has two live requests for one (company, title)")
 
     def test_message_body_carries_no_value_score_request_id_or_urgency(self):
         for m in self.records:
@@ -144,6 +154,24 @@ class ComposerTest(unittest.TestCase):
                 self.assertEqual(m["template"], batch_ask.ROSTER_TEMPLATE)
                 self.assertIn("here is what routes to you this cycle, reply with what you can take", m["message"])
 
+    def test_investor_network_batch_gets_the_network_template(self):
+        network = [m for m in self.records if not m["on_roster"] and all(q["path_type"] == "investor_network" for q in m["requests"])]
+        self.assertTrue(network, "the golden allocation asks someone in investor_network.csv over their own path")
+        for m in network:
+            self.assertEqual(m["template"], batch_ask.NETWORK_TEMPLATE)
+            self.assertIn("thank you for being part of the Halyard network", m["message"])
+            self.assertIn("warm introduction", m["message"])
+            self.assertNotIn("here is what routes to you this cycle", m["message"])
+            self.assertNotIn("back into the pool", m["message"])
+            self.assertIn("via your board / exec team relationship", m["message"])
+            for c in m["companies"]:
+                if c["retry"]:
+                    self.assertIn("for context:", m["message"], m["connector"])
+                    self.assertNotIn("retry:", m["message"], m["connector"])
+        self.assertEqual(batch_ask.pick_template(True, ["investor_network"]), batch_ask.ROSTER_TEMPLATE)
+        self.assertEqual(batch_ask.pick_template(False, ["investor_network", "offer"]), batch_ask.ROSTER_TEMPLATE)
+        self.assertEqual(batch_ask.pick_template(False, ["offer"]), batch_ask.OFFERER_TEMPLATE)
+
     def test_paths_render_as_specified(self):
         for m in self.records:
             for c in m["companies"]:
@@ -177,7 +205,7 @@ class ComposerTest(unittest.TestCase):
                 expect = intro if intro and intro["date"][:7] < m["cycle"] else None
                 self.assertEqual(c["retry"], expect, c["company_name"])
                 lines = block(m["message"], c["company_name"])
-                retry_lines = [ln for ln in lines if ln.startswith("  retry:")]
+                retry_lines = [ln for ln in lines if ln.startswith(("  retry:", "  for context:"))]
                 if not expect:
                     self.assertEqual(retry_lines, [], c["company_name"])
                     continue
@@ -205,7 +233,7 @@ class ComposerTest(unittest.TestCase):
             for q in m["requests"]:
                 if q["requested_by"]:
                     self.assertNotIn(q["requested_by"], src)
-        for t in ("roster", "offerer"):
+        for t in ("roster", "offerer", "network"):
             self.assertIn(t, self.templates)
 
 

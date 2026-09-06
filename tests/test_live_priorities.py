@@ -7,9 +7,9 @@ Three things are checked:
   1. the payload the page embeds — every section computed in Python, the browser
      only renders — states the facts the golden files state: 27 allocated in 8
      batches, 56 exceptions by reason (11 of them parked behind a live intro,
-     and the fizzled ones labelled as retries), the four unanswered offers, the 23
-     responded-but-no-intro asks, the 60-day check-in tests, importer-shaped
-     CRM columns, and a company link into Company Trace on every company.
+     and the fizzled ones labelled as retries), the 23 responded-but-no-intro
+     asks, importer-shaped CRM columns, and a company link into Company Trace on
+     every company.
   2. the upload preview parses like the build: the JavaScript parser (run under
      node) picks the same target and resolves it the same way as golden/parse.py
      + golden/resolver.py on every Slack first message and every raw_ask.
@@ -30,6 +30,7 @@ import unittest
 from collections import Counter
 from datetime import date
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -109,7 +110,7 @@ class PayloadTest(unittest.TestCase):
     def test_stages_are_point_in_time(self):
         S = self.P["stages"]
         self.assertEqual([s["stage"] for s in S["stages"]],
-                         ["needs data", "to be routed", "routed", "asked", "introduced", "won"])
+                         ["needs data", "to be routed", "routed", "asked", "introduced", "meeting booked"])
         reqs = read_csv(ROOT / "golden" / "golden_requests.csv")
         companies = {r["company_id"] for r in reqs if r["company_id"]}
         unresolved = [r for r in reqs if not r["company_id"]]
@@ -120,9 +121,38 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(S["total"]["companies"] + S["total"]["unresolved"], S["total"]["count"])
         self.assertEqual(S["excluded"]["stage"], "closed")
 
+    def test_every_dollar_on_the_page_is_the_companys_one_dollar(self):
+        """One traceable $ per company everywhere on Live Priorities: CRM ARR
+        potential, else the latest request carrying a deal value. The request's own
+        $ lives only on the Company Trace hover."""
+        L = lp.Live(AS_OF)
+        P = lp.payload(AS_OF)
+        seen = 0
+
+        def walk(o, where):
+            nonlocal seen
+            if isinstance(o, dict):
+                cid, fmt = o.get("company_id"), o.get("value_fmt")
+                if cid and fmt:
+                    seen += 1
+                    self.assertEqual(fmt, lp.money(L.company_value(cid)[0]), f"{where}: {o.get('request_id') or o.get('company_name')}")
+                for k, v in o.items():
+                    walk(v, f"{where}.{k}")
+            elif isinstance(o, list):
+                for x in o:
+                    walk(x, where + "[]")
+        walk({k: v for k, v in P.items() if k != "parser"}, "payload")
+        self.assertGreater(seen, 50)
+        for g in P["crm"]["groups"]:
+            self.assertEqual(g["value_fmt"], lp.money(L.dollars_total(g["rows"])), g["group"])
+        for r in P["priorities"]["top"]:
+            self.assertEqual(r["on_roster"], r["connector"] in L.roster, r["request_id"])
+        self.assertTrue(any(r["on_roster"] for r in P["priorities"]["top"]))
+
     def test_stage_dollars_are_one_value_per_company(self):
         """CRM ARR potential first, else the latest request's deal value; never the
-        sum of a company's requests. A won company stays won whatever else is open on it."""
+        sum of a company's requests. A company with a meeting booked stays there whatever
+        else is open on it."""
         L = lp.Live(AS_OF)
         cos = read_csv(ROOT / "golden" / "golden_companies.csv")
         by_stage = {s["stage"]: s for s in self.P["stages"]["stages"]}
@@ -139,8 +169,8 @@ class PayloadTest(unittest.TestCase):
                 value = next((int(r["value_usd"]) for r in reversed(reqs) if r["value_usd"]), 0)
             self.assertEqual(L.company_value(cid)[0], value, cid)
             stages = {L.stage_of(r) for r in reqs}
-            if "won" in stages:
-                self.assertEqual(stage, "won", f"{cid} is won, whatever else is open")
+            if "meeting booked" in stages:
+                self.assertEqual(stage, "meeting booked", f"{cid} has a meeting booked, whatever else is open")
             if stage != "closed":
                 expect[stage] += value
         for r in L.requests:
@@ -190,8 +220,8 @@ class PayloadTest(unittest.TestCase):
         self.assertTrue(all(c["connector"] and c["slug"] and c["batch_id"] for c in A["all"]))
         self.assertEqual(A["exception_count"], len(alloc) - len(allocated), 56)
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
-                         {"no path to this company in the network": 32, "already introduced": 11,
-                          "company unresolved": 8, "capacity exhausted this cycle": 5})
+                         {"no path to this company in the network": 28, "already introduced": 10,
+                          "company unresolved": 9, "capacity exhausted this cycle": 9})
         parked = next(e for e in A["exceptions"] if e["reason"] == "already introduced")
         for r in parked["rows"]:
             self.assertRegex(r["detail"], r"^.+ on \d{4}-\d{2}-\d{2} \(R1\d{3}(, meeting booked)?\)$", "the reason names the intro")
@@ -221,7 +251,7 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(I["days"], bg.INTRO_LIVE_DAYS)
         alloc = read_csv(ROOT / "golden" / "golden_allocation.csv")
         parked = [a for a in alloc if a["exception_reason"].startswith(bg.ALREADY_INTRODUCED)]
-        self.assertEqual(I["requests"], len(parked), 11)
+        self.assertEqual(I["requests"], len(parked), 14)
         self.assertEqual(sorted(rid for r in I["rows"] for rid in r["request_ids"]), sorted(a["request_id"] for a in parked))
         self.assertEqual(I["count"], len({a["company_id"] for a in parked}), "one row per company")
         values = [r["value_usd"] for r in I["rows"]]
@@ -246,10 +276,11 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(parked_cos & fresh, set())
         for m in L.batch_asks:
             self.assertEqual({q["company_id"] for q in m["requests"]} & parked_cos, set(), m["connector"])
-        # Redtree: fizzled, so back in the queue as a retry, with the prior intro named on every surface
+        # Redtree: fizzled, so back in the queue as a retry, with the prior intro named on
+        # every surface; R1003 itself (the request that intro was for) is back alongside
         redtree = [c for b in P["asks"]["batches"] for c in b["companies"] if c["company_id"] == "C045"]
         self.assertEqual(len(redtree), 1)
-        self.assertEqual(sorted(redtree[0]["request_ids"]), ["R1067", "R1074"])
+        self.assertEqual(sorted(redtree[0]["request_ids"]), ["R1003", "R1067", "R1074"])
         retry = redtree[0]["retry"]
         self.assertEqual((retry["connector"], retry["intro_date"], retry["request_id"], retry["requested_by"], retry["meeting_booked"], retry["live"]),
                          ("Dana Whitfield", "2026-03-18", "R1003", "Imani Mkhize", False, False))
@@ -272,19 +303,84 @@ class PayloadTest(unittest.TestCase):
         for m in L.batch_asks:
             for c in m["companies"]:
                 self.assertEqual(c["retry"] is not None, c["company_id"] in retried, c["company_name"])
-            self.assertEqual(m["message"].count("retry:"), sum(1 for c in m["companies"] if c["retry"]), m["connector"])
+            self.assertEqual(m["message"].count("retry:") + m["message"].count("for context:"),
+                             sum(1 for c in m["companies"] if c["retry"]), m["connector"])
 
-    def test_offer_gaps(self):
-        O = self.P["offer_gaps"]
-        self.assertEqual(sorted(r["request_id"] for r in O["rows"]), ["R1034", "R1109", "R1115", "R1136"])
-        self.assertEqual(sum(r["value_usd"] for r in O["rows"]), 3_750_000)
-        self.assertEqual(O["value_fmt"], "$3.8M")
-        r1109 = next(r for r in O["rows"] if r["request_id"] == "R1109")
-        self.assertEqual(r1109["status"], "Closed - no path")
-        self.assertEqual([o["who"] for o in r1109["offers"]], ["Owen Trask"])
-        for r in O["rows"]:
-            for o in r["offers"]:
-                self.assertTrue(o["text"], "what they wrote")
+    def test_offers_are_paths_not_a_section(self):
+        """An offer in the Slack thread is the strongest reach type the allocator
+        scores, so the offerer is the connector on the row; it is not listed again
+        as a to-do of its own."""
+        self.assertNotIn("offer_gaps", self.P)
+        self.assertNotIn("offers", dict(lp.SECTIONS))
+        reach = read_csv(ROOT / "golden" / "supply_reach.csv")
+        offered = {(r["connector"], r["company_id"]) for r in reach if r["reach_type"] == "offer"}
+        self.assertTrue(offered)
+        routed = {(r["connector"], r["company_id"]) for r in lp.Live(AS_OF).ranked() if r["path"].startswith("offered in Slack")}
+        self.assertTrue(routed and routed <= offered, "an offer row routes to whoever offered")
+
+    def test_an_asked_request_whose_own_intro_fizzled_is_back_on_the_connectors_page(self):
+        """Apex Holdings (C003): Marcus's 2026-03-11 intro for R1154 never booked a
+        meeting, so R1154 is back in his queue as a retry (not parked behind his
+        own ask), and `sitting on` once the retry ask is logged as sent."""
+        P = self.P
+        marcus = next(c for c in P["connectors"] if c["connector"] == "Marcus Aldridge")
+        q = next(q for q in marcus["queue"] if q["request_id"] == "R1154")
+        self.assertEqual((q["company_id"], q["retry"]["connector"], q["retry"]["intro_date"], q["retry"]["request_id"]),
+                         ("C003", "Marcus Aldridge", "2026-03-11", "R1154"))
+        page = next(c for c in lp.Live(AS_OF).connector_pages() if c["connector"] == "Marcus Aldridge")
+        self.assertIn("R1154", [r["request_id"] for r in page["top"] + page["rest"]])
+        self.assertIn("retry: you introduced Yusuf Petrossian there on 2026-03-11", marcus["batch_ask"]["message"])
+        self.assertNotIn("R1154", [s["request_id"] for s in marcus["sitting_on"]], "not sent yet: queue, not sitting on")
+        self.assertNotIn("R1154", [r["request_id"] for r in P["bottlenecks"]["rows"]], "the old reply is not a nudge")
+        # the retry goes out: an ask_sent completion after the intro files reasked_date
+        # and the request moves from the queue to what Marcus is sitting on
+        reask = {"completion_id": "R1154:ask_sent:2026-09-05", "completed_at": "2026-09-05T10:15:00+00:00", "completed_by": "vera",
+                 "action": bg.ASKED, "request_id": "R1154", "company_id": "", "connector": "Marcus Aldridge", "note": ""}
+        with mock.patch.object(bg, "load_completions", return_value=[reask]):
+            L = lp.Live(AS_OF)
+        o = L.outcome_by_rid["R1154"]
+        self.assertEqual((o["asked_date"], o["reasked_date"]), ("2026-03-05", "2026-09-05"))
+        self.assertFalse(bg.retriable(o, AS_OF), "re-asked, so not queued again")
+        card = L.connector_card("Marcus Aldridge")
+        s = next(s for s in card["sitting_on"] if s["request_id"] == "R1154")
+        self.assertEqual((s["company_id"], s["asked_date"], s["days_since_asked"], s["responded"], s["action"]),
+                         ("C003", "2026-09-05", 0, False, "chase"), "counted from the re-ask, unanswered")
+        self.assertEqual((s["retry"]["request_id"], s["retry"]["intro_date"], s["retry"]["requested_by"]),
+                         ("R1154", "2026-03-11", "Yusuf Petrossian"))
+        self.assertIn("Marcus's 2026-03-11 intro to Yusuf Petrossian went nowhere", s["retry"]["note"])
+        self.assertEqual(card["asked_this_cycle"], marcus["asked_this_cycle"] + 1, "the retry spends a slot this cycle")
+        self.assertEqual([c["asks"] for c in card["cycles"]][-1], [c["asks"] for c in marcus["cycles"]][-1] + 1)
+
+    def test_a_meeting_with_no_opportunity_in_60_days_releases_the_company_once_newer_requests_wait(self):
+        """Apex Logistics (C002): Elena's 2026-06-10 intro for R1038 booked a meeting
+        but no opportunity followed, and R1024 was filed after it, so the company is
+        no longer parked: R1024 is routed (to Marcus) as a retry whose note says
+        why, and the retry table reads the same intro."""
+        P, L = self.P, lp.Live(AS_OF)
+        i = L.intro_state["C002"]
+        self.assertEqual((i["request_id"], i["connector"], i["intro_date"], i["meeting_booked"], i["opportunity"], i["live"]),
+                         ("R1038", "Elena Duvall", "2026-06-10", True, False, False))
+        self.assertTrue(bg.meeting_stalled(i, ["2026-07-04"]))
+        self.assertFalse(bg.meeting_stalled(i, ["2026-06-01"]), "nothing filed since the meeting: still parked")
+        self.assertFalse(bg.meeting_stalled({**i, "opportunity": True}, ["2026-07-04"]))
+        self.assertFalse(bg.meeting_stalled({**i, "days": bg.INTRO_LIVE_DAYS}, ["2026-07-04"]), "the meeting is still fresh")
+        self.assertEqual(i["outcome"], f"meeting booked, no opportunity in {i['days']} days")
+        self.assertGreater(i["days"], bg.INTRO_LIVE_DAYS)
+        r1024 = next(r for r in L.ranked() if r["request_id"] == "R1024")
+        self.assertEqual(r1024["retry"]["request_id"], "R1038")
+        self.assertIn("Elena's 2026-06-10 intro to Nadia Okonkwo went nowhere: meeting booked, no opportunity", r1024["retry"]["note"])
+        marcus = next(c for c in P["connectors"] if c["connector"] == "Marcus Aldridge")
+        self.assertIn("R1024", [q["request_id"] for q in marcus["queue"]])
+        self.assertIn("C002", {x["company_id"] for x in P["introduced"]["retries"]})
+        self.assertNotIn("C002", {r["company_id"] for e in P["asks"]["exceptions"] for r in e["rows"]
+                                  if e["reason"] == "already introduced"})
+        # a meeting nobody has asked about since keeps parking its company
+        held = [cid for cid, i in L.intro_state.items() if i["live"] and i["meeting_booked"] and not i["opportunity"]]
+        self.assertTrue(held)
+        for cid in held:
+            since = [r["request_date"] for r in L.requests if r["company_id"] == cid
+                     and r["status_as_filed"] in bg.OPEN_STATUSES and r["request_date"] > L.intro_state[cid]["intro_date"]]
+            self.assertTrue(L.intro_state[cid]["days"] <= bg.INTRO_LIVE_DAYS or not since, cid)
 
     def test_bottlenecks_are_nudges(self):
         B = self.P["bottlenecks"]
@@ -295,6 +391,12 @@ class PayloadTest(unittest.TestCase):
         self.assertTrue(all(r["days_since_agreed"] >= 0 for r in B["rows"]))
         self.assertEqual([r["days_since_agreed"] for r in B["rows"]],
                          sorted((r["days_since_agreed"] for r in B["rows"]), reverse=True))
+        L = lp.Live(AS_OF)
+        for r in B["rows"]:
+            if r["company_id"]:
+                self.assertEqual((r["value_usd"], r["value_source"]), L.company_value(r["company_id"]),
+                                 f"{r['request_id']}: the company's one $ as on Company Trace, not the request's")
+        self.assertNotIn("value_fmt", B, "no request-value total on the section")
 
     def test_connectors(self):
         C = self.P["connectors"]
@@ -313,48 +415,6 @@ class PayloadTest(unittest.TestCase):
                 self.assertIsInstance(s["quiet"], bool)
             quiet = [s["quiet"] for s in c["sitting_on"]]
             self.assertEqual(quiet, sorted(quiet), "actionable rows first, recently followed-up rows last")
-
-    def test_checkins_lead_with_no_crm_touch_on_live_requests(self):
-        K = self.P["checkins"]
-        self.assertEqual(K["days"], 60)
-        self.assertEqual(K["count"], len(K["rows"]))
-        for r in K["rows"]:
-            self.assertGreater(r["live_requests"], 0, "only companies with live requests are listed")
-            self.assertTrue(r["touch_days"] is None or r["touch_days"] > 60, "only companies with no CRM touch in 60 days are listed")
-            self.assertIn("CRM touch", r["failed"])
-            self.assertEqual("intro ask" in r["failed"], r["ask_days"] is None or r["ask_days"] > 60, r)
-        self.assertEqual(K["both"], sum(1 for r in K["rows"] if len(r["failed"]) == 2))
-        self.assertEqual((K["unique"], K["owned"]), (sum(1 for r in K["rows"] if not r["owned_by"]), sum(1 for r in K["rows"] if r["owned_by"])))
-        self.assertEqual(K["unique"] + K["owned"], K["count"])
-        self.assertGreater(K["unique"], 0)
-        self.assertGreater(K["owned"], 0)
-        for r in K["rows"]:
-            self.assertNotIn("checked_in_on", r, "no Supabase completion on this section")
-        self.assertNotIn("checked_in", K)
-
-    def test_checkins_point_at_the_section_that_owns_the_action(self):
-        P, K = self.P, self.P["checkins"]
-        elsewhere = {
-            "top": {r["company_id"] for r in P["priorities"]["top"]},
-            "asks": {c["company_id"] for b in P["asks"]["batches"] for c in b["companies"]},
-            "introduced": {r["company_id"] for r in P["introduced"]["rows"]},
-            "connectors": {s["company_id"] for c in P["connectors"] for s in c["sitting_on"]},
-            "offers": {r["company_id"] for r in P["offer_gaps"]["rows"]},
-            "bottlenecks": {r["company_id"] for r in P["bottlenecks"]["rows"]},
-            "unrouted": {x["company_id"] for c in P["unrouted"]["per_connector"] for x in c["companies"]},
-            "crm": {r["company_id"] for g in P["crm"]["groups"] for r in g["rows"]},
-        }
-        order = [s for s, _ in lp.SECTIONS]
-        titles = dict(lp.SECTIONS)
-        for r in K["rows"]:
-            owners = [s for s in order if r["company_id"] in elsewhere.get(s, set())]
-            self.assertEqual(r["owned_by"], owners[0] if owners else "", f"{r['company_name']}: first section in page order that lists it")
-            self.assertEqual(r["owned_by_title"], titles.get(r["owned_by"], ""))
-        owned_flags = [bool(r["owned_by"]) for r in K["rows"]]
-        self.assertEqual(owned_flags, sorted(owned_flags), "the rows nothing else owns sort to the top")
-        for group in ([r for r in K["rows"] if not r["owned_by"]], [r for r in K["rows"] if r["owned_by"]]):
-            keys = [(-len(r["failed"]), -r["live_value_usd"], r["company_name"]) for r in group]
-            self.assertEqual(keys, sorted(keys), "within each half: both tests failed first, then largest live value")
 
     def test_completion_actions_cover_every_tick_and_no_crm(self):
         X = self.P["completions"]
@@ -434,9 +494,10 @@ class PayloadTest(unittest.TestCase):
         rows = elena["strongest_elsewhere"]
         row = next(r for r in rows if r["company_id"] == "C018")
         self.assertEqual((row["reach_type"], row["strength"], row["route_score"], row["outside_focus"]), ("offer", 0.8, 0.0, True))
-        self.assertEqual((row["used"], row["capacity"]), (3, 3))
+        used = sum(a["allocated_to"] == "Elena Duvall" for a in live.allocation)
+        self.assertEqual((row["used"], row["capacity"]), (used, 3))
         self.assertEqual(row["routed_to"], ["Tomás Beckett"])
-        self.assertEqual(row["requests"], ["R1136", "R1153"])
+        self.assertEqual(row["requests"], ["R1136", "R1140", "R1153"])
         self.assertEqual(row["href"], f"{lp.TRACE_PAGE}#C018")
         self.assertTrue({"action", "asked_date", "nudged_on"}.isdisjoint(row), "nothing to tick, chase or nudge")
         self.assertEqual([r["strength"] for r in rows], sorted((r["strength"] for r in rows), reverse=True))
@@ -506,11 +567,16 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual([sid for sid, _ in lp.SECTIONS], re.findall(r'<section id="([^"]+)"', boot),
                          "SECTIONS is the header nav; it must list every section boot() renders, in order")
         self.assertEqual([sid for sid, _ in lp.SECTIONS],
-                         ["route", "upload", "stages", "top", "offers", "bottlenecks", "crm", "asks", "introduced", "connectors", "unrouted", "checkins"],
-                         "intake, orientation, actionable now, current cycle, not moving")
-        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 4, 3, 2])
+                         ["route", "upload", "stages", "top", "crm", "asks", "introduced", "connectors", "exceptions", "unrouted", "bottlenecks"],
+                         "intake, orientation, actionable now, current cycle")
+        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 2, 6], "no Not Moving band")
+        self.assertTrue(all(all(w[0].isupper() or w in ("a", "an", "and", "by", "of", "the") for w in label.replace("—", " ").split())
+                            for _, label in lp.SECTIONS), "nav labels in Title Case")
+        self.assertIn("Unrouted Exceptions <span", boot)
+        asks = boot.split('<section id="asks"')[1].split('<section id=')[0]
+        self.assertNotIn("EXCEPTION_TITLE", asks, "exceptions have their own section, not a fold inside Current Asks")
         folded = re.findall(r'<section id="([^"]+)">\$\{fold\(', boot)
-        self.assertEqual(folded, ["offers", "bottlenecks", "crm", "asks", "introduced", "connectors", "unrouted", "checkins"], "the long tables start collapsed")
+        self.assertEqual(folded, ["crm", "asks", "introduced", "connectors", "exceptions", "unrouted", "bottlenecks"], "the long tables start collapsed")
         self.assertIn('<section id="stages" class="masthead">', boot)
         self.assertNotIn("<table", boot.split('<section id="stages"')[1].split("</section>")[0], "orientation is one strip, no rows")
         self.assertIn("CRM Updates <span", boot)
@@ -518,7 +584,7 @@ class PayloadTest(unittest.TestCase):
 
     def test_bands_are_in_the_payload_and_cover_every_section(self):
         bands = lp.payload(AS_OF)["bands"]
-        self.assertEqual([b["id"] for b in bands], ["intake", "orientation", "now", "cycle", "stuck"])
+        self.assertEqual([b["id"] for b in bands], ["intake", "orientation", "now", "cycle"])
         self.assertEqual([s for b in bands for s in b["sections"]], [sid for sid, _ in lp.SECTIONS])
         self.assertTrue(all(b["title"] and b["test"].endswith("?") for b in bands))
 
@@ -551,7 +617,7 @@ class BuiltPagesTest(unittest.TestCase):
                      + [c["page"] for c in cls.cards]}
 
     def test_masthead_and_tab_rows_on_every_page(self):
-        data_tabs = {"halyardscoping.html", "livedata.html"}
+        data_tabs = {"halyardscoping.html", "livedata.html", "companytrace.html"}
         for name, html in self.pages.items():
             self.assertIn("<b>Halyard Baton</b> / intro routing console", html, name)
             self.assertIn('<svg class="logo"', html, name)

@@ -20,6 +20,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+from golden import build_golden as bg  # noqa: E402
+
 G = ROOT / "golden"
 D = ROOT / "dataset"
 
@@ -137,15 +139,15 @@ class GoldenTest(unittest.TestCase):
         self.assertLess(len(self.reach), 500, "supply_reach is a filtered view, not the raw export")
 
     def test_all_path_kinds_survive_the_filter(self):
-        # Board seats are investor paths with board_seat = yes (a strength
-        # modifier, not a separate mechanism).
+        # Board seats are investor paths (roster or investor_network) with
+        # board_seat = yes (a strength modifier, not a separate mechanism).
         kinds = Counter(x["reach_type"] for x in self.reach)
-        for k in ("direct", "alumni", "offer", "investor"):
+        for k in ("direct", "alumni", "offer", "investor", bg.INVESTOR_NETWORK):
             with self.subTest(reach_type=k):
                 self.assertGreater(kinds[k], 0)
         seats = [x for x in self.reach if x["board_seat"] == "yes"]
         self.assertTrue(seats)
-        self.assertTrue(all(x["reach_type"] == "investor" for x in seats))
+        self.assertTrue(all(x["reach_type"] in ("investor", bg.INVESTOR_NETWORK) for x in seats))
 
     def test_every_connector_appears_at_least_once(self):
         # Every askable person must appear, even with no path.

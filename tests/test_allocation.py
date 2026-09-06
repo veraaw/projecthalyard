@@ -4,8 +4,10 @@
 
 The file is the connector history, one row per (cycle, request_id); the
 current allocation is its latest cycle. Within a cycle: one row per live,
-not-yet-asked request; each row is either an allocation (allocated_to +
-batch_id) or an exception (exception_reason), never both and never neither.
+not-yet-asked request, plus one per asked request whose own intro fizzled with
+no re-ask logged since (back as a retry); each row is either an allocation
+(allocated_to + batch_id) or an exception (exception_reason), never both and
+never neither.
 Counts are derived from golden_requests.csv, golden_companies.csv and
 dataset/, never fixed: the request file grows on every merge.
 """
@@ -21,7 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from golden.build_golden import (  # noqa: E402
     ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, INTRO_LIVE_DAYS, OPEN_STATUSES, STALE_ASK, cycle_budget, history_signals,
-    introductions, latest_cycle, load_roster, parse_date,
+    intro_of, introductions, latest_cycle, load_roster, meeting_stalled, parse_date, retriable,
 )
 
 G = ROOT / "golden"
@@ -54,9 +56,12 @@ class AllocationTest(unittest.TestCase):
         cls.allocated = [a for a in cls.alloc if a["allocated_to"]]
         cls.exceptions = [a for a in cls.alloc if a["exception_reason"]]
         cls.cycle = cls.alloc[0]["cycle"] if cls.alloc else ""
+        decided = parse_date(cls.alloc[0]["decided_at"]) if cls.alloc else None
+        cls.retry = {o["request_id"] for o in cls.outcomes if decided and retriable(o, decided)}
         # what the allocator should have covered
         cls.live = {rid for rid, r in cls.requests.items()
-                    if r["status_as_filed"] in OPEN_STATUSES and rid not in cls.asked and not r["asked_date"]}
+                    if r["status_as_filed"] in OPEN_STATUSES
+                    and ((rid not in cls.asked and not r["asked_date"]) or rid in cls.retry)}
 
     # ── 1. structure ───────────────────────────────────────────────────
     def test_every_row_has_the_headers_field_count(self):
@@ -109,9 +114,27 @@ class AllocationTest(unittest.TestCase):
         not_live = [a["request_id"] for a in self.alloc
                     if self.requests[a["request_id"]]["status_as_filed"] not in OPEN_STATUSES]
         self.assertEqual(not_live, [], f"not in {sorted(OPEN_STATUSES)}")
-        already = [a["request_id"] for a in self.alloc
-                   if a["request_id"] in self.asked or self.requests[a["request_id"]]["asked_date"]]
+        already = [a["request_id"] for a in self.alloc if a["request_id"] not in self.retry
+                   and (a["request_id"] in self.asked or self.requests[a["request_id"]]["asked_date"])]
         self.assertEqual(already, [], "already asked")
+
+    def test_an_asked_request_comes_back_only_once_its_own_intro_fizzled(self):
+        # The retry rows are exactly the asked requests whose own intro went out,
+        # booked nothing and is older than INTRO_LIVE_DAYS; an ask still waiting
+        # on a reply, or an intro that booked a meeting, stays off the file.
+        decided = parse_date(self.alloc[0]["decided_at"])
+        back = {a["request_id"] for a in self.alloc} & self.asked
+        self.assertTrue(back, "the golden allocation retries at least one asked request")
+        self.assertEqual(back, self.retry & self.live, "every open retry, and nothing filed closed")
+        for o in self.outcomes:
+            if o["request_id"] in back:
+                self.assertEqual(o["intro_sent"], "Y", f"{o['request_id']} back in the queue with no intro sent")
+                self.assertEqual(o["meeting_booked"], "N", f"{o['request_id']} back in the queue after a meeting")
+                self.assertGreater((decided - parse_date(o["intro_date"])).days, INTRO_LIVE_DAYS, o["request_id"])
+        # R1154: Marcus Aldridge's 2026-03-11 Apex Holdings intro never booked, so
+        # the request is back on his plate rather than parked behind his own ask
+        apex = next(a for a in self.alloc if a["request_id"] == "R1154")
+        self.assertEqual((apex["company_id"], apex["allocated_to"]), ("C003", "Marcus Aldridge"))
 
     def test_every_live_request_has_exactly_one_row(self):
         # The other direction: nothing live is skipped. Together with one row
@@ -166,7 +189,7 @@ class AllocationTest(unittest.TestCase):
     def test_two_reps_wanting_the_same_title_are_both_present(self):
         # Two reps asking for the same title at the same company are two asks,
         # not one: the file must list both request_ids rather than collapsing
-        # them, and a batch may therefore repeat a (company, title).
+        # them, each allocated on its own row.
         wanted = defaultdict(set)
         for rid in self.live:
             r = self.requests[rid]
@@ -178,9 +201,9 @@ class AllocationTest(unittest.TestCase):
             present[(a["company_id"], a["target_title"])].add(a["request_id"])
         collapsed = {k: sorted(v - present[k]) for k, v in contested.items() if v - present[k]}
         self.assertEqual(collapsed, {}, "request_ids dropped for a contested title")
-        repeated = Counter((a["batch_id"], a["company_id"], a["target_title"]) for a in self.allocated)
-        self.assertTrue(any(n > 1 for n in repeated.values()),
-                        "no batch lists the same title twice")
+        routed = Counter((a["company_id"], a["target_title"]) for a in self.allocated)
+        self.assertTrue(any(routed[k] > 1 for k in contested),
+                        "no contested title has both requests allocated")
 
     # ── 7. exception reasons ───────────────────────────────────────────
     def test_exception_reason_is_one_of_the_known_set(self):
@@ -225,14 +248,19 @@ class AllocationTest(unittest.TestCase):
         is routed like any other. The parking is per company, not per request."""
         decided = parse_date(self.alloc[0]["decided_at"])
         company_of = {rid: r["company_id"] for rid, r in self.requests.items()}
-        intro_of = introductions(self.outcomes, company_of, decided)
+        open_since = defaultdict(list)
+        for r in self.requests.values():
+            if r["company_id"] and r["status_as_filed"] in OPEN_STATUSES:
+                open_since[r["company_id"]].append(r["request_date"])
+        intro_of = introductions(self.outcomes, company_of, decided, open_since)
         parked = [a for a in self.alloc if a["exception_reason"].startswith(ALREADY_INTRODUCED)]
         self.assertTrue(parked, "the golden allocation parks at least one request behind a live intro")
         for a in parked:
             with self.subTest(request_id=a["request_id"]):
                 intro = intro_of[a["company_id"]]
                 self.assertTrue(intro["live"])
-                self.assertNotIn(a["request_id"], self.asked, "parked rows are requests never asked themselves")
+                self.assertTrue(a["request_id"] not in self.asked or a["request_id"] in self.retry,
+                                "parked rows are requests never asked themselves, or retries of their own fizzled intro")
                 self.assertEqual(a["allocated_to"], "")
                 self.assertIn(intro["connector"], a["exception_reason"])
                 self.assertIn(intro["intro_date"], a["exception_reason"])
@@ -249,8 +277,48 @@ class AllocationTest(unittest.TestCase):
         for a in retried:
             intro = intro_of[a["company_id"]]
             self.assertFalse(intro["live"])
-            self.assertFalse(intro["meeting_booked"])
+            self.assertFalse(intro["opportunity"])
             self.assertGreater((decided - parse_date(intro["intro_date"])).days, INTRO_LIVE_DAYS, a["request_id"])
+            if intro["meeting_booked"]:
+                self.assertTrue(meeting_stalled(intro, open_since[a["company_id"]]), a["request_id"])
+
+    # ── 9. a meeting that went nowhere stops holding the company ──────────────
+    def test_a_stalled_meeting_releases_the_requests_filed_after_it(self):
+        """A booked meeting parks the company only until it has gone INTRO_LIVE_DAYS
+        without an opportunity while open requests filed after the intro wait on
+        it; then those requests are routed (as retries). A meeting that created an
+        opportunity, or one nobody has asked about since, keeps parking."""
+        decided = parse_date(self.alloc[0]["decided_at"])
+        by_rid = {a["request_id"]: a for a in self.alloc}
+        meetings = [(o, intro_of(o, decided)) for o in self.outcomes if o["meeting_booked"] == "Y"]
+        stalled, held = [], []
+        for o, i in meetings:
+            cid = self.requests[o["request_id"]]["company_id"]
+            after = [r for r in self.requests.values() if r["company_id"] == cid
+                     and r["status_as_filed"] in OPEN_STATUSES and r["request_date"] > o["intro_date"]]
+            (stalled if meeting_stalled(i, [r["request_date"] for r in after]) else held).append((o, i, cid, after))
+        self.assertTrue(stalled, "the dataset has a meeting that stalled with newer requests waiting")
+        self.assertTrue(held)
+        for o, i, cid, after in stalled:
+            with self.subTest(request_id=o["request_id"]):
+                self.assertEqual(o["opportunity_created"], "N")
+                self.assertGreater(i["days"], INTRO_LIVE_DAYS)
+                self.assertTrue(after)
+                self.assertIn("no opportunity", i["outcome"])
+                self.assertNotIn(o["request_id"], by_rid, "the request that got the meeting is not itself re-asked")
+                # nothing is parked behind this meeting; only a later, live intro on the company may still park
+                for r in after:
+                    if r["request_id"] in by_rid:
+                        self.assertNotIn(f"({o['request_id']}", by_rid[r["request_id"]]["exception_reason"], r["request_id"])
+        for o, i, cid, after in held:
+            self.assertTrue(o["opportunity_created"] == "Y" or i["days"] is None or i["days"] <= INTRO_LIVE_DAYS or not after,
+                            o["request_id"])
+        # Apex Logistics: Elena's meeting on R1038 produced no opportunity, R1024 was filed after it
+        r1038 = next(o for o in self.outcomes if o["request_id"] == "R1038")
+        self.assertEqual((r1038["meeting_booked"], r1038["opportunity_created"]), ("Y", "N"))
+        self.assertIn("R1038", [o["request_id"] for o, *_ in stalled])
+        self.assertEqual(by_rid["R1024"]["company_id"], "C002")
+        self.assertTrue(by_rid["R1024"]["allocated_to"], by_rid["R1024"]["exception_reason"])
 
 
 if __name__ == "__main__":
