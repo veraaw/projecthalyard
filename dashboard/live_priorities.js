@@ -408,27 +408,8 @@ const LP = (function () {
     }
     out += `</details></section>`;
 
-    // 4. offer gaps
-    const O = D.offer_gaps;
-    out += `<section id="offers"><h2>Already offered, needs response <span class="foot">${plural(O.count, 'request')}, ${esc(O.value_fmt)} — someone volunteered in the Slack thread and no ask was ever logged</span></h2>
-      <p class="lede">These cost nothing to action: someone already said yes. Reply in the thread and log the ask.</p>
-      <table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>who offered</th><th>what they wrote</th><th>status the request carries</th></tr></thead><tbody>`
-      + O.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)}</span></td><td>${co(r)}<br><span class="foot">for ${esc(r.requested_by)}</span></td><td>${esc(r.target_title)}</td><td>${r.offers.map(o => `<b>${esc(o.who)}</b>${o.on_roster ? '' : ' <span class="foot">off roster</span>'}<br><span class="foot">${esc(o.date)} · ${o.days_ago} days ago</span>`).join('<br>')}</td><td>${r.offers.map(o => `<q>${esc(o.text)}</q>`).join('<br>')}</td><td><b class="${r.status === 'Closed - no path' ? 'warn' : ''}">${esc(r.status)}</b><br><span class="foot">${esc(r.note)}</span></td></tr>`).join('')
-      + `</tbody></table></section>`;
-
-    // 5. bottlenecks
-    const B = D.bottlenecks;
-    out += `<section id="bottlenecks">${fold(`Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro — ${esc(B.value_fmt)} — from <code>intro_outcomes.csv</code></span>`)}
-      <p class="lede">Each of these is a <b>nudge</b>, not a re-ask: asking again spends a fresh slot for an answer you already have.</p>`
-      + tabs('bottlenecks', [{ label: 'All connectors', n: B.count, rows: B.rows, note: `${plural(B.count, 'ask')} · ${esc(B.value_fmt)} · oldest agreement first` }]
-          .concat(B.by_connector.map(c => ({ label: c.connector, n: c.count, rows: B.rows.filter(r => r.connector === c.connector), note: `${plural(c.count, 'ask')} · ${esc(c.value_fmt)}${c.on_roster ? '' : ' · off roster'}` }))),
-        t => `<p class="foot">${t.note}</p><table><thead><tr><th>action</th><th>request</th><th>company</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
-          + t.rows.map(r => `<tr><td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`).join('')
-          + `</tbody></table>`)
-      + `</details></section>`;
-
-    // 6. per-connector tabs
-    out += `<section id="connectors"><h2>Connectors <span class="foot">roster, one panel each: queue this cycle, capacity used against stated capacity, delivery rate, what they are already sitting on — the coloured tabs at the top open each connector's own page</span></h2>`
+    // 4. per-connector tabs
+    out += `<section id="connectors">${fold(`Roster Connectors <span class="foot">one panel each: queue this cycle, capacity used against stated capacity, delivery rate, what they are already sitting on — the coloured tabs at the top open each connector's own page</span>`)}`
       + tabs('connectors', D.connectors.map(c => ({ label: c.connector, n: `${c.used}/${c.capacity}`, c })), ({ c }) => `
         <p class="lede">${esc(c.role)} · ${esc(c.type)} · focus: ${c.focus.map(esc).join(', ')}${c.hard_decline ? ' · <b>declines anything outside</b>' : ''} · <a href="${esc(c.page)}">their top 5 →</a><br><span class="foot">${esc(c.notes)}</span></p>
         <div class="kpis"><div class="kpi"><div class="v">${c.used} / ${c.capacity}</div><div class="l">capacity used this cycle</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated · ${c.idle} idle</div></div>
@@ -438,7 +419,26 @@ const LP = (function () {
         <h3>queue this cycle</h3>` + (c.queue.length ? `<table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>for</th><th>path</th><th class="num">score</th><th>value</th><th>urgency</th></tr></thead><tbody>`
           + c.queue.map(q => `<tr><td class="rid">${esc(q.request_id)}</td><td>${co(q)}</td><td>${esc(q.target_title)}</td><td>${esc(q.requested_by)}</td><td>${esc(q.path_type)}${q.contact ? ` <span class="foot">via ${esc(q.contact)}</span>` : ''}</td><td class="num">${esc(q.route_score)}</td><td>${esc(q.value_fmt)}</td><td>${esc(q.urgency)}</td></tr>`).join('') + `</tbody></table>` : `<p class="empty">nothing allocated to ${esc(c.connector)} this cycle</p>`)
         + `<h3>already sitting on</h3>` + sittingTable(c))
-      + `</section>`;
+      + `</details></section>`;
+
+    // 5. offer gaps
+    const O = D.offer_gaps;
+    out += `<section id="offers">${fold(`Already offered, needs response <span class="foot">${plural(O.count, 'request')}, ${esc(O.value_fmt)} — someone volunteered in the Slack thread and no ask was ever logged</span>`)}
+      <p class="lede">These cost nothing to action: someone already said yes. Reply in the thread and log the ask.</p>
+      <table><thead><tr><th>request</th><th>company</th><th>wanted</th><th>who offered</th><th>what they wrote</th><th>status the request carries</th></tr></thead><tbody>`
+      + O.rows.map(r => `<tr><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)}</span></td><td>${co(r)}<br><span class="foot">for ${esc(r.requested_by)}</span></td><td>${esc(r.target_title)}</td><td>${r.offers.map(o => `<b>${esc(o.who)}</b>${o.on_roster ? '' : ' <span class="foot">off roster</span>'}<br><span class="foot">${esc(o.date)} · ${o.days_ago} days ago</span>`).join('<br>')}</td><td>${r.offers.map(o => `<q>${esc(o.text)}</q>`).join('<br>')}</td><td><b class="${r.status === 'Closed - no path' ? 'warn' : ''}">${esc(r.status)}</b><br><span class="foot">${esc(r.note)}</span></td></tr>`).join('')
+      + `</tbody></table></details></section>`;
+
+    // 6. bottlenecks
+    const B = D.bottlenecks;
+    out += `<section id="bottlenecks">${fold(`Core bottlenecks <span class="foot">${plural(B.count, 'ask')} where the connector said yes and never sent the intro — ${esc(B.value_fmt)} — from <code>intro_outcomes.csv</code></span>`)}
+      <p class="lede">Each of these is a <b>nudge</b>, not a re-ask: asking again spends a fresh slot for an answer you already have.</p>`
+      + tabs('bottlenecks', [{ label: 'All connectors', n: B.count, rows: B.rows, note: `${plural(B.count, 'ask')} · ${esc(B.value_fmt)} · oldest agreement first` }]
+          .concat(B.by_connector.map(c => ({ label: c.connector, n: c.count, rows: B.rows.filter(r => r.connector === c.connector), note: `${plural(c.count, 'ask')} · ${esc(c.value_fmt)}${c.on_roster ? '' : ' · off roster'}` }))),
+        t => `<p class="foot">${t.note}</p><table><thead><tr><th>action</th><th>request</th><th>company</th><th>connector</th><th>asked</th><th>agreed</th><th class="num">days since they agreed</th><th>wanted</th><th>for</th></tr></thead><tbody>`
+          + t.rows.map(r => `<tr><td><b>${esc(r.action)}</b></td><td class="rid">${esc(r.request_id)}<br><span class="foot">${esc(r.value_fmt)} · ${esc(r.status)}</span></td><td>${co(r)}</td><td>${esc(r.connector)}${r.on_roster ? '' : ' <span class="foot">off roster</span>'}</td><td class="date">${esc(r.asked_date)}</td><td class="date">${esc(r.agreed_date)}</td><td class="num"><b>${r.days_since_agreed}</b></td><td>${esc(r.target_title)}</td><td>${esc(r.requested_by)}</td></tr>`).join('')
+          + `</tbody></table>`)
+      + `</details></section>`;
 
     // 7. check-ins
     const K = D.checkins;
