@@ -1172,9 +1172,12 @@ class Live:
             }
         return {
             "cues": [{"label": label, **js_regex(pat), "score": score} for label, pat, score in gp._CUES],
+            "lower_cues": [{"label": label, **js_regex(pat), "score": score} for label, pat, score in gp._LOWER_CUES],
+            "word": js_regex(gp._WORD),
             "split": js_regex(gp._SPLIT), "domain": js_regex(gp._DOMAIN), "title": js_regex(gp.TITLE_RE),
             "domain_cue": gp.DOMAIN_CUE, "domain_score": gp.DOMAIN_SCORE,
             "known": js_regex(self.known_regex(res)), "known_cue": gp.KNOWN_CUE, "known_score": gp.KNOWN_SCORE,
+            "bare": js_regex(gp._BARE), "bare_cue": gp.BARE_CUE, "bare_score": gp.BARE_SCORE,
             "offer": js_regex(bg.OFFER_RE), "noise": js_regex(bg.NOISE_RE),
             "offer_title": js_regex(bg._OFFER_TITLE_RE), "offer_person": js_regex(bg._OFFER_PERSON_RE),
             "resolver": {
