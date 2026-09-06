@@ -737,15 +737,18 @@ const LP = (function () {
     // ---- band 4 · current cycle: decisions the allocator already made — read-only
     // what is going out
     const A = D.asks;
-    sec.asks = `<section id="asks">${fold(`Current Asks <span class="foot">cycle ${esc(A.cycle)}: ${plural(A.allocated, 'ask')} (${plural(A.requests, 'request')}) in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector and one ask per company, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code> · the drafted messages are on <a href="${esc(D.batch_page)}">Batched-Ask</a></span>`)}`
-      + tabs('asks', [...A.batches.map(b => ({ label: b.connector, n: b.size, b })), { label: 'Aggregate', n: A.allocated, cls: 'agg' }], ({ b }) => b
+    // notify owner: the account owner(s) owed a heads-up (golden_allocation.notify_owner), one drafted
+    // message per flagged request with a copy button. A flag only: the row is routed regardless
+    const notifyCell = (c, tab) => c.notify.length ? c.notify.map(n => { const id = `notify-${tab}-${n.request_id}`; return `<div class="notify" id="${esc(id)}"><b>${n.owners.map(esc).join('<br>')}</b><br><span class="foot">${esc(n.request_id)} · ${esc(n.stage)} · not ${esc(n.requester)}'s account</span><br><button type="button" class="copy secondary" data-copy="${esc(id)}" title="${esc(n.message)}">Copy heads-up</button><pre class="msg" hidden>${esc(n.message)}</pre></div>`; }).join('') : '';
+    sec.asks = `<section id="asks">${fold(`Current Asks <span class="foot">cycle ${esc(A.cycle)}: ${plural(A.allocated, 'ask')} (${plural(A.requests, 'request')}) in ${plural(A.batches.length, 'batch')}, one consolidated ask per connector and one ask per company, from <code>golden_allocation.csv</code> and <code>supply_reach.csv</code> · the drafted messages are on <a href="${esc(D.batch_page)}">Batched-Ask</a>${A.notify_count ? ` · ${plural(A.notify_count, 'request')} on a late-stage account someone other than its owner asked for: the owner gets a heads-up, nothing is held` : ''}</span>`)}`
+      + tabs('asks', [...A.batches.map(b => ({ label: b.connector, n: b.size, b })), { label: 'Aggregate', n: A.allocated, cls: 'agg' }], ({ b }, i) => b
         ? `<p class="foot">${esc(b.connector_type)} · ${plural(b.size, 'ask')}, ${plural(b.requests, 'request')} · ${esc(b.value_fmt)} · one consolidated ask, batch <code>${esc(b.batch_id)}</code> · <a href="${esc(D.batch_page)}#${esc(b.slug)}">the message</a></p>
-        <table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>why this connector</th></tr></thead><tbody>`
-        + b.companies.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td class="foot">${esc(c.why)}</td></tr>`).join('')
+        <table><thead><tr><th>company</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>why this connector</th><th>notify owner</th></tr></thead><tbody>`
+        + b.companies.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td class="foot">${esc(c.why)}</td><td>${notifyCell(c, i)}</td></tr>`).join('')
         + `</tbody></table>`
         : `<p class="foot">everything going out this cycle · ${plural(A.allocated, 'ask')} (${plural(A.requests, 'request')}) across ${plural(A.batches.length, 'connector')} · ${esc(A.value_fmt)} · biggest first; a company is asked of one connector, all its live requests together</p>
-        <table><thead><tr><th>company</th><th>connector</th><th>everyone wanted</th><th>who is waiting</th><th>path</th></tr></thead><tbody>`
-        + A.all.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td><b>${esc(c.connector)}</b><br><a class="foot" href="${esc(D.batch_page)}#${esc(c.slug)}">the message</a></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td></tr>`).join('')
+        <table><thead><tr><th>company</th><th>connector</th><th>everyone wanted</th><th>who is waiting</th><th>path</th><th>notify owner</th></tr></thead><tbody>`
+        + A.all.map(c => `<tr><td>${co(c)}<br><span class="foot">${esc(c.value_fmt)} · ${esc(c.urgency)} · ${c.request_ids.map(esc).join(', ')}</span>${retryTag(c)}</td><td><b>${esc(c.connector)}</b><br><a class="foot" href="${esc(D.batch_page)}#${esc(c.slug)}">the message</a></td><td>${c.wanted.map(esc).join('<br>')}</td><td>${c.waiting.map(esc).join('<br>')}</td><td>${esc(c.path_type)}${c.contact ? `<br><span class="foot">${esc(c.contact)}</span>` : ''}</td><td>${notifyCell(c, 'all')}</td></tr>`).join('')
         + `</tbody></table>`);
     sec.asks += `</details></section>`;
 
@@ -834,6 +837,7 @@ const LP = (function () {
 
     // wiring: ticks + Submit, build stamp, connector tabs, downloads, upload
     wireCompletions(root, X, state);
+    wireCopy(root);
     buildStamp(D, root.querySelector('#lp-stamp'));
     wireTabs(root);
     root.querySelector('#lp-dl-import').onclick = () => download(C.import.filename, C.import.csv);

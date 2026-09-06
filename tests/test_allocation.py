@@ -24,9 +24,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from golden.build_golden import (  # noqa: E402
-    ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, HOLD_LAST, HOLD_NUDGE, HOLD_WINDOW, INTRO_LIVE_DAYS, OPEN_STATUSES,
-    STALE_ASK, UNANSWERED_ASK_DAYS, UNRESOLVED_ASK, URGENCY_RANK, cycle_budget, history_signals, hold_reason, intro_of,
-    introductions, is_lead, latest_cycle, load_roster, meeting_stalled, parse_date, path_rank, retriable, unresolved_asks,
+    ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, HOLD_LAST, HOLD_NUDGE, HOLD_WINDOW, INTRO_LIVE_DAYS, MULTI, NOTIFY_STAGES,
+    OPEN_STATUSES, STALE_ASK, UNANSWERED_ASK_DAYS, UNRESOLVED_ASK, URGENCY_RANK, Company, cycle_budget, history_signals,
+    hold_reason, intro_of, introductions, is_lead, latest_cycle, load_roster, meeting_stalled, owner_to_notify, parse_date,
+    path_rank, retriable, unresolved_asks,
 )
 
 G = ROOT / "golden"
@@ -439,6 +440,47 @@ class AllocationTest(unittest.TestCase):
         self.assertIn("R1038", [o["request_id"] for o, *_ in stalled])
         self.assertEqual(by_rid["R1024"]["company_id"], "C002")
         self.assertTrue(by_rid["R1024"]["allocated_to"], by_rid["R1024"]["exception_reason"])
+
+    # ── 10. notify_owner: a heads-up to the AE, never a gate ────────────────────────
+    def test_notify_owner_fires_on_a_late_stage_account_someone_else_asked_for(self):
+        """An allocated request on a company whose CRM stage is in NOTIFY_STAGES,
+        asked for by someone other than the account owner, names the owner(s) in
+        notify_owner (both, pipe-separated, when duplicate accounts disagree).
+        Blank when the requester is the owner, the stage is earlier, or the
+        request is an exception. It changes nothing about who is allocated."""
+        def company(*accounts: tuple[str, str, str]) -> Company:
+            c = Company("x.com")
+            c.accounts = [{"account_id": aid, "owner": owner, "stage": stage} for aid, owner, stage in accounts]
+            return c
+        late = company(("A1", "Imani Mkhize", "Pilot"))
+        self.assertEqual(owner_to_notify(late, "Nadia Okonkwo"), "Imani Mkhize")
+        self.assertEqual(owner_to_notify(late, "Imani Mkhize"), "", "the owner asking for their own account")
+        self.assertEqual(owner_to_notify(company(("A1", "Imani Mkhize", "Discovery")), "Nadia Okonkwo"), "")
+        self.assertEqual(owner_to_notify(company(("A1", "Imani Mkhize", "Closed Lost")), "Nadia Okonkwo"), "")
+        self.assertEqual(owner_to_notify(Company("nowhere.com"), "Nadia Okonkwo"), "", "no CRM account, no owner")
+        two = company(("A1", "Imani Mkhize", "Negotiation"), ("A91", "Nadia Okonkwo", "Prospect"))
+        self.assertEqual(owner_to_notify(two, "Yusuf Petrossian"), f"Imani Mkhize{MULTI}Nadia Okonkwo", "both owners, neither picked")
+        self.assertEqual(owner_to_notify(two, "Nadia Okonkwo"), "", "either owner counts as the owner")
+        # the file agrees with the rule, row by row, and the rule never touched the routing
+        flagged = []
+        for a in self.alloc:
+            with self.subTest(request_id=a["request_id"]):
+                if not a["allocated_to"]:
+                    self.assertEqual(a["notify_owner"], "", "only an allocated request is flagged")
+                    continue
+                c = self.companies[a["company_id"]]
+                owners = [o for o in c["owner"].split(MULTI) if o]
+                who = self.requests[a["request_id"]]["requested_by"]
+                expected = MULTI.join(owners) if c["stage"] in NOTIFY_STAGES and owners and who not in owners else ""
+                self.assertEqual(a["notify_owner"], expected)
+                if expected:
+                    flagged.append(a)
+        self.assertTrue(flagged, "the dataset has a late-stage account someone other than its owner asked for")
+        # Hollowbrook Grocers (Pilot): two accounts, two owners, Bertrand asked; both owners are named
+        hollowbrook = [a for a in flagged if a["company_id"] == "C019"]
+        self.assertTrue(hollowbrook)
+        self.assertEqual({a["notify_owner"] for a in hollowbrook}, {f"Imani Mkhize{MULTI}Nadia Okonkwo"})
+        self.assertEqual({a["allocated_to"] for a in hollowbrook}, {"Dana Whitfield"}, "flagged, still routed")
 
 
 if __name__ == "__main__":
