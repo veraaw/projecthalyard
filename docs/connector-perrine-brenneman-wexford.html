@@ -441,6 +441,7 @@ const LP = (function () {
 
   // ---------------------------------------------------------------- helpers
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const cap1 = s => s ? s[0].toUpperCase() + s.slice(1) : s;
   const co = ref => ref && ref.href ? `<a href="${esc(ref.href)}">${esc(ref.company_name)}</a>` : esc(ref ? ref.company_name : '');
   const plural = (n, w) => `${n} ${n === 1 ? w : w.endsWith('y') ? w.slice(0, -1) + 'ies' : w.endsWith('ch') ? w + 'es' : w + 's'}`;
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
@@ -1161,7 +1162,7 @@ const LP = (function () {
     for (const g of C.groups) {
       sec.crm += `<h3>${esc(g.title)} <span class="foot">${g.count} · ${esc(g.value_fmt)}</span></h3>`;
       sec.crm += g.rows.length ? `<table><thead><tr><th>Company</th><th>CRM accounts</th><th>Owner</th><th>Stage</th><th>Action</th><th>Why</th><th class="num">At stake</th></tr></thead><tbody>`
-        + g.rows.map(r => `<tr><td>${co(r)}<br><span class="foot">${r.request_ids.map(esc).join(', ')}</span></td><td class="rid">${esc(r.crm_account_ids || 'none')}</td><td>${esc(r.owner || 'nobody')}</td><td>${esc(r.stage || 'none')}</td><td><b>${esc(r.action)}</b></td><td class="foot">${esc(r.why)}<br>${esc(r.evidence)}</td><td class="num">${esc(r.value_fmt)}</td></tr>`).join('') + `</tbody></table>`
+        + g.rows.map(r => `<tr><td>${co(r)}<br><span class="foot">${r.request_ids.map(esc).join(', ')}</span></td><td class="rid">${esc(r.crm_account_ids || 'None')}</td><td>${esc(r.owner || 'Nobody')}</td><td>${esc(r.stage || 'None')}</td><td><b>${esc(r.action)}</b></td><td class="foot">${esc(r.why)}<br>${esc(r.evidence)}</td><td class="num">${esc(r.value_fmt)}</td></tr>`).join('') + `</tbody></table>`
         : `<p class="empty">Nothing to do</p>`;
     }
     sec.crm += `</details></section>`;
@@ -1215,7 +1216,6 @@ const LP = (function () {
     // requests the allocator could not place this cycle, by reason
     const EXCEPTION_TITLE = { 'no path to this company in the network': 'No direct path to this company in the network', 'already introduced': 'Already introduced — extend the intro',
                               'unresolved ask on every path': 'Unresolved ask on every path — nudge or chase, don’t ask afresh' };
-    const cap1 = s => s ? s[0].toUpperCase() + s.slice(1) : s;
     const EXCEPTION_NOTE = { 'no path to this company in the network': 'Not routable this cycle (sourcing issue vs. allocation)',
                              'unresolved ask on every path': 'Everyone who reaches the company is sitting on an ask there: agreed and sent no intro (Core bottlenecks, nudge), or not yet answered (chase). Nobody is asked again until it resolves or, unanswered, ages past the window.' };
     const parked = A.exceptions.find(e => e.reason === 'already introduced');
@@ -1356,7 +1356,7 @@ const LP = (function () {
     if (pv.errors.length) out += `<div class="finding warn"><b>${plural(pv.errors.length, 'line')} skipped</b>${pv.errors.slice(0, 5).map(esc).join('<br>')}</div>`;
     out += `<div class="dl"><button id="lp-dl-preview">Export preview CSV</button><span>Nothing has been written. To apply it for real, from the repo root:<br><code>${esc(P.command.replace('{file}', filename || 'threads.jsonl'))}</code></span></div>`;
     out += `<table class="preview"><thead><tr><th>Request</th><th>Posted · by</th><th>Resolved company</th><th>Offer in replies</th><th>Would route to<br><span class="fm">Hover a name for the arithmetic</span></th><th>Needs a human</th></tr></thead><tbody>`
-      + pv.rows.map(r => `<tr class="${r.flags.length ? 'flag' : ''}"><td class="rid">${esc(r.request_id)}${r.filed ? '<br><span class="foot">filed</span>' : ''}</td><td class="date">${esc(r.posted)}<br><span class="foot">${esc(r.requested_by)}</span></td><td>${r.company_id ? `${co(r)} <span class="foot">${esc(r.company_id)}</span>` : `<i>${esc(r.company_name || 'none')}</i>`}<br><span class="foot">${esc(r.company_as_written ? `"${r.company_as_written}" · ` : '')}${esc(r.resolved_by)}</span></td><td>${r.offers.length ? r.offers.map(o => `${named(r, o.who)} <span class="foot">${esc(o.date)}</span><br><q>${esc(o.text)}</q>`).join('<br>') : '<span class="foot">none</span>'}</td><td>${r.route_to ? `${named(r, r.route_to)}<br><span class="foot">${esc(r.path)} · expected value ${esc(r.expected_value)}</span>` : `<span class="foot">${esc(r.path || 'none')}</span>`}</td><td class="foot">${r.flags.length ? r.flags.map(esc).join('<br>') : 'Nothing'}</td></tr>`).join('')
+      + pv.rows.map(r => `<tr class="${r.flags.length ? 'flag' : ''}"><td class="rid">${esc(r.request_id)}${r.filed ? '<br><span class="foot">filed</span>' : ''}</td><td class="date">${esc(r.posted)}<br><span class="foot">${esc(r.requested_by)}</span></td><td>${r.company_id ? `${co(r)} <span class="foot">${esc(r.company_id)}</span>` : `<i>${esc(r.company_name || 'None')}</i>`}<br><span class="foot">${esc(r.company_as_written ? `"${r.company_as_written}" · ` : '')}${esc(r.resolved_by)}</span></td><td>${r.offers.length ? r.offers.map(o => `${named(r, o.who)} <span class="foot">${esc(o.date)}</span><br><q>${esc(o.text)}</q>`).join('<br>') : '<span class="foot">None</span>'}</td><td>${r.route_to ? `${named(r, r.route_to)}<br><span class="foot">${esc(cap1(r.path))} · expected value ${esc(r.expected_value)}</span>` : `<span class="foot">${esc(cap1(r.path) || 'None')}</span>`}</td><td class="foot">${r.flags.length ? r.flags.map(f => esc(cap1(f))).join('<br>') : 'Nothing'}</td></tr>`).join('')
       + `</tbody></table>`;
     el.innerHTML = out;
     el.querySelector('#lp-dl-preview').onclick = () => download(`${name}_preview.csv`, toCsv(P.preview_columns, pv.rows));
