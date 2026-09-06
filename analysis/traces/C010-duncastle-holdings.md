@@ -18,7 +18,9 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**investor_network - asked when no roster path is left** (4 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
@@ -26,6 +28,11 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.215 | 0.900 | Matteo Falkenrath-Merriweather (investor network) | investor_network (board seat) | CEO / exec team — Cobalt Lane Ventures board seat | investor_network.csv: Matteo Falkenrath-Merriweather (Venture capital investor), portfolio_company=Duncastle Hotels, board_seat=True |  |
 | 0.215 | 0.900 | Renata Halloran-Quillane (investor network) | investor_network (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Renata Halloran-Quillane (Growth equity investor), portfolio_company=Duncastle Hotels, board_seat=True |  |
 | 0.172 | 0.720 | Matteo Ferreira-Yarrow (investor network) | investor_network | CEO / exec team — Ironvale Partners portfolio company | investor_network.csv: Matteo Ferreira-Yarrow (Private equity investor), portfolio_company=Duncastle Hotels, board_seat=False |  |
+
+**not asked again here - an unresolved ask (nudge or chase) owns it** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.184 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Duncastle Hotels, board_seat=True | Priya Raghunathan agreed on 2025-08-17 (R1082), no intro - nudge |
 
 ## 4. Chronology (27 events, 5 requests, newest first, as of 2026-09-06)

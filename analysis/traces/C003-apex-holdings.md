@@ -13,16 +13,23 @@
 
 ## Currently routing to: Espen Rushworth-Oyelaran
 
-- this cycle: R1154, R1186 -> Espen Rushworth-Oyelaran
+- this cycle: R1154 (retry), R1186 (retry) -> Espen Rushworth-Oyelaran
 - top askable path: Espen Rushworth-Oyelaran, investor_network via CEO / exec team, route score 0.172, 2/2 capacity used this cycle
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**investor_network - asked when no roster path is left** (1 path)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.172 | 0.720 | Espen Rushworth-Oyelaran (investor network) | investor_network | CEO / exec team — Silverbrook Capital portfolio company | investor_network.csv: Espen Rushworth-Oyelaran (Venture capital investor), portfolio_company=Apex Logistics Group, board_seat=False |  |
+
+**askable, ranked last - an ask here went unanswered past the window** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.168 | 0.484 | Marcus Aldridge (Advisor) | direct | Astrid Salcedo — VP Data & Analytics | connections_aldridge.csv: Astrid Salcedo, VP Data & Analytics at Apex Logistics Group, connected 2023-11-25 | Marcus Aldridge asked on 2025-11-01 (R1069), no reply for 309 days - askable, ranked last |
 
 ## 4. Chronology (17 events, 3 requests, newest first, as of 2026-09-06)

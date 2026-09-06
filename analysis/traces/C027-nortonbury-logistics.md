@@ -16,7 +16,9 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (6 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
@@ -26,9 +28,19 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.059 | 0.519 | Owen Trask (Investor) | direct | Anouk Kirkbride — Head of Developer Productivity | connections_trask.csv: Anouk Kirkbride, Head of Developer Productivity at Nortonbury Logistics, connected 2026-09-17 |  |
 | 0.044 | 0.386 | Owen Trask (Investor) | direct | Nadia Ferreira — Program Manager | connections_trask.csv: Nadia Ferreira, Program Manager at Nortonbury Logistics, connected 2024-03-25 |  |
 | 0.000 | 0.405 | Elena Duvall (Advisor) | direct | Nadia Ferreira — Program Manager | connections_duvall.csv: Nadia Ferreira, Program Manager at Nortonbury Logistics, connected 2025-07-30 |  |
+
+**investor_network - asked when no roster path is left** (3 paths)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.215 | 0.900 | Amara Brenneman-Fairweather (investor network) | investor_network (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Amara Brenneman-Fairweather (Growth equity investor), portfolio_company=Nortonbury Logistics, board_seat=True |  |
 | 0.172 | 0.720 | Perrine Brenneman-Wexford (investor network) | investor_network | CEO / exec team — Meridian Peak Partners portfolio company | investor_network.csv: Perrine Brenneman-Wexford (Private equity investor), portfolio_company=Nortonbury Logistics, board_seat=False |  |
 | 0.172 | 0.720 | Renata Halloran-Quillane (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Renata Halloran-Quillane (Growth equity investor), portfolio_company=Nortonbury Logistics, board_seat=False |  |
+
+**askable, ranked last - an ask here went unanswered past the window** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.180 | 0.519 | Marcus Aldridge (Advisor) | direct | Anouk Kirkbride — Head of Developer Productivity | connections_aldridge.csv: Anouk Kirkbride, Head of Developer Productivity at Nortonbury Logistics, connected 2026-07-07 | Marcus Aldridge asked on 2026-03-04 (R1077), no reply for 186 days - askable, ranked last |
 
 why not #1: Amara Brenneman-Fairweather investor network, roster asked first -> R1013 to Dana Whitfield

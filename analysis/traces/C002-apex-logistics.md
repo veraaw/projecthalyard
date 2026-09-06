@@ -18,11 +18,18 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each
+
+**roster - asked first** (1 path)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.133 | 0.383 | Marcus Aldridge (Advisor) | direct | Curtis Prendergast — SVP Digital | connections_aldridge.csv: Curtis Prendergast, SVP Digital at Apex Logistics, connected 2019-08-28 |  |
+
+**not asked again here - an unresolved ask (nudge or chase) owns it** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.000 | 0.459 | Elena Duvall (Advisor) | direct | Curtis Prendergast — SVP Digital | connections_duvall.csv: Curtis Prendergast, SVP Digital at Apex Logistics, connected 2022-02-04 | Elena Duvall agreed on 2025-08-24 (R1197), no intro - nudge |
 
 why not #1: Elena Duvall outside focus (Logistics), not asked again here: Elena Duvall agreed on 2025-08-24 (R1197), no intro - nudge -> R1024, R1041 to Marcus Aldridge

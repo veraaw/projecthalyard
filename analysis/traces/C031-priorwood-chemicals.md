@@ -11,15 +11,17 @@
 - R1150: filed "Stalled" but intro_outcomes.csv says Tomás Beckett sent the intro on 2026-03-16
 - R1196: filed "Stalled" but intro_outcomes.csv says Tomás Beckett sent the intro on 2026-02-20
 
-## Currently routing to: Elena Duvall
+## Currently routing to: nobody (parked on live intro: R1150, Tomás Beckett, 2026-03-16, meeting booked)
 
 - this cycle: R1092, R1174 unrouted (already introduced)
-- the next request goes to the top askable path: Elena Duvall, direct via Curtis Marchetti, route score 0.108, 2/3 capacity used this cycle
+- nothing goes out this cycle; the top askable path is: Elena Duvall, direct via Curtis Marchetti, route score 0.108, 2/3 capacity used this cycle
 - not asked again here: Tomás Beckett agreed on 2026-06-11 (R1033), no intro - nudge
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (4 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
@@ -27,7 +29,17 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.067 | 0.187 | Elena Duvall (Advisor) | alumni | Curtis Marchetti — ex-Priorwood Chemicals (2010-2017), now VP Enterprise Architecture at Priorwood Chemicals | investor_network.csv: Curtis Marchetti prior_employer=Priorwood Chemicals (2010-2017); connections_duvall.csv: connection of Elena Duvall since 2014-02-22 |  |
 | 0.042 | 0.271 | Marcus Aldridge (Advisor) | direct | Margot Havercamp — Director of Software Engineering | connections_aldridge.csv: Margot Havercamp, Director of Software Engineering at Priorwood Chemicals, connected 2014-03-11 |  |
 | 0.029 | 0.187 | Marcus Aldridge (Advisor) | alumni | Margot Havercamp — ex-Priorwood Chemicals (2011-2017), now Director of Software Engineering at Priorwood Chemicals | investor_network.csv: Margot Havercamp prior_employer=Priorwood Chemicals (2011-2017); connections_aldridge.csv: connection of Marcus Aldridge since 2014-03-11 |  |
+
+**investor_network - asked when no roster path is left** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.215 | 0.900 | Otto Cathcart-Brenneman (investor network) | investor_network (board seat) | CEO / exec team — Ashgrove Capital board seat | investor_network.csv: Otto Cathcart-Brenneman (Venture capital investor), portfolio_company=Priorwood Chemicals, board_seat=True |  |
+
+**not asked again here - an unresolved ask (nudge or chase) owns it** (4 paths)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.048 | 0.300 | Tomás Beckett (Internal) | direct | Curtis Marchetti — VP Enterprise Architecture | connections_beckett.csv: Curtis Marchetti, VP Enterprise Architecture at Priorwood Chemicals, connected 2014-07-13 | Tomás Beckett agreed on 2026-06-11 (R1033), no intro - nudge |
 | 0.044 | 0.271 | Tomás Beckett (Internal) | direct | Margot Havercamp — Director of Software Engineering | connections_beckett.csv: Margot Havercamp, Director of Software Engineering at Priorwood Chemicals, connected 2015-01-12 | Tomás Beckett agreed on 2026-06-11 (R1033), no intro - nudge |
 | 0.030 | 0.187 | Tomás Beckett (Internal) | alumni | Curtis Marchetti — ex-Priorwood Chemicals (2010-2017), now VP Enterprise Architecture at Priorwood Chemicals | investor_network.csv: Curtis Marchetti prior_employer=Priorwood Chemicals (2010-2017); connections_beckett.csv: connection of Tomás Beckett since 2014-07-13 | Tomás Beckett agreed on 2026-06-11 (R1033), no intro - nudge |

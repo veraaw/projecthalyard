@@ -13,13 +13,15 @@
 
 ## Currently routing to: Tomás Beckett
 
-- this cycle: R1006, R1070, R1128, R1171, R1193 -> Tomás Beckett
+- this cycle: R1006, R1070, R1128, R1171 (retry), R1193 -> Tomás Beckett
 - top askable path: Priya Raghunathan, direct via Saoirse Quillane, route score 0.138, 3/3 capacity used this cycle
 - not asked again here: Yusuf Petrossian agreed on 2026-07-06 (R1066), no intro - nudge; Dana Whitfield agreed on 2026-02-04 (R1113), no intro - nudge
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each
+
+**roster - asked first** (5 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
@@ -28,6 +30,11 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.047 | 0.187 | Tomás Beckett (Internal) | alumni | Kofi Mkhize — ex-Kingsmere Retail Group (2012-2019), now VP Engineering at Kingsmere Retail Group | investor_network.csv: Kofi Mkhize prior_employer=Kingsmere Retail Group (2012-2019); connections_beckett.csv: connection of Tomás Beckett since 2016-03-26 |  |
 | 0.044 | 0.248 | Owen Trask (Investor) | direct | Kofi Mkhize — VP Engineering | connections_trask.csv: Kofi Mkhize, VP Engineering at Kingsmere Retail Group, connected 2016-05-20 |  |
 | 0.033 | 0.187 | Owen Trask (Investor) | alumni | Kofi Mkhize — ex-Kingsmere Retail Group (2012-2019), now VP Engineering at Kingsmere Retail Group | investor_network.csv: Kofi Mkhize prior_employer=Kingsmere Retail Group (2012-2019); connections_trask.csv: connection of Owen Trask since 2016-05-20 |  |
+
+**not asked again here - an unresolved ask (nudge or chase) owns it** (2 paths)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.182 | 0.800 | Yusuf Petrossian (not on roster) | offer | exec team | slack_threads.jsonl R1066 2026-06-27 Yusuf Petrossian: "I'll take this one — I've got a direct line to their exec team" | Yusuf Petrossian agreed on 2026-07-06 (R1066), no intro - nudge |
 | 0.145 | 0.484 | Dana Whitfield (Internal) | direct | Saoirse Quillane — VP Data & Analytics | connections_whitfield.csv: Saoirse Quillane, VP Data & Analytics at Kingsmere Retail Group, connected 2023-12-11 | Dana Whitfield agreed on 2026-02-04 (R1113), no intro - nudge |
 

@@ -16,13 +16,25 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (2 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.164 | 0.460 | Tomás Beckett (Internal) | direct | Bertrand Cardoso — Director of IT | connections_beckett.csv: Bertrand Cardoso, Director of IT at Yarrowdale Media, connected 2024-10-15 |  |
 | 0.085 | 0.415 | Priya Raghunathan (Investor) | direct | Bertrand Cardoso — Director of IT | connections_raghunathan.csv: Bertrand Cardoso, Director of IT at Yarrowdale Media, connected 2022-11-15 |  |
+
+**investor_network - asked when no roster path is left** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.215 | 0.900 | Hugo Fairweather-Højgaard (investor network) | investor_network (board seat) | CEO / exec team — Northgate Growth board seat | investor_network.csv: Hugo Fairweather-Højgaard (Growth equity investor), portfolio_company=Yarrowdale Media, board_seat=True |  |
+
+**not asked again here - an unresolved ask (nudge or chase) owns it** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.182 | 0.800 | Bertrand Vandermolen (not on roster) | offer | Chief Information Officer | slack_threads.jsonl R1169 2026-07-10 Bertrand Vandermolen: "I met their Chief Information Officer at a conference last spring, happy to reach out" | Bertrand Vandermolen asked on 2026-07-12 (R1169), no reply - day 56 of 60 |
 
 ## 4. Chronology (6 events, 1 request, newest first, as of 2026-09-06)

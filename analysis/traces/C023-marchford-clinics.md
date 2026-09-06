@@ -10,20 +10,27 @@
 - R1009: filed "Intro sent" but intro_outcomes.csv has no row at all
 - R1121: filed "Stalled" but intro_outcomes.csv says Marcus Aldridge sent the intro on 2025-09-26
 
-## Currently routing to: Priya Raghunathan
+## Currently routing to: nobody (capacity exhausted)
 
-- this cycle: R1004, R1121, R1142 unrouted (capacity exhausted this cycle)
-- the next request goes to the top askable path: Priya Raghunathan, direct via Teodor Zubkov, route score 0.063, 3/3 capacity used this cycle
+- this cycle: R1004, R1121 (retry), R1142 unrouted (capacity exhausted this cycle)
+- nothing goes out this cycle; the top askable path is: Priya Raghunathan, direct via Teodor Zubkov, route score 0.063, 3/3 capacity used this cycle
 - not asked again here: Marcus Aldridge agreed on 2026-02-24 (R1114), no intro - nudge
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each
+
+**roster - asked first** (2 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.063 | 0.310 | Priya Raghunathan (Investor) | direct | Teodor Zubkov — Program Manager | connections_raghunathan.csv: Teodor Zubkov, Program Manager at Marchford Clinics, connected 2020-12-24 |  |
 | 0.035 | 0.310 | Owen Trask (Investor) | direct | Teodor Zubkov — Program Manager | connections_trask.csv: Teodor Zubkov, Program Manager at Marchford Clinics, connected 2020-05-24 |  |
+
+**not asked again here - an unresolved ask (nudge or chase) owns it** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.081 | 0.519 | Marcus Aldridge (Advisor) | direct | Kofi Jarrold — Chief Information Officer | connections_aldridge.csv: Kofi Jarrold, Chief Information Officer at Marchford Clinics, connected 2023-09-18 | Marcus Aldridge agreed on 2026-02-24 (R1114), no intro - nudge |
 
 why not #1: Marcus Aldridge not asked again here: Marcus Aldridge agreed on 2026-02-24 (R1114), no intro - nudge -> R1004, R1121, R1142 unrouted (capacity exhausted)

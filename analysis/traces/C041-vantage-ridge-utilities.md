@@ -16,12 +16,19 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (2 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
 | 0.171 | 0.492 | Marcus Aldridge (Advisor) | direct | Sabine Dellinger — Chief Data Officer | connections_aldridge.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2022-12-23 |  |
 | 0.088 | 0.546 | Tomás Beckett (Internal) | direct | Sabine Dellinger — Chief Data Officer | connections_beckett.csv: Sabine Dellinger, Chief Data Officer at Vantage Ridge Utilities, connected 2024-11-09 |  |
+
+**investor_network - asked when no roster path is left** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.172 | 0.720 | Ravi Underhill-Halloran (investor network) | investor_network | CEO / exec team — Blackwood Ventures portfolio company | investor_network.csv: Ravi Underhill-Halloran (Venture capital investor), portfolio_company=Vantage Ridge Utilities, board_seat=False |  |
 
 why not #1: Ravi Underhill-Halloran investor network, roster asked first -> R1001 to Marcus Aldridge

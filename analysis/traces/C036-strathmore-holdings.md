@@ -17,7 +17,9 @@
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; investor_network rows rank below every roster path and take a 10% haircut on route score; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each; investor_network rows rank below every roster path and take a 10% haircut on route score
+
+**roster - asked first** (8 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
@@ -29,7 +31,17 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.000 | 0.271 | Elena Duvall (Advisor) | direct | Yusuf Vasquez — Director of Software Engineering | connections_duvall.csv: Yusuf Vasquez, Director of Software Engineering at Strathmore Rail, connected 2015-02-06 |  |
 | 0.000 | 0.202 | Elena Duvall (Advisor) | alumni | Bertrand Lomsadze — ex-Strathmore Rail (2013-2017), now Chief Digital Officer at Strathmore Rail | investor_network.csv: Bertrand Lomsadze prior_employer=Strathmore Rail (2013-2017); connections_duvall.csv: connection of Elena Duvall since 2017-03-25 |  |
 | 0.000 | 0.187 | Elena Duvall (Advisor) | alumni | Yusuf Vasquez — ex-Strathmore Rail (2014-2017), now Director of Software Engineering at Strathmore Rail | investor_network.csv: Yusuf Vasquez prior_employer=Strathmore Rail (2014-2017); connections_duvall.csv: connection of Elena Duvall since 2015-02-06 |  |
+
+**investor_network - asked when no roster path is left** (1 path)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.172 | 0.720 | Freya Oldfield-Ibarra (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Freya Oldfield-Ibarra (Venture capital investor), portfolio_company=Strathmore Rail, board_seat=False |  |
+
+**not asked again here - an unresolved ask (nudge or chase) owns it** (4 paths)
+
+| route score | strength | connector | reach | contact | evidence | unresolved ask |
+|---|---|---|---|---|---|---|
 | 0.045 | 0.289 | Marcus Aldridge (Advisor) | direct | Tomás Dobrescu — VP Engineering | connections_aldridge.csv: Tomás Dobrescu, VP Engineering at Strathmore Rail, connected 2018-12-16 | Marcus Aldridge agreed on 2025-11-01 (R1102), no intro - nudge |
 | 0.042 | 0.271 | Marcus Aldridge (Advisor) | direct | Yusuf Vasquez — Director of Software Engineering | connections_aldridge.csv: Yusuf Vasquez, Director of Software Engineering at Strathmore Rail, connected 2015-08-28 | Marcus Aldridge agreed on 2025-11-01 (R1102), no intro - nudge |
 | 0.034 | 0.218 | Marcus Aldridge (Advisor) | alumni | Tomás Dobrescu — ex-Strathmore Rail (2013-2018), now VP Engineering at Strathmore Rail | investor_network.csv: Tomás Dobrescu prior_employer=Strathmore Rail (2013-2018); connections_aldridge.csv: connection of Marcus Aldridge since 2018-12-16 | Marcus Aldridge agreed on 2025-11-01 (R1102), no intro - nudge |

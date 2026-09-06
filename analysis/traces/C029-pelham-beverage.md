@@ -10,14 +10,16 @@
 - R1176: filed "Stalled" but intro_outcomes.csv says Imani Mkhize sent the intro on 2026-04-19
 - R1176: intro_requests.csv path_found_flag="No path found" but supply_reach.csv has 1 paths
 
-## Currently routing to: Imani Mkhize
+## Currently routing to: nobody (parked on live intro: R1176, Imani Mkhize, 2026-04-19, meeting booked)
 
 - this cycle: R1047, R1200 unrouted (already introduced)
-- the next request goes to the top askable path: Imani Mkhize, offer via ?, route score 0.262, 0/2 capacity used this cycle
+- nothing goes out this cycle; the top askable path is: Imani Mkhize, offer via ?, route score 0.262, 0/2 capacity used this cycle
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each
+
+**roster - asked first** (1 path)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|

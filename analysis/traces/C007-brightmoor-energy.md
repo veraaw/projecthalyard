@@ -13,13 +13,15 @@
 
 ## Currently routing to: nobody (unresolved ask on every path)
 
-- this cycle: R1123 unrouted (unresolved ask on every path)
+- this cycle: R1123 (retry) unrouted (unresolved ask on every path)
 - everyone who reaches the company is sitting on an ask there
 - not asked again here: Elena Duvall agreed on 2026-07-06 (R1190), no intro - nudge
 
 ## 3. Who can reach them
 
-ranked by route score = strength x focus fit x delivery rate, the allocator's sort key; a connector with an unresolved ask here ranks last (unanswered past the window) or is not asked again (agreed with no intro: nudge; unanswered inside the window: chase)
+in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each
+
+**not asked again here - an unresolved ask (nudge or chase) owns it** (2 paths)
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
