@@ -23,8 +23,6 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.120 | 0.496 | Marcus Aldridge (Advisor) | direct | Arjun Cathcart — Head of Developer Productivity | connections_aldridge.csv: Arjun Cathcart, Head of Developer Productivity at Vireo Systems, connected 2025-10-27 |
 | 0.172 | 0.720 | Amara Brenneman-Fairweather (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Amara Brenneman-Fairweather (Growth equity investor), portfolio_company=Vireo Systems, board_seat=False |
 
-why not #1: Priya Raghunathan at capacity 3/3 (holds R1055) -> R1075 to Amara Brenneman-Fairweather
-
 ## 4. Chronology (48 events, 9 requests, newest first, as of 2026-09-06)
 
 ```

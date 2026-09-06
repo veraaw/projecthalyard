@@ -282,10 +282,11 @@ class Trace:
 
     def bypass(self) -> str:
         """Why the strongest path did not take every live request this cycle, in
-        one line: the blocker, then where the requests went, grouped:
-          'Elena Duvall at capacity 3/3, outside focus (Healthcare) -> R1136, R1140 unrouted (capacity exhausted); R1153 to Tomás Beckett'
+        one line: the blocker, then where the requests went, grouped (a company
+        is one ask, so its live requests normally go the same way):
+          'Elena Duvall at capacity 3/3, outside focus (Healthcare) -> R1136, R1140, R1153 to Tomás Beckett'
           'Yusuf Petrossian at capacity 2/2 (holds R1006, R1128) -> R1070, R1171 to Dana Whitfield'
-          'Otto Cathcart-Brenneman investor network, roster asked first -> R1022 to Marcus Aldridge'
+          'Otto Cathcart-Brenneman investor network, roster asked first -> R1022, R1091, R1179 to Elena Duvall'
         When the company is parked on a live intro nobody is asked afresh, so the
         strongest path is beside the point and the line is just the intro:
           'parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting booked): R1143, R1158, R1185'

@@ -27,7 +27,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.023 | 0.202 | Owen Trask (Investor) | alumni | Marcus Højgaard — ex-Blackwood Industrial (2014-2017), now Chief Technology Officer at Blackwood Industrial | investor_network.csv: Marcus Højgaard prior_employer=Blackwood Industrial (2014-2017); connections_trask.csv: connection of Owen Trask since 2017-04-20 |
 | 0.215 | 0.900 | Otto Cathcart-Brenneman (investor network) | investor_network (board seat) | CEO / exec team — Ashgrove Capital board seat | investor_network.csv: Otto Cathcart-Brenneman (Venture capital investor), portfolio_company=Blackwood Industrial, board_seat=True |
 
-why not #1: Otto Cathcart-Brenneman investor network, roster asked first -> R1022 to Marcus Aldridge; R1179 to Tomás Beckett
+why not #1: Otto Cathcart-Brenneman investor network, roster asked first -> R1022, R1091, R1179 to Elena Duvall
 
 ## 4. Chronology (25 events, 4 requests, newest first, as of 2026-09-06)
 

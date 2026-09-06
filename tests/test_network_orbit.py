@@ -246,7 +246,7 @@ class NetworkOrbitTest(unittest.TestCase):
         for p in self.reach:
             if p["reach_type"] != bg.INVESTOR_NETWORK:
                 roster_paths[p["company_id"]].add(p["connector"])
-        used = Counter(a["allocated_to"] for a in cycle if a["allocated_to"])
+        used = Counter(a["allocated_to"] for a in cycle if bg.is_lead(a))  # slots are companies
         by_path = {(p["connector"], p["company_id"]): p for p in self.network_paths()}
         for a in network:
             with self.subTest(request=a["request_id"]):
@@ -260,7 +260,7 @@ class NetworkOrbitTest(unittest.TestCase):
         for a in cycle:
             if a["allocated_to"] and a["path_type"] != bg.INVESTOR_NETWORK:
                 self.assertIn(a["allocated_to"], roster_paths[a["company_id"]], a["request_id"])
-        load = Counter(a["allocated_to"] for a in network)
+        load = Counter(a["allocated_to"] for a in network if bg.is_lead(a))
         self.assertLessEqual(max(load.values()), bg.OFF_ROSTER_CAPACITY)
         nadia = next(a for a in cycle if a["request_id"] == "R1034")
         self.assertEqual((nadia["allocated_to"], nadia["path_type"]), ("Nadia Okonkwo", "offer"))

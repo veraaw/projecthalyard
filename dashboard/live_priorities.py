@@ -426,13 +426,16 @@ class Live:
         of intros. One connector, or several summed. Capacity is the stated monthly
         capacity of whoever in `names` is on the roster, and only their asks count
         against it; the current cycle counts this build's allocation as slots used,
-        since those asks are about to go out."""
+        since those asks are about to go out: one per company (lead rows), with the
+        requests riding on them in allocated_requests. Past asks are as logged in
+        intro_outcomes.csv, one per request asked."""
         names = set(names)
         on_roster = {n for n in names if n in self.roster}
         cap = sum(int(self.roster[n]["stated_monthly_capacity"] or 0) for n in on_roster)
         mine = [o for o in self.outcomes if o["connector_asked"] in names]
-        allocated = sum(1 for a in self.allocation if a["allocated_to"] in names)
-        allocated_roster = sum(1 for a in self.allocation if a["allocated_to"] in on_roster)
+        allocated = sum(1 for a in self.allocation if a["allocated_to"] in names and bg.is_lead(a))
+        allocated_roster = sum(1 for a in self.allocation if a["allocated_to"] in on_roster and bg.is_lead(a))
+        allocated_requests = sum(1 for a in self.allocation if a["allocated_to"] in names)
         rows, cum = [], 0
         for cyc in self.cycle_list():
             asks = sum(1 for o in mine for d in ask_dates(o) if d.startswith(cyc))
@@ -443,7 +446,8 @@ class Live:
             cum += intros
             rows.append({
                 "cycle": cyc, "current": current, "asks": asks, "allocated": allocated if current else 0,
-                "allocated_off_roster": allocated - allocated_roster if current else 0, "used": used, "capacity": cap,
+                "allocated_off_roster": allocated - allocated_roster if current else 0,
+                "allocated_requests": allocated_requests if current else 0, "used": used, "capacity": cap,
                 "capacity_pct": round(used / cap, 3) if cap else None,
                 "intros": intros, "intros_cumulative": cum,
             })
@@ -549,14 +553,18 @@ class Live:
         sorted best first. Computed once; priorities() and connector_pages() slice it."""
         if self._ranked is not None:
             return self._ranked
-        allocated = [a for a in self.allocation if a["allocated_to"]]
-        allocated.sort(key=lambda a: (bg.URGENCY_RANK.get(a["urgency_declared"], 9), -usd(a["value_usd"]),
-                                      a["request_date"], a["request_id"]))
+        # a slot is spent per company: riders stand where their lead's ask was reached
+        leads = [a for a in self.allocation if bg.is_lead(a)]
+        leads.sort(key=lambda a: (bg.URGENCY_RANK.get(a["urgency_declared"], 9), -usd(a["value_usd"]),
+                                  a["request_date"], a["request_id"]))
         order_in_batch: dict[str, int] = {}
         seen = Counter()
-        for a in allocated:
+        for a in leads:
             order_in_batch[a["request_id"]] = seen[a["allocated_to"]]
             seen[a["allocated_to"]] += 1
+        for a in self.allocation:
+            if a["allocated_to"] and a.get("rides_with", ""):
+                order_in_batch[a["request_id"]] = order_in_batch[a.get("rides_with", "")]
 
         rows = []
         for a in self.allocation:
@@ -612,6 +620,7 @@ class Live:
                 "connector_score": round(connector_score, 3),
                 "expected_value": round(request_priority * connector_score, 4),
                 "allocated": bool(a["allocated_to"]),
+                "rides_with": a.get("rides_with", ""),
                 "retry": self.retry_of(cid),
             })
         rows.sort(key=lambda r: (-r["expected_value"], r["request_id"]))
@@ -632,7 +641,7 @@ class Live:
             "focus_fit": "1.0 in the connector's focus areas, 0.45 outside, 0 if they decline outside, 0.7 when the industry or the connector is unknown",
             "delivery_rate": f"(intros + {bg.PRIOR_RATE} × {bg.PRIOR_WEIGHT:g}) / (asks + {bg.PRIOR_WEIGHT:g}): intros / asks shrunk toward the {round(100 * bg.PRIOR_RATE)}% network average, "
                              f"which is all a connector never asked has (supply_reach.csv delivery_rate)",
-            "capacity_left": "share of stated monthly capacity still unspent when the allocator reached this request; 0 when the cycle's slots were gone",
+            "capacity_left": "share of stated monthly capacity still unspent when the allocator reached this company's ask (a company is one slot, however many requests ride on it); 0 when the cycle's slots were gone",
         }
 
     def priorities(self) -> dict:
@@ -654,7 +663,7 @@ class Live:
                 by_co[a["company_id"]].append(a)
             companies = []
             for cid, group in by_co.items():
-                a = group[0]
+                a = next(g for g in group if bg.is_lead(g))
                 p = self.path_for(a)
                 industry = self.industry(cid)
                 why = [f"best-scoring path with a slot left this cycle: {a['path_type']} via {p['contact_name'] or p['contact_title'] or connector}"
@@ -668,6 +677,7 @@ class Live:
                 companies.append({
                     **self.company_ref(cid, a["company_name"]),
                     "request_ids": [g["request_id"] for g in group],
+                    "lead": a["request_id"],
                     "wanted": self.wanted([self.by_rid[g["request_id"]] for g in group]),
                     "waiting": sorted({self.by_rid[g["request_id"]]["requested_by"] for g in group}),
                     "path_type": a["path_type"],
@@ -681,7 +691,7 @@ class Live:
             out.append({
                 "batch_id": batch_id, "connector": connector, "slug": slug(connector),
                 "connector_type": self.connector_facts.get(connector, {}).get("type", ""),
-                "size": len(rows), "value_fmt": money(self.dollars_total(rows)),
+                "size": len(companies), "requests": len(rows), "value_fmt": money(self.dollars_total(rows)),
                 "companies": companies,
             })
 
@@ -706,7 +716,8 @@ class Live:
                              for b in out for c in b["companies"]),
                             key=lambda c: (-c["value_usd"], c["company_name"]))
         return {
-            "cycle": self.cycle, "allocated": sum(b["size"] for b in out), "batches": out,
+            "cycle": self.cycle, "allocated": sum(b["size"] for b in out), "requests": sum(b["requests"] for b in out),
+            "batches": out,
             "all": everything, "value_fmt": money(self.dollars_total([self.by_rid[a["request_id"]] for b in batches.values() for a in b])),
             "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in v])),
                             "rows": v} for k, v in sorted(exceptions.items(), key=lambda kv: -len(kv[1]))],
@@ -813,6 +824,7 @@ class Live:
         cap = int(r["stated_monthly_capacity"] or 0) if r else 0
         asked_cycle = self.asks_this_cycle(name)
         queue = [a for a in self.allocation if a["allocated_to"] == name]
+        asks_queued = sum(1 for a in queue if bg.is_lead(a))
         sitting = [o for o in self.outcomes if o["connector_asked"] == name and (o["intro_sent"] != "Y" or o["reasked_date"])
                    and self.by_rid.get(o["request_id"], {}).get("status_as_filed") in bg.OPEN_STATUSES]
 
@@ -848,8 +860,9 @@ class Live:
             "role": r["role"] if r else "", "type": r["type"] if r else facts.get("type", "not on roster"),
             "focus": sorted(r["focus"]) if r else [],
             "hard_decline": r["hard_decline"] if r else False, "notes": r["notes"] if r else "",
-            "capacity": cap, "asked_this_cycle": asked_cycle, "allocated_this_cycle": len(queue),
-            "used": asked_cycle + len(queue), "idle": max(0, cap - asked_cycle - len(queue)),
+            "capacity": cap, "asked_this_cycle": asked_cycle, "allocated_this_cycle": asks_queued,
+            "queued_requests": len(queue),
+            "used": asked_cycle + asks_queued, "idle": max(0, cap - asked_cycle - asks_queued),
             "delivery_rate": round(self.rate(name), 3), "asks_all_time": len(asks), "intros_all_time": len(intros),
             "prior_rate": bg.PRIOR_RATE,
             "intros_this_cycle": cycles[-1]["intros"], "cycles": cycles,
@@ -862,6 +875,7 @@ class Live:
                 "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                 "path_type": a["path_type"], "contact": a["contact_name"], "route_score": a["route_score"],
                 "value_fmt": money(self.dollars(a["company_id"], a["value_usd"])), "urgency": a["urgency_declared"],
+                "rides_with": a.get("rides_with", ""),
                 "retry": self.retry_of(a["company_id"]),
             } for a in queue],
         }

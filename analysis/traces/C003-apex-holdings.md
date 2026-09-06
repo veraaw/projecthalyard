@@ -20,7 +20,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.168 | 0.484 | Marcus Aldridge (Advisor) | direct | Astrid Salcedo — VP Data & Analytics | connections_aldridge.csv: Astrid Salcedo, VP Data & Analytics at Apex Logistics Group, connected 2023-11-25 |
 | 0.172 | 0.720 | Espen Rushworth-Oyelaran (investor network) | investor_network | CEO / exec team — Silverbrook Capital portfolio company | investor_network.csv: Espen Rushworth-Oyelaran (Venture capital investor), portfolio_company=Apex Logistics Group, board_seat=False |
 
-why not #1: Espen Rushworth-Oyelaran at capacity 2/2 (holds R1186) -> R1154 to Marcus Aldridge
+why not #1: Espen Rushworth-Oyelaran investor network, roster asked first -> R1154, R1186 to Marcus Aldridge
 
 ## 4. Chronology (17 events, 3 requests, newest first, as of 2026-09-06)
 

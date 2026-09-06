@@ -26,7 +26,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.172 | 0.720 | Perrine Brenneman-Wexford (investor network) | investor_network | CEO / exec team — Meridian Peak Partners portfolio company | investor_network.csv: Perrine Brenneman-Wexford (Private equity investor), portfolio_company=Nortonbury Logistics, board_seat=False |
 | 0.172 | 0.720 | Renata Halloran-Quillane (investor network) | investor_network | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Renata Halloran-Quillane (Growth equity investor), portfolio_company=Nortonbury Logistics, board_seat=False |
 
-why not #1: Amara Brenneman-Fairweather at capacity 2/2 -> R1013 to Perrine Brenneman-Wexford
+why not #1: Amara Brenneman-Fairweather investor network, roster asked first -> R1013 to Dana Whitfield
 
 ## 4. Chronology (13 events, 3 requests, newest first, as of 2026-09-06)
 

@@ -94,7 +94,7 @@ class HarrowgateTest(unittest.TestCase):
         """Read off the roster, supply_reach.csv and this cycle's allocation rows,
         not best_path_if_unbudgeted."""
         why = self.trace.bypass()
-        used = sum(a["allocated_to"] == "Elena Duvall" for a in self.data.allocation)
+        used = sum(a["allocated_to"] == "Elena Duvall" and bg.is_lead(a) for a in self.data.allocation)
         cap = bg.capacity(self.data.roster, "Elena Duvall")
         self.assertGreaterEqual(used, cap)
         head, went = why.split(" -> ")
@@ -106,7 +106,10 @@ class HarrowgateTest(unittest.TestCase):
         for a in rows:
             dest = f"to {a['allocated_to']}" if a["allocated_to"] else f"unrouted ({short_reason(a['exception_reason'])})"
             self.assertIn(a["request_id"], groups[dest].split(", "), why)
-        self.assertEqual(went.count("capacity exhausted"), 1, "one group per destination, requests listed once each")
+        self.assertEqual(len(groups), len({d for d in (f"to {a['allocated_to']}" if a["allocated_to"] else "unrouted" for a in rows)}),
+                         "one group per destination")
+        self.assertEqual(Counter(re.findall(r"R\d+", went)), Counter(a["request_id"] for a in rows), "requests listed once each")
+        self.assertEqual(len(groups), 1, "a company is one ask: every live request went the same way")
         reach = self.trace.as_dict()["reach"]
         self.assertEqual([r["connector"] for r in reach if r["bypass"]], ["Elena Duvall"])
         self.assertEqual(reach[-1]["bypass"], why)

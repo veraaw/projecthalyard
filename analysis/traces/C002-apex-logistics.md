@@ -19,7 +19,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.133 | 0.383 | Marcus Aldridge (Advisor) | direct | Curtis Prendergast — SVP Digital | connections_aldridge.csv: Curtis Prendergast, SVP Digital at Apex Logistics, connected 2019-08-28 |
 | 0.000 | 0.459 | Elena Duvall (Advisor) | direct | Curtis Prendergast — SVP Digital | connections_duvall.csv: Curtis Prendergast, SVP Digital at Apex Logistics, connected 2022-02-04 |
 
-why not #1: Elena Duvall at capacity 3/3, outside focus (Logistics) -> R1024 to Marcus Aldridge; R1041 unrouted (capacity exhausted)
+why not #1: Elena Duvall at capacity 3/3, outside focus (Logistics) -> R1024, R1041 to Marcus Aldridge
 
 ## 4. Chronology (25 events, 4 requests, newest first, as of 2026-09-06)
 

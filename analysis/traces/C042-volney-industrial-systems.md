@@ -20,8 +20,6 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.172 | 0.720 | Freya Oldfield-Ibarra (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Freya Oldfield-Ibarra (Venture capital investor), portfolio_company=Volney Industrial Systems, board_seat=False |
 | 0.172 | 0.720 | Priya Dobrescu-Prendergast (investor network) | investor_network | CEO / exec team — Thornbury Equity portfolio company | investor_network.csv: Priya Dobrescu-Prendergast (Private equity investor), portfolio_company=Volney Industrial Systems, board_seat=False |
 
-why not #1: Curtis Sandoval-Glückstein at capacity 2/2 (holds R1080, R1191) -> R1002 to Bertrand Achterberg-Quillane
-
 ## 4. Chronology (16 events, 4 requests, newest first, as of 2026-09-06)
 
 ```
