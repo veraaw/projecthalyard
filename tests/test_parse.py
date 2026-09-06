@@ -44,6 +44,7 @@ CASES = {
     "caps-only crm spelling": "how about thornbury financial",
     "two bare names": "harrowgate health or quillon pharma, whichever is easier",
     "cue beats bare name": "can we connect with Quillon Pharma? harrowgate health is already a customer",
+    "bare no-CRM name": "how about kingsmere retail group",
 }
 
 
@@ -265,8 +266,10 @@ class ExportedRulesTest(unittest.TestCase):
         self.assertEqual(self.P["domain_score"], gp.DOMAIN_SCORE)
         self.assertEqual(self.P["domain"]["source"], gp._DOMAIN.pattern)
         self.assertEqual(self.P["title"]["source"], gp.TITLE_RE.pattern.replace("(?P<", "(?<"))
-        self.assertEqual(self.P["known"]["source"], self.res.names_regex().pattern)
+        self.assertEqual(self.P["known"]["source"], self.live.known_regex().pattern)
         self.assertIn("i", self.P["known"]["flags"])
+        self.assertIsNotNone(self.live.known_regex().search("kingsmere retail group"), "companies on file with no CRM account are scanned for too")
+        self.assertIsNone(self.res.names_regex().search("kingsmere retail group"))
         self.assertEqual(self.P["known_cue"], gp.KNOWN_CUE)
         self.assertEqual(self.P["known_score"], gp.KNOWN_SCORE)
 
@@ -299,9 +302,10 @@ class ExportedRulesTest(unittest.TestCase):
             self.assertEqual(keys, sorted(keys), f"{cid}: roster paths first, then by route score")
 
     def test_same_target_as_the_python_parser(self):
+        scan = self.live.known_regex()
         for name, text in CASES.items():
             with self.subTest(name):
-                ex = extract(text, self.res)
+                ex = extract(text, self.res, scan)
                 js = self.js[text]
                 self.assertEqual(js["target"], ex.target.text if ex.target else None)
                 self.assertEqual(js["title"], gp.extract_title(text))

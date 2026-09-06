@@ -999,6 +999,14 @@ class Live:
         }
 
     # -- 10. upload preview rules ----------------------------------------------
+    def known_regex(self, res: gr.Resolver | None = None) -> re.Pattern:
+        """What the build's registry scans a message for: every CRM and fund spelling
+        plus every company on file with no CRM account (see Registry.known_names)."""
+        res = res or load_resolver()
+        return gr.names_regex([*(n for e in res.entities for n in e.names),
+                               *(n for c in self.companies.values() if not c["crm_account_ids"]
+                                 for n in [c["company_name"], *bar(c["also_known_as"])])])
+
     def parser(self) -> dict:
         """The build's parser, as data. The browser applies these tables with the
         same layer order as golden/parse.py + golden/resolver.py; a test runs
@@ -1060,7 +1068,7 @@ class Live:
             "cues": [{"label": label, **js_regex(pat), "score": score} for label, pat, score in gp._CUES],
             "split": js_regex(gp._SPLIT), "domain": js_regex(gp._DOMAIN), "title": js_regex(gp.TITLE_RE),
             "domain_cue": gp.DOMAIN_CUE, "domain_score": gp.DOMAIN_SCORE,
-            "known": js_regex(res.names_regex()), "known_cue": gp.KNOWN_CUE, "known_score": gp.KNOWN_SCORE,
+            "known": js_regex(self.known_regex(res)), "known_cue": gp.KNOWN_CUE, "known_score": gp.KNOWN_SCORE,
             "offer": js_regex(bg.OFFER_RE), "noise": js_regex(bg.NOISE_RE),
             "offer_title": js_regex(bg._OFFER_TITLE_RE), "offer_person": js_regex(bg._OFFER_PERSON_RE),
             "resolver": {

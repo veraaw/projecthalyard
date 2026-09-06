@@ -19,10 +19,11 @@ Mentions the CRM does not know (Kingsmere Retail Group) are still extracted;
 their resolution is simply unmatched, so the caller can route them to a human.
 
 When a resolver is given, the message is also scanned for every name it knows,
-in any case ("how about harrowgate health"). Such a mention scores +1 only when
-no cue fired positively and it is the sole company named that way; two or more
-bare names, or a bare name beside cue-scored ones, score 0 and leave the
-decision to the cues or to a human.
+in any case ("how about harrowgate health"); `known` widens that scan to more
+spellings (companies on file with no CRM account). Such a mention scores +1
+only when no cue fired positively and it is the sole company named that way;
+two or more bare names, or a bare name beside cue-scored ones, score 0 and
+leave the decision to the cues or to a human.
 """
 from __future__ import annotations
 
@@ -119,8 +120,10 @@ class Extraction:
         return self.target.company_id if self.target else ""
 
 
-def extract(text: str, resolver: Resolver | None = None) -> Extraction:
+def extract(text: str, resolver: Resolver | None = None, known: re.Pattern | None = None) -> Extraction:
     text = text or ""
+    if known is None and resolver is not None:
+        known = resolver.names_regex()
     seen: dict[tuple[int, str], Mention] = {}
 
     for label, pat, score in _CUES:
@@ -141,9 +144,9 @@ def extract(text: str, resolver: Resolver | None = None) -> Extraction:
         if key not in seen:
             seen[key] = Mention(dom, DOMAIN_CUE, DOMAIN_SCORE, m.start(1), is_domain=True)
 
-    if resolver is not None:
+    if known is not None:
         taken = [(x.start, x.start + len(x.text)) for x in seen.values()]
-        found = [m for m in resolver.names_regex().finditer(text)
+        found = [m for m in known.finditer(text)
                  if not any(m.start() < e and s < m.end() for s, e in taken)]
         positive = any(x.score > 0 for x in seen.values())
         score = KNOWN_SCORE if len(found) == 1 and not positive else 0

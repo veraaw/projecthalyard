@@ -40,6 +40,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 REVIEW_THRESHOLD = 0.75
@@ -236,14 +237,9 @@ class Resolver:
             self._names_re = None
 
     def names_regex(self) -> re.Pattern:
-        """Every spelling of every entity as one case-insensitive alternation, longest
-        first, so free text can be scanned for the companies this resolver knows.
-        Tokens may be separated by any punctuation or spacing ("Apex Logistics, Inc.")."""
+        """names_regex() over every spelling of every entity this resolver knows."""
         if self._names_re is None:
-            alts = {_name_pattern(n) for e in self.entities for n in e.names}
-            alts.discard("")
-            body = "|".join(sorted(alts, key=lambda p: (-len(p), p)))
-            self._names_re = re.compile(rf"(?<![A-Za-z0-9])(?:{body})(?![A-Za-z0-9])", re.I)
+            self._names_re = names_regex(n for e in self.entities for n in e.names)
         return self._names_re
 
     def resolve_id(self, raw: str, domain_hint: str = "") -> str:
@@ -297,6 +293,16 @@ def _name_pattern(name: str) -> str:
     """The name as written any way that normalises to the same letters: "THORNBURYFINANCIAL"
     finds "Thornbury Financial", "Apex Logistics, Inc." finds "apex logistics inc"."""
     return r"[^A-Za-z0-9]*".join(normalize_strict(name))
+
+
+def names_regex(names: Iterable[str]) -> re.Pattern:
+    """The given company spellings as one case-insensitive alternation, longest first
+    and bounded by non-alphanumerics, so free text can be scanned for known companies.
+    Tokens may be separated by any punctuation or spacing ("Apex Logistics, Inc.")."""
+    alts = {_name_pattern(n) for n in names}
+    alts.discard("")
+    body = "|".join(sorted(alts, key=lambda p: (-len(p), p))) or "(?!)"
+    return re.compile(rf"(?<![A-Za-z0-9])(?:{body})(?![A-Za-z0-9])", re.I)
 
 
 def _display_name(e: Entity) -> str:
