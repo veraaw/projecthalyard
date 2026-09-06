@@ -54,7 +54,11 @@ Writes five CSVs (UTF-8, no BOM, CRLF):
                                resolved_by, target_title, needs_review, ...)
                                are recomputed from the facts on every run, so a
                                better resolver or a new CRM account corrects
-                               every historical row. Routing, outcome and
+                               every historical row. ROUTING_COLUMNS (routed_to,
+                               route_score, route_reason, ...) are provisional
+                               until an ask is logged: they follow this run's
+                               allocation and paths while asked_date is empty,
+                               then are filed with the ask and kept. Outcome and
                                thread columns are filed once and kept, except
                                that OUTCOME_COLUMNS still empty on a filed row
                                are filled in when an ask is first logged for
@@ -181,10 +185,12 @@ REQUEST_COLUMNS = [
     "opportunity_usd", "offer_in_thread", "thread_replies", "thread_all_noise", "resolved_by",
     "needs_review", "contradicts_log", "blocked_reason", "nudged_on",
 ]
+# where the request stands with connectors: this run's allocation or best path until an
+# ask is logged, then what the ask log says, kept
+ROUTING_COLUMNS = ["routed_to", "routed_on", "route_score", "route_reason"]
 # what the ask log says about a request: filed the first time an ask is logged, then kept
 OUTCOME_COLUMNS = [
-    "routed_to", "routed_on", "route_score", "route_reason", "asked_date", "responded", "intro_sent",
-    "meeting_booked", "opportunity_usd",
+    *ROUTING_COLUMNS, "asked_date", "responded", "intro_sent", "meeting_booked", "opportunity_usd",
 ]
 # what someone said or filed: written once, never rewritten
 FACT_COLUMNS = [
@@ -251,7 +257,7 @@ BLOCK_NO_CRM = "company has no CRM record"
 BLOCK_FUND_OR_OPCO = "fund or operating company \u2014 ask the requester"
 BLOCK_NO_ROSTER_PATH = "no path on the roster"
 BLOCK_CLOSED_LOST = "account is Closed Lost"
-BLOCK_NEVER_ROUTED = "path exists, never routed"  # filed with no routed_to before the path was known
+BLOCK_NEVER_ROUTED = "path exists, never routed"  # a path exists but the request is not live, so nobody is allocated
 # a bare name shared by a fund and a customer (Thornbury, Silverbrook, Cobalt Lane,
 # Meridian Peak): golden/resolver.py refuses it; the request gets no company_id
 FUND_COLLISION = "fund-collision"
@@ -1559,8 +1565,9 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
             else:
                 route_reason = "not asked; company unresolved"
 
-        # a filed row keeps its filed routing, so judge its block against that
-        effective_routed_to = filed_by[rid]["routed_to"] if rid in filed_by else routed_to
+        # an asked row keeps its filed routing, so judge its block against that
+        filed_row = filed_by.get(rid)
+        effective_routed_to = filed_row["routed_to"] if filed_row and filed_row["asked_date"] else routed_to
         if method == FUND_COLLISION:
             blocked = BLOCK_FUND_OR_OPCO
         elif effective_routed_to:
@@ -1604,8 +1611,11 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
 def merge_write(rows: list[dict], source: dict[str, dict | None]) -> tuple[int, int, int, list[str], list[str]]:
     """Merge the recomputed rows into golden_requests.csv. Every filed row is
     kept. Rows whose request_id is new are appended. On a filed row,
-    RECOMPUTED_COLUMNS take the recomputed value; OUTCOME_COLUMNS are filled in
-    once, when the row has no asked_date yet and the ask log now has one;
+    RECOMPUTED_COLUMNS take the recomputed value; ROUTING_COLUMNS take it too
+    while the row has no asked_date (the allocation they describe is redone
+    every run); OUTCOME_COLUMNS are filled in once, when the row has no
+    asked_date yet and the ask log now has one, and from then on the routing
+    is kept as filed with the ask;
     nudged_on advances to the latest nudge; every other column keeps its filed
     value. source is FACT_COLUMNS as the raw export states them now (None
     when it no longer has the request): a fact it states differently from the
@@ -1641,9 +1651,12 @@ def merge_write(rows: list[dict], source: dict[str, dict | None]) -> tuple[int, 
         if diff:
             warnings.append(f"{old['request_id']}: recomputed "
                             + "; ".join(f"{c} {old[c]!r} -> {r[c]!r}" for c in diff))
-        if not old["asked_date"] and r["asked_date"]:
-            diff += [c for c in OUTCOME_COLUMNS if str(old[c]) != str(r[c])]
-            warnings.append(f"{old['request_id']}: ask logged, {r['routed_to']} on {r['asked_date']}")
+        if not old["asked_date"]:
+            if r["asked_date"]:
+                diff += [c for c in OUTCOME_COLUMNS if str(old[c]) != str(r[c])]
+                warnings.append(f"{old['request_id']}: ask logged, {r['routed_to']} on {r['asked_date']}")
+            else:
+                diff += [c for c in ROUTING_COLUMNS if str(old[c]) != str(r[c])]
         if r["nudged_on"] > old["nudged_on"]:
             diff.append("nudged_on")
         if diff:
