@@ -27,7 +27,7 @@ ranked by route score = strength x focus fit x delivery rate, the allocator's so
 | 0.029 | 0.187 | Marcus Aldridge (Advisor) | alumni | Margot Havercamp — ex-Priorwood Chemicals (2011-2017), now Director of Software Engineering at Priorwood Chemicals | investor_network.csv: Margot Havercamp prior_employer=Priorwood Chemicals (2011-2017); connections_aldridge.csv: connection of Marcus Aldridge since 2014-03-11 |
 | 0.215 | 0.900 | Otto Cathcart-Brenneman (investor network) | investor_network (board seat) | CEO / exec team — Ashgrove Capital board seat | investor_network.csv: Otto Cathcart-Brenneman (Venture capital investor), portfolio_company=Priorwood Chemicals, board_seat=True |
 
-strongest path, not where it went: Otto Cathcart-Brenneman, investor_network 0.900, 0/2 used this cycle; R1092 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked)), R1174 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked))
+strongest path, not where it went: Otto Cathcart-Brenneman, investor_network 0.900, 1/2 used this cycle; R1092 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked)), R1174 unrouted (already introduced: Tomás Beckett on 2026-03-16 (R1150, meeting booked))
 
 ## 4. Chronology (56 events, 9 requests, newest first, as of 2026-09-06)
 

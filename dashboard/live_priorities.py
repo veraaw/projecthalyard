@@ -106,6 +106,11 @@ def parse_date(s: str) -> date | None:
         return None
 
 
+def ask_dates(o: dict) -> list[str]:
+    """Every ask an outcome row records: the first, plus the retry sent after its intro fizzled."""
+    return [d for d in (o["asked_date"], o.get("reasked_date", "")) if d]
+
+
 def money(v: int | float | str) -> str:
     """$3.8M / $400K / $0 — one decimal, no trailing .0"""
     try:
@@ -186,7 +191,12 @@ class Live:
         self.rates = bg.delivery_rates(self.roster, self.outcomes, self.threads)
         self.cycle = self.allocation[0]["cycle"] if self.allocation else today.strftime("%Y-%m")
         self.fatigue = bg.history_signals(self.history, self.outcomes, today).fatigue
-        self.intro_state = bg.introductions(self.outcomes, {r["request_id"]: r["company_id"] for r in self.requests}, today)
+        open_since: dict[str, list[str]] = defaultdict(list)
+        for r in self.requests:
+            if r["company_id"] and r["status_as_filed"] in bg.OPEN_STATUSES:
+                open_since[r["company_id"]].append(r["request_date"])
+        self.intro_state = bg.introductions(self.outcomes, {r["request_id"]: r["company_id"] for r in self.requests},
+                                            today, open_since)
         self.batch_asks = batch_ask.compose(self.history, self.requests, self.roster, outcomes=self.outcomes)
         self.traceable = {t["company_id"] for t in all_traces(today)}
         self._ranked: list[dict] | None = None
@@ -331,22 +341,35 @@ class Live:
         r = self.by_rid.get(i["request_id"], {})
         return {**i, "requested_by": r.get("requested_by", ""), "target_title": r.get("target_title", "")}
 
+    def retry_note(self, i: dict) -> dict:
+        when = i["intro_date"] or "an undated"
+        return {**i, "note": f"{i['connector'].split()[0]}'s {when} intro to {i['requested_by'] or 'the requester'} went nowhere: {i['outcome']}"}
+
     def retry_of(self, cid: str) -> dict | None:
-        """Set when the company's last intro fizzled (no meeting, older than
-        INTRO_LIVE_DAYS): a fresh ask on it is a retry and is labelled as one."""
+        """Set when the company's last intro fizzled (no meeting after INTRO_LIVE_DAYS,
+        or a meeting with no opportunity after as long while newer requests wait):
+        a fresh ask on it is a retry and is labelled as one."""
         i = self.prior_intro(cid)
         if not i or i["live"]:
             return None
-        when = i["intro_date"] or "an undated"
-        age = f"{i['days']} days" if i["days"] is not None else "since"
-        return {**i, "note": f"{i['connector'].split()[0]}'s {when} intro to {i['requested_by'] or 'the requester'} went nowhere: no meeting in {age}"}
+        return self.retry_note(i)
+
+    def own_retry(self, o: dict) -> dict | None:
+        """The fizzled intro an outcome row itself logged, when the request is
+        being asked again (build_golden.retriable, or reasked_date already set)."""
+        i = bg.intro_of(o, self.today)
+        if not i or i["live"]:
+            return None
+        r = self.by_rid.get(o["request_id"], {})
+        return self.retry_note({**i, "requested_by": r.get("requested_by", ""), "target_title": r.get("target_title", "")})
 
     def live_requesters(self, cid: str) -> list[str]:
         return sorted({r["requested_by"] for r in self.by_company.get(cid, [])
                        if r["status_as_filed"] in bg.OPEN_STATUSES})
 
     def asks_this_cycle(self, connector: str) -> int:
-        return sum(1 for o in self.outcomes if o["connector_asked"] == connector and o["asked_date"].startswith(self.cycle))
+        return sum(1 for o in self.outcomes if o["connector_asked"] == connector
+                   for d in ask_dates(o) if d.startswith(self.cycle))
 
     def cycle_list(self) -> list[str]:
         """Every calendar month from the first ask on file through the current cycle."""
@@ -373,8 +396,8 @@ class Live:
         allocated_roster = sum(1 for a in self.allocation if a["allocated_to"] in on_roster)
         rows, cum = [], 0
         for cyc in self.cycle_list():
-            asks = sum(1 for o in mine if o["asked_date"].startswith(cyc))
-            asks_roster = sum(1 for o in mine if o["asked_date"].startswith(cyc) and o["connector_asked"] in on_roster)
+            asks = sum(1 for o in mine for d in ask_dates(o) if d.startswith(cyc))
+            asks_roster = sum(1 for o in mine if o["connector_asked"] in on_roster for d in ask_dates(o) if d.startswith(cyc))
             intros = sum(1 for o in mine if o["intro_sent"] == "Y" and o["intro_date"].startswith(cyc))
             current = cyc == self.cycle
             used = asks_roster + (allocated_roster if current else 0)
@@ -652,8 +675,8 @@ class Live:
     # -- 3b. already introduced: extend the intro, don't ask afresh -------------
     def introduced(self) -> dict:
         """Live requests the allocator parked because the company already has a live
-        intro (build_golden.ALREADY_INTRODUCED: a meeting booked, or sent within
-        INTRO_LIVE_DAYS). One row per company; the action is the rep who received
+        intro (build_golden.ALREADY_INTRODUCED: sent within INTRO_LIVE_DAYS, or a
+        meeting booked that has not stalled). One row per company; the action is the rep who received
         that intro asking their contact for the other names, not a connector ask.
         `retries` are the companies whose last intro fizzled and are back in the
         queue this cycle, labelled so the ask reads as a second attempt."""
@@ -749,23 +772,28 @@ class Live:
         cap = int(r["stated_monthly_capacity"] or 0) if r else 0
         asked_cycle = self.asks_this_cycle(name)
         queue = [a for a in self.allocation if a["allocated_to"] == name]
-        sitting = [o for o in self.outcomes if o["connector_asked"] == name and o["intro_sent"] != "Y"
+        sitting = [o for o in self.outcomes if o["connector_asked"] == name and (o["intro_sent"] != "Y" or o["reasked_date"])
                    and self.by_rid.get(o["request_id"], {}).get("status_as_filed") in bg.OPEN_STATUSES]
 
         def sitting_row(o: dict) -> dict:
             """An ask with no intro yet: `nudge` it if they replied, `chase` if they
-            never did. One followed up in the last NUDGE_QUIET_DAYS (nudged_on, from
-            completions.csv) is `quiet`: listed, not actionable, until the period ends."""
+            never did. A retry sent after a fizzled intro (reasked_date) is a fresh
+            ask nobody has answered: `chase`, counted from the re-ask. One followed
+            up in the last NUDGE_QUIET_DAYS (nudged_on, from completions.csv) is
+            `quiet`: listed, not actionable, until the period ends."""
             r = self.by_rid.get(o["request_id"], {})
             last = parse_date(r.get("nudged_on", ""))
             since = (self.today - last).days if last else None
+            asked_on = o["reasked_date"] or o["asked_date"]
+            responded = o["responded"] == "Y" and not o["reasked_date"]
             return {
                 "request_id": o["request_id"], **self.company_ref(r.get("company_id", "")),
                 "target_title": r.get("target_title", ""), "requested_by": r.get("requested_by", ""),
-                "connector": name, "asked_date": o["asked_date"], "responded": o["responded"] == "Y",
-                "days_since_asked": (self.today - (parse_date(o["asked_date"]) or self.today)).days,
+                "connector": name, "asked_date": asked_on, "responded": responded,
+                "days_since_asked": (self.today - (parse_date(asked_on) or self.today)).days,
                 "value_fmt": money(self.dollars(r.get("company_id", ""), r.get("value_usd", ""))),
-                "action": "nudge" if o["responded"] == "Y" else "chase",
+                "action": "nudge" if responded else "chase",
+                "retry": self.own_retry(o) if o["reasked_date"] else None,
                 "nudged_on": r.get("nudged_on", ""), "days_since_nudged": since,
                 "quiet": since is not None and 0 <= since < NUDGE_QUIET_DAYS,
             }

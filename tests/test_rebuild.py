@@ -44,7 +44,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 import golden.build_golden as bg  # noqa: E402
-from golden.build_golden import ASKED, CHASED, CHECKED_IN, COMPLETION_COLUMNS, FACT_COLUMNS, NUDGED, STALE_ASK  # noqa: E402
+from golden.build_golden import (  # noqa: E402
+    ASKED, CHASED, CHECKED_IN, COMPLETION_COLUMNS, FACT_COLUMNS, INTRO_LIVE_DAYS, NUDGED, STALE_ASK, parse_date,
+)
 
 CYCLE_1, CYCLE_2 = "2026-09-05", "2026-10-05"
 
@@ -278,8 +280,13 @@ class RebuildTest(ScratchRootTest):
         sep = self.cycle_rows("2026-09")
         proposed = [a for a in sep if a["allocated_to"]]
         self.assertTrue(proposed)
-        asked = {o["request_id"] for o in read_csv(self.root / "dataset" / "intro_outcomes.csv")}
-        self.assertFalse({a["request_id"] for a in proposed} & asked, "nothing proposed in September was ever logged as asked")
+        outcomes = {o["request_id"]: o for o in read_csv(self.root / "dataset" / "intro_outcomes.csv")}
+        back = [outcomes[a["request_id"]] for a in proposed if a["request_id"] in outcomes]
+        self.assertTrue(back, "September retries at least one asked request")
+        decided = parse_date(CYCLE_1)
+        self.assertTrue(all(o["intro_sent"] == "Y" and o["meeting_booked"] == "N"
+                            and (decided - parse_date(o["intro_date"])).days > INTRO_LIVE_DAYS for o in back),
+                        "an asked request is proposed again only once its own intro fizzled")
 
         self.build(CYCLE_2)
 
@@ -337,11 +344,14 @@ class CompletionsTest(ScratchRootTest):
         super().setUp()
         self.build(CYCLE_1)
         self.first = self.cycle_rows("2026-09")
-        # a request September allocated, and the connector it went to
-        self.target = next(a for a in self.first if a["allocated_to"])
+        self.outcomes = {o["request_id"]: o for o in read_csv(self.root / "dataset" / "intro_outcomes.csv")}
+        # a never-asked request September allocated, and the connector it went to
+        self.target = next(a for a in self.first if a["allocated_to"] and a["request_id"] not in self.outcomes)
         self.rid, self.connector = self.target["request_id"], self.target["allocated_to"]
         self.day = "2026-09-06"
         self.ask = completion(ASKED, self.rid, self.day, self.connector, note="asked in Slack")
+        # and an asked request whose intro fizzled, back in September's cycle as a retry
+        self.retry = next(a for a in self.first if a["allocated_to"] and a["request_id"] in self.outcomes)
 
     def write_completions(self, rows: list[dict], path: Path | None = None) -> Path:
         path = path or self.completions
@@ -367,6 +377,30 @@ class CompletionsTest(ScratchRootTest):
         self.build(CYCLE_2)
         self.assertNotIn(self.rid, {a["request_id"] for a in self.cycle_rows("2026-10")})
         self.assertEqual(self.by_id()[self.rid]["asked_date"], self.day, "still filed")
+
+    def test_a_retry_ask_takes_the_request_out_of_the_queue_and_keeps_the_first_ask_filed(self):
+        rid, connector = self.retry["request_id"], self.retry["allocated_to"]
+        first_ask = self.outcomes[rid]
+        self.assertEqual((first_ask["intro_sent"], first_ask["meeting_booked"]), ("Y", "N"))
+        before = self.by_id()[rid]
+        self.assertEqual((before["asked_date"], before["intro_sent"]), (first_ask["asked_date"], "Y"), "the first ask is on file")
+        # an ask_sent dated before the intro is the first ask logged twice, not a retry
+        self.write_completions([completion(ASKED, rid, first_ask["asked_date"], first_ask["connector_asked"])])
+        self.build(CYCLE_1)
+        self.assertIn(rid, {a["request_id"] for a in self.cycle_rows("2026-09") if a["allocated_to"]}, "still a retry to send")
+
+        self.write_completions([completion(ASKED, rid, self.day, connector, note="asked again")])
+        out = self.build(CYCLE_1)
+
+        self.assertIn("completions.csv       1 rows applied: 1 ask_sent", out)
+        again = {a["request_id"] for a in self.cycle_rows("2026-09")}
+        self.assertNotIn(rid, again, "re-asked, so no longer in the queue")
+        self.assertEqual(len(again), len(self.first) - 1, "only the re-asked request left the cycle")
+        after = self.by_id()[rid]
+        self.assertEqual((after["asked_date"], after["intro_sent"]), (first_ask["asked_date"], "Y"),
+                         "the request keeps its first ask: the retry lives in the allocation history and completions")
+        self.build(CYCLE_2)
+        self.assertNotIn(rid, {a["request_id"] for a in self.cycle_rows("2026-10")}, "not proposed again, not flagged stale")
 
     def test_the_same_completion_id_twice_is_one_completion(self):
         # once inside the file: two rows, one id

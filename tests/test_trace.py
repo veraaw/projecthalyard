@@ -97,8 +97,11 @@ class HarrowgateTest(unittest.TestCase):
         cap = bg.capacity(self.data.roster, "Elena Duvall")
         load = f"at capacity {used}/{cap}" if used >= cap else f"{used}/{cap} used this cycle"
         self.assertTrue(why.startswith(f"Elena Duvall, offer 0.800, {load}, Healthcare is outside their focus (route score 0.000); "), why)
-        self.assertIn("R1136 routed to Tomás Beckett", why)
-        self.assertIn("R1153 routed to Tomás Beckett", why)
+        rows = [a for a in self.data.allocation if a["company_id"] == "C018"]
+        self.assertIn("R1153", [a["request_id"] for a in rows])
+        for a in rows:
+            self.assertIn(f"{a['request_id']} routed to {a['allocated_to']}" if a["allocated_to"]
+                          else f"{a['request_id']} unrouted ({a['exception_reason']})", why)
         reach = self.trace.as_dict()["reach"]
         self.assertEqual([r["connector"] for r in reach if r["bypass"]], ["Elena Duvall"])
         self.assertEqual(reach[-1]["bypass"], why)
