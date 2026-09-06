@@ -84,15 +84,33 @@ img{max-width:100%}
 .seg button.on{background:var(--ink);color:var(--surface)}
 .fview[hidden]{display:none}
 /* live priorities */
+nav.bands{display:flex;flex-wrap:wrap;gap:6px 28px;margin-top:14px}
+nav.bands .grp{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:0 14px}
+nav.bands a{margin:0}
+nav.bands a.band{font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+#lp .band{margin:0 0 36px;scroll-margin-top:calc(var(--topbar,140px) + 16px)}
+#lp .band-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin:0 0 12px;padding:0 0 8px;border-bottom:2px solid var(--ink);font-family:var(--sans)}
+#lp .band-h .k{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--baton)}
+#lp .band-h .t{font-size:18px;font-weight:500;letter-spacing:-.01em}
+#lp .band-h .foot{flex-basis:100%;font-style:italic}
+#lp section.masthead{padding:14px 18px 10px}
+#lp .masthead .strip{margin:0}
+#lp .masthead .strip .cell{padding:10px 12px 8px}
+#lp .masthead .strip .v{font-size:20px}
+#lp .masthead .strip .n{font-size:12px}
+#lp .masthead .strip .l{margin-top:4px;font-size:11px}
+#lp .masthead details.note{margin:8px 0 0}
+#lp .masthead details.note summary{margin:0;font-size:12.5px;color:var(--mute)}
+#lp .masthead details.note p{margin:6px 0 0}
 #lp h2 .foot{display:block;font-weight:400;margin-top:2px}
 #lp details.fold{margin:0}
-#lp .fold summary{display:flex;align-items:flex-start;gap:16px;margin:0}
-#lp .fold summary::before{content:none}
-#lp .fold summary h2{flex:1}
-#lp .fold summary::after{content:"▾";color:var(--mute);font-size:24px;line-height:1.1;padding-top:2px;transform:rotate(-90deg);transition:transform .15s}
-#lp .fold[open] summary::after{transform:none}
-#lp .fold summary:hover::after{color:var(--ink)}
-#lp .fold[open] summary{margin-bottom:6px}
+#lp .fold>summary{display:flex;align-items:flex-start;gap:16px;margin:0}
+#lp .fold>summary::before{content:none}
+#lp .fold>summary h2{flex:1}
+#lp .fold>summary::after{content:"▾";color:var(--mute);font-size:24px;line-height:1.1;padding-top:2px;transform:rotate(-90deg);transition:transform .15s}
+#lp .fold[open]>summary::after{transform:none}
+#lp .fold>summary:hover::after{color:var(--ink)}
+#lp .fold[open]>summary{margin-bottom:6px}
 #lp .lede{font-size:15.5px}
 #lp q{quotes:"\201C" "\201D";font-family:var(--serif);font-style:italic}
 #lp b.warn,#lp .warn{color:var(--warn)}

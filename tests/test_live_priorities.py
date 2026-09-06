@@ -403,10 +403,22 @@ class PayloadTest(unittest.TestCase):
         boot = js.split("function boot(")[1].split("function renderPreview(")[0]
         self.assertEqual([sid for sid, _ in lp.SECTIONS], re.findall(r'<section id="([^"]+)"', boot),
                          "SECTIONS is the header nav; it must list every section boot() renders, in order")
+        self.assertEqual([sid for sid, _ in lp.SECTIONS],
+                         ["route", "upload", "stages", "top", "offers", "bottlenecks", "crm", "asks", "connectors", "unrouted", "checkins"],
+                         "intake, orientation, actionable now, current cycle, not moving")
+        self.assertEqual([len(sections) for *_, sections in lp.BANDS], [2, 1, 4, 2, 2])
         folded = re.findall(r'<section id="([^"]+)">\$\{fold\(', boot)
-        self.assertEqual(folded, ["connectors", "offers", "bottlenecks", "checkins", "unrouted", "crm"], "the long tables start collapsed")
+        self.assertEqual(folded, ["offers", "bottlenecks", "crm", "asks", "connectors", "unrouted", "checkins"], "the long tables start collapsed")
+        self.assertIn('<section id="stages" class="masthead">', boot)
+        self.assertNotIn("<table", boot.split('<section id="stages"')[1].split("</section>")[0], "orientation is one strip, no rows")
         self.assertIn("CRM Updates <span", boot)
         self.assertNotIn("What the CRM is missing", js)
+
+    def test_bands_are_in_the_payload_and_cover_every_section(self):
+        bands = lp.payload(AS_OF)["bands"]
+        self.assertEqual([b["id"] for b in bands], ["intake", "orientation", "now", "cycle", "stuck"])
+        self.assertEqual([s for b in bands for s in b["sections"]], [sid for sid, _ in lp.SECTIONS])
+        self.assertTrue(all(b["title"] and b["test"].endswith("?") for b in bands))
 
 
 class FunnelWindowTest(unittest.TestCase):
@@ -467,6 +479,8 @@ class BuiltPagesTest(unittest.TestCase):
         html = self.pages["livepriorities.html"]
         for sid, label in lp.SECTIONS:
             self.assertIn(f'<a href="#{sid}">{label}</a>', html)
+        for bid, *_ in lp.BANDS:
+            self.assertIn(f'<a class="band" href="#band-{bid}">', html)
         for name, page in self.pages.items():
             self.assertEqual(page.count('<button class="totop"'), 1, name)
 
