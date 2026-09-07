@@ -454,7 +454,7 @@ def allocation_donut(ab, div_id):
 
 
 def allocation_bucket_text(b):
-    """A bucket with its count and, where the same status gate holds requests both with and without a
+    """A bucket with its count and, where the same bucket holds requests both with and without a
     path on file, that split."""
     without = b["no_path"] + b["unresolved"]
     if not (b["with_path"] and without):
@@ -478,7 +478,7 @@ def allocation_blockage_panel(ab, div_id):
   <p class="lede">{ab["allocated"]} more are allocated this cycle and not yet asked; they carry a <code>routed_to</code> and are not blocked. {ab["never"]} never reach a connector; {ab["blocked"]} of those are blocked.</p>
   {finding(f'Only {ab["supply_share"]:.0%} of the blockage is a missing relationship.', f'{slice_text("supply")} {slice_text("process")} {slice_text("closed")}', warn=True)}
   {unmapped}
-  <p class="foot">{ab["no_path"]} never-asked requests (of {ab["total"]} on file) name a company with no path in <code>supply_reach.csv</code>: the {ab["slices"]["supply"]["count"]} above plus {gated} the status gate excluded before they were evaluated{f" ({gated_text})" if gated_text else ""}. That figure overlaps the slices, so it is a footnote, not a wedge.</p>
+  <p class="foot">{ab["no_path"]} never-asked requests (of {ab["total"]} on file) name a company with no path in <code>supply_reach.csv</code>: the {ab["slices"]["supply"]["count"]} above plus {gated} held before their paths were evaluated{f" ({gated_text})" if gated_text else ""}. That figure overlaps the slices, so it is a footnote, not a wedge.</p>
   <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>allocation_blockage_cut</code>). Slice tooltips list the exception prefixes they sum: the same vocabulary as Unrouted Exceptions on Live Priorities.</p>"""
 
 

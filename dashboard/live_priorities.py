@@ -659,6 +659,7 @@ class Live:
                 "expected_value": round(request_priority * connector_score, 4),
                 "allocated": bool(a["allocated_to"]),
                 "retry": self.retry_of(cid),
+                "reopened": bg.reopened(a),
                 "notify": self.owner_notice(a),
             })
         rows.sort(key=lambda r: (-r["expected_value"], r["request_id"]))
@@ -727,6 +728,7 @@ class Live:
                 "value_fmt": money(self.dollars_total(group)),
                 "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
                 "retry": self.retry_of(cid),
+                "reopened": "; ".join(f"{g['request_id']} {bg.reopened(g)}" for g in group if bg.reopened(g)),
                 "notify": [n for n in (self.owner_notice(g) for g in group) if n],
             })
         return companies
@@ -757,7 +759,9 @@ class Live:
         across them) and what the allocator could not place, by reason. A request
         whose only fault is that its connector's slots are gone is not an exception
         here: it keeps its connector and its expected value on the ranked list.
-        A batch row's box is the ask_sent tick of every request in it (the same
+        An Intro sent request with no intro logged (build_golden.INTRO_CLAIMED_NOT_LOGGED)
+        is the repair queue: the requester logs the intro or corrects the status,
+        else it routes as Stalled after REPAIR_DAYS. A batch row's box is the ask_sent tick of every request in it (the same
         tick as Top Priorities and the connector's page); a no-path exception can
         be ticked with whoever was actually asked, `roster` being the picker's list."""
         batches: dict[str, list[dict]] = defaultdict(list)
@@ -793,6 +797,7 @@ class Live:
                     "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                     "value_fmt": money(self.dollars(a["company_id"], a["value_usd"])), "urgency": a["urgency_declared"],
                     "status": a["status_as_filed"], "best_path": a["best_path_if_unbudgeted"],
+                    "reopened": bg.reopened(a),
                     "blocked_reason": self.by_rid[a["request_id"]]["blocked_reason"],
                     "crm_stage": self.crm_stage(a["company_id"]) if a["company_id"] else "",
                     "sector_cover": self.sector_cover(a["company_id"]) if a["company_id"] else None,
@@ -809,7 +814,7 @@ class Live:
             "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in v])),
                             "rows": v} for k, v in sorted(exceptions.items(), key=lambda kv: -len(kv[1]))],
             "exception_count": n_exc, "no_slot": no_slot, "focus": self.focus_finding(),
-            "roster": list(self.roster),
+            "roster": list(self.roster), "repair_days": bg.REPAIR_DAYS,
         }
 
     # -- 3b. already introduced: extend the intro, don't ask afresh -------------

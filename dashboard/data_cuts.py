@@ -144,13 +144,14 @@ def funnel_cut(data, since=None):
 # allocation result), so the Accounts donut buckets on the allocator's own exception_reason instead: the text
 # before the first ":" is the vocabulary Unrouted Exceptions on Live Priorities uses.
 ALLOCATED = "allocated, not yet asked"
-STATUS_GATE = "status gate: "  # + status_as_filed: no allocation row, the status kept the request from the allocator
+# + status_as_filed: no allocation row, the status kept the request from the allocator. Every status on file
+# now reaches it (bg.in_queue), so this names only a status the allocator does not know
+STATUS_GATE = "status gate: "
 COMPANY_UNRESOLVED = "company unresolved"  # the exception_reason build_golden files when the ask names no resolvable company
-GATE_CLOSED, GATE_INTRO_SENT = STATUS_GATE + "Closed - no path", STATUS_GATE + "Intro sent"
 # slice -> (label, the buckets it sums)
 ALLOCATION_SLICES = {
     "supply": ("supply", [bg.NO_PATH]),
-    "process": ("process", [GATE_CLOSED, GATE_INTRO_SENT, COMPANY_UNRESOLVED, bg.CAPACITY_EXHAUSTED]),
+    "process": ("process", [bg.INTRO_CLAIMED_NOT_LOGGED, COMPANY_UNRESOLVED, bg.CAPACITY_EXHAUSTED, bg.UNRESOLVED_ASK]),
     "closed": ("correctly not asked", [bg.ALREADY_INTRODUCED]),
 }
 
@@ -173,9 +174,9 @@ def allocation_blockage_cut(data):
     the blocked ones (ALLOCATION_SLICES; a bucket in no slice is reported, never
     dropped). Each bucket carries how many of its requests name a resolved
     company with no path in supply_reach.csv: for the buckets outside the supply
-    slice that is the footnote, requests the status gate excluded before the
-    allocator could say "no path". Display only: reads the allocation, never
-    changes it."""
+    slice that is the footnote, requests held (the repair queue, a status the
+    allocator does not know) before it could say "no path". Display only: reads
+    the allocation, never changes it."""
     current = {a["request_id"].strip(): a for a in bg.latest_cycle(data["allocation"])}
     reach = {s["company_id"].strip() for s in data["supply"] if s["company_id"].strip()}
     never = [data["golden_requests"].get(r["request_id"].strip(), {"request_id": r["request_id"], "company_id": "", "status_as_filed": r["status"]})
@@ -287,7 +288,7 @@ def backlog_cut(data, since=None):
 BLOCKAGE = {
     "supply": ("missing relationship", [bg.BLOCK_NO_PATH, bg.BLOCK_NO_ROSTER_PATH]),
     "process": ("process gap", [bg.BLOCK_NEVER_ROUTED, bg.CAPACITY_EXHAUSTED, bg.BLOCK_NO_COMPANY,
-                                bg.BLOCK_FUND_OR_OPCO, bg.STALE_ASK, bg.UNRESOLVED_ASK]),
+                                bg.BLOCK_FUND_OR_OPCO, bg.STALE_ASK, bg.UNRESOLVED_ASK, bg.INTRO_CLAIMED_NOT_LOGGED]),
     "closed": ("correctly not asked", [bg.ALREADY_INTRODUCED]),
 }
 REASON_LABEL = {
@@ -295,6 +296,7 @@ REASON_LABEL = {
     bg.BLOCK_NEVER_ROUTED: "path exists, never routed",
     bg.CAPACITY_EXHAUSTED: "capacity exhausted", bg.BLOCK_NO_COMPANY: "no company named", bg.BLOCK_FUND_OR_OPCO: "fund named",
     bg.STALE_ASK: "proposed, no outcome logged", bg.UNRESOLVED_ASK: "unresolved ask on every path",
+    bg.INTRO_CLAIMED_NOT_LOGGED: "filed Intro sent, none logged (repair queue)",
     bg.ALREADY_INTRODUCED: "already introduced",
 }
 
