@@ -1,13 +1,20 @@
 # Rebuild golden/, analysis/ and the site; commit the first two, publish the third.
 #
-# Every 15 minutes: pull the Supabase `completions` table into
-# golden/completions.csv (what the Live Priorities tab's Submit recorded),
-# rebuild, test, commit golden/ and analysis/ when they changed, and deploy
-# docs/ to GitHub Pages as a build artifact (Settings -> Pages -> Source:
-# "GitHub Actions"). docs/ is not committed: the only site that is ever
-# published is the one this job built with the Supabase secrets. Also runs on
-# every push to main by anyone other than the bot, and by hand from the Actions
-# tab.
+# On every Submit from the Live Priorities tab, and every 15 minutes as a
+# backstop: pull the Supabase `completions` table into golden/completions.csv
+# (what Submit recorded), rebuild, test, commit golden/ and analysis/ when they
+# changed, and deploy docs/ to GitHub Pages as a build artifact (Settings ->
+# Pages -> Source: "GitHub Actions"). docs/ is not committed: the only site
+# that is ever published is the one this job built with the Supabase secrets.
+# Also runs on every push to main by anyone other than the bot, and by hand
+# from the Actions tab.
+#
+# The Submit trigger is a repository_dispatch event (type `completion`) that a
+# Postgres trigger on the completions table posts with pg_net the moment a row
+# lands (config/supabase_rebuild_trigger.sql). The cron alone is not enough:
+# GitHub queues scheduled runs best-effort and a */15 schedule fires every hour
+# or two in practice. Submits arriving while a run is going share the one
+# pending run the concurrency group keeps, so a burst is one rebuild, not many.
 #
 # Secrets (Settings -> Secrets and variables -> Actions):
 #   SUPABASE_URL          https://<project>.supabase.co  (with or without /rest/v1)
@@ -26,6 +33,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  repository_dispatch:
+    types: [completion]
 
 permissions:
   contents: write

@@ -505,7 +505,7 @@ const LP = (function () {
   const actionLabel = { ask_sent: 'ask sent', nudged: 'nudged', chased: 'chased' };
   const describe = r => `${actionLabel[r.action] || r.action} ${esc(r.request_id || r.company_id)}${r.connector ? ` → ${esc(r.connector)}` : ''}`;
 
-  const submitBar = X => `<div class="submitbar" id="lp-submit" hidden><span id="lp-submit-n"></span><button id="lp-submit-go">Submit</button><button id="lp-submit-clear" class="secondary">Clear</button><span id="lp-submit-who"></span><span class="foot">${X.supabase_url ? `Records your ticks in the <code>${esc(X.table)}</code> table; the site rebuilds from it every 15 minutes and the ticked items leave the queue.` : '<b class="warn">This build cannot submit: no Supabase URL / anon key</b>'}</span></div>`;
+  const submitBar = X => `<div class="submitbar" id="lp-submit" hidden><span id="lp-submit-n"></span><button id="lp-submit-go">Submit</button><button id="lp-submit-clear" class="secondary">Clear</button><span id="lp-submit-who"></span><span class="foot">${X.supabase_url ? `Records your ticks in the <code>${esc(X.table)}</code> table; the site rebuilds from it within a few minutes and the ticked items leave the queue.` : '<b class="warn">This build cannot submit: no Supabase URL / anon key</b>'}</span></div>`;
 
   // capOf: roster connector → their card (used, capacity), for the picker's over-capacity note
   function wireCompletions(root, X, state, capOf = {}) {
@@ -580,7 +580,7 @@ const LP = (function () {
       state.ticks.clear(); store('lp-ticks', []); store('lp-submitted', Object.fromEntries(state.submitted));
       syncTicks(root, state);
       const already = got.already.length ? ` ${plural(got.already.length, 'row')} already recorded today (${got.already.map(describe).join('; ')}).` : '';
-      bar.dataset.msg = `<b>Recorded ${plural(got.recorded.length, 'row')}</b> as ${esc(who)}${got.recorded.length ? `: ${got.recorded.map(describe).join('; ')}` : ''}.${already} The site rebuilds from the table every 15 minutes; refresh after that and these leave the queue.`;
+      bar.dataset.msg = `<b>Recorded ${plural(got.recorded.length, 'row')}</b> as ${esc(who)}${got.recorded.length ? `: ${got.recorded.map(describe).join('; ')}` : ''}.${already} The site rebuilds from the table within a few minutes; refresh after that and these leave the queue.`;
       show();
     };
     syncTicks(root, state);
@@ -588,12 +588,14 @@ const LP = (function () {
   }
 
   // when this site was last built, from docs/build_stamp.json (deployed with
-  // the rest of docs/ on every scheduled rebuild), and the last run of
-  // the scheduled rebuild from the public GitHub Actions API when the repo is
-  // known — that run is what says the page is current even when nothing changed.
-  // Stale = no successful run in 3 cycles (or, with no API, a build over a day
-  // old). Both are best-effort: a page opened from disk shows the as-of date.
-  const STALE_RUN_MS = 45 * 60000, STALE_BUILD_MS = 24 * 3600 * 1000;
+  // the rest of docs/ on every rebuild), and the last run of the rebuild
+  // workflow from the public GitHub Actions API when the repo is known — that
+  // run is what says the page is current even when nothing changed. Stale = no
+  // successful run in 3 hours: the workflow runs on every Submit and on a
+  // 15-minute cron, but GitHub fires that cron every hour or two in practice, so
+  // anything tighter warns on a healthy site. With no API, a build over a day
+  // old. Both are best-effort: a page opened from disk shows the as-of date.
+  const STALE_RUN_MS = 3 * 3600 * 1000, STALE_BUILD_MS = 24 * 3600 * 1000;
   const ago = (iso, now = Date.now()) => {
     const m = Math.round((now - Date.parse(iso)) / 60000);
     return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
@@ -617,7 +619,7 @@ const LP = (function () {
     if (st) parts.push(`Site built <b>${esc(utc(st.built_at))}</b> (${ago(st.built_at)}; as of ${esc(st.as_of)}, ${plural(st.completions, 'completion')} applied)`);
     else parts.push(`As of <b>${esc(D.as_of)}</b>`);
     if (run) parts.push(`Last rebuild check <a href="${esc(run.html_url)}" target="_blank" rel="noopener">${ago(run.updated_at || run.created_at)}</a>`);
-    if (stale) parts.push('<b class="warn">Stale: the 15-minute rebuild has not run lately</b>');
+    if (stale) parts.push('<b class="warn">Stale: no rebuild in over 3 hours; the site may not reflect recent Submits</b>');
     el.innerHTML = parts.join(' · ');
   }
 
