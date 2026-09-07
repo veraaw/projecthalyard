@@ -10,7 +10,8 @@ dataset/    raw exports, read-only: intro_requests, intro_outcomes, crm_accounts
 golden/     state derived from dataset/ (golden_*.csv, supply_reach, allocation history,
             completions.csv from the dashboard) and the code that derives it
 analysis/   one folder per question (profile, joins, routing, slack, integrity, crm) with the
-            script and the report it writes; traces/ holds one history per company
+            script and the report it writes; traces/ (gitignored, rebuilt each run) holds
+            one history per company, the same text docs/companytrace.html inlines
 dashboard/  the static pages (build_dashboard.py, live_priorities.py/.js, batch_ask.py ...)
 docs/       build output: the published site (GitHub Pages) and docs/build_stamp.json
 config/     batch_ask_templates.json, supabase_schema.sql (the completions table)
