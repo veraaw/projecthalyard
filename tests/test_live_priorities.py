@@ -833,14 +833,20 @@ class RequesterCutTest(unittest.TestCase):
             self.assertEqual(b["unresolved"], sum(1 for r in mine if not cuts["golden_requests"][r["request_id"]]["company_id"]))
             in_crm = {c for c in companies if cuts["golden_companies"][c]["crm_account_ids"]}
             self.assertEqual(b["crm_accounts"], len(in_crm))
-            self.assertAlmostEqual(b["crm_value"], sum(float(cuts["golden_companies"][c]["value_usd"]) for c in in_crm))
+            # one $ per company: CRM ARR potential where it has an account, else its latest deal value
+            self.assertAlmostEqual(b["value"], sum(data_cuts.company_dollars(cuts, c)[0] for c in companies))
+            self.assertGreaterEqual(b["value"], sum(float(cuts["golden_companies"][c]["value_usd"]) for c in in_crm))
             self.assertAlmostEqual(b["intro_rate"], b["intros"] / b["requests"])
             self.assertTrue(b["intros"] <= b["routed"] <= b["requests"], b["name"])
             self.assertEqual(b["critical"], sum(1 for r in mine if r["urgency"].strip().lower() == "critical"))
             self.assertEqual(b["critical_high"], sum(1 for r in mine if r["urgency"].strip().lower() in ("critical", "high")))
             self.assertTrue(0 <= b["critical_share"] <= b["critical_high_share"] <= 1)
         self.assertAlmostEqual(cut["intro_rate"], sum(b["intros"] for b in rows) / cut["requests"])
-        self.assertLessEqual(cut["crm_value"], sum(b["crm_value"] for b in rows), "the total counts a shared account once")
+        self.assertLessEqual(cut["value"], sum(b["value"] for b in rows), "the total counts a shared account once")
+        self.assertEqual(cut["value"], sum(data_cuts.company_dollars(cuts, c)[0] for c in {c for b in rows for c in b["companies"]}))
+        self.assertGreater(sum(1 for b in rows if b["value"] > sum(float(cuts["golden_companies"][c]["value_usd"]) for c in b["companies"]
+                                                                if cuts["golden_companies"][c]["crm_account_ids"])), 0,
+                           "a company with no CRM account still counts at its deal value")
 
 
 class GoldenSourceCutsTest(unittest.TestCase):
@@ -888,6 +894,36 @@ class GoldenSourceCutsTest(unittest.TestCase):
         self.assertEqual(self.dc.account_demand_cut(self.gold), self.dc.account_demand_cut(self.raw))
         self.assertEqual(self.dc.top_accounts_cut(self.gold), self.dc.top_accounts_cut(self.raw))
         self.assertEqual(self.dc.cycle_cut(self.gold), self.dc.cycle_cut(self.raw))
+
+    def test_every_dollar_is_one_per_company(self):
+        # dashboard/company_value.py prices every $ on the site: CRM ARR potential where the
+        # company has an account, else the deal value on its latest request that carries one
+        live = lp.Live(AS_OF)
+        for b in self.dc.company_rows(self.gold):
+            if b["unresolvable"]:
+                continue
+            value, source = live.company_value(b["company_id"])
+            self.assertEqual((b["value"], b["value_source"]), (value, "CRM" if source == "crm" else "deal"), b["name"])
+        top = self.dc.top_accounts_cut(self.gold)["companies"]
+        self.assertEqual([b["value"] for b in top], sorted((b["value"] for b in top), reverse=True))
+        # a company whose latest request carries a smaller deal value than an earlier one is priced at the latest
+        by_company = self.dc.requests_by_company(self.gold)
+        latest_wins = [cid for cid, rows in by_company.items()
+                       if not self.gold["golden_companies"][cid]["crm_account_ids"]
+                       and len({r["value_usd"] for r in rows if r["value_usd"]}) > 1]
+        self.assertTrue(latest_wins, "the fixture has a company with two different deal values and no CRM account")
+        for cid in latest_wins:
+            newest = max((r for r in by_company[cid] if r["value_usd"]), key=lambda r: (r["request_date"], r["request_id"]))
+            self.assertEqual(self.dc.company_dollars(self.gold, cid), (int(float(newest["value_usd"])), "deal"))
+        cov = self.dc.outcome_delta_cut(self.gold)
+        asked = {o["request_id"] for o in self.gold["outcomes"]}
+        hole = [self.gold["golden_requests"][r["request_id"]] for r in self.gold["requests"]
+                if r["request_id"] not in asked and r["status"] in ("Intro sent", "Routed")]
+        self.assertEqual(cov["should_exist"], len(hole))
+        self.assertEqual(cov["should_exist_value"], live.dollars_total(hole))
+        resolved = [r for r in hole if r["company_id"]]
+        self.assertEqual(self.dc.dollars(self.gold, [r["request_id"] for r in resolved] * 2), self.dc.dollars(self.gold, [r["request_id"] for r in resolved]),
+                         "naming a request twice does not count its company twice")
 
     def test_an_ask_sent_from_live_priorities_counts_from_the_next_build(self):
         asked = {o["request_id"] for o in self.raw["outcomes"]}
@@ -967,9 +1003,13 @@ class GoldenSourceCutsTest(unittest.TestCase):
         stages = dict(self.dc.funnel_cut(self.gold))
         self.assertEqual((y["asks"], y["intros"], y["opps"]), (stages["Asked"], stages["Intros"], stages["Opportunities"]))
         by_id = {r["request_id"]: r for r in self.gold["requests"]}
-        self.assertEqual(y["routed"], sum(float(by_id[o["request_id"]]["deal_value_usd"] or 0) for o in self.gold["outcomes"]))
         # one $ per company (dashboard/company_value.py), the rule Live Priorities prices every row by
         live = lp.Live(AS_OF)
+        asked_rows = [self.gold["golden_requests"][o["request_id"]] for o in self.gold["outcomes"]]
+        self.assertEqual(y["routed"], live.dollars_total(asked_rows))
+        self.assertNotEqual(y["routed"], sum(float(by_id[o["request_id"]]["deal_value_usd"] or 0) for o in self.gold["outcomes"]),
+                            "a company asked twice is routed once")
+        self.assertEqual(y["requested"], live.dollars_total(list(self.gold["golden_requests"].values())))
         opp_rows = [self.gold["golden_requests"][o["request_id"]] for o in self.gold["outcomes"] if o["opportunity_created"] == "Y"]
         self.assertEqual(y["opp"], live.dollars_total(opp_rows))
         self.assertEqual(y["opp_companies"], len({r["company_id"] for r in opp_rows}))
@@ -979,8 +1019,16 @@ class GoldenSourceCutsTest(unittest.TestCase):
         self.assertAlmostEqual(y["opp_per_intro"], y["opp"] / y["intros"])
         self.assertGreater(y["requested"], y["routed"], "the never-asked requests carry value too")
         cx = self.dc.connector_cut(self.gold)
-        self.assertLessEqual(sum(c["opp_value"] for c in cx["connectors"]), y["opp"], "off-roster asks return too; the ranking is the roster")
+        self.assertLessEqual(cx["opp_value"], y["opp"], "off-roster asks return too; the ranking is the roster")
         self.assertEqual([c["opp_per_ask"] for c in cx["by_return"]], sorted((c["opp_per_ask"] for c in cx["by_return"]), reverse=True))
+        roster = {r["name"].strip() for r in self.gold["roster"]}
+        for c in cx["connectors"]:
+            mine = [o for o in self.gold["outcomes"] if o["connector_asked"].strip() == c["name"]]
+            self.assertEqual(c["value"], live.dollars_total([self.gold["golden_requests"][o["request_id"]] for o in mine]), c["name"])
+            self.assertEqual(c["opp_value"], live.dollars_total([self.gold["golden_requests"][o["request_id"]] for o in mine if o["opportunity_created"] == "Y"]), c["name"])
+            self.assertNotIn("asked_rids", c)
+        self.assertEqual(cx["opp_value"], live.dollars_total([r for r, o in zip(asked_rows, self.gold["outcomes"])
+                                                             if o["opportunity_created"] == "Y" and o["connector_asked"].strip() in roster]))
         for c in cx["by_return"]:
             self.assertAlmostEqual(c["opp_per_ask"], c["opp_value"] / c["asked"], msg=c["name"])
         empty = self.dc.yield_cut(self.gold, since="2999-01-01")
@@ -994,6 +1042,15 @@ class GoldenSourceCutsTest(unittest.TestCase):
         self.assertAlmostEqual(b["with_path_value"] + b["without_path_value"], b["never_value"])
         self.assertEqual(sum(c["requests"] for c in b["companies"]), b["with_path"])
         self.assertAlmostEqual(sum(c["value"] for c in b["companies"]), b["with_path_value"])
+        # one $ per company: the backlog is worth its companies, not its requests
+        live = lp.Live(AS_OF)
+        never_ids = {r["request_id"] for r in self.gold["requests"]} - {o["request_id"] for o in self.gold["outcomes"]}
+        never_rows = [self.gold["golden_requests"][rid] for rid in never_ids]
+        self.assertEqual(b["never_value"], live.dollars_total(never_rows))
+        self.assertLess(b["with_path_value"], sum(float(r["value_usd"] or 0) for r in never_rows if r["company_id"] in {c["company_id"] for c in b["companies"]}),
+                        "a company requested twice counts once")
+        for c in b["companies"]:
+            self.assertEqual(c["value"], live.company_value(c["company_id"])[0])
         reach = {s["company_id"] for s in self.gold["supply"]}
         for c in b["companies"]:
             self.assertIn(c["company_id"], reach)
@@ -1304,7 +1361,7 @@ class BuiltPagesTest(unittest.TestCase):
         self.assertEqual(labels, ["opportunity value created", "return per ask", "median ask to intro",
                                   "median ask to first response", "reachable but never asked"])
         for text in (f"from {y['asks']} asks", f"{lat['median_to_intro']:g} d", f"{lat['median_to_resp']:g} d",
-                     f"{b['with_path']} of {b['total']} requests on file, with a path in supply_reach.csv"):
+                     f"{b['with_path']} of {b['total']} requests on file, at {len(b['companies'])} companies with a path in supply_reach.csv, each counted once"):
             self.assertIn(text, strip)
         self.assertNotIn('class="kpis headline"', self.pages["halyardscoping.html"], "Raw Sept keeps its own top")
 
@@ -1327,8 +1384,8 @@ class BuiltPagesTest(unittest.TestCase):
             for gone in ('id="unrouted"', "Remaining Unrouted", 'id="blockage"', "of the blockage is a missing relationship."):
                 self.assertNotIn(gone, funnel, f"{name}: the unrouted donut is not inside the funnel section")
             self.assertIn(f"<b>{b['never']} of the {b['total']} requests on file never reach a connector.</b>", funnel)
-            self.assertIn(f"{b['with_path']} of them are for companies that already have a path in <code>supply_reach.csv</code>, "
-                          f"a backlog worth ${b['with_path_value'] / 1e6:.1f}M", funnel)
+            self.assertIn(f"{b['with_path']} of them are for {len(b['companies'])} companies that already have a path in <code>supply_reach.csv</code>, "
+                          f"a backlog worth ${b['with_path_value'] / 1e6:.1f}M (one $ per company)", funnel)
 
     def test_remaining_unrouted_is_its_own_section_on_live_data_only(self):
         from dashboard import build_dashboard, data_cuts

@@ -1164,10 +1164,11 @@ class Live:
     def connector_names(self) -> list[str]:
         """Roster first, in roster order; then anyone off the roster who holds an
         allocation this cycle, largest batch first."""
-        extra = Counter()
+        held = defaultdict(list)
         for a in self.allocation:
             if a["allocated_to"] and a["allocated_to"] not in self.roster:
-                extra[a["allocated_to"]] += self.dollars(a["company_id"], a["value_usd"])
+                held[a["allocated_to"]].append(self.by_rid[a["request_id"]])
+        extra = {n: self.dollars_total(rows) for n, rows in held.items()}
         return list(self.roster) + [n for n, _ in sorted(extra.items(), key=lambda kv: (-kv[1], kv[0]))]
 
     def connectors(self) -> list[dict]:
