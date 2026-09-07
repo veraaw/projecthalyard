@@ -379,7 +379,7 @@ SEG_SCRIPT = """<script>
 
 STRATEGIC_NAV = [("#funnel", "Funnel", ""), ("#accounts", "Accounts", ""), ("#requesters", "Requesters", ""),
                  ("#connectors", "Connectors", ""), ("#latency", "Latency", ""), ("#cycles", "Intros by Cycle", "")]
-LIVE_NAV = STRATEGIC_NAV[:1] + [("#inflight", "Requests in Flight", "")] + STRATEGIC_NAV[1:]
+LIVE_NAV = STRATEGIC_NAV[:1] + [("#unrouted", "Remaining Unrouted", ""), ("#inflight", "Requests in Flight", "")] + STRATEGIC_NAV[1:]
 
 
 def in_flight_section(f):
@@ -483,15 +483,6 @@ STATE_SOURCE = ('Each request has one state (<code>dashboard/request_state.py</c
                 'it ranks what would unblock a request, not why the system stopped.')
 
 
-def allocation_blockage_panel(ab, div_id):
-    """The Accounts donut with its caption, over every request on file."""
-    return f"""<h3>Blockage by Allocation Exception</h3>
-  <p class="lede">{STATE_SOURCE}</p>
-  {blockage_donut(ab, div_id, "on file")}
-  {blockage_caption(ab, "on file")}
-  <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>blockage_cut</code>). Slice tooltips list the states they sum: the same vocabulary as Unrouted Exceptions on Live Priorities.</p>"""
-
-
 def blockage_view(bl, div_id, population):
     """The Remaining Unrouted donut with its reading, for one window of the funnel."""
     return f"""<div class="grid2">
@@ -504,15 +495,18 @@ def blockage_view(bl, div_id, population):
 
 
 def blockage_panel(data, window_all):
-    """Remaining Unrouted, with its own Cumulative / Last 12 months toggle so it can be read against either funnel view."""
+    """Remaining Unrouted: its own section on Live Data, right below the funnel, with its own
+    Cumulative / Last 12 months toggle so it can be read against either funnel view."""
     bl, bl_12m = data_cuts.blockage_cut(data), data_cuts.blockage_cut(data, since=ROLLING_SINCE)
-    return f"""<div id="unrouted">
-  <h3>Remaining Unrouted</h3>
+    return f"""
+<section id="unrouted">
+  <h2>Remaining Unrouted</h2>
   <div class="seg" id="unrouted-toggle" data-scope="unrouted" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
   <span class="foot" id="unrouted-window" data-all="{window_all}: {bl['never']} of {bl['total']} requests on file never asked" data-12m="Requests dated {ROLLING_SINCE} or later: {bl_12m['never']} of the {bl_12m['in_window']} in the window never asked ({bl['never']} of {bl['total']} on file)">{window_all}: {bl['never']} of {bl['total']} requests on file never asked</span>
   <div class="fview" data-view="12m" hidden>{blockage_view(bl_12m, "blockage-12m", f"dated {ROLLING_SINCE} or later")}</div>
   <div class="fview" data-view="all">{blockage_view(bl, "blockage", "on file")}</div>
-  </div>"""
+</section>
+"""
 
 
 def return_chart(cs, div_id):
@@ -592,7 +586,6 @@ def strategic_sections(data, cyc, live, in_flight=None):
   {sankey(stages, "sankey")}
   {backlog_box(data_cuts.backlog_cut(data), "on file")}
   </div>
-  {blockage_panel(data, window_all)}
   <div class="fview" data-view="12m" hidden>
   <div class="grid2">
     <div>
@@ -623,7 +616,7 @@ def strategic_sections(data, cyc, live, in_flight=None):
   </div>
   </div>
 </section>
-""" + (in_flight_section(in_flight) if in_flight else "")
+""" + (blockage_panel(data, window_all) if live else "") + (in_flight_section(in_flight) if in_flight else "")
 
     # accounts
     demand = data_cuts.account_demand_cut(data)
@@ -669,7 +662,6 @@ def strategic_sections(data, cyc, live, in_flight=None):
       {finding("Unresolvable asks cluster too.", f"{unresolvable_asks} of the {n_req} requests on file resolve to no company at all: " + "; ".join(f'{b["requests"]} {b["name"].strip("()")}' for b in demand["unresolvable"]) + ". They sit at the bottom of the detail table and are excluded from the company counts above.")}
     </div>
   </div>
-  {allocation_blockage_panel(data_cuts.blockage_cut(data), "allocation-blockage") if live else ""}
   <h3>Per-company detail</h3>
   <p class="foot">Paths in network = distinct ways to reach the company in <code>golden/supply_reach.csv</code>.</p>
   {demand_table}
