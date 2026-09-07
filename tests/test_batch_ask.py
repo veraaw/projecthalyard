@@ -194,8 +194,9 @@ class ComposerTest(unittest.TestCase):
 
     def test_retry_line_names_the_intro_that_fizzled(self):
         """A company the allocator routed afresh after an earlier intro went nowhere
-        carries one retry line under its block header: who introduced whom, on
-        what date; 'you' when the connector being asked sent that intro."""
+        carries one retry line under its block header: who introduced which rep
+        to whom (the person named in the raw ask, else the title), on what date;
+        'you' when the connector being asked sent that intro."""
         outcomes = bg.read_csv(batch_ask.OUTCOMES)
         intros = batch_ask.prior_intros(outcomes, self.requests)
         hits = own = 0
@@ -214,6 +215,8 @@ class ComposerTest(unittest.TestCase):
                 self.assertEqual(len(retry_lines), 1)
                 self.assertIn(expect["date"], lines[1])
                 self.assertIn(expect["requester"], lines[1])
+                target = expect["target_person"] or f"their {expect['target_title']}"
+                self.assertIn(f"introduced {expect['requester']} to {target} on {expect['date']}", lines[1])
                 if expect["connector"] == m["connector"]:
                     own += 1
                     self.assertIn("you introduced", lines[1])
