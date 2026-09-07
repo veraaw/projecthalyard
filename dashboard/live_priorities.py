@@ -86,6 +86,26 @@ BANDS = [
 ]
 # every section in page order; drives the header nav
 SECTIONS = [s for _, _, sections in BANDS for s in sections]
+# the states an open request can be in, in flight order: (key, group, label, what happens next,
+# the section of this tab that owns it). Live.in_flight() puts every open request in exactly one.
+IN_FLIGHT_STATES = [
+    ("queued", "Not yet asked", "Queued this cycle, ask not sent", "the connector's batch goes out; tick ask sent", "top"),
+    ("no_slot", "Not yet asked", "Routed, no slot this cycle", "waits for the connector's next cycle", "top"),
+    ("no_path", "Not yet asked", "No path to the company in the network", "a path has to be found or the request closed", "exceptions"),
+    ("unresolved", "Not yet asked", "Company unresolved", "the requester names the company", "exceptions"),
+    ("held", "Not yet asked", "Unresolved ask on every path", "waits on the follow-up owed at the company", "exceptions"),
+    ("chase", "Asked, waiting on the connector", "Asked, no reply: chase owed", "chase the connector", "followups"),
+    ("nudge", "Asked, waiting on the connector", "Agreed, no intro yet: nudge owed", "nudge the connector", "followups"),
+    ("quiet", "Asked, waiting on the connector", "Nudged or chased recently", "wait out the quiet period", "followups"),
+    ("parked", "Introduced", "Parked behind a live intro at the company", "the rep introduced asks for the other names", "introduced"),
+    ("introduced", "Introduced", "Intro sent, no meeting yet", "the rep books the meeting", "stages"),
+    ("meeting", "Introduced", "Meeting booked", "the rep logs the opportunity", "stages"),
+    ("other", "Not yet asked", "Open, nothing on file", "", ""),
+]
+# why a request is in the ranked queue, in the order the Top Priorities header lists them
+CONSIDERED_BY = [("allocated", "allocated a slot this cycle"), ("no_slot", "routed, no slot this cycle"),
+                 ("held", "held on an unresolved ask"), ("asked", "asked already, no slot for the retry"),
+                 ("other", "ranked on a best path")]
 THREADS_COMMAND = "python3 golden/build_golden.py --threads {file} && python3 build.py"
 # the heads-up to the account owner behind an allocation row's notify_owner (build_golden.NOTIFY_STAGES);
 # drafted here so it can be copied, never sent
@@ -691,8 +711,35 @@ class Live:
         rows = self.ranked()
         rest = rows[TOP_N:]
         return {"top": rows[:TOP_N], "rest": rest, "considered": len(rows), "formula": self.formula(),
+                "considered_by": self.considered_by(rows),
                 "rest_value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in rest])),
                 "rest_no_slot": sum(1 for r in rest if not r["allocated"])}
+
+    def considered_by(self, rows: list[dict]) -> list[dict]:
+        """The ranked queue split by why each request is in it: allocated a slot this
+        cycle, routed but out of slots, or held on an unresolved ask (the allocator's
+        exception, still ranked on its best path). Each split says how many of its
+        requests are a retry after a fizzled intro; a retry is allocated like any
+        first ask, but one left without a slot stays in the request_state it already
+        has (asked) rather than counting as routed-but-out-of-slots twice."""
+        def why(r: dict) -> str:
+            if r["allocated"]:
+                return "allocated"
+            state = self.states[r["request_id"]]
+            if state == bg.CAPACITY_EXHAUSTED:
+                return "no_slot"
+            if state == bg.UNRESOLVED_ASK:
+                return "held"
+            if state == rs.ASKED:
+                return "asked"
+            return "other"
+        groups = defaultdict(list)
+        for r in rows:
+            groups[why(r)].append(r)
+        return [{"key": key, "label": label, "count": len(groups[key]),
+                 "retries": sum(1 for r in groups[key] if r["retry"]),
+                 "request_ids": sorted(r["request_id"] for r in groups[key])}
+                for key, label in CONSIDERED_BY if groups[key]]
 
     # -- 3. current asks ------------------------------------------------------
     def batch_companies(self, rows: list[dict]) -> list[dict]:
@@ -943,6 +990,71 @@ class Live:
             "chase": sum(1 for s in rows if s["action"] == "chase" and not s["quiet"]),
             "quiet": [s for s in rows if s["quiet"]], "quiet_days": NUDGE_QUIET_DAYS,
             "by_connector": per,
+        }
+
+    # -- 5. requests in flight ---------------------------------------------------
+    def in_flight(self) -> dict:
+        """Every open request (status_as_filed in OPEN_STATUSES: the set every
+        section of this tab works from), each in exactly one state, with the
+        section that owns it, so the Live Data tab can show the same counts.
+        Follow-Ups Owed owns an ask nobody has resolved (nudge, chase, or quiet
+        after a recent follow-up); the allocation owns the rest of the
+        not-yet-asked (queued, no slot this cycle, and each exception reason);
+        what is left sits on its own intro or meeting."""
+        sitting = {s["request_id"]: s for s in self.followups()["rows"]}
+        by_state: dict[str, list[dict]] = defaultdict(list)
+        outside = Counter()
+        for r in self.requests:
+            if r["status_as_filed"] not in bg.OPEN_STATUSES:
+                outside[r["status_as_filed"]] += 1
+                continue
+            rid = r["request_id"]
+            o, a, state = self.outcome_by_rid.get(rid), self.alloc_by_rid.get(rid), self.states[rid]
+            if rid in sitting:
+                s = "quiet" if sitting[rid]["quiet"] else sitting[rid]["action"]
+            elif a and a["allocated_to"]:
+                s = "queued"
+            elif state == bg.CAPACITY_EXHAUSTED:
+                s = "no_slot"
+            elif a and a["exception_reason"].startswith(bg.ALREADY_INTRODUCED):
+                s = "parked"
+            elif state == bg.NO_PATH:
+                s = "no_path"
+            elif state == bg.UNRESOLVED_ASK:
+                s = "held"
+            elif a and state != rs.ASKED:
+                s = "unresolved"
+            elif (o and o["meeting_booked"] == "Y") or r["meeting_booked"] == "Y":
+                s = "meeting"
+            elif (o and o["intro_sent"] == "Y") or r["intro_sent"] == "Y":
+                s = "introduced"
+            else:
+                s = "other"
+            by_state[s].append(r)
+
+        def note(key: str, rows: list[dict]) -> str:
+            if key == "queued":
+                retries = sum(1 for r in rows if r["company_id"] and self.retry_of(r["company_id"]))
+                return f"{retries} of them a retry after a fizzled intro" if retries else ""
+            if key == "meeting":
+                opp = sum(1 for r in rows if self.outcome_by_rid.get(r["request_id"], {}).get("opportunity_created") == "Y")
+                return f"{opp} already have an opportunity logged, still filed open" if opp else ""
+            if key == "quiet":
+                return f"followed up within the last {NUDGE_QUIET_DAYS} days, so not owed yet"
+            return ""
+
+        rows = [{
+            "key": key, "group": group, "label": label, "next": nxt, "section": section,
+            "count": len(by_state[key]), "value_usd": self.dollars_total(by_state[key]),
+            "value_fmt": money(self.dollars_total(by_state[key])), "note": note(key, by_state[key]),
+            "request_ids": sorted(r["request_id"] for r in by_state[key]),
+        } for key, group, label, nxt, section in IN_FLIGHT_STATES if by_state[key] or key not in ("quiet", "other")]
+        return {
+            "open": sum(len(v) for v in by_state.values()), "rows": rows,
+            "groups": [{"group": g, "count": sum(r["count"] for r in rows if r["group"] == g)}
+                       for g in dict.fromkeys(g for _, g, *_ in IN_FLIGHT_STATES)],
+            "outside": [{"status": s, "count": n} for s, n in sorted(outside.items())],
+            "quiet_days": NUDGE_QUIET_DAYS, "intro_live_days": bg.INTRO_LIVE_DAYS,
         }
 
     # -- 6. per-connector -----------------------------------------------------
@@ -1257,7 +1369,8 @@ class Live:
             "bands": [{"id": bid, "title": title, "sections": [sid for sid, _ in sections]}
                       for bid, title, sections in BANDS],
             "stages": self.stages(), "priorities": self.priorities(), "asks": self.asks(), "introduced": self.introduced(),
-            "connectors": self.connectors(), "followups": self.followups(), "crm": self.crm(), "parser": self.parser(),
+            "connectors": self.connectors(), "followups": self.followups(), "in_flight": self.in_flight(),
+            "crm": self.crm(), "parser": self.parser(),
             "completions": self.completion_export(),
             "connector_pages": [{"connector": c["connector"], "page": c["page"], "on_roster": c["on_roster"]}
                                 for c in self.connector_pages()],
@@ -1289,6 +1402,10 @@ def cycles(today: date | None = None) -> dict:
     return Live(today or as_of()).cycles()
 
 
+def in_flight(today: date | None = None) -> dict:
+    return Live(today or as_of()).in_flight()
+
+
 def connector_fragments(today: date | None = None) -> list[tuple[dict, str]]:
     """(card, html) per connector page; card["page"] is the file name under docs/."""
     return [(c, _fragment(c, "bootConnector")) for c in Live(today or as_of()).connector_pages()]
@@ -1307,5 +1424,6 @@ if __name__ == "__main__":
           + ", ".join(f"{e['count']} {e['reason']}" for e in p["asks"]["exceptions"]) + f"; {p['asks']['no_slot']} wait for a slot")
     print(f"follow-ups  {p['followups']['nudge']} nudges, {p['followups']['chase']} chases"
           + (f", {len(p['followups']['quiet'])} followed up recently" if p['followups']['quiet'] else ""))
+    print(f"in flight   {p['in_flight']['open']} open: " + ", ".join(f"{r['count']} {r['key']}" for r in p["in_flight"]["rows"]))
     print(f"completions {p['completions']['count']} on file")
     print("crm        ", ", ".join(f"{g['count']} {g['group']}" for g in p["crm"]["groups"]))
