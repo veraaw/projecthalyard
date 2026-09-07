@@ -5,9 +5,10 @@
 The file is the connector history, one row per (cycle, request_id); the
 current allocation is its latest cycle. Within a cycle: one row per live,
 not-yet-asked request, plus one per asked request whose own intro fizzled with
-no re-ask logged since (back as a retry); each row is either an allocation
-(allocated_to + batch_id) or an exception (exception_reason), never both and
-never neither.
+no re-ask logged since (back as a retry), plus one per request filed Closed -
+no path or Intro sent that the ask log never saw (reopened); each row is either
+an allocation (allocated_to + batch_id) or an exception (exception_reason),
+never both and never neither.
 Counts are derived from golden_requests.csv, golden_companies.csv and
 dataset/, never fixed: the request file grows on every merge.
 """
@@ -22,10 +23,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from golden.build_golden import (  # noqa: E402
-    ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, HOLD_LAST, HOLD_NUDGE, HOLD_WINDOW, INTRO_LIVE_DAYS, MULTI, NOTIFY_STAGES,
-    OPEN_STATUSES, STALE_ASK, UNANSWERED_ASK_DAYS, UNRESOLVED_ASK, Company, cycle_budget, history_signals, hold_reason,
-    intro_of, introductions, latest_cycle, load_roster, meeting_stalled, owner_to_notify, parse_date, path_rank,
-    retriable, unresolved_asks,
+    ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, HOLD_LAST, HOLD_NUDGE, HOLD_WINDOW, INTRO_CLAIMED_NOT_LOGGED, INTRO_LIVE_DAYS,
+    MULTI, NOTIFY_STAGES, OPEN_STATUSES, REOPEN_STATUSES, REPAIR_DAYS, STALE_ASK, UNANSWERED_ASK_DAYS, UNRESOLVED_ASK,
+    Company, cycle_budget, history_signals, hold_reason, in_queue, intro_of, introductions, latest_cycle, load_roster,
+    meeting_stalled, owner_to_notify, parse_date, path_rank, reopened, retriable, unresolved_asks,
 )
 
 G = ROOT / "golden"
@@ -34,9 +35,10 @@ D = ROOT / "dataset"
 NO_PATH = "no path to this company in the network"
 UNRESOLVED = "company unresolved"
 ALWAYS_PRESENT = {NO_PATH, CAPACITY_EXHAUSTED, UNRESOLVED}
-# STALE_ASK needs a prior cycle, ALREADY_INTRODUCED a live intro and UNRESOLVED_ASK a company
-# whose every path is held by an unresolved ask, so any of them may be absent
-KNOWN_EXCEPTIONS = ALWAYS_PRESENT | {STALE_ASK, ALREADY_INTRODUCED, UNRESOLVED_ASK}
+# STALE_ASK needs a prior cycle, ALREADY_INTRODUCED a live intro, UNRESOLVED_ASK a company whose every
+# path is held by an unresolved ask and INTRO_CLAIMED_NOT_LOGGED a request filed Intro sent that the log
+# never saw, so any of them may be absent
+KNOWN_EXCEPTIONS = ALWAYS_PRESENT | {STALE_ASK, ALREADY_INTRODUCED, UNRESOLVED_ASK, INTRO_CLAIMED_NOT_LOGGED}
 BATCH_COLUMNS = ("batch_id", "batch_size", "path_type", "route_score")
 
 
@@ -67,8 +69,8 @@ class AllocationTest(unittest.TestCase):
                 cls.supply[p["company_id"]].append(p)
         # what the allocator should have covered
         cls.live = {rid for rid, r in cls.requests.items()
-                    if r["status_as_filed"] in OPEN_STATUSES
-                    and ((rid not in cls.asked and not r["asked_date"]) or rid in cls.retry)}
+                    if in_queue(r["status_as_filed"], rid, cls.asked | {x for x, q in cls.requests.items() if q["asked_date"]}, cls.retry)}
+        cls.reopened = {rid for rid in cls.live if cls.requests[rid]["status_as_filed"] in REOPEN_STATUSES}
 
     # ── 1. structure ───────────────────────────────────────────────────
     def test_every_row_has_the_headers_field_count(self):
@@ -119,11 +121,94 @@ class AllocationTest(unittest.TestCase):
 
     def test_every_request_is_live_and_not_yet_asked(self):
         not_live = [a["request_id"] for a in self.alloc
-                    if self.requests[a["request_id"]]["status_as_filed"] not in OPEN_STATUSES]
-        self.assertEqual(not_live, [], f"not in {sorted(OPEN_STATUSES)}")
+                    if self.requests[a["request_id"]]["status_as_filed"] not in OPEN_STATUSES | REOPEN_STATUSES]
+        self.assertEqual(not_live, [], f"not in {sorted(OPEN_STATUSES | REOPEN_STATUSES)}")
         already = [a["request_id"] for a in self.alloc if a["request_id"] not in self.retry
                    and (a["request_id"] in self.asked or self.requests[a["request_id"]]["asked_date"])]
         self.assertEqual(already, [], "already asked")
+        for a in self.alloc:
+            self.assertEqual(a["status_as_filed"], self.requests[a["request_id"]]["status_as_filed"],
+                             f"{a['request_id']}: the row keeps the status as filed, reopened or not")
+
+    def test_a_request_filed_finished_but_never_asked_is_reopened(self):
+        """Closed - no path or Intro sent with no row in the ask log (REOPEN_STATUSES)
+        is the allocator's: filed as finished, nothing on record ever happened.
+        Both statuses occur in the golden data; one filed that way and asked stays
+        out (its outcome row is the record). A reopened row takes only the slots
+        the requests filed open leave: no open request loses its connector to one."""
+        self.assertTrue(self.reopened, "the golden data has never-asked Closed - no path / Intro sent requests")
+        self.assertEqual({self.requests[rid]["status_as_filed"] for rid in self.reopened}, REOPEN_STATUSES)
+        in_file = {a["request_id"] for a in self.alloc}
+        self.assertLessEqual(self.reopened, in_file)
+        asked_and_filed_finished = [rid for rid, r in self.requests.items()
+                                    if r["status_as_filed"] in REOPEN_STATUSES and rid in self.asked]
+        self.assertTrue(asked_and_filed_finished)
+        self.assertEqual(set(asked_and_filed_finished) & in_file, set(), "asked: the log has its row, the allocator leaves it")
+        self.assertTrue(in_queue("Closed - no path", "X", set(), set()))
+        self.assertFalse(in_queue("Closed - no path", "X", {"X"}, set()))
+        self.assertFalse(in_queue("Closed - no path", "X", {"X"}, {"X"}), "a fizzled intro retries only a request filed open")
+        self.assertTrue(in_queue("Stalled", "X", {"X"}, {"X"}))
+        self.assertFalse(in_queue("Meeting booked", "X", set(), set()))
+        # priority order: every request filed open is decided before any reopened one, so a connector an
+        # open request found spent (its best path, capacity exhausted) was never handed a reopened one
+        spent = {a["best_path_if_unbudgeted"].split(" (")[0] for a in self.alloc
+                 if a["request_id"] not in self.reopened and a["exception_reason"] == CAPACITY_EXHAUSTED}
+        self.assertTrue(spent)
+        took = {a["allocated_to"] for a in self.allocated if a["request_id"] in self.reopened}
+        self.assertTrue(took)
+        self.assertEqual(spent & took, set(), "a reopened request displaced one filed open")
+
+    def test_reopened_closed_no_path_is_routed_or_an_ordinary_exception(self):
+        """A never-asked Closed - no path request goes through the allocator like
+        any other: with a path it is allocated (or capacity exhausted / held), and
+        with none it lands in NO_PATH or company unresolved rather than a gate of
+        its own. reopened() names why it is in the file; the status stays as filed."""
+        closed = [a for a in self.alloc if a["status_as_filed"] == "Closed - no path"]
+        self.assertTrue(closed)
+        self.assertTrue(any(a["allocated_to"] for a in closed), "a closed request with a path on file is routed")
+        for a in closed:
+            with self.subTest(request_id=a["request_id"]):
+                self.assertEqual(reopened(a), "filed Closed - no path, never asked")
+                if not a["company_id"]:
+                    self.assertEqual(a["exception_reason"], UNRESOLVED)
+                elif self.companies[a["company_id"]]["paths_available"] == "0":
+                    self.assertEqual(a["exception_reason"], NO_PATH)
+                else:
+                    self.assertTrue(a["allocated_to"] or a["exception_reason"], a)
+                    self.assertNotEqual(a["exception_reason"], NO_PATH)
+
+    def test_intro_sent_with_no_intro_logged_waits_in_the_repair_queue(self):
+        """A never-asked Intro sent request is INTRO_CLAIMED_NOT_LOGGED for REPAIR_DAYS
+        from the day the file first flagged it, naming both dates; nobody is asked
+        afresh meanwhile. Identity and a live intro on the company come first (a
+        company already introduced parks it as ALREADY_INTRODUCED like any other
+        request). Only once the window has passed does it route, marked reopened."""
+        decided = parse_date(self.alloc[0]["decided_at"])
+        claimed = [a for a in self.alloc if a["status_as_filed"] == "Intro sent"]
+        self.assertTrue(claimed)
+        for a in claimed:
+            with self.subTest(request_id=a["request_id"]):
+                self.assertNotIn(a["request_id"], self.asked)
+                reason = a["exception_reason"].split(":")[0]
+                if not a["company_id"]:
+                    self.assertEqual(reason, UNRESOLVED)
+                    continue
+                if reason == ALREADY_INTRODUCED:
+                    self.assertEqual(reopened(a), "")
+                    continue
+                if reason == INTRO_CLAIMED_NOT_LOGGED:
+                    self.assertEqual(reopened(a), "", "in the repair queue: not reopened yet")
+                    since, until = (parse_date(s) for s in
+                                    (a["exception_reason"].split("flagged ")[1].split(",")[0],
+                                     a["exception_reason"].rsplit("from ", 1)[1]))
+                    self.assertEqual((until - since).days, REPAIR_DAYS)
+                    self.assertLessEqual(since, decided)
+                    self.assertLess(decided, until)
+                    self.assertEqual(a["allocated_to"], "")
+                else:
+                    self.assertEqual(reopened(a), f"filed Intro sent, no intro logged in {REPAIR_DAYS} days")
+        self.assertTrue(any(a["exception_reason"].startswith(INTRO_CLAIMED_NOT_LOGGED) for a in claimed),
+                        "the golden data has claims the log never saw")
 
     def test_an_asked_request_comes_back_only_once_its_own_intro_fizzled(self):
         # The retry rows are exactly the asked requests whose own intro went out,
@@ -244,6 +329,10 @@ class AllocationTest(unittest.TestCase):
                     self.assertEqual(a["best_path_if_unbudgeted"], "")
                 elif a["exception_reason"].startswith(ALREADY_INTRODUCED):
                     self.assertTrue(a["company_id"])  # parked on the company's intro, path or no path
+                elif a["exception_reason"].startswith(INTRO_CLAIMED_NOT_LOGGED):
+                    self.assertTrue(a["company_id"])  # held for the log to be repaired, path or no path
+                    self.assertEqual(self.requests[a["request_id"]]["status_as_filed"], "Intro sent")
+                    self.assertFalse(any(o["intro_sent"] == "Y" for o in self.outcomes if o["request_id"] == a["request_id"]))
                 else:  # capacity exhausted, already proposed or every path held: a path exists and is named
                     self.assertNotEqual(self.companies[a["company_id"]]["paths_available"], "0")
                     self.assertTrue(a["best_path_if_unbudgeted"])

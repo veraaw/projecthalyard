@@ -403,7 +403,7 @@ def in_flight_section(f):
     return f"""
 <section id="inflight">
   <h2>Requests in Flight</h2>
-  <p class="lede">Every request filed Open, Routed or Stalled in <code>golden/golden_requests.csv</code>, each in exactly one state as of the build. The counts are the ones the <a href="{PRIORITIES_HTML}">Live Priorities</a> tab shows section by section: the queue and its exceptions from <code>golden/golden_allocation.csv</code>, the nudges and chases from the ask log, the parked requests from the live intros. Not in flight: {outside}.</p>
+  <p class="lede">Every request filed Open, Routed or Stalled in <code>golden/golden_requests.csv</code>, plus every request the allocator has this cycle whatever its filed status (a <code>Closed - no path</code> or <code>Intro sent</code> that nobody ever asked), each in exactly one state as of the build. The counts are the ones the <a href="{PRIORITIES_HTML}">Live Priorities</a> tab shows section by section: the queue and its exceptions from <code>golden/golden_allocation.csv</code>, the nudges and chases from the ask log, the parked requests from the live intros. Not in flight, asked and finished: {outside}.</p>
   <div class="kpis">
     {kpi(f["open"], "requests in flight", f"of {on_file} requests on file, in {len(f['rows'])} states")}
     {kpi(by_key["queued"]["count"], "queued this cycle", f"{by_key['no_slot']['count']} more routed with no slot")}
@@ -449,7 +449,7 @@ def blockage_donut(ab, div_id, population):
 
 
 def bucket_text(b):
-    """A bucket with its count and, where the same status gate holds requests both with and without a
+    """A bucket with its count and, where the same bucket holds requests both with and without a
     path on file, that split."""
     without = b["no_path"] + b["unresolved"]
     if not (b["with_path"] and without):
@@ -471,13 +471,15 @@ def blockage_caption(ab, population):
     return f"""<p class="lede">{ab["never"]} of the {ab["in_window"]} requests {population} never reach a connector; {ab["blocked"]} of those are blocked. The other {ab["allocated"]} are allocated this cycle and not yet asked; they carry a <code>routed_to</code> and are not blocked.</p>
   {finding(f'Only {ab["supply_share"]:.0%} of the blockage is a missing relationship.', f'{slice_text("supply")} {slice_text("process")} {slice_text("closed")}', warn=True)}
   {unmapped}
-  <p class="foot">{ab["no_path"]} never-asked requests (of the {ab["in_window"]} {population}) name a company with no path in <code>supply_reach.csv</code>: the {ab["slices"]["supply"]["count"]} above plus {gated} the status gate excluded before they were evaluated{f" ({gated_text})" if gated_text else ""}. That figure overlaps the slices, so it is a footnote, not a wedge.</p>"""
+  <p class="foot">{ab["no_path"]} never-asked requests (of the {ab["in_window"]} {population}) name a company with no path in <code>supply_reach.csv</code>: the {ab["slices"]["supply"]["count"]} above plus {gated} held before their paths were evaluated{f" ({gated_text})" if gated_text else ""}. That figure overlaps the slices, so it is a footnote, not a wedge.</p>"""
 
 
 STATE_SOURCE = ('Each request has one state (<code>dashboard/request_state.py</code>, the classifier Live Priorities groups by too): '
                 'in the ask log it is <i>asked</i>; otherwise its row in the current cycle of <code>golden/golden_allocation.csv</code> '
                 'names a connector (<i>allocated, not yet asked</i>) or an <code>exception_reason</code> (its text before the first colon); '
-                'with no row, <i>status gate:</i> the status it was filed under. <code>blocked_reason</code> is not an input: '
+                'with no row, <i>status gate:</i> a status the allocator does not know (every status on file reaches it; '
+                'a request filed Intro sent with no intro logged is the <i>intro claimed, none logged</i> repair queue). '
+                '<code>blocked_reason</code> is not an input: '
                 'it ranks what would unblock a request, not why the system stopped.')
 
 

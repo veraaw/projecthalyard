@@ -162,8 +162,9 @@ def blockage_cut(data, since=None):
     requests dated on or after it: the same classified table, filtered. Each
     bucket carries how many of its requests name a resolved company with no path
     in supply_reach.csv: for the buckets outside the supply slice that is the
-    footnote, requests the status gate excluded before the allocator could say
-    "no path". Display only: reads the allocation, never changes it."""
+    footnote, requests held (the repair queue, a status the allocator does not
+    know) before it could say "no path". Display only: reads the allocation,
+    never changes it."""
     states = request_states(data)
     reach = {s["company_id"].strip() for s in data["supply"] if s["company_id"].strip()}
     never = [data["golden_requests"].get(r["request_id"].strip(), {"request_id": r["request_id"], "company_id": ""})

@@ -41,8 +41,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from golden.build_golden import (ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, HOLD_LAST, INVESTOR_NETWORK, NETWORK_HAIRCUT,  # noqa: E402
-                                 NETWORK_OUT, NO_PATH, OFFER_RE, OPEN_STATUSES, PRIOR_RATE, REACHABLE_AS_CONNECTOR, STAGES,
+from golden.build_golden import (ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, HOLD_LAST, INTRO_CLAIMED_NOT_LOGGED,  # noqa: E402
+                                 INVESTOR_NETWORK, NETWORK_HAIRCUT, NETWORK_OUT, NO_PATH, OFFER_RE, OPEN_STATUSES, PRIOR_RATE, REACHABLE_AS_CONNECTOR, STAGES,
                                  STALE_ASK, UNRESOLVED_ASK, best_route, capacity, delivery_rates, fit, hold_paths, hold_reason,
                                  intro_of, latest_cycle, load_completions, load_roster, load_threads, path_rank, path_score,
                                  stage_of, unresolved_asks, with_completions)
@@ -111,7 +111,9 @@ def short_reason(reason: str) -> str:
     'already introduced: Curtis Hartigan on 2026-08-10 (R1122, meeting booked)'
       -> 'parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting booked)'
     'capacity exhausted this cycle' -> 'capacity exhausted'
-    'already proposed, no outcome logged: X in 2026-08' -> 'already proposed to X in 2026-08'"""
+    'already proposed, no outcome logged: X in 2026-08' -> 'already proposed to X in 2026-08'
+    'intro claimed, none logged: filed Intro sent, ..., routed as Stalled from 2026-10-07'
+      -> 'in the repair queue until 2026-10-07 (filed Intro sent, no intro logged)'"""
     if reason.startswith(ALREADY_INTRODUCED):
         m = re.match(rf"{ALREADY_INTRODUCED}: (.+) on (\S+) \((R\d+)(, meeting booked)?\)", reason)
         if m:
@@ -123,6 +125,9 @@ def short_reason(reason: str) -> str:
         return "already proposed to " + reason[len(STALE_ASK) + 2:]
     if reason.startswith(UNRESOLVED_ASK):
         return UNRESOLVED_ASK
+    if reason.startswith(INTRO_CLAIMED_NOT_LOGGED):
+        m = re.search(r"routed as Stalled from (\S+)$", reason)
+        return f"in the repair queue until {m.group(1)} (filed Intro sent, no intro logged)" if m else INTRO_CLAIMED_NOT_LOGGED
     return reason
 
 

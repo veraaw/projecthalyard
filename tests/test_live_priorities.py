@@ -257,20 +257,43 @@ class PayloadTest(unittest.TestCase):
         # unresolved-ask row) are not exceptions here. Capacity exhausted is not an exception either: those
         # requests have a connector and an expected value, so their one home is the ranked list
         self.assertEqual((A["on_file"], A["cycle_size"]), (200, len(bg.latest_cycle(alloc))), "the two populations the page states counts against")
-        self.assertEqual(A["cycle_size"], 96)
+        self.assertEqual(A["cycle_size"], 128)
         states = L.states
         by_state = Counter(states[a["request_id"]] for a in bg.latest_cycle(alloc))
         no_slot = [a for a in bg.latest_cycle(alloc) if states[a["request_id"]] == bg.CAPACITY_EXHAUSTED]
-        self.assertEqual(A["no_slot"], len(no_slot), 7)
+        self.assertEqual(A["no_slot"], len(no_slot), 10)
         self.assertEqual(by_state[rs.ASKED], 13, "allocation rows whose request is already in the ask log")
-        self.assertEqual(A["exception_count"], len(bg.latest_cycle(alloc)) - by_state[rs.ASKED] - by_state[rs.ALLOCATED] - len(no_slot), 45)
+        self.assertEqual(A["exception_count"], len(bg.latest_cycle(alloc)) - by_state[rs.ASKED] - by_state[rs.ALLOCATED] - len(no_slot), 69)
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
-                         {"no path to this company in the network": 28, "already introduced": 9, "company unresolved": 8})
+                         {"no path to this company in the network": 33, "already introduced": 10,
+                          "company unresolved": 12, bg.INTRO_CLAIMED_NOT_LOGGED: 13, bg.UNRESOLVED_ASK: 1})
+        self.assertEqual(A["repair_days"], bg.REPAIR_DAYS)
         for e in A["exceptions"]:
             for r in e["rows"]:
                 self.assertEqual(states[r["request_id"]], e["reason"], "grouped by the same state Live Data's cuts use")
         ranked = {r["request_id"] for r in L.ranked()}
         self.assertTrue(all(a["request_id"] in ranked for a in no_slot), "every no-slot request is on the ranked list")
+        parked = {a["request_id"] for a in alloc
+                  if a["exception_reason"].startswith((bg.ALREADY_INTRODUCED, bg.INTRO_CLAIMED_NOT_LOGGED))}
+        self.assertTrue(parked and not parked & ranked, "nothing parked on a live intro or in the repair queue is offered as an ask")
+        # the requests the allocator took back from Closed - no path / Intro sent say so on every
+        # row they land on; the repair queue is the one place a claim is held rather than reopened
+        reopened = {a["request_id"]: bg.reopened(a) for a in alloc if a["status_as_filed"] in bg.REOPEN_STATUSES}
+        self.assertTrue(any(reopened.values()))
+        for r in L.ranked():
+            self.assertEqual(r["reopened"], reopened.get(r["request_id"], ""))
+        for e in A["exceptions"]:
+            for r in e["rows"]:
+                self.assertEqual(r["reopened"], reopened.get(r["request_id"], ""))
+        repair = next(e for e in A["exceptions"] if e["reason"] == bg.INTRO_CLAIMED_NOT_LOGGED)
+        for r in repair["rows"]:
+            self.assertRegex(r["detail"], r"^filed Intro sent, no intro in the log, flagged \d{4}-\d{2}-\d{2}, routed as Stalled from \d{4}-\d{2}-\d{2}$")
+            self.assertEqual(r["reopened"], "")
+        for c in A["all"]:
+            self.assertEqual(c["reopened"], "; ".join(f"{rid} {reopened[rid]}" for rid in c["request_ids"] if reopened.get(rid)))
+        held = next(e for e in A["exceptions"] if e["reason"] == bg.UNRESOLVED_ASK)
+        for r in held["rows"]:
+            self.assertRegex(r["detail"], r"agreed on \d{4}-\d{2}-\d{2} \(R1\d{3}\), no intro - nudge|no reply - day \d+ of \d+")
         parked = next(e for e in A["exceptions"] if e["reason"] == "already introduced")
         for r in parked["rows"]:
             self.assertRegex(r["detail"], r"^.+ on \d{4}-\d{2}-\d{2} \(R1\d{3}(, meeting booked)?\)$", "the reason names the intro")
@@ -490,16 +513,21 @@ class PayloadTest(unittest.TestCase):
         self.assertNotIn("value_fmt", F, "no request-value total on the section")
 
     def test_in_flight_puts_every_open_request_in_one_state_the_sections_agree_on(self):
-        """The Live Data table: every open request once, and each state's count is
-        the one the owning section of this tab already shows."""
+        """The Live Data table: every open request once (filed open, or in the allocator's
+        cycle whatever it was filed under), and each state's count is the one the owning
+        section of this tab already shows."""
         P, F = self.P, self.P["in_flight"]
         requests = read_csv(ROOT / "golden" / "golden_requests.csv")
-        open_ids = sorted(r["request_id"] for r in requests if r["status_as_filed"] in bg.OPEN_STATUSES)
-        self.assertEqual(F["open"], len(open_ids), 148)
+        current = rs.current_allocation(read_csv(ROOT / "golden" / "golden_allocation.csv"))
+        open_ids = sorted(r["request_id"] for r in requests
+                          if r["status_as_filed"] in bg.OPEN_STATUSES or r["request_id"] in current)
+        self.assertEqual(F["open"], len(open_ids), 180)
+        self.assertEqual(sum(1 for r in requests if r["status_as_filed"] in bg.OPEN_STATUSES), 148, "the 32 never-asked Closed - no path / Intro sent rows are in flight too")
         self.assertEqual(sorted(rid for r in F["rows"] for rid in r["request_ids"]), open_ids, "each open request in exactly one state")
         self.assertEqual(sum(r["count"] for r in F["rows"]), F["open"])
         self.assertEqual(sum(g["count"] for g in F["groups"]), F["open"])
-        self.assertEqual(sum(o["count"] for o in F["outside"]) + F["open"], len(requests), "closed and intro-sent are named, not in flight")
+        self.assertEqual(sum(o["count"] for o in F["outside"]) + F["open"], len(requests), "the asked-and-finished are named, not in flight")
+        self.assertTrue(all(o["status"] not in bg.OPEN_STATUSES for o in F["outside"]))
         self.assertEqual([r["key"] for r in F["rows"]], [k for k, *_ in lp.IN_FLIGHT_STATES if k not in ("quiet", "other")],
                          "flight order; quiet and other only when non-empty")
         by = {r["key"]: r for r in F["rows"]}
@@ -510,6 +538,7 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(by["no_path"]["count"], reasons[bg.NO_PATH], "Unrouted Exceptions")
         self.assertEqual(by["unresolved"]["count"], reasons["company unresolved"])
         self.assertEqual(by["held"]["count"], reasons.get(bg.UNRESOLVED_ASK, 0))
+        self.assertEqual(by["repair"]["count"], reasons[bg.INTRO_CLAIMED_NOT_LOGGED], "the repair queue")
         self.assertEqual(by["parked"]["count"], I["requests"], "Already Introduced")
         self.assertEqual(by["nudge"]["count"], FU["nudge"], "Follow-Ups Owed")
         self.assertEqual(by["chase"]["count"], FU["chase"])
@@ -656,7 +685,8 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual((row["used"], row["capacity"]), (used, 3))
         self.assertEqual(row["routed_to"], ["Priya Raghunathan"], "Tomás agreed to R1057 there and sent no intro: nudged, not asked again")
         self.assertEqual(live.held[("Tomás Beckett", "C018")]["hold"], bg.HOLD_NUDGE)
-        self.assertEqual(row["requests"], ["R1136", "R1140", "R1153"])
+        self.assertEqual(row["requests"], ["R1136", "R1140", "R1153", "R1173"],
+                         "R1173, filed Intro sent with no intro logged, is in the allocator now (repair queue)")
         self.assertEqual(row["href"], f"{lp.TRACE_PAGE}#C018")
         self.assertTrue({"action", "asked_date", "nudged_on"}.isdisjoint(row), "nothing to tick, chase or nudge")
         self.assertEqual([r["strength"] for r in rows], sorted((r["strength"] for r in rows), reverse=True))
@@ -981,14 +1011,15 @@ class GoldenSourceCutsTest(unittest.TestCase):
         self.assertEqual(sorted(via_cuts), sorted(r["request_id"] for r in self.gold["requests"]), "every request on file, once")
         self.assertEqual(Counter(via_cuts.values()), Counter({
             rs.ASKED: 85,
-            rs.ALLOCATED: 31,
-            bg.NO_PATH: 28,
-            rs.GATE_CLOSED: 18,
-            rs.GATE_INTRO_SENT: 14,
-            bg.ALREADY_INTRODUCED: 9,
-            rs.COMPANY_UNRESOLVED: 8,
-            bg.CAPACITY_EXHAUSTED: 7,
+            rs.ALLOCATED: 36,
+            bg.NO_PATH: 33,
+            bg.INTRO_CLAIMED_NOT_LOGGED: 13,
+            rs.COMPANY_UNRESOLVED: 12,
+            bg.CAPACITY_EXHAUSTED: 10,
+            bg.ALREADY_INTRODUCED: 10,
+            bg.UNRESOLVED_ASK: 1,
         }))
+        self.assertFalse([s for s in via_cuts.values() if s.startswith(rs.STATUS_GATE)], "every filed status reaches the allocator")
         self.assertEqual(sum(Counter(via_cuts.values()).values()), 200, "exactly one state per request")
         self.assertEqual(via_live, via_cuts, "the same request_id, the same state, whichever module reaches it")
         # the classifier reads the ask log and the current allocation cycle, never blocked_reason
@@ -996,7 +1027,7 @@ class GoldenSourceCutsTest(unittest.TestCase):
         self.assertNotIn("blocked_reason", inspect.getsource(self.dc.blockage_cut))
         self.assertNotIn("blocked_reason", inspect.getsource(self.dc.backlog_cut))
         # the same read of golden_allocation.csv on both sides, keyed by request_id
-        self.assertEqual(self.dc.in_cycle(self.gold), len(lp.Live(AS_OF).alloc_by_rid), 96)
+        self.assertEqual(self.dc.in_cycle(self.gold), len(lp.Live(AS_OF).alloc_by_rid), 128)
         # asked wins over an allocation row: 13 requests carry both
         both = [rid for rid in via_cuts if rid in self.gold["outcome_by_request"] and rid in rs.current_allocation(self.gold["allocation"])]
         self.assertEqual(len(both), 13)
@@ -1007,7 +1038,11 @@ class GoldenSourceCutsTest(unittest.TestCase):
 
     def test_blockage_is_the_classified_table_minus_asked_in_three_slices(self):
         """The Accounts donut and Remaining Unrouted: the 115 with state != asked, bucketed by
-        their state, three slices over the 84 blocked; nothing unmapped is dropped."""
+        their state, three slices over the 79 blocked; nothing unmapped is dropped. Since
+        bg.in_queue takes never-asked Closed - no path / Intro sent rows too, every one of the
+        115 has an allocation row and the status gate holds nothing: the old "status gate:
+        Closed - no path" wedge is now the allocator's own verdicts and "status gate: Intro
+        sent" is the repair queue."""
         ab = self.dc.blockage_cut(self.gold)
         states = self.dc.request_states(self.gold)
         never = [rid for rid, s in states.items() if s != rs.ASKED]
@@ -1017,28 +1052,43 @@ class GoldenSourceCutsTest(unittest.TestCase):
         self.assertEqual(ab["by_request"], {rid: states[rid] for rid in never}, "the bucket is the state")
         self.assertEqual(sum(b["count"] for b in ab["buckets"]), 115, "each in exactly one")
         self.assertEqual([(b["bucket"], b["count"]) for b in ab["buckets"]], [
-            ("allocated, not yet asked", 31),
-            ("no path to this company in the network", 28),
-            ("status gate: Closed - no path", 18),
-            ("status gate: Intro sent", 14),
-            ("already introduced", 9),
-            ("company unresolved", 8),
-            ("capacity exhausted this cycle", 7),
+            ("allocated, not yet asked", 36),
+            ("no path to this company in the network", 33),
+            (bg.INTRO_CLAIMED_NOT_LOGGED, 13),
+            ("company unresolved", 12),
+            ("capacity exhausted this cycle", 10),
+            ("already introduced", 10),
+            (bg.UNRESOLVED_ASK, 1),
         ])
+        self.assertFalse([b for b in ab["buckets"] if b["bucket"].startswith(rs.STATUS_GATE)], "nothing held at the gate")
         # the populations every count is stated against
-        self.assertEqual((ab["total"], ab["in_window"], ab["in_cycle"], ab["never"], ab["allocated"], ab["blocked"]), (200, 200, 96, 115, 31, 84))
-        self.assertEqual({k: s["count"] for k, s in ab["slices"].items()}, {"supply": 28, "process": 47, "closed": 9})
+        self.assertEqual((ab["total"], ab["in_window"], ab["in_cycle"], ab["never"], ab["allocated"], ab["blocked"]), (200, 200, 128, 115, 36, 79))
+        self.assertEqual({k: s["count"] for k, s in ab["slices"].items()}, {"supply": 33, "process": 36, "closed": 10})
         self.assertEqual([b["bucket"] for b in ab["slices"]["process"]["buckets"]],
-                         ["status gate: Closed - no path", "status gate: Intro sent", "company unresolved", "capacity exhausted this cycle"])
+                         [bg.INTRO_CLAIMED_NOT_LOGGED, "company unresolved", "capacity exhausted this cycle", bg.UNRESOLVED_ASK])
         self.assertEqual([b["bucket"] for b in ab["slices"]["supply"]["buckets"]], [bg.NO_PATH])
         self.assertEqual([b["bucket"] for b in ab["slices"]["closed"]["buckets"]], [bg.ALREADY_INTRODUCED])
         self.assertEqual(ab["unmapped"], [])
-        self.assertAlmostEqual(ab["supply_share"], 28 / 84)
-        # the footnote: no path in supply_reach.csv, the 28 plus the 13 the status gate kept from the allocator
+        self.assertAlmostEqual(ab["supply_share"], 33 / 79)
+        # the footnote: no path in supply_reach.csv, the 33 the allocator said so on plus the 8 Intro sent
+        # claims the repair queue holds before it gets to say so (the 5 Closed - no path the gate used to
+        # hold with no path are now in the allocator's own no-path bucket)
         self.assertEqual(ab["no_path"], 41)
-        self.assertEqual([(b["bucket"], b["no_path"]) for b in ab["no_path_gated"]], [("status gate: Closed - no path", 5), ("status gate: Intro sent", 8)])
-        closed = next(b for b in ab["buckets"] if b["bucket"] == "status gate: Closed - no path")
-        self.assertEqual((closed["with_path"], closed["no_path"], closed["unresolved"]), (9, 5, 4), "9 closed with a path available, 9 correctly")
+        self.assertEqual([(b["bucket"], b["no_path"]) for b in ab["no_path_gated"]], [(bg.INTRO_CLAIMED_NOT_LOGGED, 8)])
+        repair = next(b for b in ab["buckets"] if b["bucket"] == bg.INTRO_CLAIMED_NOT_LOGGED)
+        self.assertEqual((repair["with_path"], repair["no_path"], repair["unresolved"]), (5, 8, 0),
+                         "the claim with no resolvable company is company unresolved, the one on a live intro already introduced")
+        # what the gate used to hold, by where the allocator put it
+        current = rs.current_allocation(self.gold["allocation"])
+        filed = {a["request_id"]: a["status_as_filed"] for a in current.values()}
+        moved = Counter((filed[rid], ab["by_request"][rid]) for rid in never if filed.get(rid) in bg.REOPEN_STATUSES)
+        self.assertEqual(sum(n for (s, _), n in moved.items() if s == "Closed - no path"), 18)
+        self.assertEqual(sum(n for (s, _), n in moved.items() if s == "Intro sent"), 14)
+        self.assertEqual(moved[("Closed - no path", "allocated, not yet asked")], 5)
+        self.assertEqual(moved[("Closed - no path", bg.NO_PATH)], 5)
+        self.assertEqual(moved[("Closed - no path", "company unresolved")], 4)
+        self.assertEqual(moved[("Intro sent", bg.INTRO_CLAIMED_NOT_LOGGED)], 13)
+        self.assertEqual(moved[("Intro sent", bg.ALREADY_INTRODUCED)], 1)
         # the last-12-months view filters the same table
         bl12 = self.dc.blockage_cut(self.gold, since="2025-09-01")
         self.assertEqual(bl12["in_window"], sum(1 for r in self.gold["requests"] if r["request_date"] >= "2025-09-01"))
@@ -1052,7 +1102,7 @@ class GoldenSourceCutsTest(unittest.TestCase):
                                             for a in self.gold["allocation"]])
         odd = self.dc.blockage_cut(gold)
         self.assertEqual([(b["bucket"], b["count"]) for b in odd["unmapped"]], [("something new", 1)])
-        self.assertEqual((odd["slices"]["supply"]["count"], sum(b["count"] for b in odd["buckets"])), (27, 115))
+        self.assertEqual((odd["slices"]["supply"]["count"], sum(b["count"] for b in odd["buckets"])), (32, 115))
 
     def test_latency_medians_overall_and_by_month(self):
         lat = self.dc.latency_cut(self.gold, today=AS_OF)
@@ -1221,17 +1271,19 @@ class BuiltPagesTest(unittest.TestCase):
         panel = live.split('<section id="unrouted">')[1].split("</section>")[0]
         cumulative = panel.split('<div class="fview" data-view="all">')[1]
         self.assertIn("blocked\\u003cbr\\u003eof 200 requests on file", cumulative, "the denominator on the chart")
-        self.assertIn('"values":[28,47,9]', cumulative)
+        self.assertIn('"values":[33,36,10]', cumulative)
         self.assertIn('"labels":["supply","process","correctly not asked"]', cumulative)
-        self.assertIn("status gate: Closed - no path 18\\u003cbr\\u003estatus gate: Intro sent 14\\u003cbr\\u003ecompany unresolved 8\\u003cbr\\u003ecapacity exhausted this cycle 7", cumulative, "the tooltip names the prefixes it sums")
+        self.assertIn("intro claimed, none logged 13\\u003cbr\\u003ecompany unresolved 12\\u003cbr\\u003ecapacity exhausted this cycle 10\\u003cbr\\u003eunresolved ask on every path 1", cumulative, "the tooltip names the prefixes it sums")
+        for held in ("status gate: Closed - no path", "status gate: Intro sent"):
+            self.assertNotIn(held, cumulative, "every filed status reaches the allocator now")
         caption = re.sub(r"<[^>]+>", "", cumulative)
-        self.assertIn("115 of the 200 requests on file never reach a connector; 84 of those are blocked. The other 31 are allocated this cycle and not yet asked; they carry a routed_to and are not blocked.", caption)
-        self.assertIn("Only 33% of the blockage is a missing relationship.", caption)
-        self.assertIn("Closed - no path 18 (9 with a path available, 9 without: 5 no path, 4 no resolvable company)", caption)
-        self.assertIn("41 never-asked requests (of the 200 on file) name a company with no path in supply_reach.csv: the 28 above plus 13 the status gate excluded", caption)
+        self.assertIn("115 of the 200 requests on file never reach a connector; 79 of those are blocked. The other 36 are allocated this cycle and not yet asked; they carry a routed_to and are not blocked.", caption)
+        self.assertIn("Only 42% of the blockage is a missing relationship.", caption)
+        self.assertIn("intro claimed, none logged 13 (5 with a path available, 8 without: 8 no path)", caption)
+        self.assertIn("41 never-asked requests (of the 200 on file) name a company with no path in supply_reach.csv: the 33 above plus 8 held before their paths were evaluated", caption)
         self.assertIn("dashboard/request_state.py", caption, "names the classifier both pages share")
         self.assertIn("blocked_reason is not an input", caption)
-        self.assertIn("(5 in status gate: Closed - no path, 8 in status gate: Intro sent)", caption)
+        self.assertIn("(8 in intro claimed, none logged)", caption)
         self.assertNotIn("Outside the wedges", caption, "nothing unmapped this build")
 
     def test_live_data_opens_on_the_headline_kpis(self):

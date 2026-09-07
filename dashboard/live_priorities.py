@@ -94,6 +94,7 @@ IN_FLIGHT_STATES = [
     ("no_path", "Not yet asked", "No path to the company in the network", "a path has to be found or the request closed", "exceptions"),
     ("unresolved", "Not yet asked", "Company unresolved", "the requester names the company", "exceptions"),
     ("held", "Not yet asked", "Unresolved ask on every path", "waits on the follow-up owed at the company", "exceptions"),
+    ("repair", "Not yet asked", "Filed Intro sent, no intro logged: repair queue", "the requester logs the intro or corrects the status", "exceptions"),
     ("chase", "Asked, waiting on the connector", "Asked, no reply: chase owed", "chase the connector", "followups"),
     ("nudge", "Asked, waiting on the connector", "Agreed, no intro yet: nudge owed", "nudge the connector", "followups"),
     ("quiet", "Asked, waiting on the connector", "Nudged or chased recently", "wait out the quiet period", "followups"),
@@ -615,7 +616,9 @@ class Live:
     def ranked(self) -> list[dict]:
         """Every live not-yet-asked request (golden_allocation.csv) with a connector
         to act on, scored expected value = request priority x connector score and
-        sorted best first. Computed once; priorities() and connector_pages() slice it."""
+        sorted best first. Requests parked on a live intro or in the repair queue
+        are not askable and stay off the list. Computed once; priorities() and
+        connector_pages() slice it."""
         if self._ranked is not None:
             return self._ranked
         allocated = [a for a in self.allocation if a["allocated_to"]]
@@ -630,7 +633,7 @@ class Live:
         rows = []
         for a in self.allocation:
             cid = a["company_id"]
-            if not cid or a["exception_reason"].startswith(bg.ALREADY_INTRODUCED):
+            if not cid or a["exception_reason"].startswith((bg.ALREADY_INTRODUCED, bg.INTRO_CLAIMED_NOT_LOGGED)):
                 continue
             if a["allocated_to"]:
                 connector, p = a["allocated_to"], self.path_for(a)
@@ -682,6 +685,7 @@ class Live:
                 "expected_value": round(request_priority * connector_score, 4),
                 "allocated": bool(a["allocated_to"]),
                 "retry": self.retry_of(cid),
+                "reopened": bg.reopened(a),
                 "notify": self.owner_notice(a),
             })
         rows.sort(key=lambda r: (-r["expected_value"], r["request_id"]))
@@ -777,6 +781,7 @@ class Live:
                 "value_fmt": money(self.dollars_total(group)),
                 "urgency": sorted({g["urgency_declared"] for g in group}, key=lambda u: bg.URGENCY_RANK.get(u, 9))[0],
                 "retry": self.retry_of(cid),
+                "reopened": "; ".join(f"{g['request_id']} {bg.reopened(g)}" for g in group if bg.reopened(g)),
                 "notify": [n for n in (self.owner_notice(g) for g in group) if n],
             })
         return companies
@@ -807,7 +812,9 @@ class Live:
         across them) and what the allocator could not place, by reason. A request
         whose only fault is that its connector's slots are gone is not an exception
         here: it keeps its connector and its expected value on the ranked list.
-        A batch row's box is the ask_sent tick of every request in it (the same
+        An Intro sent request with no intro logged (build_golden.INTRO_CLAIMED_NOT_LOGGED)
+        is the repair queue: the requester logs the intro or corrects the status,
+        else it routes as Stalled after REPAIR_DAYS. A batch row's box is the ask_sent tick of every request in it (the same
         tick as Top Priorities and the connector's page); a no-path exception can
         be ticked with whoever was actually asked, `roster` being the picker's list."""
         batches: dict[str, list[dict]] = defaultdict(list)
@@ -848,6 +855,7 @@ class Live:
                     "target_title": a["target_title"], "requested_by": self.by_rid[a["request_id"]]["requested_by"],
                     "value_fmt": money(self.dollars(a["company_id"], a["value_usd"])), "urgency": a["urgency_declared"],
                     "status": a["status_as_filed"], "best_path": a["best_path_if_unbudgeted"],
+                    "reopened": bg.reopened(a),
                     "blocked_reason": self.by_rid[a["request_id"]]["blocked_reason"],
                     "crm_stage": self.crm_stage(a["company_id"]) if a["company_id"] else "",
                     "sector_cover": self.sector_cover(a["company_id"]) if a["company_id"] else None,
@@ -865,7 +873,7 @@ class Live:
             "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in v])),
                             "rows": v} for k, v in sorted(exceptions.items(), key=lambda kv: -len(kv[1]))],
             "exception_count": n_exc, "no_slot": no_slot, "focus": self.focus_finding(),
-            "roster": list(self.roster),
+            "roster": list(self.roster), "repair_days": bg.REPAIR_DAYS,
         }
 
     # -- 3b. already introduced: extend the intro, don't ask afresh -------------
@@ -994,9 +1002,12 @@ class Live:
 
     # -- 5. requests in flight ---------------------------------------------------
     def in_flight(self) -> dict:
-        """Every open request (status_as_filed in OPEN_STATUSES: the set every
-        section of this tab works from), each in exactly one state, with the
-        section that owns it, so the Live Data tab can show the same counts.
+        """Every request in flight (filed open, or in the allocator's current
+        cycle: the set every section of this tab works from), each in exactly one
+        state, with the section that owns it, so the Live Data tab can show the
+        same counts. A request filed finished with nothing in the ask log is in
+        the allocator (build_golden.in_queue), so it is in flight; one filed
+        finished and asked is not, and is counted outside by status.
         Follow-Ups Owed owns an ask nobody has resolved (nudge, chase, or quiet
         after a recent follow-up); the allocation owns the rest of the
         not-yet-asked (queued, no slot this cycle, and each exception reason);
@@ -1005,11 +1016,11 @@ class Live:
         by_state: dict[str, list[dict]] = defaultdict(list)
         outside = Counter()
         for r in self.requests:
-            if r["status_as_filed"] not in bg.OPEN_STATUSES:
-                outside[r["status_as_filed"]] += 1
-                continue
             rid = r["request_id"]
             o, a, state = self.outcome_by_rid.get(rid), self.alloc_by_rid.get(rid), self.states[rid]
+            if r["status_as_filed"] not in bg.OPEN_STATUSES and a is None:
+                outside[r["status_as_filed"]] += 1
+                continue
             if rid in sitting:
                 s = "quiet" if sitting[rid]["quiet"] else sitting[rid]["action"]
             elif a and a["allocated_to"]:
@@ -1022,6 +1033,8 @@ class Live:
                 s = "no_path"
             elif state == bg.UNRESOLVED_ASK:
                 s = "held"
+            elif state == bg.INTRO_CLAIMED_NOT_LOGGED:
+                s = "repair"
             elif a and state != rs.ASKED:
                 s = "unresolved"
             elif (o and o["meeting_booked"] == "Y") or r["meeting_booked"] == "Y":

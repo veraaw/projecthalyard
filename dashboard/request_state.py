@@ -10,6 +10,10 @@ same classified table. Where a request stands, first match wins:
     a current-cycle golden_allocation.csv row with an exception_reason    -> its text before the first ":"
     no allocation row                                                     -> "status gate: " + status_as_filed
 
+Every status on file reaches the allocator (bg.in_queue), so the last line names only a
+status the allocator does not know. A request filed Intro sent with no intro in the log
+is its own exception, bg.INTRO_CLAIMED_NOT_LOGGED (the repair queue), not a gate.
+
 golden_requests.csv's blocked_reason is not an input: it ranks what would unblock a
 request (a per-row detail column), not why the system stopped.
 """
@@ -19,13 +23,12 @@ ASKED = "asked"
 ALLOCATED = "allocated, not yet asked"
 STATUS_GATE = "status gate: "  # + status_as_filed: no allocation row, the status kept the request from the allocator
 COMPANY_UNRESOLVED = "company unresolved"  # the exception_reason build_golden files when the ask names no resolvable company
-GATE_CLOSED, GATE_INTRO_SENT = STATUS_GATE + "Closed - no path", STATUS_GATE + "Intro sent"
 
 # the Accounts donut's three slices over the blocked states -> (label, the states it sums); the
 # allocator's own exception prefixes, so the wedges and Unrouted Exceptions share one vocabulary
 SLICES = {
     "supply": ("supply", [bg.NO_PATH]),
-    "process": ("process", [GATE_CLOSED, GATE_INTRO_SENT, COMPANY_UNRESOLVED, bg.CAPACITY_EXHAUSTED]),
+    "process": ("process", [bg.INTRO_CLAIMED_NOT_LOGGED, COMPANY_UNRESOLVED, bg.CAPACITY_EXHAUSTED, bg.UNRESOLVED_ASK]),
     "closed": ("correctly not asked", [bg.ALREADY_INTRODUCED]),
 }
 

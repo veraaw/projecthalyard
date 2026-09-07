@@ -165,7 +165,7 @@ import re
 import sys
 import urllib.request
 from collections import Counter, defaultdict
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import NamedTuple
 
@@ -244,6 +244,12 @@ ALLOCATION_COLUMNS = [
 
 MULTI = " | "  # delimiter for multi-value cells (never a comma)
 OPEN_STATUSES = {"Open", "Routed", "Stalled"}
+# filed as finished, yet the ask log has no row for the request: the allocator takes it back (in_queue).
+# Closed - no path goes straight in (with a path it routes; without, it lands in the allocator's own
+# NO_PATH / company-unresolved buckets). Intro sent first waits REPAIR_DAYS in the repair queue
+# (INTRO_CLAIMED_NOT_LOGGED) for the log or the status to be corrected; unrepaired, it routes as Stalled.
+REOPEN_STATUSES = {"Closed - no path", "Intro sent"}
+REPAIR_DAYS = 30
 # routing stages a request moves through, in order; "closed" (Closed - no path) sits outside the strip
 STAGES = ["needs data", "to be routed", "routed", "asked", "introduced", "meeting booked"]
 URGENCY_RANK = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
@@ -265,7 +271,8 @@ HOLD_NUDGE = "nudge"    # they agreed and never delivered: never asked again, th
 HOLD_WINDOW = "window"  # no reply yet, within UNANSWERED_ASK_DAYS: not asked again yet, the chase queue owns it
 HOLD_LAST = "last"      # no reply after UNANSWERED_ASK_DAYS: askable, behind every other path
 HOLD_ORDER = (HOLD_NUDGE, HOLD_WINDOW, HOLD_LAST)
-# contradicts_log: status_as_filed vs intro_outcomes.csv
+# contradicts_log: status_as_filed vs intro_outcomes.csv. INTRO_CLAIMED_NOT_LOGGED is also an exception_reason
+# prefix: '<INTRO_CLAIMED_NOT_LOGGED>: filed Intro sent, no intro in the log, flagged <date>, routed as Stalled from <date>'
 INTRO_CLAIMED_NOT_LOGGED = "intro claimed, none logged"
 INTRO_LOGGED_FILED_STALLED = "intro logged, filed as stalled"
 CLOSED_NO_PATH_BUT_PATH = "closed as no-path, path exists"
@@ -854,10 +861,14 @@ class HistorySignals(NamedTuple):
     allocated that company to that connector with no ask logged since: an ask
     proposed and never logged as made (see logged_since).
     proposed: request_id -> the most recent prior-cycle row that allocated the
-    request, again with no ask logged since."""
+    request, again with no ask logged since.
+    claimed: request_id -> the day the file first held the request as
+    INTRO_CLAIMED_NOT_LOGGED (any cycle, this one included: the repair clock
+    runs on across rebuilds)."""
     fatigue: Counter
     stale: dict[tuple[str, str], dict]
     proposed: dict[str, dict]
+    claimed: dict[str, date]
 
 
 def logged_since(outcome: dict | None, alloc: dict) -> bool:
@@ -880,6 +891,11 @@ def history_signals(history: list[dict], outcomes: list[dict], today: date) -> H
     fatigue: Counter = Counter()
     stale: dict[tuple[str, str], dict] = {}
     proposed: dict[str, dict] = {}
+    claimed: dict[str, date] = {}
+    for a in history:
+        d = decided_date(a)
+        if d and a["exception_reason"].startswith(INTRO_CLAIMED_NOT_LOGGED):
+            claimed[a["request_id"]] = min(d, claimed.get(a["request_id"], d))
     for a in sorted((a for a in history if a["cycle"] < cycle and a["allocated_to"]),
                     key=lambda a: (a["cycle"], a.get("decided_at") or "")):
         d = decided_date(a)
@@ -889,7 +905,42 @@ def history_signals(history: list[dict], outcomes: list[dict], today: date) -> H
             proposed[a["request_id"]] = a
             if a["company_id"]:
                 stale[(a["allocated_to"], a["company_id"])] = a
-    return HistorySignals(fatigue, stale, proposed)
+    return HistorySignals(fatigue, stale, proposed, claimed)
+
+
+def in_queue(status: str, rid: str, asked: set[str], retry: set[str]) -> bool:
+    """Whether a request is the allocator's to route. Filed open: while never
+    asked, or asked and its own intro fizzled (retriable). Filed Closed - no
+    path or Intro sent with no ask logged at all (REOPEN_STATUSES): the file
+    says finished, the log says nothing happened, so the allocator takes it."""
+    if status in OPEN_STATUSES:
+        return rid not in asked or rid in retry
+    return status in REOPEN_STATUSES and rid not in asked
+
+
+def repair_until(rid: str, claimed: dict[str, date], today: date) -> tuple[date, date]:
+    """(flagged since, routed from) for an Intro sent request with no intro
+    logged: the day the file first flagged it (today when this run does, or
+    when the file's date is ahead of this build's clock) and REPAIR_DAYS later,
+    when it goes to the allocator as Stalled."""
+    since = min(claimed.get(rid, today), today)
+    return since, since + timedelta(days=REPAIR_DAYS)
+
+
+def reopened(alloc: dict) -> str:
+    """Why a request filed outside OPEN_STATUSES is in the allocator, or ''.
+    An Intro sent claim is not reopened while it sits in the repair queue or
+    while the company's own live intro parks it (the claim may be that intro);
+    past the window it is, and the note says so."""
+    status, reason = alloc["status_as_filed"], alloc["exception_reason"]
+    if status not in REOPEN_STATUSES:
+        return ""
+    if status == "Intro sent":
+        if reason.startswith((INTRO_CLAIMED_NOT_LOGGED, ALREADY_INTRODUCED)):
+            return ""
+        if reason != "company unresolved":
+            return f"filed {status}, no intro logged in {REPAIR_DAYS} days"
+    return f"filed {status}, never asked"
 
 
 def intro_of(o: dict, today: date) -> dict | None:
@@ -1406,12 +1457,19 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     again but behind every clean path (hold_paths). When every path is held the
     request is an exception (UNRESOLVED_ASK, naming each ask) rather than a
     fresh ask to someone already sitting on one.
+    A request filed Closed - no path or Intro sent that was never asked is in
+    the queue too (in_queue), behind every request filed open so it takes only
+    the slots they leave: the closed one like any other request, the claimed
+    intro (once identity and a live intro on the company are ruled out) first
+    parked for REPAIR_DAYS (INTRO_CLAIMED_NOT_LOGGED, naming when it was
+    flagged and when it routes) so the requester can log the intro or correct
+    the status before anyone is asked afresh.
     Roster paths are tried before investor_network ones whatever their scores
     (path_rank). Once every connector with a path is spent the request becomes
     an exception. Requests
     allocated to the same connector share a batch_id: one consolidated ask."""
     cycle = today.strftime("%Y-%m")
-    fatigue, stale, proposed = signals
+    fatigue, stale, proposed, claimed = signals
     budget: dict[str, int] = defaultdict(int)
     for n in set(roster) | {p["connector"] for paths in supply_by_company.values() for p in paths}:
         budget[n] = cycle_budget(roster, fatigue, n)
@@ -1425,9 +1483,10 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
     company_of = {rid: rq["company"].company_id for rid, rq in resolved.items() if rq["company"]}
     introduced = introductions(outcomes, company_of, today, open_since)
     held = unresolved_asks(outcomes, company_of, today)
-    live = [(rid, rq) for rid, rq in resolved.items()
-            if rq["facts"]["status_as_filed"] in OPEN_STATUSES and (rid not in asked or rid in retry)]
-    live.sort(key=lambda t: (URGENCY_RANK.get(t[1]["facts"]["urgency_declared"], 9),
+    live = [(rid, rq) for rid, rq in resolved.items() if in_queue(rq["facts"]["status_as_filed"], rid, asked, retry)]
+    # reopened requests take the slots the open ones leave: they never displace a request filed open
+    live.sort(key=lambda t: (t[1]["facts"]["status_as_filed"] not in OPEN_STATUSES,
+                             URGENCY_RANK.get(t[1]["facts"]["urgency_declared"], 9),
                              -float(t[1]["facts"]["value_usd"] or 0), t[1]["facts"]["request_date"], t[0]))
 
     out: dict[str, dict] = {}
@@ -1465,6 +1524,12 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
         if intro and intro["live"]:
             row["exception_reason"] = introduced_reason(intro)
             continue
+        if facts["status_as_filed"] == "Intro sent":
+            since, until = repair_until(rid, claimed, today)
+            if today < until:
+                row["exception_reason"] = (f"{INTRO_CLAIMED_NOT_LOGGED}: filed Intro sent, no intro in the log, "
+                                           f"flagged {since}, routed as Stalled from {until}")
+                continue
         if not ordered:
             row["exception_reason"] = NO_PATH
             continue
@@ -1610,13 +1675,17 @@ def stage_of(request: dict, outcome: dict | None, alloc: dict | None) -> str:
     r, o, a = request, outcome, alloc
     if (o and o["meeting_booked"] == "Y") or r["meeting_booked"] == "Y":
         return "meeting booked"
-    if (o and o["intro_sent"] == "Y") or r["intro_sent"] == "Y" or r["status_as_filed"] == "Intro sent":
+    if (o and o["intro_sent"] == "Y") or r["intro_sent"] == "Y":
+        return "introduced"
+    if a and a["allocated_to"]:  # a reopened Closed - no path / Intro sent row is routed like any other
+        return "routed"
+    if r["status_as_filed"] == "Intro sent":
         return "introduced"
     if r["status_as_filed"] == "Closed - no path":
         return "closed"
     if o or r["asked_date"]:
         return "asked"
-    if r["routed_to"] or (a and a["allocated_to"]):
+    if r["routed_to"]:
         return "routed"
     if not r["company_id"] or not r["value_usd"]:
         return "needs data"
@@ -1652,6 +1721,8 @@ def blocked_reason(company: Company | None, paths: list[dict], roster: dict, all
         return ALREADY_INTRODUCED
     if alloc and alloc["exception_reason"].startswith(UNRESOLVED_ASK):
         return UNRESOLVED_ASK
+    if alloc and alloc["exception_reason"].startswith(INTRO_CLAIMED_NOT_LOGGED):
+        return INTRO_CLAIMED_NOT_LOGGED
     if not paths:
         return BLOCK_NO_PATH
     if not any(p["connector"] in roster for p in paths):
@@ -1714,6 +1785,8 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
                 route_reason = f"not asked; {a['exception_reason']}"
                 if a["best_path_if_unbudgeted"]:
                     route_reason += f"; best path via {a['best_path_if_unbudgeted']}"
+            if reopened(a):
+                route_reason = f"reopened ({reopened(a)}); {route_reason}"
         else:
             bp, sc = best_route(paths, roster, rates, industry)
             if bp:

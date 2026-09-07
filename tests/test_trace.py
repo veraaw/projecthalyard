@@ -174,6 +174,14 @@ class HarrowgateTest(unittest.TestCase):
         self.assertEqual(t.bypass(), "parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting booked): "
                          + ", ".join(a["request_id"] for a in parked))
         self.assertEqual(t.bypass().count("Curtis Hartigan"), 1)
+        # R1115, filed Intro sent with no intro logged, is parked on that intro too: the live intro
+        # on the company is read before the claim is sent to the repair queue
+        self.assertIn("R1115", [a["request_id"] for a in parked])
+
+    def test_short_reason_repair_queue(self):
+        reason = f"{bg.INTRO_CLAIMED_NOT_LOGGED}: filed Intro sent, no intro in the log, flagged 2026-09-07, routed as Stalled from 2026-10-07"
+        self.assertEqual(short_reason(reason), "in the repair queue until 2026-10-07 (filed Intro sent, no intro logged)")
+        self.assertEqual(short_reason(bg.INTRO_CLAIMED_NOT_LOGGED), bg.INTRO_CLAIMED_NOT_LOGGED)
 
     def test_short_reason(self):
         self.assertEqual(short_reason(bg.introduced_reason({"connector": "Curtis Hartigan", "intro_date": "2026-08-10", "request_id": "R1122", "meeting_booked": True})),
@@ -213,15 +221,31 @@ class RoutingStageTest(unittest.TestCase):
         cls.data = Data.load()
         cls.traced = [c for c in cls.data.companies if int(c["total_requests"] or 0)]
 
-    def test_every_request_closed(self):
+    def test_every_request_filed_closed_is_reopened_and_routed(self):
+        """Quillon Pharma: every request filed Closed - no path, none ever asked,
+        15 paths on file. The allocator took them back (build_golden.in_queue) and
+        routed them, so the company's stage is routed, not closed; the filed
+        status is kept and the disagreement with supply_reach.csv still reported."""
         c = find_company(self.data, "Quillon Pharma")
         t = Trace(self.data, c, AS_OF)
         self.assertTrue(all(r["status_as_filed"] == "Closed - no path" for r in t.requests))
+        self.assertTrue(all(a["allocated_to"] for a in t.live) and len(t.live) == len(t.requests))
         rt = t.as_dict()["header"]["routing"]
-        self.assertEqual(rt["furthest"], "closed")
-        self.assertEqual(rt["latest"], "closed")
-        self.assertEqual(rt["counts"], {"closed": len(t.requests)})
+        self.assertEqual(rt["furthest"], "routed")
+        self.assertEqual(rt["latest"], "routed")
+        self.assertEqual(rt["counts"], {"routed": len(t.requests)})
         self.assertEqual(rt["awaiting_intro"], {"agreed": 0, "silent": 0})
+        self.assertTrue(any("filed \"Closed - no path\" but supply_reach.csv has" in d for d in t.disagreements()))
+
+    def test_a_closed_request_nobody_reaches_stays_closed(self):
+        """A never-asked Closed - no path request the allocator took back and
+        found no path for is still at the closed stage: reopening changes nothing
+        the network cannot deliver."""
+        closed = [a for a in self.data.allocation if a["status_as_filed"] == "Closed - no path" and a["exception_reason"] == bg.NO_PATH]
+        self.assertTrue(closed)
+        by_rid = {r["request_id"]: r for r in self.data.requests}
+        for a in closed:
+            self.assertEqual(bg.stage_of(by_rid[a["request_id"]], self.data.outcome_by_rid.get(a["request_id"]), a), "closed")
 
     def test_counts_sum_to_total_requests(self):
         for c in self.traced:

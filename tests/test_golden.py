@@ -235,13 +235,95 @@ class GoldenTest(unittest.TestCase):
         by_rid = {r["request_id"]: r for r in self.requests}
         capped = [by_rid[a["request_id"]] for a in bg.latest_cycle(self.allocation)
                   if a["exception_reason"] == bg.CAPACITY_EXHAUSTED]
-        self.assertEqual(len(capped), 10)
+        self.assertEqual(len(capped), 13)
         carried = [r for r in capped if r["blocked_reason"] == bg.CAPACITY_EXHAUSTED]
         blank = [r for r in capped if not r["blocked_reason"]]
-        self.assertEqual((len(carried), len(blank)), (7, 3))
+        self.assertEqual((len(carried), len(blank)), (10, 3))
+        self.assertEqual(sum(r["status_as_filed"] == "Closed - no path" for r in carried), 3,
+                         "three reopened Closed - no path requests found every connector spent")
         self.assertEqual(len(carried) + len(blank), len(capped), "nothing else on a capacity-exhausted row")
         self.assertTrue(all(not r["asked_date"] for r in carried))
         self.assertTrue(all(r["asked_date"] for r in blank), "blank only because the ask went out")
+
+    # ── 9. the status gate: what the allocator takes back ─────────────────
+    def test_in_queue_reopens_only_what_the_ask_log_never_saw(self):
+        """Filed open: in while never asked, or asked and its own intro fizzled.
+        Filed Closed - no path or Intro sent: in only while the ask log has no row
+        for it at all; once asked, the outcome row is the record and the retry
+        rule does not apply. Every other status stays out."""
+        for status in bg.OPEN_STATUSES:
+            self.assertTrue(bg.in_queue(status, "R1", set(), set()), status)
+            self.assertFalse(bg.in_queue(status, "R1", {"R1"}, set()), status)
+            self.assertTrue(bg.in_queue(status, "R1", {"R1"}, {"R1"}), status)
+        for status in bg.REOPEN_STATUSES:
+            self.assertTrue(bg.in_queue(status, "R1", set(), set()), status)
+            self.assertFalse(bg.in_queue(status, "R1", {"R1"}, set()), status)
+            self.assertFalse(bg.in_queue(status, "R1", {"R1"}, {"R1"}), status)
+        self.assertEqual(bg.REOPEN_STATUSES, {"Closed - no path", "Intro sent"})
+        self.assertFalse(bg.in_queue("Meeting booked", "R1", set(), set()))
+        self.assertFalse(bg.in_queue("", "R1", set(), set()))
+
+    def test_repair_window_starts_the_day_the_file_first_flagged_the_claim(self):
+        today = bg.parse_date("2026-09-07")
+        self.assertEqual(bg.repair_until("R1", {}, today), (today, bg.parse_date("2026-10-07")))
+        first = bg.parse_date("2026-08-20")
+        self.assertEqual(bg.repair_until("R1", {"R1": first}, today), (first, bg.parse_date("2026-09-19")))
+        self.assertEqual(bg.repair_until("R1", {"R1": bg.parse_date("2026-09-09")}, today), (today, bg.parse_date("2026-10-07")),
+                         "a flag dated after this build's clock counts from the clock")
+        self.assertEqual(bg.REPAIR_DAYS, 30)
+        # the flag date is read back from the file: the earliest INTRO_CLAIMED_NOT_LOGGED row per request
+        history = [{"cycle": "2026-08", "request_id": "R1", "decided_at": "2026-08-20T10:00:00Z", "allocated_to": "",
+                    "exception_reason": f"{bg.INTRO_CLAIMED_NOT_LOGGED}: filed Intro sent, no intro in the log, flagged 2026-08-20, routed as Stalled from 2026-09-19"},
+                   {"cycle": "2026-09", "request_id": "R1", "decided_at": "2026-09-06T10:00:00Z", "allocated_to": "",
+                    "exception_reason": f"{bg.INTRO_CLAIMED_NOT_LOGGED}: filed Intro sent, no intro in the log, flagged 2026-08-20, routed as Stalled from 2026-09-19"},
+                   {"cycle": "2026-09", "request_id": "R2", "decided_at": "2026-09-06T10:00:00Z", "allocated_to": "",
+                    "exception_reason": bg.NO_PATH}]
+        self.assertEqual(bg.history_signals(history, [], today).claimed, {"R1": first})
+
+    def test_reopened_names_why_a_finished_request_is_in_the_allocator(self):
+        row = {"status_as_filed": "Closed - no path", "exception_reason": ""}
+        self.assertEqual(bg.reopened(row), "filed Closed - no path, never asked")
+        self.assertEqual(bg.reopened({**row, "exception_reason": bg.NO_PATH}), "filed Closed - no path, never asked")
+        self.assertEqual(bg.reopened({"status_as_filed": "Intro sent", "exception_reason": ""}),
+                         f"filed Intro sent, no intro logged in {bg.REPAIR_DAYS} days")
+        self.assertEqual(bg.reopened({"status_as_filed": "Intro sent", "exception_reason": f"{bg.INTRO_CLAIMED_NOT_LOGGED}: ..."}), "",
+                         "in the repair queue: not reopened, held")
+        self.assertEqual(bg.reopened({"status_as_filed": "Intro sent", "exception_reason": f"{bg.ALREADY_INTRODUCED}: X on 2026-08-10 (R1)"}), "",
+                         "parked on the company's live intro, which may be the one claimed")
+        self.assertEqual(bg.reopened({"status_as_filed": "Intro sent", "exception_reason": "company unresolved"}), "filed Intro sent, never asked")
+        self.assertEqual(bg.reopened({"status_as_filed": "Stalled", "exception_reason": ""}), "")
+
+    def test_a_reopened_request_keeps_its_filed_status_and_reads_as_routed(self):
+        """status_as_filed is a source fact: the allocation row and the request
+        row keep it. What changes is what the pipeline does with it: routed once
+        allocated (stage_of), route_reason saying it was reopened, blocked_reason
+        naming the repair queue while the claim waits there."""
+        by_rid = {r["request_id"]: r for r in self.requests}
+        current = bg.latest_cycle(self.allocation)
+        reopened = [a for a in current if a["status_as_filed"] in bg.REOPEN_STATUSES]
+        self.assertTrue(reopened)
+        for a in reopened:
+            r = by_rid[a["request_id"]]
+            self.assertEqual(r["status_as_filed"], a["status_as_filed"])
+            self.assertEqual(r["asked_date"], "")
+            if a["allocated_to"]:
+                self.assertEqual(bg.stage_of(r, None, a), "routed")
+                self.assertEqual(r["routed_to"], a["allocated_to"])
+                self.assertTrue(r["route_reason"].startswith(f"reopened ({bg.reopened(a)}); allocated to"), r["route_reason"])
+                self.assertEqual(r["blocked_reason"], "")
+            elif a["exception_reason"].startswith(bg.INTRO_CLAIMED_NOT_LOGGED):
+                self.assertEqual(bg.stage_of(r, None, a), "introduced", "the claim stands until repaired or timed out")
+                self.assertEqual(r["blocked_reason"], bg.INTRO_CLAIMED_NOT_LOGGED)
+                self.assertEqual(r["contradicts_log"], bg.INTRO_CLAIMED_NOT_LOGGED)
+                self.assertNotIn("reopened", r["route_reason"])
+            elif not bg.reopened(a):
+                self.assertEqual(a["status_as_filed"], "Intro sent")
+                self.assertTrue(a["exception_reason"].startswith(bg.ALREADY_INTRODUCED))
+                self.assertNotIn("reopened", r["route_reason"])
+            else:
+                self.assertTrue(r["route_reason"].startswith(f"reopened ({bg.reopened(a)}); not asked; "), r["route_reason"])
+        self.assertTrue(any(a["allocated_to"] for a in reopened if a["status_as_filed"] == "Closed - no path"))
+        self.assertTrue(any(a["exception_reason"].startswith(bg.INTRO_CLAIMED_NOT_LOGGED) for a in reopened))
 
 
 if __name__ == "__main__":
