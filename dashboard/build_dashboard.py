@@ -372,7 +372,100 @@ SEG_SCRIPT = """<script>
 </script>"""
 
 STRATEGIC_NAV = [("#funnel", "Funnel", ""), ("#accounts", "Accounts", ""), ("#requesters", "Requesters", ""),
-                 ("#connectors", "Connectors", ""), ("#cycles", "Intros by Cycle", "")]
+                 ("#connectors", "Connectors", ""), ("#latency", "Latency", ""), ("#cycles", "Intros by Cycle", "")]
+
+
+def days(x):
+    return "—" if x is None else (f"{x:.0f} d" if float(x).is_integer() else f"{x:.1f} d")
+
+
+def yield_strip(y):
+    """Yield under the Sankey: the deal value that reached a connector and the opportunity value that came back."""
+    return f"""<h3>Yield</h3>
+  <div class="kpis">
+    {kpi(usd(y["routed"]), "routed to a connector", f"deal value behind {y['asks']} asks, of {usd(y['requested'])} requested")}
+    {kpi(usd(y["routed_per_ask"]), "routed per ask", f"{usd(y['routed_per_intro'])} per intro")}
+    {kpi(usd(y["opp"]), "opportunity value created", f"{y['opps']} opportunities from {y['asks']} asks")}
+    {kpi(usd(y["opp_per_ask"]), "return per ask", f"{usd(y['opp_per_intro'])} per intro")}
+  </div>"""
+
+
+def backlog_box(b):
+    top = ", ".join(f'{c["name"]} ({c["requests"]})' for c in b["companies"][:5])
+    return finding(f'{b["never"]} requests never reach a connector.',
+                   f'{b["with_path"]} of them are for companies that already have a path in <code>supply_reach.csv</code>, a backlog worth {usd(b["with_path_value"])} '
+                   f'that could be asked today; the other {b["without_path"]} ({usd(b["without_path_value"])}) have no path on file. '
+                   + (f'Most-requested with a path: {top}.' if top else ''), warn=True)
+
+
+def blockage_donut(bl, div_id):
+    """Three slices for the blocked requests: supply, process, correctly not asked."""
+    kinds = [bl["kinds"]["supply"], bl["kinds"]["process"], bl["kinds"]["closed"]]
+    fig = go.Figure(go.Pie(
+        labels=[k["label"] for k in kinds], values=[k["count"] for k in kinds], hole=.62, sort=False, direction="clockwise",
+        marker=dict(colors=[theme.WARN, theme.ACCENT, theme.NEUTRAL_DARK], line=dict(color=theme.SURFACE, width=2)),
+        text=[f'{k["count"]}' for k in kinds], textinfo="text", textposition="inside", textfont=dict(size=14, color="#fff"),
+        hovertemplate="%{label}: %{value} of " + str(bl["blocked"]) + " (%{percent})<extra></extra>"))
+    fig.update_layout(height=300, autosize=True, margin=dict(l=10, r=10, t=10, b=10), showlegend=True, **theme.PLOTLY_LAYOUT)
+    fig.update_layout(legend=dict(orientation="v", x=1, y=.5, xanchor="left"))
+    fig.add_annotation(text=f'<b>{bl["blocked"]}</b><br><span style="font-size:11px">blocked</span>', x=.5, y=.5, showarrow=False,
+                       font=dict(size=22, color=theme.INK))
+    return plot(fig, div_id)
+
+
+def blockage_panel(bl, div_id):
+    """The donut with its reading: who is waiting on a connector and why the rest are blocked."""
+    def reasons(kind):
+        k = bl["kinds"][kind]
+        return ", ".join(f"{r} {n}" for r, n in k["reasons"]) or "none"
+    other = f' Unclassified: {", ".join(f"{r} {n}" for r, n in bl["other"])}.' if bl["other"] else ""
+    return f"""<h3>Why they never reach a connector</h3>
+  <div class="grid2">
+    <div>{blockage_donut(bl, div_id)}</div>
+    <div>
+      <p class="lede">Of the {bl["never"]} never asked, {bl["allocated"]} are allocated this cycle and not yet asked; {bl["blocked"]} are blocked.</p>
+      {finding(f'Only {bl["supply_share"]:.0%} of the blockage is a missing relationship.',
+               f'Supply {bl["kinds"]["supply"]["count"]}: {reasons("supply")}. Process {bl["kinds"]["process"]["count"]}: {reasons("process")}. '
+               f'Correctly not asked {bl["kinds"]["closed"]["count"]}: {reasons("closed")}.{other}', warn=True)}
+      <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>blockage_cut</code>), from <code>blocked_reason</code> in <code>golden/golden_requests.csv</code>.</p>
+    </div>
+  </div>"""
+
+
+def return_chart(cs, div_id):
+    """Connectors ranked by opportunity value per ask, best first."""
+    fig = go.Figure()
+    fig.add_bar(y=[c["name"] for c in cs][::-1], x=[c["opp_per_ask"] for c in cs][::-1], orientation="h",
+                marker_color=theme.ACCENT, text=[f'{usd(c["opp_per_ask"])} · {usd(c["opp_value"])} from {c["asked"]} asks' for c in cs][::-1],
+                textposition="outside", cliponaxis=False)
+    fig.update_layout(height=60 + 40 * len(cs), autosize=True, margin=dict(l=10, r=150, t=10, b=30), showlegend=False, **theme.PLOTLY_LAYOUT)
+    fig.update_layout(xaxis=dict(title="opportunity $ per ask", tickprefix="$", tickformat="~s", fixedrange=True), yaxis=dict(automargin=True, fixedrange=True))
+    return plot(fig, div_id)
+
+
+def latency_chart(monthly, div_id):
+    """Median days for each step, by the month the request was filed."""
+    fig = go.Figure()
+    for key, label, color in (("to_ask", "Request to ask", theme.NEUTRAL_DARK), ("to_resp", "Ask to first response", theme.ACCENT),
+                              ("to_intro", "Ask to intro", theme.WARN)):
+        fig.add_scatter(x=[m["month"] for m in monthly], y=[m[key] for m in monthly], name=label, mode="lines+markers",
+                        line=dict(color=color, width=2), connectgaps=True)
+    fig.update_layout(height=340, autosize=True, margin=dict(l=10, r=10, t=10, b=30), **theme.PLOTLY_LAYOUT)
+    fig.update_layout(legend=dict(orientation="h", y=1.1, x=0), xaxis=dict(title="month requested", fixedrange=True),
+                      yaxis=dict(title="median days", rangemode="tozero", fixedrange=True))
+    return plot(fig, div_id)
+
+
+def headline_kpis(data):
+    """The strip at the top of the Live Data tab: what the asks returned, how fast, and what is reachable but unasked."""
+    y, lat, b = data_cuts.yield_cut(data), data_cuts.latency_cut(data), data_cuts.backlog_cut(data)
+    return f"""<div class="kpis headline">
+    {kpi(usd(y["opp"]), "opportunity value created", f"from {y['asks']} asks, {y['intros']} intros, {y['opps']} opportunities")}
+    {kpi(usd(y["opp_per_ask"]), "return per ask", f"{usd(y['opp_per_intro'])} per intro")}
+    {kpi(days(lat["median_to_intro"]), "median ask to intro", f"{days(lat['median_to_ask'])} request to ask")}
+    {kpi(days(lat["median_to_resp"]), "median ask to first response", f"over {lat['asks']} asks")}
+    {kpi(usd(b["with_path_value"]), "reachable but never asked", f"{b['with_path']} requests with a path in supply_reach.csv")}
+  </div>"""
 
 
 def strategic_sections(data, cyc, live):
@@ -409,6 +502,9 @@ def strategic_sections(data, cyc, live):
   <div class="fview" data-view="12m" hidden>
   {funnel_kpis(counts_12m)}
   {sankey(stages_12m, "sankey-12m")}
+  {backlog_box(data_cuts.backlog_cut(data, since=ROLLING_SINCE))}
+  {blockage_panel(data_cuts.blockage_cut(data, since=ROLLING_SINCE), "blockage-12m")}
+  {yield_strip(data_cuts.yield_cut(data, since=ROLLING_SINCE))}
   <div class="grid2">
     <div>
       <h3>Stage table, last 12 months</h3>
@@ -425,6 +521,9 @@ def strategic_sections(data, cyc, live):
   <div class="fview" data-view="all">
   {funnel_kpis(counts)}
   {sankey(stages, "sankey")}
+  {backlog_box(data_cuts.backlog_cut(data))}
+  {blockage_panel(data_cuts.blockage_cut(data), "blockage")}
+  {yield_strip(data_cuts.yield_cut(data))}
   <div class="grid2">
     <div>
       <h3>Stage table</h3>
@@ -604,6 +703,9 @@ def strategic_sections(data, cyc, live):
                             [(c["name"], c["type"], c["capacity"], c["asked"], c["responded"], c["intros"],
                               c["meetings"], c["opps"], usd(c["value"]), usd(c["opp_value"]),
                               f'{c["in_focus"]}/{c["asked"]}', c["focus_areas"], c["notes"]) for c in cs])
+    return_table = table(["#", "Connector", "Asks", "Intros", "Opps", "Opp $", "Per ask $", "Per intro $"],
+                         [(i + 1, c["name"], c["asked"], c["intros"], c["opps"], usd(c["opp_value"]), usd(c["opp_per_ask"]), usd(c["opp_per_intro"]))
+                          for i, c in enumerate(cx["by_return"])])
     busiest = cs[0] if cs else {"asked": 0, "name": "—"}
     sept_names = ("Owen Trask", "Dana Whitfield", "Elena Duvall", "Marcus Aldridge", "Tomás Beckett")
     if not live and all(n in by_name for n in sept_names):
@@ -638,6 +740,12 @@ def strategic_sections(data, cyc, live):
     {kpi(sum(n for _, n in cx["off_roster"]), "asks to people not on the roster", ", ".join(n for n, _ in cx["off_roster"]) or "everyone asked is on the roster")}
   </div>
   {connector_table}
+  <h3>Ranked by return per ask</h3>
+  <p class="lede">Opportunity value logged against a connector's asks, divided by the asks; the roster as a whole returns {usd(sum(c["opp_value"] for c in cs) / cx["asked"] if cx["asked"] else 0)} per ask.</p>
+  <div class="grid2">
+    <div>{return_chart(cx["by_return"], "connector-return")}</div>
+    <div>{return_table}</div>
+  </div>
   <div class="grid2">
     <div>
       <h3>Routing ignores the roster notes</h3>
@@ -704,7 +812,45 @@ def strategic_sections(data, cyc, live):
   <p class="foot">Run-rate columns average every cycle since {cyc_rows[0]['cycle'] if cyc_rows else '—'}; capacity used per cycle averages {closed_word} {"before this one" if live else "on file"}. Click a connector's tab for their cycle-by-cycle table.</p>
 </section>
 """
-    return funnel + accounts + requesters_html + connectors_html + cycles_html
+    # latency
+    lat = data_cuts.latency_cut(data)
+    allocated = data_cuts.blockage_cut(data)["allocated"]
+    lat_rows = [(m["month"], m["requests"], m["asked"], days(m["to_ask"]), days(m["to_resp"]), days(m["to_intro"])) for m in lat["monthly"]]
+    lat_table = table(["Month requested", "Requests", "Asked", "Request to ask", "Ask to response", "Ask to intro"], lat_rows)
+    with_data = [m for m in lat["monthly"] if m["to_ask"] is not None]
+    first_half, second_half = with_data[:len(with_data) // 2], with_data[len(with_data) // 2:]
+    trend = ""
+    if first_half and second_half:
+        early = statistics.median(m["to_intro"] for m in first_half if m["to_intro"] is not None) if any(m["to_intro"] is not None for m in first_half) else None
+        late = statistics.median(m["to_intro"] for m in second_half if m["to_intro"] is not None) if any(m["to_intro"] is not None for m in second_half) else None
+        if early is not None and late is not None:
+            trend = finding("Ask to intro month over month.", f"Median {days(early)} across the first {len(first_half)} months with asks ({first_half[0]['month']} to {first_half[-1]['month']}), {days(late)} across the last {len(second_half)} ({second_half[0]['month']} to {second_half[-1]['month']}); single months swing between {days(min(m['to_intro'] for m in with_data if m['to_intro'] is not None))} and {days(max(m['to_intro'] for m in with_data if m['to_intro'] is not None))}.")
+    latency_html = f"""
+<section id="latency">
+  <h2>Latency</h2>
+  <p class="lede">Days between the steps, from <code>request_date</code> and the dates in {ask_log}: request to ask, ask to the first response, ask to the intro going out. Medians, since a few slow intros pull the mean.</p>
+  <div class="kpis">
+    {kpi(days(lat["median_to_ask"]), "median request to ask", f"over {lat['asks']} asks")}
+    {kpi(days(lat["median_to_resp"]), "median ask to first response")}
+    {kpi(days(lat["median_to_intro"]), "median ask to intro")}
+    {kpi(f"{lat['max_to_ask']} d", "longest a request waited before it was asked", f"{lat['waiting_past_max']} unasked requests are already older than that")}
+  </div>
+  {latency_chart(lat["monthly"], "latency-chart")}
+  <div class="grid2">
+    <div>
+      <h3>By month requested</h3>
+      {lat_table}
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      {finding("A request not asked inside a week is never asked.", f"Every one of the {lat['asks']} asks on file went out within {lat['max_to_ask']} days of the request ({lat['asked_within_week']} of {lat['asks']} inside seven); the {lat['waiting_past_max']} requests still unasked are all older than that and, on this record, will stay unasked unless someone picks them up; {allocated} of them are allocated this cycle.", warn=True)}
+      {trend}
+      <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>latency_cut</code>). A month's medians cover the requests filed that month, whenever the ask, response or intro happened.</p>
+    </div>
+  </div>
+</section>
+"""
+    return funnel + accounts + requesters_html + connectors_html + latency_html + cycles_html
 
 
 dup_table = table(["Reply text", "Occurrences"], [(text, n) for text, n in slack["dup_phrases"]])
@@ -1506,6 +1652,8 @@ live_page = f"""{head("Live Data Dashboard")}
 <div class="layout">
 {sidebar(STRATEGIC_NAV)}
 <main>
+
+{headline_kpis(live_cuts)}
 
 <p class="lede part-lede">Computed from <code>golden/</code> (<code>golden_requests.csv</code>, <code>golden_companies.csv</code>, <code>supply_reach.csv</code>, <code>completions.csv</code>) after entity resolution, so companies are counted by identity rather than by how the name was typed. The ask log is <code>intro_outcomes.csv</code> with <code>golden/completions.csv</code> applied: a Submit on <a href="{PRIORITIES_HTML}">Live Priorities</a> lands in Supabase, the rebuild pulls it into <code>completions.csv</code>, and the ask counts here from that build on; requests added later, CRM changes and new <code>intro_outcomes.csv</code> rows flow in the same way, through <code>python3 golden/build_golden.py</code>. The <a href="{RAW_HTML}">Raw Sept Data Dashboard</a> has the same charts from the September exports alone.</p>
 

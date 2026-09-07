@@ -20,6 +20,7 @@ from collections import Counter, defaultdict
 from datetime import date, timedelta
 
 from golden import build_golden as bg
+from golden.clock import as_of
 from paths import CURRENT, GOLDEN as GOLDEN_DIR, JOINS
 
 DATA = str(CURRENT)
@@ -156,6 +157,154 @@ def opportunity_status_mismatch(data):
     status = {r["request_id"].strip(): r["status"].strip() for r in data["requests"]}
     return sorted(o["request_id"] for o in data["outcomes"]
                   if yes(o, "opportunity_created") and status.get(o["request_id"].strip()) in ("Open", "Stalled", "Routed"))
+
+
+def in_window(r, since):
+    return not since or r["request_date"].strip()[:10] >= since
+
+
+def yield_cut(data, since=None):
+    """What the asks returned: the deal value routed to a connector and the
+    opportunity value that came back, each per ask and per intro. `since`
+    keeps requests dated on or after it."""
+    req = {r["request_id"].strip(): r for r in data["requests"] if in_window(r, since)}
+    asked = [(req[o["request_id"].strip()], o) for o in data["outcomes"] if o["request_id"].strip() in req]
+    asks, intros = len(asked), sum(1 for _, o in asked if yes(o, "intro_sent"))
+    routed = sum(money(r["deal_value_usd"]) for r, _ in asked)
+    opp = sum(money(o["opportunity_value_usd"]) for _, o in asked)
+    return {
+        "asks": asks, "intros": intros, "opps": sum(1 for _, o in asked if yes(o, "opportunity_created")),
+        "routed": routed, "routed_per_ask": routed / asks if asks else 0, "routed_per_intro": routed / intros if intros else 0,
+        "opp": opp, "opp_per_ask": opp / asks if asks else 0, "opp_per_intro": opp / intros if intros else 0,
+        "requested": sum(money(r["deal_value_usd"]) for r in req.values()),
+    }
+
+
+def backlog_cut(data, since=None):
+    """Requests that never reached a connector, split by whether the resolved
+    company already has a path in golden/supply_reach.csv: those could be asked
+    today, and their deal value is what the backlog is worth."""
+    asked = {o["request_id"].strip() for o in data["outcomes"]}
+    reach = defaultdict(set)
+    for s in data["supply"]:
+        reach[s["company_id"]].add(s["connector"].strip())
+    never = [r for r in data["requests"] if in_window(r, since) and r["request_id"].strip() not in asked]
+    with_path, without = [], []
+    for r in never:
+        cid = data["golden_requests"].get(r["request_id"].strip(), {}).get("company_id", "")
+        (with_path if cid and cid in reach else without).append(r)
+    by_company = Counter()
+    value_by_company = Counter()
+    for r in with_path:
+        cid = data["golden_requests"][r["request_id"].strip()]["company_id"]
+        by_company[cid] += 1
+        value_by_company[cid] += money(r["deal_value_usd"])
+    companies = [{"company_id": cid, "name": data["golden_companies"].get(cid, {}).get("company_name", "") or cid,
+                  "requests": n, "value": value_by_company[cid], "connectors": sorted(reach[cid])}
+                 for cid, n in by_company.most_common()]
+    return {
+        "never": len(never), "never_value": sum(money(r["deal_value_usd"]) for r in never),
+        "with_path": len(with_path), "with_path_value": sum(money(r["deal_value_usd"]) for r in with_path),
+        "without_path": len(without), "without_path_value": sum(money(r["deal_value_usd"]) for r in without),
+        "companies": companies,
+    }
+
+
+# blocked_reason (golden_requests.csv) -> which kind of blockage it is
+BLOCKAGE = {
+    "supply": ("missing relationship", [bg.BLOCK_NO_PATH, bg.BLOCK_NO_ROSTER_PATH]),
+    "process": ("process gap", [bg.BLOCK_NEVER_ROUTED, bg.BLOCK_NO_CRM, bg.CAPACITY_EXHAUSTED, bg.BLOCK_NO_COMPANY,
+                                bg.BLOCK_FUND_OR_OPCO, bg.STALE_ASK, bg.UNRESOLVED_ASK]),
+    "closed": ("correctly not asked", [bg.BLOCK_CLOSED_LOST, bg.ALREADY_INTRODUCED]),
+}
+REASON_LABEL = {
+    bg.BLOCK_NO_PATH: "no path in roster or investor network", bg.BLOCK_NO_ROSTER_PATH: "only off-roster paths",
+    bg.BLOCK_NEVER_ROUTED: "path exists, never routed", bg.BLOCK_NO_CRM: "no CRM record",
+    bg.CAPACITY_EXHAUSTED: "capacity exhausted", bg.BLOCK_NO_COMPANY: "no company named", bg.BLOCK_FUND_OR_OPCO: "fund named",
+    bg.STALE_ASK: "proposed, no outcome logged", bg.UNRESOLVED_ASK: "unresolved ask on every path",
+    bg.BLOCK_CLOSED_LOST: "closed lost", bg.ALREADY_INTRODUCED: "already introduced",
+}
+
+
+def blockage_cut(data, since=None):
+    """Why the never-asked requests never reached a connector, from
+    golden_requests.csv's blocked_reason. A request with none is allocated in
+    the current cycle and waits for its ask; the rest are blocked, in three
+    kinds: supply (nobody reaches the company), process (a path or the data
+    exists but the request stalled on our side) and correctly not asked (the
+    account is Closed Lost or an intro is already in play)."""
+    asked = {o["request_id"].strip() for o in data["outcomes"]}
+    never = [data["golden_requests"].get(r["request_id"].strip(), {}) for r in data["requests"]
+             if in_window(r, since) and r["request_id"].strip() not in asked]
+    reasons = Counter(g.get("blocked_reason", "").strip() for g in never)
+    kind_of = {reason: kind for kind, (_, rs) in BLOCKAGE.items() for reason in rs}
+    kinds = {kind: {"label": label, "count": 0, "reasons": []} for kind, (label, _) in BLOCKAGE.items()}
+    other = []
+    for reason, n in reasons.most_common():
+        if not reason:
+            continue
+        kind = kind_of.get(reason)
+        if kind is None:
+            other.append((reason, n))
+            continue
+        kinds[kind]["count"] += n
+        kinds[kind]["reasons"].append((REASON_LABEL.get(reason, reason), n))
+    blocked = sum(k["count"] for k in kinds.values()) + sum(n for _, n in other)
+    return {
+        "never": len(never),
+        "allocated": reasons.get("", 0),
+        "blocked": blocked,
+        "kinds": kinds,
+        "other": other,
+        "supply_share": kinds["supply"]["count"] / blocked if blocked else 0,
+    }
+
+
+def _median(xs):
+    return statistics.median(xs) if xs else None
+
+
+def latency_cut(data, today=None):
+    """Days between the steps: request to ask, ask to first response, ask to
+    intro. Medians overall and by the month the request was filed, plus how
+    long an unasked request has ever waited before it was asked (every ask on
+    file went out within `max_to_ask` days; anything older and unasked has not
+    been asked yet). `today` is the build clock."""
+    today = today or as_of()
+    req = {r["request_id"].strip(): r for r in data["requests"]}
+    to_ask, to_resp, to_intro = [], [], []
+    monthly = defaultdict(lambda: {"requests": 0, "asked": 0, "to_ask": [], "to_resp": [], "to_intro": []})
+    for r in req.values():
+        monthly[r["request_date"].strip()[:7]]["requests"] += 1
+    for o in data["outcomes"]:
+        r = req.get(o["request_id"].strip())
+        asked = d(o["asked_date"])
+        if not r or not asked:
+            continue
+        m = monthly[r["request_date"].strip()[:7]]
+        m["asked"] += 1
+        requested, responded, intro = d(r["request_date"]), d(o["response_date"]), d(o["intro_date"])
+        if requested:
+            to_ask.append((asked - requested).days)
+            m["to_ask"].append((asked - requested).days)
+        if responded and yes(o, "responded"):
+            to_resp.append((responded - asked).days)
+            m["to_resp"].append((responded - asked).days)
+        if intro and yes(o, "intro_sent"):
+            to_intro.append((intro - asked).days)
+            m["to_intro"].append((intro - asked).days)
+    max_to_ask = max(to_ask, default=0)
+    asked_ids = {o["request_id"].strip() for o in data["outcomes"]}
+    waiting = [r for r in req.values() if r["request_id"].strip() not in asked_ids and d(r["request_date"])
+               and (today - d(r["request_date"])).days > max_to_ask]
+    return {
+        "median_to_ask": _median(to_ask), "median_to_resp": _median(to_resp), "median_to_intro": _median(to_intro),
+        "max_to_ask": max_to_ask, "asked_within_week": sum(1 for x in to_ask if x <= 7), "asks": len(to_ask),
+        "waiting_past_max": len(waiting),
+        "monthly": [{"month": k, "requests": v["requests"], "asked": v["asked"], "to_ask": _median(v["to_ask"]),
+                     "to_resp": _median(v["to_resp"]), "to_intro": _median(v["to_intro"])}
+                    for k, v in sorted(monthly.items())],
+    }
 
 
 # --------------------------------------------------------------------------- 1. scoped joins
@@ -324,10 +473,14 @@ def connector_cut(data):
             s["in_focus_intros"] += yes(o, "intro_sent")
         else:
             s["off_focus_intros"] += yes(o, "intro_sent")
+    for s in stats.values():
+        s["opp_per_ask"] = s["opp_value"] / s["asked"] if s["asked"] else 0.0
+        s["opp_per_intro"] = s["opp_value"] / s["intros"] if s["intros"] else 0.0
     rows = sorted(stats.values(), key=lambda s: -s["asked"])
     asked = sum(s["asked"] for s in rows)
     in_focus = sum(s["in_focus"] for s in rows)
     return {"connectors": rows, "off_roster": off_roster.most_common(),
+            "by_return": sorted((s for s in rows if s["asked"]), key=lambda s: (-s["opp_per_ask"], -s["opp_value"], -s["intros"], s["name"])),
             "asked": asked, "in_focus": in_focus,
             "in_focus_intro_rate": sum(s["in_focus_intros"] for s in rows) / in_focus if in_focus else 0,
             "off_focus_intro_rate": sum(s["off_focus_intros"] for s in rows) / (asked - in_focus) if asked > in_focus else 0,
@@ -594,7 +747,8 @@ def cycle_cut(data):
     }
 
 
-CUTS = [("Funnel", funnel_cut), ("Scoped joins", join_summary_cut), ("Account demand", account_demand_cut),
+CUTS = [("Funnel", funnel_cut), ("Yield", yield_cut), ("Backlog with a path", backlog_cut), ("Blockage", blockage_cut), ("Latency", latency_cut),
+        ("Scoped joins", join_summary_cut), ("Account demand", account_demand_cut),
         ("Top accounts by value", top_accounts_cut), ("Connectors", connector_cut),
         ("Target person provenance", target_person_cut), ("Routing time", routing_time_cut),
         ("Slack threads", slack_cut), ("Flag / status noise", flag_noise_cut),
