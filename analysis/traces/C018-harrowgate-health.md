@@ -46,10 +46,10 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Elena Duvall at capacity 3/3, outside focus (Healthcare) -> R1136, R1140 unrouted (capacity exhausted); R1153 to Priya Raghunathan
 
-## 4. Chronology (51 events, 9 requests, newest first, as of 2026-09-06)
+## 4. Chronology (51 events, 9 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1157 said yes 120 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Tomás Beckett        R1157 said yes 121 days ago and never forwarded
 ++ 2026-05-09  intro_outcomes.csv   Tomás Beckett        R1157 replied (8 days after the ask)
    2026-05-02  slack_threads.jsonl  Bertrand Vandermolen R1157 slack: "I think their procurement is frozen until Q1"
    2026-05-01  intro_outcomes.csv   Tomás Beckett        R1157 asked
@@ -58,28 +58,28 @@ why not #1: Elena Duvall at capacity 3/3, outside focus (Healthcare) -> R1136, R
    2026-04-28  slack_threads.jsonl  Yusuf Petrossian     R1157 slack: "does anyone know anyone at Harrowgate Health? looking for VP Enterprise Architecture, ideally warm"
    2026-04-28  intro_requests.csv   Yusuf Petrossian     R1157 raised by Yusuf Petrossian (SDR Lead): wants VP Enterprise Architecture, $750,000, Medium urgency, filed "Stalled"
 
-<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1137 never replied (asked 2025-09-16, 355 days ago)
+<- 2026-09-07  intro_outcomes.csv   Tomás Beckett        R1137 never replied (asked 2025-09-16, 356 days ago)
    2025-09-17  slack_threads.jsonl  Imani Mkhize         R1137 slack: "bumping this"
    2025-09-16  intro_outcomes.csv   Tomás Beckett        R1137 asked
    2025-09-16  slack_threads.jsonl  Yusuf Petrossian     R1137 slack: "no idea sorry"
    2025-09-15  slack_threads.jsonl  Imani Mkhize         R1137 slack: "trying to reach Chief Digital Officer at Harrowgate Health — anyone have a path?"
    2025-09-15  intro_requests.csv   Imani Mkhize         R1137 raised by Imani Mkhize (Enterprise AE, West): wants Chief Digital Officer, $250,000, High urgency, filed "Open"
 
-<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1090 never replied (asked 2025-12-20, 260 days ago)
+<- 2026-09-07  intro_outcomes.csv   Tomás Beckett        R1090 never replied (asked 2025-12-20, 261 days ago)
    2025-12-20  intro_outcomes.csv   Tomás Beckett        R1090 asked
    2025-12-19  slack_threads.jsonl  Nadia Okonkwo        R1090 slack: "is this the same as the one from last month?"
    2025-12-18  slack_threads.jsonl  Sloane Fairweather   R1090 slack: "no idea sorry"
    2025-12-17  slack_threads.jsonl  Hana Nakashima       R1090 slack: "any connections into Harrowgate Health? we're up against a renewal window and I need an intro to VP Engineering"
 !! 2025-12-17  intro_requests.csv   Hana Nakashima       R1090 raised by Hana Nakashima (AE, Healthcare): wants VP Engineering, $400,000, Medium urgency, filed "Closed - no path"  [11 paths in supply_reach.csv; same title as R1173, 72 days earlier]
 
-<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1072 never replied (asked 2025-11-03, 307 days ago)
+<- 2026-09-07  intro_outcomes.csv   Tomás Beckett        R1072 never replied (asked 2025-11-03, 308 days ago)
    2025-11-04  slack_threads.jsonl  Rafael Salcedo       R1072 slack: "no idea sorry"
    2025-11-03  intro_outcomes.csv   Tomás Beckett        R1072 asked
    2025-11-02  slack_threads.jsonl  Bertrand Vandermolen R1072 slack: "adding Sloane Fairweather who might know"
    2025-10-31  slack_threads.jsonl  Sloane Fairweather   R1072 slack: "long shot — Harrowgate Health. Liesel Marchetti-Wolstenholme (SVP Digital). Anyone?"
    2025-10-31  intro_requests.csv   Sloane Fairweather   R1072 raised by Sloane Fairweather (Strategic AE): wants SVP Digital, $750,000, Low urgency, filed "Open"
 
-<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1057 said yes 65 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Tomás Beckett        R1057 said yes 66 days ago and never forwarded
 ++ 2026-07-03  intro_outcomes.csv   Tomás Beckett        R1057 replied (12 days after the ask)
    2026-06-21  intro_outcomes.csv   Tomás Beckett        R1057 asked
    2026-06-18  slack_threads.jsonl  Rafael Salcedo       R1057 slack: "wrong channel? this feels like a partner ask"
@@ -108,7 +108,7 @@ why not #1: Elena Duvall at capacity 3/3, outside focus (Healthcare) -> R1136, R
    2025-10-06  slack_threads.jsonl  Rafael Salcedo       R1173 slack: "does anyone know anyone at Harrowgate Health? looking for VP Engineering, ideally warm"
 !! 2025-10-06  intro_requests.csv   Rafael Salcedo       R1173 raised by Rafael Salcedo (AE, Transport & Logistics): wants VP Engineering, $150,000, Medium urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
 
-!! 2026-05-14  crm_accounts.csv     Imani Mkhize         last CRM touch on A1050  [115 days ago, nothing since]
+!! 2026-05-14  crm_accounts.csv     Imani Mkhize         last CRM touch on A1050  [116 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

@@ -14,7 +14,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (10 events, 3 requests, newest first, as of 2026-09-06)
+## 4. Chronology (10 events, 3 requests, newest first, as of 2026-09-07)
 
 ```
    2026-06-01  slack_threads.jsonl  Rafael Salcedo       R1007 slack: "long shot — Halcyon Grid. Espen Crowther-Isenberg (Head of Platform Engineering). Anyone?"
@@ -29,5 +29,5 @@ nobody in the network reaches this company
    2026-01-10  slack_threads.jsonl  Nadia Okonkwo        R1177 slack: "Halcyon Grid is the target. Our champion at Apex Logistics Group used to work with their team, and I think Yarrowdale Media is a supplier of theirs. Any path?"
    2026-01-10  intro_requests.csv   Nadia Okonkwo        R1177 raised by Nadia Okonkwo (AE, Industrials): wants Chief Digital Officer, $2,000,000, Medium urgency, filed "Open"
 
-!! 2026-03-14  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1008  [176 days ago, nothing since]
+!! 2026-03-14  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1008  [177 days ago, nothing since]
 ```

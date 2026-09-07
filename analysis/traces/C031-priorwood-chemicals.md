@@ -47,17 +47,17 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: parked on live intro (R1150, Tomás Beckett, 2026-03-16, meeting booked): R1092, R1174
 
-## 4. Chronology (56 events, 9 requests, newest first, as of 2026-09-06)
+## 4. Chronology (56 events, 9 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1118 said yes 354 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Tomás Beckett        R1118 said yes 355 days ago and never forwarded
    2025-09-18  slack_threads.jsonl  Rafael Salcedo       R1118 slack: "wrong channel? this feels like a partner ask"
 ++ 2025-09-17  intro_outcomes.csv   Tomás Beckett        R1118 replied (1 days after the ask)
    2025-09-16  intro_outcomes.csv   Tomás Beckett        R1118 asked
    2025-09-15  slack_threads.jsonl  Nadia Okonkwo        R1118 slack: "trying to reach Chief Operating Officer at Priorwood Chemicals — anyone have a path?"
 !! 2025-09-15  intro_requests.csv   Nadia Okonkwo        R1118 raised by Nadia Okonkwo (AE, Industrials): wants Chief Operating Officer, $1,200,000, Critical urgency, filed "Open"  [same title as R1192, 28 days earlier]
 
-<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1098 said yes 162 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Tomás Beckett        R1098 said yes 163 days ago and never forwarded
 ++ 2026-03-28  intro_outcomes.csv   Tomás Beckett        R1098 replied (2 days after the ask)
    2026-03-26  intro_outcomes.csv   Tomás Beckett        R1098 asked
    2026-03-24  slack_threads.jsonl  Sloane Fairweather   R1098 slack: "wrong channel? this feels like a partner ask"
@@ -66,13 +66,13 @@ why not #1: parked on live intro (R1150, Tomás Beckett, 2026-03-16, meeting boo
    2026-03-20  slack_threads.jsonl  Curtis Hartigan      R1098 slack: "need help getting to Priorwood Chemicals. Liesel Merriweather-Lomsadze is the Chief Data Officer there, cold outbound is going nowhere"
    2026-03-20  intro_requests.csv   Curtis Hartigan      R1098 raised by Curtis Hartigan (AE, Financial Services): wants Chief Data Officer, $150,000, Medium urgency, filed "Open"
 
-<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1052 never replied (asked 2025-08-20, 382 days ago)
+<- 2026-09-07  intro_outcomes.csv   Tomás Beckett        R1052 never replied (asked 2025-08-20, 383 days ago)
    2025-08-21  slack_threads.jsonl  Nadia Okonkwo        R1052 slack: "bumping this"
    2025-08-20  intro_outcomes.csv   Tomás Beckett        R1052 asked
    2025-08-19  slack_threads.jsonl  Yusuf Petrossian     R1052 slack: "asking again: Priorwood Chemicals. Head of Platform Engineering. Happy to draft the forward myself if someone can vouch."
    2025-08-19  intro_requests.csv   Yusuf Petrossian     R1052 raised by Yusuf Petrossian (SDR Lead): wants Head of Platform Engineering, $80,000, Low urgency, filed "Open"
 
-<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1033 said yes 87 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Tomás Beckett        R1033 said yes 88 days ago and never forwarded
 ++ 2026-06-11  intro_outcomes.csv   Tomás Beckett        R1033 replied (4 days after the ask)
    2026-06-07  intro_outcomes.csv   Tomás Beckett        R1033 asked
    2026-06-06  slack_threads.jsonl  Imani Mkhize         R1033 slack: "adding Nadia Okonkwo who might know"
@@ -114,7 +114,7 @@ why not #1: parked on live intro (R1150, Tomás Beckett, 2026-03-16, meeting boo
    2025-08-18  slack_threads.jsonl  Imani Mkhize         R1192 slack: "trying to reach Chief Operating Officer at Priorwood Chemicals — anyone have a path?"
    2025-08-18  intro_requests.csv   Imani Mkhize         R1192 raised by Imani Mkhize (Enterprise AE, West): wants Chief Operating Officer, $2,000,000, High urgency, filed "Intro sent"
 
-!! 2025-10-17  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1030  [324 days ago, nothing since]
+!! 2025-10-17  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1030  [325 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

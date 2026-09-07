@@ -18,7 +18,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (18 events, 6 requests, newest first, as of 2026-09-06)
+## 4. Chronology (18 events, 6 requests, newest first, as of 2026-09-07)
 
 ```
    2026-06-04  slack_threads.jsonl  Nadia Okonkwo        R1083 slack: "looking for a path to Perrine Hartigan-Thackeray — email domain is thistledownenergy.com, that's all I have"
@@ -44,5 +44,5 @@ nobody in the network reaches this company
    2025-08-14  slack_threads.jsonl  Yusuf Petrossian     R1064 slack: "trying to reach Chief Data Officer at Thistledown Energy — anyone have a path?"
    2025-08-14  intro_requests.csv   Yusuf Petrossian     R1064 raised by Yusuf Petrossian (SDR Lead): wants Chief Data Officer, $1,200,000, Low urgency, filed "Routed"
 
-!! 2026-05-13  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1046  [116 days ago, nothing since]
+!! 2026-05-13  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1046  [117 days ago, nothing since]
 ```

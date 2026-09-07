@@ -40,22 +40,22 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Yusuf Petrossian not asked again here: Yusuf Petrossian agreed on 2026-07-06 (R1066), no intro - nudge -> R1006, R1070, R1128 to Tomás Beckett; R1171, R1193 unrouted (capacity exhausted)
 
-## 4. Chronology (35 events, 8 requests, newest first, as of 2026-09-06)
+## 4. Chronology (35 events, 8 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Dana Whitfield       R1147 never replied (asked 2026-02-16, 202 days ago)
+<- 2026-09-07  intro_outcomes.csv   Dana Whitfield       R1147 never replied (asked 2026-02-16, 203 days ago)
    2026-02-16  intro_outcomes.csv   Dana Whitfield       R1147 asked
    2026-02-11  slack_threads.jsonl  Hana Nakashima       R1147 slack: "does anyone know anyone at Kingsmere Retail Group? looking for VP Enterprise Architecture, ideally warm"
 !! 2026-02-11  intro_requests.csv   Hana Nakashima       R1147 raised by Hana Nakashima (AE, Healthcare): wants VP Enterprise Architecture, $1,200,000, Medium urgency, filed "Closed - no path"  [7 paths in supply_reach.csv; same title as R1128, 47 days earlier]
 
-<- 2026-09-06  intro_outcomes.csv   Dana Whitfield       R1113 said yes 214 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Dana Whitfield       R1113 said yes 215 days ago and never forwarded
    2026-02-05  slack_threads.jsonl  Hana Nakashima       R1113 slack: "adding Nadia Okonkwo who might know"
 ++ 2026-02-04  intro_outcomes.csv   Dana Whitfield       R1113 replied (1 days after the ask)
    2026-02-03  intro_outcomes.csv   Dana Whitfield       R1113 asked
    2026-02-01  slack_threads.jsonl  Imani Mkhize         R1113 slack: "who do we know at Kingsmere Retail Group? Chief Digital Officer would be ideal but I'll take anyone senior"
    2026-02-01  intro_requests.csv   Imani Mkhize         R1113 raised by Imani Mkhize (Enterprise AE, West): wants Chief Digital Officer, $150,000, Medium urgency, filed "Open"
 
-<- 2026-09-06  intro_outcomes.csv   Yusuf Petrossian     R1066 said yes 62 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Yusuf Petrossian     R1066 said yes 63 days ago and never forwarded
 ++ 2026-07-06  intro_outcomes.csv   Yusuf Petrossian     R1066 replied (5 days after the ask)
    2026-07-01  intro_outcomes.csv   Yusuf Petrossian     R1066 asked
 ** 2026-06-27  slack_threads.jsonl  Yusuf Petrossian     R1066 slack: "I'll take this one — I've got a direct line to their exec team"

@@ -30,12 +30,12 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
-| 0.168 | 0.484 | Marcus Aldridge (Advisor) | direct | Astrid Salcedo — VP Data & Analytics | connections_aldridge.csv: Astrid Salcedo, VP Data & Analytics at Apex Logistics Group, connected 2023-11-25 | Marcus Aldridge asked on 2025-11-01 (R1069), no reply for 309 days - askable, ranked last |
+| 0.168 | 0.484 | Marcus Aldridge (Advisor) | direct | Astrid Salcedo — VP Data & Analytics | connections_aldridge.csv: Astrid Salcedo, VP Data & Analytics at Apex Logistics Group, connected 2023-11-25 | Marcus Aldridge asked on 2025-11-01 (R1069), no reply for 310 days - askable, ranked last |
 
-## 4. Chronology (17 events, 3 requests, newest first, as of 2026-09-06)
+## 4. Chronology (17 events, 3 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1069 never replied (asked 2025-11-01, 309 days ago)
+<- 2026-09-07  intro_outcomes.csv   Marcus Aldridge      R1069 never replied (asked 2025-11-01, 310 days ago)
    2025-11-01  intro_outcomes.csv   Marcus Aldridge      R1069 asked
    2025-10-30  slack_threads.jsonl  Sloane Fairweather   R1069 slack: "any connections into Apex Logistics Group? we're up against a renewal window and I need an intro to SVP Digital"
 !! 2025-10-30  intro_requests.csv   Sloane Fairweather   R1069 raised by Sloane Fairweather (Strategic AE): wants SVP Digital, $1,200,000, Medium urgency, filed "Closed - no path"  [2 paths in supply_reach.csv]
@@ -54,7 +54,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
    2025-12-27  slack_threads.jsonl  Hana Nakashima       R1186 slack: "trying to reach VP Engineering at Apex Logistics Group. I know we sell into Priorwood Chemicals and Tessellate Payments — could either of those relationships get us there?"
    2025-12-27  intro_requests.csv   Hana Nakashima       R1186 raised by Hana Nakashima (AE, Healthcare): wants VP Engineering, $1,200,000, Low urgency, filed "Open"
 
-!! 2025-08-03  crm_accounts.csv     Imani Mkhize         last CRM touch on A1002  [399 days ago, nothing since]
+!! 2025-08-03  crm_accounts.csv     Imani Mkhize         last CRM touch on A1002  [400 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

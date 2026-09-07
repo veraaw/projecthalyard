@@ -25,10 +25,10 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 |---|---|---|---|---|---|---|
 | 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Kwame Marchetti-Drummond | slack_threads.jsonl R1187 2025-10-29 Priya Raghunathan: "I know Kwame Marchetti-Drummond there well, happy to intro" | Priya Raghunathan agreed on 2025-11-03 (R1187), no intro - nudge |
 
-## 4. Chronology (10 events, 1 request, newest first, as of 2026-09-06)
+## 4. Chronology (10 events, 1 request, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1187 said yes 307 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Priya Raghunathan    R1187 said yes 308 days ago and never forwarded
 ++ 2025-11-03  intro_outcomes.csv   Priya Raghunathan    R1187 replied (2 days after the ask)
    2025-11-02  slack_threads.jsonl  Yusuf Petrossian     R1187 slack: "did we not already lose this one?"
    2025-11-02  slack_threads.jsonl  Rafael Salcedo       R1187 slack: "did we not already lose this one?"
@@ -38,5 +38,5 @@ in the allocator's order: the tiers below, then route score = strength x focus f
    2025-10-29  slack_threads.jsonl  Bertrand Vandermolen R1187 slack: "who do we know at Ashgrove Agriculture? Chief Digital Officer would be ideal but I'll take anyone senior"
    2025-10-29  intro_requests.csv   Bertrand Vandermolen R1187 raised by Bertrand Vandermolen (AE, EMEA): wants Chief Digital Officer, $400,000, Critical urgency, filed "Open"
 
-!! 2026-01-31  crm_accounts.csv     Hana Nakashima       last CRM touch on A1035  [218 days ago, nothing since]
+!! 2026-01-31  crm_accounts.csv     Hana Nakashima       last CRM touch on A1035  [219 days ago, nothing since]
 ```

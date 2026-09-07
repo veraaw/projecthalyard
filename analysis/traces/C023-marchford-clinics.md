@@ -35,16 +35,16 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Marcus Aldridge at capacity 4/4, not asked again here: Marcus Aldridge agreed on 2026-02-24 (R1114), no intro - nudge -> R1004, R1121, R1142 unrouted (capacity exhausted)
 
-## 4. Chronology (31 events, 6 requests, newest first, as of 2026-09-06)
+## 4. Chronology (31 events, 6 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1162 never replied (asked 2026-06-04, 94 days ago)
+<- 2026-09-07  intro_outcomes.csv   Marcus Aldridge      R1162 never replied (asked 2026-06-04, 95 days ago)
    2026-06-04  intro_outcomes.csv   Marcus Aldridge      R1162 asked
    2026-06-02  slack_threads.jsonl  Curtis Hartigan      R1162 slack: "no idea sorry"
    2026-06-02  slack_threads.jsonl  Curtis Hartigan      R1162 slack: "Marchford Clinics is the target. Our champion at Calderon Aerospace used to work with their team, and I think Meridian Peak Foods is a supplier of theirs. Any path?"
    2026-06-02  intro_requests.csv   Curtis Hartigan      R1162 raised by Curtis Hartigan (AE, Financial Services): wants Chief Information Officer, $80,000, High urgency, filed "Open"
 
-<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1114 said yes 194 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Marcus Aldridge      R1114 said yes 195 days ago and never forwarded
 ++ 2026-02-24  intro_outcomes.csv   Marcus Aldridge      R1114 replied (5 days after the ask)
    2026-02-21  slack_threads.jsonl  Bertrand Vandermolen R1114 slack: "wrong channel? this feels like a partner ask"
    2026-02-19  intro_outcomes.csv   Marcus Aldridge      R1114 asked
@@ -74,5 +74,5 @@ why not #1: Marcus Aldridge at capacity 4/4, not asked again here: Marcus Aldrid
    2025-09-11  slack_threads.jsonl  Sloane Fairweather   R1121 slack: "Ferrowick Insurance introduced us to Pelham Beverage, but the account I actually need is Marchford Clinics (VP Engineering)."
    2025-09-11  intro_requests.csv   Sloane Fairweather   R1121 raised by Sloane Fairweather (Strategic AE): wants VP Engineering, $80,000, Medium urgency, filed "Stalled"
 
-!! 2025-07-15  crm_accounts.csv     Curtis Hartigan      last CRM touch on A1018  [418 days ago, nothing since]
+!! 2025-07-15  crm_accounts.csv     Curtis Hartigan      last CRM touch on A1018  [419 days ago, nothing since]
 ```

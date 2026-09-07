@@ -18,7 +18,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (14 events, 4 requests, newest first, as of 2026-09-06)
+## 4. Chronology (14 events, 4 requests, newest first, as of 2026-09-07)
 
 ```
    2026-04-30  slack_threads.jsonl  Sloane Fairweather   R1165 slack: "trying to reach Head of Platform Engineering at Pemberton Retail — anyone have a path?"
@@ -38,5 +38,5 @@ nobody in the network reaches this company
    2025-09-05  slack_threads.jsonl  Curtis Hartigan      R1050 slack: "trying to reach Head of Developer Productivity at Pemberton Retail — anyone have a path?"
    2025-09-05  intro_requests.csv   Curtis Hartigan      R1050 raised by Curtis Hartigan (AE, Financial Services): wants Head of Developer Productivity, $400,000, Medium urgency, filed "Open"
 
-!! 2025-08-24  crm_accounts.csv     Hana Nakashima       last CRM touch on A1023  [378 days ago, nothing since]
+!! 2025-08-24  crm_accounts.csv     Hana Nakashima       last CRM touch on A1023  [379 days ago, nothing since]
 ```

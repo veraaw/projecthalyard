@@ -29,7 +29,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 |---|---|---|---|---|---|---|
 | 0.091 | 0.800 | Owen Trask (Investor) | offer | Head of Platform | slack_threads.jsonl R1109 2025-10-26 Owen Trask: "their Head of Platform reports to someone I've known for a decade, leave it with me" |  |
 
-## 4. Chronology (17 events, 4 requests, newest first, as of 2026-09-06)
+## 4. Chronology (17 events, 4 requests, newest first, as of 2026-09-07)
 
 ```
    2026-03-05  slack_threads.jsonl  Rafael Salcedo       R1005 slack: "need help getting to Ravensmoor Defense. Curtis Ashdown-Kirkbride is the Chief Data Officer there, cold outbound is going nowhere"
@@ -52,5 +52,5 @@ in the allocator's order: the tiers below, then route score = strength x focus f
    2025-10-07  slack_threads.jsonl  Nadia Okonkwo        R1049 slack: "long shot — Ravensmoor Defense. Rhys Ferreira-Ingleby (Chief Digital Officer). Anyone?"
    2025-10-07  intro_requests.csv   Nadia Okonkwo        R1049 raised by Nadia Okonkwo (AE, Industrials): wants Chief Digital Officer, $750,000, Critical urgency, filed "Open"
 
-!! 2025-10-12  crm_accounts.csv     Hana Nakashima       last CRM touch on A1031  [329 days ago, nothing since]
+!! 2025-10-12  crm_accounts.csv     Hana Nakashima       last CRM touch on A1031  [330 days ago, nothing since]
 ```

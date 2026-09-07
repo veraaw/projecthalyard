@@ -30,10 +30,10 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 | 0.078 | 0.308 | Owen Trask (Investor) | direct | Ilse Mkhize — VP Data & Analytics | connections_trask.csv: Ilse Mkhize, VP Data & Analytics at Tessellate Payments, connected 2016-08-13 | Owen Trask agreed on 2025-12-18 (R1026), no intro - nudge |
 | 0.047 | 0.187 | Owen Trask (Investor) | alumni | Ilse Mkhize — ex-Tessellate Payments (2012-2017), now VP Data & Analytics at Tessellate Payments | investor_network.csv: Ilse Mkhize prior_employer=Tessellate Payments (2012-2017); connections_trask.csv: connection of Owen Trask since 2016-08-13 | Owen Trask agreed on 2025-12-18 (R1026), no intro - nudge |
 
-## 4. Chronology (8 events, 1 request, newest first, as of 2026-09-06)
+## 4. Chronology (8 events, 1 request, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Owen Trask           R1026 said yes 262 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Owen Trask           R1026 said yes 263 days ago and never forwarded
 ++ 2025-12-18  intro_outcomes.csv   Owen Trask           R1026 replied (3 days after the ask)
    2025-12-15  intro_outcomes.csv   Owen Trask           R1026 asked
    2025-12-14  slack_threads.jsonl  Sloane Fairweather   R1026 slack: "I think their procurement is frozen until Q1"
@@ -41,7 +41,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
    2025-12-12  slack_threads.jsonl  Imani Mkhize         R1026 slack: "need help getting to Tessellate Payments. Duarte Wolstenholme-Crowther is the Chief Data Officer there, cold outbound is going nowhere"
    2025-12-12  intro_requests.csv   Imani Mkhize         R1026 raised by Imani Mkhize (Enterprise AE, West): wants Chief Data Officer, $1,200,000, Low urgency, filed "Routed"
 
-!! 2025-08-01  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1037  [401 days ago, nothing since]
+!! 2025-08-01  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1037  [402 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

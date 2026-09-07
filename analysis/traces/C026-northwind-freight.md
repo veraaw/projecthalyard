@@ -14,7 +14,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (17 events, 5 requests, newest first, as of 2026-09-06)
+## 4. Chronology (17 events, 5 requests, newest first, as of 2026-09-07)
 
 ```
    2026-05-12  slack_threads.jsonl  Hana Nakashima       R1100 slack: "is this the same as the one from last month?"
@@ -38,5 +38,5 @@ nobody in the network reaches this company
    2025-12-20  slack_threads.jsonl  Bertrand Vandermolen R1161 slack: "need help getting to Northwind Freight. Malik Højgaard-Ferreira is the Chief Digital Officer there, cold outbound is going nowhere"
    2025-12-20  intro_requests.csv   Bertrand Vandermolen R1161 raised by Bertrand Vandermolen (AE, EMEA): wants Chief Digital Officer, $80,000, Critical urgency, filed "Routed"
 
-!! 2026-04-11  crm_accounts.csv     Curtis Hartigan      last CRM touch on A1003  [148 days ago, nothing since]
+!! 2026-04-11  crm_accounts.csv     Curtis Hartigan      last CRM touch on A1003  [149 days ago, nothing since]
 ```
