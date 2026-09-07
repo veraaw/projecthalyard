@@ -1,5 +1,6 @@
-"""Build the dashboard tabs in docs/:
+"""Build the site in docs/ (gitignored; the rebuild workflow deploys it to GitHub Pages):
 
+  index.html           redirect to halyardscoping.html, with a link to every tab
   halyardscoping.html  Raw Sept Data Dashboard — Slack thread findings, CSV profile,
                        joins, timing and the integrity audit, straight from dataset/
   livedata.html        Live Data Dashboard — funnel, accounts and connectors from golden/
@@ -1222,7 +1223,7 @@ live_page = f"""{head("Live Data Dashboard")}
       <div class="finding warn"><b>The biggest leak is before anyone is asked.</b>{counts[0]-counts[1]} of {counts[0]} requests ({(counts[0]-counts[1])/counts[0]:.0%}) never reach a connector, a larger drop than every downstream stage combined.</div>
       <div class="finding"><b>Once asked, the funnel is healthy-ish.</b>{counts[2]/counts[1]:.0%} respond, {counts[3]/counts[2]:.0%} of responders send the intro, {counts[4]/counts[3]:.0%} of intros book a meeting, {counts[5]/counts[4]:.0%} of meetings create an opportunity.</div>
       <div class="finding"><b>Status and outcomes disagree.</b>{len(opp_status_mismatch)} of the {counts[5]} opportunity requests still show status Open/Stalled/Routed in <code>intro_requests.csv</code> ({", ".join(opp_status_mismatch)}).</div>
-      <p class="foot">Standalone chart + code: <code>dashboard/sankey_funnel.py</code>, <code>docs/sankey_funnel.html</code>.</p>
+      <p class="foot">Code: <code>dashboard/sankey_funnel.py</code>.</p>
     </div>
   </div>
   </div>
@@ -1465,11 +1466,20 @@ def connector_page(c, frag):
 """
 
 
+index_page = f"""<!doctype html>
+<meta charset="utf-8">
+<title>Halyard — scoping &amp; verification</title>
+<meta http-equiv="refresh" content="0; url={RAW_HTML}">
+<p>{' · '.join(f'<a href="{page}">{label}</a>' for page, label in TABS)}</p>
+"""
+
+DOCS.mkdir(exist_ok=True)
 shutil.copyfile(ROUTING / "routing_flow.png", DOCS / "routing_flow.png")
 for old in DOCS.glob("connector-*.html"):
     if old.name not in {c["page"] for c, _ in connector_pages}:
         old.unlink()
 for name, markup in (
+    ("index.html", index_page),
     (RAW_HTML, raw_page),
     (LIVE_HTML, live_page),
     (TRACE_HTML, trace_page),

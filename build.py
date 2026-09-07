@@ -53,7 +53,6 @@ STEPS = [
     ("repeat-companies", "analysis.profile.repeat_companies"),
     ("trace", write_traces),
     ("crm", write_crm_writeback),
-    ("sankey", "dashboard.sankey_funnel"),
     ("dashboard", "dashboard.build_dashboard"),
 ]
 
