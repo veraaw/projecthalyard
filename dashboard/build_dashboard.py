@@ -103,8 +103,7 @@ masked = Counter(NAME_RE.sub("<NAME>", m["text"]) for _, m in replies)
 canned = [(p, n) for p, n in masked.most_common() if n > 1]
 canned_total = sum(n for _, n in canned)
 
-OFFER_RE = re.compile(r"happy to intro|leave it with me|I'll take this one|I met their |happy to reach out", re.I)
-offers = [(rid, m) for rid, m in replies if OFFER_RE.search(m["text"])]
+offers = [(rid, m) for rid, m in replies if bg.OFFER_RE.search(m["text"])]
 offers_unlogged = [(rid, m) for rid, m in offers if m["user"].strip() not in asked_by.get(rid, set())]
 offers_unlogged_value = sum(float(requests[rid]["deal_value_usd"] or 0) for rid, _ in offers_unlogged)
 
@@ -1399,7 +1398,7 @@ trace_page = f"""<!doctype html>
   <p>The full history of one company: what <code>analysis/trace.py</code> prints, for any of the 48 companies with a request · Sources: <code>dataset/</code>, <code>golden/</code> · {built}</p>
 </header>
 <div class="layout">
-{sidebar(title=f'Companies <span class="foot" id="trace-count"></span>', body=trace_sidebar())}
+{sidebar(title='Companies <span class="foot" id="trace-count"></span>', body=trace_sidebar())}
 <main>
 <section id="trace">
   <p class="lede">Pick a company on the left, or search by name, alias, company id or CRM account id. Five sections follow: the header, where the files disagree (left out when they agree), who can reach them by strength, every event from <code>intro_requests.csv</code>, <code>slack_threads.jsonl</code>, <code>intro_outcomes.csv</code> and <code>crm_accounts.csv</code> newest first, and the additional investor and operator network around the company from <code>golden/network_orbit.csv</code> (left out when there is nobody; a view: an off-roster investor's own portfolio company is an <code>investor_network</code> path in section 3, asked only when the roster has no path or no capacity; nothing else here is scored or allocated). The same traces are written to <code>analysis/traces/</code> by <code>python3 build.py trace</code>.</p>

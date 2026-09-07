@@ -150,7 +150,7 @@ class Data:
     orbit: list[dict]                # network_orbit.csv: investors and operators around each company
 
     @classmethod
-    def load(cls) -> "Data":
+    def load(cls) -> Data:
         outcomes: dict[str, list[dict]] = defaultdict(list)
         logged = read_csv(DATASET / SOURCES["outcomes"])
         for o in logged:

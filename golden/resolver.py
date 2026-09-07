@@ -222,20 +222,6 @@ class Resolver:
                 return self._refuse(raw, cands)
         return Resolution(raw, None, "unmatched", CONFIDENCE["unmatched"])
 
-    def learn_spellings(self, strings: list[str]) -> None:
-        """Adopt a readable spelling for entities the CRM only knows in caps (THORNBURYFINANCIAL)."""
-        for s in strings:
-            r = self.resolve(s)
-            e = r.entity
-            if e is None or r.method != "name-exact" or s in e.names:
-                continue
-            if e.name.isupper() and not s.isupper():
-                e.aliases.append(e.name)
-                e.name = s
-            else:
-                e.aliases.append(s)
-            self._names_re = None
-
     def names_regex(self) -> re.Pattern:
         """names_regex() over every spelling of every entity this resolver knows."""
         if self._names_re is None:
@@ -254,20 +240,6 @@ class Resolver:
                 rows.append({**a, "company_id": e.entity_id,
                              "survivor": "yes" if a is s else "no",
                              "duplicate_of": "" if a is s else s["account_id"]})
-        return rows
-
-    def entity_rows(self) -> list[dict]:
-        rows = []
-        for e in self.entities:
-            s = e.survivor
-            rows.append({
-                "company_id": e.entity_id, "kind": e.kind, "company_name": e.name,
-                "domain": e.domain,
-                "also_known_as": " | ".join(sorted({n for n in e.names if n != e.name})),
-                "crm_account_ids": " | ".join(a["account_id"] for a in sorted(e.accounts, key=lambda a: a["account_id"])),
-                "survivor_account_id": s["account_id"] if s else "",
-                "duplicate_account_ids": " | ".join(a["account_id"] for a in e.accounts if a is not s),
-            })
         return rows
 
     # -- internals ------------------------------------------------------------

@@ -24,9 +24,11 @@ dataset/ into a scratch root, edits one side, rebuilds there and checks:
   5. golden/completions.csv is the third fact source: an `ask_sent` row takes
      its request out of the next allocation and files the ask on it; the same
      completion_id twice (in one file, or applied twice) is one completion; the
-     frozen fact columns never move; the Supabase read is merged into the CSV
-     and a bad row fails before anything is written. No test touches the
-     network: the Supabase read is a fake opener.
+     frozen fact columns never move; the Supabase read is merged into the CSV;
+     a bad row in the CSV or an --apply file fails before anything is written
+     while a bad row in the table is quarantined to completions_rejected.csv
+     and the rest still land. No test touches the network: the Supabase read
+     is a fake opener.
 """
 from __future__ import annotations
 
@@ -41,7 +43,7 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -588,16 +590,33 @@ class CompletionsTest(ScratchRootTest):
         self.assertNotIn(self.rid, {a["request_id"] for a in self.cycle_rows("2026-09")})
         self.assertEqual(self.by_id()[self.rid]["asked_date"], self.day, "the date part of the timestamptz")
 
-    def test_a_bad_supabase_row_leaves_the_csv_alone(self):
+    def test_a_bad_supabase_row_is_quarantined_and_the_rest_still_land(self):
         self.write_completions([self.ask])
-        csv_bytes = self.completions.read_bytes()
-        table = self.supabase_rows() + [dict(self.supabase_rows()[0], completion_id="R0001:asked:x", action="asked")]
-        with mock.patch.dict(os.environ, {"SUPABASE_URL": "https://x.supabase.co", "SUPABASE_SERVICE_KEY": "k"}), \
-                self.assertRaises(SystemExit) as died:
+        rejected = self.root / "golden" / "completions_rejected.csv"
+        bad = dict(self.supabase_rows()[0], completion_id="R0001:asked:x", action="asked")
+        table = self.supabase_rows() + [bad, dict(self.supabase_rows()[1], completion_id="R0002:nudged:x", connector=None)]
+        env = {"SUPABASE_URL": "https://x.supabase.co", "SUPABASE_SERVICE_KEY": "k"}
+        with mock.patch.dict(os.environ, env), redirect_stdout(io.StringIO()) as out, \
+                redirect_stderr(io.StringIO()) as err:
             bg.pull_completions("supabase", None, self.completions, fetch=lambda url, key: table)
-        self.assertIn("action 'asked' is not one of", str(died.exception))
-        self.assertIn("completions.csv not touched", str(died.exception))
-        self.assertEqual(self.completions.read_bytes(), csv_bytes)
+        self.assertIn("2 bad row(s) skipped -> completions_rejected.csv", err.getvalue())
+        self.assertIn("action 'asked' is not one of", err.getvalue())
+        self.assertIn("nudged needs request_id and connector", err.getvalue())
+        self.assertIn("1 rows added from supabase (4 in the table), 2 on file", out.getvalue())
+        self.assertEqual([r["completion_id"] for r in read_csv(self.completions)],
+                         [r["completion_id"] for r in self.supabase_rows()], "the good rows landed")
+        on_file = read_csv(rejected)
+        self.assertEqual([r["completion_id"] for r in on_file], ["R0001:asked:x", "R0002:nudged:x"])
+        self.assertEqual(list(on_file[0]), [*bg.COMPLETION_COLUMNS, "problem"])
+        self.assertIn("action 'asked' is not one of", on_file[0]["problem"])
+        rejected_bytes = rejected.read_bytes()
+
+        # the same table again: nothing new lands anywhere, and the build still reads the CSV
+        with mock.patch.dict(os.environ, env), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            bg.pull_completions("supabase", None, self.completions, fetch=lambda url, key: table)
+        self.assertEqual(rejected.read_bytes(), rejected_bytes, "a rejected row is filed once")
+        out = self.build(CYCLE_1)
+        self.assertIn("completions.csv       2 rows applied: 1 ask_sent, 1 nudged", out)
 
     def test_completions_supabase_without_credentials_stops_before_the_network(self):
         env = {k: v for k, v in os.environ.items() if not k.startswith("SUPABASE_")}

@@ -1,4 +1,5 @@
--- The Supabase table the Live Priorities tab's Submit writes to, for reference.
+-- The Supabase table the Live Priorities tab's Submit writes to, for reference
+-- (not part of the published site: docs/ is build output).
 -- Matches the live table's column list and types as reported by its REST
 -- schema (PostgREST OpenAPI) on 2026-09-06; the policy block is the intent
 -- the anon role is verified against (insert only: a SELECT with the anon key
@@ -29,12 +30,27 @@ create table if not exists public.completions (
 -- Migration for a table created with the earlier action list
 -- ('ask_sent', 'nudged', 'account_created'); run once in the SQL editor.
 -- Any account_created rows already in the table are left alone: the build
--- rejects that action, so delete them first (or the scheduled rebuild stops).
+-- sets that row aside in golden/completions_rejected.csv, so delete them:
 --   delete from public.completions where action = 'account_created';
 alter table public.completions drop constraint completions_action_check;
 alter table public.completions
   add constraint completions_action_check
   check (action in ('ask_sent', 'nudged', 'chased', 'checked_in'));
+
+-- What the build needs of a row (golden/build_golden.py completion_problem),
+-- enforced where the row is written: the publishable key is public, so
+-- anyone can insert, and a row the build cannot apply is set aside in
+-- golden/completions_rejected.csv. Run once in the SQL editor.
+alter table public.completions
+  add constraint completions_completed_by_check
+  check (completed_by <> '');
+alter table public.completions
+  add constraint completions_request_kinds_check
+  check (action = 'checked_in'
+         or (coalesce(request_id, '') <> '' and coalesce(connector, '') <> ''));
+alter table public.completions
+  add constraint completions_checked_in_check
+  check (action <> 'checked_in' or coalesce(company_id, '') <> '');
 
 alter table public.completions enable row level security;
 

@@ -183,6 +183,7 @@ COMPANIES_OUT = OUT / "golden_companies.csv"
 SUPPLY_OUT = OUT / "supply_reach.csv"
 ALLOCATION_OUT = OUT / "golden_allocation.csv"
 COMPLETIONS_OUT = OUT / "completions.csv"
+REJECTED_OUT = OUT / "completions_rejected.csv"
 NETWORK_OUT = OUT / "network_orbit.csv"
 
 REQUEST_COLUMNS = [
@@ -452,6 +453,36 @@ def merge_completions(rows: list[dict], path: Path = COMPLETIONS_OUT, origin: st
     return len(have), len(fresh)
 
 
+REJECTED_COLUMNS = [*COMPLETION_COLUMNS, "problem"]
+
+
+def quarantine_completions(rows: list[dict], path: Path = REJECTED_OUT) -> tuple[list[dict], list[dict]]:
+    """Split rows the table sent into the ones the build can apply and the ones it
+    cannot. Anyone holding the page's publishable key can insert a row, so a
+    malformed one must not stop the scheduled rebuild: it goes to
+    completions_rejected.csv next to completions.csv (with the reason, once per
+    completion_id) for a human to fix or delete in Supabase, and the rest carry on.
+    Returns (good, rejected)."""
+    good, rejected = [], []
+    for raw in rows:
+        r = completion_row(raw)
+        if problem := completion_problem(r):
+            rejected.append({**r, "problem": problem})
+        else:
+            good.append(r)
+    if rejected:
+        have = read_csv(path) if path.exists() else []
+        seen = {r["completion_id"] for r in have}
+        fresh = []
+        for r in rejected:
+            if r["completion_id"] not in seen:
+                seen.add(r["completion_id"])
+                fresh.append(r)
+        if fresh:
+            write_csv(path, REJECTED_COLUMNS, have + fresh)
+    return good, rejected
+
+
 SUPABASE_TABLE = "completions"
 SUPABASE_PAGE = 1000
 ENV_FILE = ROOT / ".env"
@@ -507,8 +538,9 @@ def pull_completions(source: str | None, apply: Path | None, path: Path = COMPLE
                      fetch=fetch_supabase_completions) -> None:
     """Bring rows into golden/completions.csv before the build reads it:
     --completions supabase pulls the table (SUPABASE_URL + SUPABASE_SERVICE_KEY,
-    from the environment or .env); --apply FILE merges a CSV. Either failing
-    ends the build before anything is written."""
+    from the environment or .env); --apply FILE merges a CSV. A table that cannot
+    be read or a bad row in an --apply file ends the build before anything is
+    written; a bad row in the table is quarantined (quarantine_completions)."""
     if apply is not None:
         if not apply.exists():
             sys.exit(f"--apply {apply}: no such file")
@@ -524,8 +556,12 @@ def pull_completions(source: str | None, apply: Path | None, path: Path = COMPLE
         except Exception as e:  # noqa: BLE001 - any failure to read the table is one message
             sys.exit(f"could not read the Supabase {SUPABASE_TABLE} table: {e}\n"
                      f"the build still works without it: python3 golden/build_golden.py, or --apply FILE")
+        rows, rejected = quarantine_completions(rows, path.with_name(REJECTED_OUT.name))
+        if rejected:
+            print(f"supabase {SUPABASE_TABLE}: {len(rejected)} bad row(s) skipped -> {REJECTED_OUT.name}\n  "
+                  + "\n  ".join(r["problem"] for r in rejected), file=sys.stderr)
         total, added = merge_completions(rows, path, origin=f"supabase {SUPABASE_TABLE}")
-        print(f"completions.csv       {added} rows added from supabase ({len(rows)} in the table), {total} on file")
+        print(f"completions.csv       {added} rows added from supabase ({len(rows) + len(rejected)} in the table), {total} on file")
     elif source:
         sys.exit(f"--completions {source}: only 'supabase' is known")
 

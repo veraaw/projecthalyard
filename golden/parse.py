@@ -224,8 +224,3 @@ def extract_title(text: str) -> str:
     """The first title named in the message, or '' when none is."""
     m = TITLE_RE.search(text or "")
     return m.group("t") if m else ""
-
-
-def extract_target_id(text: str, resolver: Resolver) -> str:
-    """One company ID for the message, or '' when there is no target or a human must decide."""
-    return extract(text, resolver).target_id

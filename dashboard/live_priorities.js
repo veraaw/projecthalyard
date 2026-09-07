@@ -416,7 +416,6 @@ const LP = (function () {
     for (const k of submitted.keys()) ticks.delete(k);
     return { ticks, submitted };
   }
-  const isoDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const completionId = (t, day) => `${t.request_id || t.company_id}:${t.action}:${day}`;
   // the rows Submit posts: one per tick, in tick order; `at` is the ISO timestamp for completed_at
   function completionRows(X, ticks, who, at) {

@@ -44,7 +44,6 @@ from paths import CONFIG, DATASET, GOLDEN
 TEMPLATES = CONFIG / "batch_ask_templates.json"
 ALLOCATION = GOLDEN / "golden_allocation.csv"
 REQUESTS = GOLDEN / "golden_requests.csv"
-ROSTER = DATASET / "connector_roster.csv"
 OUTCOMES = DATASET / "intro_outcomes.csv"
 RAW_REQUESTS = DATASET / "intro_requests.csv"
 
