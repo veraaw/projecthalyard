@@ -44,6 +44,7 @@ class GoldenTest(unittest.TestCase):
         cls.companies = rows(G / "golden_companies.csv")
         cls.requests = rows(G / "golden_requests.csv")
         cls.reach = rows(G / "supply_reach.csv")
+        cls.allocation = rows(G / "golden_allocation.csv")
         cls.source = rows(D / "intro_requests.csv")
         cls.crm = rows(D / "crm_accounts.csv")
         cls.company_ids = {c["company_id"] for c in cls.companies}
@@ -210,6 +211,37 @@ class GoldenTest(unittest.TestCase):
         self.assertEqual(bg.blocked_reason(company, [{"connector": off}], roster, None), bg.BLOCK_NO_ROSTER_PATH)
         self.assertEqual(bg.blocked_reason(company, [{"connector": off}, {"connector": on}], roster, None),
                          bg.BLOCK_NEVER_ROUTED)
+
+    def test_blocked_reason_reads_only_what_the_allocator_reads(self):
+        """allocate() never looks at the CRM record or the account stage, so
+        neither is a blocked_reason: a company with no CRM account and a roster
+        path is 'path exists, never routed', a Closed Lost account nobody
+        reaches is 'no path in the roster or investor network'. 24 requests used
+        to stop at those two labels before the allocator's own reason was read."""
+        roster = bg.load_roster()
+        on = next(iter(roster))
+        no_crm = bg.Company("example.com")
+        self.assertEqual(no_crm.accounts, [])
+        self.assertEqual(bg.blocked_reason(no_crm, [{"connector": on}], roster, None), bg.BLOCK_NEVER_ROUTED)
+        closed_lost = bg.Company("lost.example")
+        closed_lost.accounts.append({"account_id": "A0002", "account_name": "Lost", "stage": "Closed Lost"})
+        self.assertEqual(bg.blocked_reason(closed_lost, [], roster, None), bg.BLOCK_NO_PATH)
+
+        labels = Counter(r["blocked_reason"] for r in self.requests)
+        self.assertNotIn("company has no CRM record", labels)
+        self.assertNotIn("account is Closed Lost", labels)
+        # the allocator's capacity verdict carries through on the rows nobody asked;
+        # an asked row keeps its filed routing and so has no blocked_reason at all
+        by_rid = {r["request_id"]: r for r in self.requests}
+        capped = [by_rid[a["request_id"]] for a in bg.latest_cycle(self.allocation)
+                  if a["exception_reason"] == bg.CAPACITY_EXHAUSTED]
+        self.assertEqual(len(capped), 10)
+        carried = [r for r in capped if r["blocked_reason"] == bg.CAPACITY_EXHAUSTED]
+        blank = [r for r in capped if not r["blocked_reason"]]
+        self.assertEqual((len(carried), len(blank)), (7, 3))
+        self.assertEqual(len(carried) + len(blank), len(capped), "nothing else on a capacity-exhausted row")
+        self.assertTrue(all(not r["asked_date"] for r in carried))
+        self.assertTrue(all(r["asked_date"] for r in blank), "blank only because the ask went out")
 
 
 if __name__ == "__main__":

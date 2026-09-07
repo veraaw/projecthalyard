@@ -286,16 +286,16 @@ def backlog_cut(data, since=None):
 # blocked_reason (golden_requests.csv) -> which kind of blockage it is
 BLOCKAGE = {
     "supply": ("missing relationship", [bg.BLOCK_NO_PATH, bg.BLOCK_NO_ROSTER_PATH]),
-    "process": ("process gap", [bg.BLOCK_NEVER_ROUTED, bg.BLOCK_NO_CRM, bg.CAPACITY_EXHAUSTED, bg.BLOCK_NO_COMPANY,
+    "process": ("process gap", [bg.BLOCK_NEVER_ROUTED, bg.CAPACITY_EXHAUSTED, bg.BLOCK_NO_COMPANY,
                                 bg.BLOCK_FUND_OR_OPCO, bg.STALE_ASK, bg.UNRESOLVED_ASK]),
-    "closed": ("correctly not asked", [bg.BLOCK_CLOSED_LOST, bg.ALREADY_INTRODUCED]),
+    "closed": ("correctly not asked", [bg.ALREADY_INTRODUCED]),
 }
 REASON_LABEL = {
     bg.BLOCK_NO_PATH: "no path in roster or investor network", bg.BLOCK_NO_ROSTER_PATH: "only off-roster paths",
-    bg.BLOCK_NEVER_ROUTED: "path exists, never routed", bg.BLOCK_NO_CRM: "no CRM record",
+    bg.BLOCK_NEVER_ROUTED: "path exists, never routed",
     bg.CAPACITY_EXHAUSTED: "capacity exhausted", bg.BLOCK_NO_COMPANY: "no company named", bg.BLOCK_FUND_OR_OPCO: "fund named",
     bg.STALE_ASK: "proposed, no outcome logged", bg.UNRESOLVED_ASK: "unresolved ask on every path",
-    bg.BLOCK_CLOSED_LOST: "closed lost", bg.ALREADY_INTRODUCED: "already introduced",
+    bg.ALREADY_INTRODUCED: "already introduced",
 }
 
 
@@ -304,8 +304,8 @@ def blockage_cut(data, since=None):
     golden_requests.csv's blocked_reason. A request with none is allocated in
     the current cycle and waits for its ask; the rest are blocked, in three
     kinds: supply (nobody reaches the company), process (a path or the data
-    exists but the request stalled on our side) and correctly not asked (the
-    account is Closed Lost or an intro is already in play)."""
+    exists but the request stalled on our side) and correctly not asked (an
+    intro is already in play)."""
     asked = {o["request_id"].strip() for o in data["outcomes"]}
     never = [data["golden_requests"].get(r["request_id"].strip(), {}) for r in data["requests"]
              if in_window(r, since) and r["request_id"].strip() not in asked]
