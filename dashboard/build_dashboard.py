@@ -419,17 +419,6 @@ def days(x):
     return "—" if x is None else (f"{x:.0f} d" if float(x).is_integer() else f"{x:.1f} d")
 
 
-def yield_strip(y):
-    """Yield under the Sankey: the deal value that reached a connector and the opportunity value that came back."""
-    return f"""<h3>Yield</h3>
-  <div class="kpis">
-    {kpi(usd(y["routed"]), "routed to a connector", f"deal value behind {y['asks']} asks, of {usd(y['requested'])} requested")}
-    {kpi(usd(y["routed_per_ask"]), "routed per ask", f"{usd(y['routed_per_intro'])} per intro")}
-    {kpi(usd(y["opp"]), "opportunity value created", f"{y['opps']} opportunities from {y['asks']} asks")}
-    {kpi(usd(y["opp_per_ask"]), "return per ask", f"{usd(y['opp_per_intro'])} per intro")}
-  </div>"""
-
-
 def backlog_box(b):
     top = ", ".join(f'{c["name"]} ({c["requests"]})' for c in b["companies"][:5])
     return finding(f'{b["never"]} requests never reach a connector.',
@@ -609,7 +598,6 @@ def strategic_sections(data, cyc, live, in_flight=None):
   </div>
   {blockage_panel(data, window_all)}
   <div class="fview" data-view="12m" hidden>
-  {yield_strip(data_cuts.yield_cut(data, since=ROLLING_SINCE))}
   <div class="grid2">
     <div>
       <h3>Stage table, last 12 months</h3>
@@ -624,7 +612,6 @@ def strategic_sections(data, cyc, live, in_flight=None):
   </div>
   </div>
   <div class="fview" data-view="all">
-  {yield_strip(data_cuts.yield_cut(data))}
   <div class="grid2">
     <div>
       <h3>Stage table</h3>

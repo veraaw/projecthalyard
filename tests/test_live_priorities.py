@@ -1208,25 +1208,25 @@ class BuiltPagesTest(unittest.TestCase):
             self.assertIn(text, strip)
         self.assertNotIn('class="kpis headline"', self.pages["halyardscoping.html"], "Raw Sept keeps its own top")
 
-    def test_backlog_box_donut_and_yield_sit_under_the_sankey(self):
+    def test_backlog_box_and_donut_sit_under_the_sankey(self):
         from dashboard import data_cuts
         gold = data_cuts.load("golden")
         b, bl = data_cuts.backlog_cut(gold), data_cuts.blockage_cut(gold)
         for name in ("halyardscoping.html", "livedata.html"):
             html = self.pages[name]
             funnel = html.split('<section id="funnel">')[1].split("</section>")[0]
-            # sankey + backlog box in each funnel view, then one Remaining Unrouted panel with its own toggle, then yield in each view
+            # sankey + backlog box in each funnel view, then one Remaining Unrouted panel with its own toggle, then the stage tables
             i = [funnel.index('id="sankey-12m"'), funnel.index('id="sankey"'), funnel.index('<div id="unrouted">'),
                  funnel.index("<h3>Remaining Unrouted</h3>"), funnel.index('id="unrouted-toggle" data-scope="unrouted"'),
-                 funnel.index('id="blockage-12m"'), funnel.index('id="blockage"'), funnel.index("<h3>Yield</h3>"),
+                 funnel.index('id="blockage-12m"'), funnel.index('id="blockage"'),
                  funnel.index("<h3>Stage table, last 12 months</h3>"), funnel.index("<h3>Stage table</h3>")]
-            self.assertEqual(i, sorted(i), f"{name}: sankeys, then the unrouted panel, then yield and the stage tables")
+            self.assertEqual(i, sorted(i), f"{name}: sankeys, then the unrouted panel, then the stage tables")
             self.assertEqual(funnel.count("requests never reach a connector."), 2, f"{name}: a backlog box under each sankey")
-            self.assertEqual(funnel.count("<h3>Yield</h3>"), 2, f"{name}: yield in each funnel view")
+            self.assertNotIn("<h3>Yield</h3>", funnel, f"{name}: no yield strip under the unrouted panel")
             self.assertEqual(funnel.count("<h3>Remaining Unrouted</h3>"), 1, f"{name}: one panel, toggled on its own")
             self.assertNotIn("Why they never reach a connector", funnel)
             self.assertEqual(funnel.count('data-scope="funnel"'), 1)
-            panel = funnel.split('<div id="unrouted">')[1].split("<h3>Yield</h3>")[0]
+            panel = funnel.split('<div id="unrouted">')[1].split("<h3>Stage table, last 12 months</h3>")[0]
             self.assertIn('<button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button>', panel)
             self.assertIn('id="unrouted-window" data-all="', panel)
             self.assertIn(f"{bl['never']} never asked", panel)
@@ -1240,7 +1240,7 @@ class BuiltPagesTest(unittest.TestCase):
             self.assertIn(f"Of the {bl['never']} never asked, {bl['allocated']} are allocated this cycle and not yet asked; {bl['blocked']} are blocked.", whole)
             self.assertIn(f"<b>Only {bl['supply_share']:.0%} of the blockage is a missing relationship.</b>", whole)
             for label in ("routed to a connector", "routed per ask", "opportunity value created", "return per ask"):
-                self.assertEqual(funnel.count(f'<div class="l">{label}</div>'), 2, f"{name}: {label} in both views")
+                self.assertNotIn(f'<div class="l">{label}</div>', funnel, f"{name}: {label} left the funnel section")
             self.assertIn("v.parentElement.closest(scopes) !== scope", html, f"{name}: the funnel toggle leaves the nested unrouted toggle alone")
 
     def test_connectors_ranked_by_return_per_ask_and_a_latency_section(self):
