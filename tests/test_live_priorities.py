@@ -466,9 +466,13 @@ class PayloadTest(unittest.TestCase):
         for c in C:
             self.assertEqual(c["on_roster"], c["connector"] in L.roster)
             self.assertEqual(c["used"], c["asked_this_cycle"] + c["allocated_this_cycle"])
+            # an ask recorded off the allocation may take used past capacity: flagged, not capped
             self.assertEqual(c["idle"], max(0, c["capacity"] - c["used"]), c["connector"])
+            self.assertEqual(c["over_capacity"], max(0, c["used"] - c["capacity"]) if c["capacity"] else 0, c["connector"])
             self.assertEqual(c["capacity"] > 0, c["on_roster"], "only the roster states a capacity")
             self.assertEqual(len(c["queue"]), c["allocated_this_cycle"])
+            for q in c["queue"]:
+                self.assertEqual(q["connector"], c["connector"], "the queue's ask_sent tick carries who was asked")
             self.assertEqual(sum(len(x["request_ids"]) for x in c["companies"]), len(c["queue"]), "the batch by company is the queue")
             self.assertEqual(bool(c["batch_id"]), bool(c["queue"]))
             batch = next((b for b in A["batches"] if b["connector"] == c["connector"]), None)
@@ -494,9 +498,19 @@ class PayloadTest(unittest.TestCase):
         self.assertNotIn("crmTick", js)
         self.assertNotIn("checkinTick", js)
         self.assertNotIn("checked_in", js)
-        for name in ("askTick", "followTick"):
+        for name in ("askTick", "followTick", "groupTick", "pickTick", "mirror"):
             self.assertIn(f"const {name} = ", js)
         self.assertNotIn("nudgeTick", js, "one tick for a follow-up, whichever table it is in")
+        # one ask_sent per request, keyed on action + request: the same tick in Top Priorities, a connector's
+        # batch (one box per company, fanned out to its requests) and a no-path exception (connector picked)
+        self.assertEqual(js.count("pickTick(state, askTick(X, { ...r, connector: '' })"), 1)
+        self.assertEqual(js.count("groupTick(state, g)"), 1)
+        self.assertIn("noPath ? pickTick", js, "only a no-path exception takes an ask; the others point at nudge/chase, Already Introduced or the Route tool")
+        A = self.P["asks"]
+        self.assertEqual(A["roster"], [c["connector"] for c in self.P["connectors"] if c["on_roster"]], "the picker lists the roster")
+        self.assertIn("mirror(state, batchTicks(x, x.connector))", js, "the Aggregate tab is done-state only")
+        introduced = js.split("sec.introduced = ")[1].split("sec.exceptions = ")[0]
+        self.assertNotIn("Tick(", introduced, "nothing to tick under Already Introduced")
 
     def test_crm_exports_are_importer_shaped(self):
         C = self.P["crm"]
@@ -640,7 +654,8 @@ class PayloadTest(unittest.TestCase):
         self.assertNotIn("sittingTable", connectors, "follow-ups have one home on this page")
         exceptions = boot.split('<section id="exceptions"')[1].split('<section id=')[0]
         self.assertIn("<th>Who covers this sector</th>", exceptions)
-        self.assertNotIn("noPath ?", exceptions, "the sector column is on every group")
+        self.assertIn("<td>${cover(r.sector_cover)}</td>", exceptions, "the sector column is on every group")
+        self.assertNotIn("noPath ? `<td>${cover", exceptions, "the sector column is on every group")
         self.assertIn("Fo.in_focus_pct", exceptions, "the in-focus finding is one line in the header")
         self.assertIn("A.no_slot", exceptions, "the no-slot requests are counted, and pointed at the ranked list")
         followups = boot.split('<section id="followups"')[1].split('<section id=')[0]
