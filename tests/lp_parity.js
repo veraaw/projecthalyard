@@ -23,7 +23,7 @@ process.stdin.on('end', () => {
         try { columns = LP.parseCsv(u.text).columns; } catch (e) { columns = []; }
       }
       const [guess, why] = LP.guessTarget(u.filename, columns, files, U.schemas);
-      const target = u.target || guess, r = { guess, why, target, upload_id: target ? LP.uploadId(target, u.text) : '' };
+      const target = u.target || guess, r = { guess, why, target, upload_id: target ? LP.uploadId(target, u.text, U.generation || 0) : '' };
       try {
         const s = LP.previewUpload(U, target, u.text);
         r.summary = Object.fromEntries(['rows', 'new_rows', 'changed_rows', 'unchanged_rows', 'duplicate_keys', 'new_columns', 'changes', 'columns',
@@ -31,7 +31,9 @@ process.stdin.on('end', () => {
       } catch (e) { r.error = e.message; }
       return r;
     });
-    process.stdout.write(JSON.stringify({ intake: out }));
+    // plus the ledger as the browser reads it: which uploads still apply, and the id a revert filed at `at` gets
+    const ledger = { active: LP.activeUploads(U.ledger || []).map(r => r.upload_id), revert_id: intake.at ? LP.revertId(intake.at) : '' };
+    process.stdout.write(JSON.stringify({ intake: out, ledger }));
     return;
   }
   const resolver = LP.makeResolver(parser.resolver);

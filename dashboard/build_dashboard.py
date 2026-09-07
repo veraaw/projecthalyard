@@ -983,6 +983,10 @@ nav.bands a.band{{font-weight:600;font-size:12px;text-transform:uppercase;letter
 #lp table.changes td.from{{color:var(--mute);text-decoration:line-through}}
 #lp table.changes td.to{{font-weight:500}}
 #lp table.sample td{{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+#lp tr.reverted td{{color:var(--mute);text-decoration:line-through}}
+#lp tr.reverted td.foot,#lp tr.reverted td .foot{{text-decoration:none}}
+#lp tr.revert td{{background:var(--bg);border-top:2px solid var(--warn)}}
+#lp #lp-up-revert-box{{margin:14px 0}}
 #lp .dl.failed{{border-left:2px solid var(--warn);padding-left:12px}}
 #lp .ask{{display:flex;gap:12px;align-items:stretch}}
 #lp #lp-route-go{{padding:8px 22px;font-size:15px}}

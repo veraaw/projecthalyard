@@ -33,6 +33,7 @@ python3 build.py [--as-of YYYY-MM-DD]                 # tests, analysis/, docs/,
 python3 build.py dashboard                            # one step
 python3 golden/intake.py --preview FILE [--target NAME]   # what accepting FILE would change; writes nothing
 python3 golden/intake.py --add FILE [--target NAME] [--by WHO]  # accept it by hand (what the tab's Accept does)
+python3 golden/intake.py --revert [--by WHO]              # back to the September export (the tab's Revert button)
 ```
 
 `--as-of` (or `HALYARD_AS_OF`) freezes the build clock so every page and report says
@@ -62,7 +63,11 @@ upload has a non-empty differing cell, new columns are added blank on old rows; 
 thread already on file gains only the messages it lacks, and a thread for a request_id not
 in `intro_requests.csv` becomes a request. The same file accepted twice is one upload.
 Without Supabase, Accept offers the file to download plus the `golden/intake.py --add`
-command that does the same thing locally. `golden/intake.py`'s docstring has the details.
+command that does the same thing locally. **Revert to Sep Raw Data State** (same band)
+files a revert row instead of a file: nothing is deleted from `intake/`, but from the next
+rebuild no upload accepted before it applies, so `golden/current/` is `dataset/` again;
+uploads accepted afterwards apply on top of that. `golden/intake.py`'s docstring has the
+details.
 
 The Live Priorities tab posts completions and uploads with the publishable key in
 `SUPABASE_URL` / `SUPABASE_ANON_KEY`; the build reads them back with

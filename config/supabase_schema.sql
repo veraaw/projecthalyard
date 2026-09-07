@@ -78,9 +78,11 @@ create table if not exists public.intake_uploads (
   upload_id    text primary key,
   received_at  timestamptz not null default now(),
   received_by  text not null check (received_by <> ''),
-  target       text not null check (target ~ '^[a-z0-9_\-]+\.(csv|jsonl)$'),  -- intro_requests.csv, connections_trask.csv, slack_threads.jsonl, ...
+  -- intro_requests.csv, connections_trask.csv, slack_threads.jsonl, ...; or 'revert': the tab's
+  -- "Revert to Sep Raw Data State", a row with no file after which no earlier upload applies
+  target       text not null check (target ~ '^[a-z0-9_\-]+\.(csv|jsonl)$' or target = 'revert'),
   filename     text,                        -- the name of the file as dropped, for a human reading the table
-  content      text not null check (content <> ''),  -- the file, verbatim (UTF-8; CSV or Slack JSON / JSONL)
+  content      text not null check (content <> '' or target = 'revert'),  -- the file, verbatim (UTF-8; CSV or Slack JSON / JSONL)
   rows         integer,                     -- the summary shown when it was accepted: rows in the upload,
   new_rows     integer,                     -- keys not on file,
   changed_rows integer,                     -- rows on file with a value overridden,

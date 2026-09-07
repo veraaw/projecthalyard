@@ -226,7 +226,12 @@ const LP = (function () {
     for (const b of encodeUtf8(text.replace(/^\uFEFF/, ''))) h = ((h ^ BigInt(b)) * 0x100000001B3n) & 0xFFFFFFFFFFFFFFFFn;
     return h.toString(16).padStart(16, '0');
   }
-  const uploadId = (target, content) => `${target.replace(/\.[^.]+$/, '')}-${fnv1a(content)}`;
+  // -g<n> once a revert has happened (n = reverts so far): the same file accepted again after a revert is a new upload
+  const uploadId = (target, content, generation = 0) => `${target.replace(/\.[^.]+$/, '')}-${fnv1a(content)}${generation ? `-g${generation}` : ''}`;
+  const REVERT = 'revert';
+  const revertId = at => `${REVERT}-${fnv1a(at)}`;
+  // the uploads that apply: those accepted after the last revert row
+  const activeUploads = ledger => { const last = ledger.map(r => r.target).lastIndexOf(REVERT); return ledger.slice(last + 1).filter(r => r.target !== REVERT); };
   const formatOf = target => target.endsWith('.jsonl') ? 'jsonl' : 'csv';
   // the SCHEMAS entry a file name falls under (U.schemas: pattern, keys, family)
   function schemaOf(target, schemas) {
@@ -315,6 +320,10 @@ const LP = (function () {
         rows.push(r); index.set(kk, r); newRows.push(r); fresh.add(r);
         return;
       }
+      if (fresh.has(r)) {  // a repeat of a row this upload added: the later row wins, nothing on file is touched
+        for (const c of upCols) if (has(u, c) && u[c].trim()) r[c] = u[c];
+        return;
+      }
       let touched = false;
       for (const c of upCols) {
         const v = has(u, c) ? u[c] : '';
@@ -322,7 +331,7 @@ const LP = (function () {
         changes.push({ key: k.join(' / '), column: c, from: r[c], to: v });
         r[c] = v; touched = true;
       }
-      if (!touched && !fresh.has(r)) unchanged++;
+      if (!touched) unchanged++;
     });
     const summary = { format: 'csv', rows: upRows.length, new_rows: newRows.length, changed_rows: new Set(changes.map(c => c.key)).size,
                       changes, new_columns: newColumns, unchanged_rows: unchanged, duplicate_keys: dup, columns, keys, sample: newRows.slice(0, 20) };
@@ -406,9 +415,14 @@ const LP = (function () {
     return summary;
   }
   // the row Accept posts to the intake_uploads table (golden/intake.py apply_table_rows reads it back)
-  const uploadRow = (target, filename, text, summary, who, at, note = '') => ({
-    upload_id: uploadId(target, text), received_at: at, received_by: who, target, filename, content: text.replace(/^\uFEFF/, ''),
+  const uploadRow = (target, filename, text, summary, who, at, note = '', generation = 0) => ({
+    upload_id: uploadId(target, text, generation), received_at: at, received_by: who, target, filename, content: text.replace(/^\uFEFF/, ''),
     rows: summary.rows, new_rows: summary.new_rows, changed_rows: summary.changed_rows, new_columns: summary.new_columns.join(';'), note,
+  });
+  // the row "Revert to Sep Raw Data State" posts: no file; the build applies no upload accepted before it
+  const revertRow = (who, at, note = '') => ({
+    upload_id: revertId(at), received_at: at, received_by: who, target: REVERT, filename: '', content: '',
+    rows: null, new_rows: null, changed_rows: null, new_columns: '', note,
   });
   async function postUpload(U, row, doFetch = (u, o) => fetch(u, o)) {
     if (!U.supabase_url || !U.anon_key) throw new Error('this build has no Supabase URL / anon key (SUPABASE_URL and SUPABASE_ANON_KEY were not set when the site was built)');
@@ -1142,17 +1156,24 @@ const LP = (function () {
   const UPLOAD_TYPES = '.csv,.json,.jsonl,.txt';
   function uploadSection(U) {
     const names = Object.keys(U.files).sort();
-    const led = U.ledger.slice().reverse(), rej = U.rejected || [];
+    const led = U.ledger.slice().reverse(), rej = U.rejected || [], live = activeUploads(U.ledger);
+    const lastRevert = U.ledger.map(r => r.target).lastIndexOf(REVERT);
     const ledgerRows = led.length ? `<table><thead><tr><th>Received</th><th>By</th><th>File</th><th>Applied to</th><th class="num">Rows</th><th class="num">New</th><th class="num">Updated</th><th>New columns</th><th>Note</th></tr></thead><tbody>`
-      + led.map(r => `<tr><td class="date">${esc(utc(r.received_at))}</td><td>${esc(r.received_by)}</td><td><code>${esc(r.filename || r.upload_id)}</code><br><span class="foot">${esc(r.upload_id)}</span></td><td><code>${esc(r.target)}</code></td><td class="num">${esc(r.rows)}</td><td class="num">${esc(r.new_rows)}</td><td class="num">${esc(r.changed_rows)}</td><td class="foot">${esc((r.new_columns || '').split(';').filter(Boolean).join(', ') || '—')}</td><td class="foot">${esc(r.note)}</td></tr>`).join('')
+      + led.map((r, j) => r.target === REVERT
+        ? `<tr class="revert"><td class="date">${esc(utc(r.received_at))}</td><td>${esc(r.received_by)}</td><td colspan="6"><b>Reverted to the September export</b> <span class="foot">every upload above this line was set aside · ${esc(r.upload_id)}</span></td><td class="foot">${esc(r.note)}</td></tr>`
+        : `<tr class="${led.length - 1 - j < lastRevert ? 'reverted' : ''}"><td class="date">${esc(utc(r.received_at))}</td><td>${esc(r.received_by)}</td><td><code>${esc(r.filename || r.upload_id)}</code><br><span class="foot">${esc(r.upload_id)}</span></td><td><code>${esc(r.target)}</code></td><td class="num">${esc(r.rows)}</td><td class="num">${esc(r.new_rows)}</td><td class="num">${esc(r.changed_rows)}</td><td class="foot">${esc((r.new_columns || '').split(';').filter(Boolean).join(', ') || '—')}</td><td class="foot">${esc(r.note)}</td></tr>`).join('')
       + `</tbody></table>` : `<p class="empty">Nothing accepted yet: every file is the September export as filed</p>`;
+    const revert = `<div class="dl" id="lp-up-revert-box"><button id="lp-up-revert" class="secondary" ${live.length ? '' : 'disabled'}>Revert to Sep Raw Data State</button><span>${live.length
+      ? `Sets aside ${plural(live.length, 'accepted upload')}: the next rebuild reads <code>dataset/</code> exactly as exported, on every tab. Nothing is deleted - the uploads stay listed below, and files accepted after the revert apply again.`
+      : 'Nothing to revert: every file is the September export as filed.'}</span></div>`;
     const rejected = rej.length ? `<h3>Set aside by the build <span class="foot">${plural(rej.length, 'upload')} that could not be applied · <code>intake/rejected.csv</code></span></h3><table><thead><tr><th>Received</th><th>By</th><th>File</th><th>Applied to</th><th>Problem</th></tr></thead><tbody>`
       + rej.map(r => `<tr><td class="date">${esc(utc(r.received_at))}</td><td>${esc(r.received_by)}</td><td><code>${esc(r.filename || r.upload_id)}</code></td><td><code>${esc(r.target)}</code></td><td class="warn">${esc(r.problem)}</td></tr>`).join('') + `</tbody></table>` : '';
     return `<h2>Add Live Data <span class="foot">Drop a fresh CSV of any file in <code>dataset/</code>, or a Slack export (<code>.json</code> / <code>.jsonl</code>); see what it adds and what it overrides; Accept to file it</span></h2>
       <p class="lede">Net-new rows or a fuller version of a file on record, either way: the upload is diffed here, in the browser, against the file as the last build read it (${names.length ? names.map(n => `<code>${esc(n)}</code>`).join(', ') : 'nothing on file'}). Rows are matched on the file's key (<code>request_id</code>, <code>account_id</code>, <code>name</code>, …): a key not on file is a new row; one on file is an update, and every value it would override is listed below before anything happens. Columns the file lacks are added. Nothing is written until you click Accept, and <code>dataset/</code> is never written: accepted files go to <code>${esc(U.path || 'intake/')}</code>, the next rebuild layers them on, and every tab reads the result.</p>
       <div class="drop" id="lp-up-drop"><input type="file" id="lp-up-file" accept="${UPLOAD_TYPES}"><span>Drop a .csv, .json or .jsonl here, or click to choose</span></div>
       <div id="lp-up-preview"></div>
-      <details class="fold" id="lp-up-ledger"><summary><h3>Accepted so far <span class="foot">${plural(U.ledger.length, 'upload')} applied on top of the export${U.ledger.length ? `, newest first · <code>${esc(U.path)}</code>` : ''}</span></h3></summary>${ledgerRows}${rejected}</details>`;
+      ${revert}
+      <details class="fold" id="lp-up-ledger"><summary><h3>Accepted so far <span class="foot">${plural(live.length, 'upload')} applied on top of the export${U.ledger.length - live.length ? ` · ${plural(U.ledger.length - live.length - (U.generation || 0), 'earlier upload')} reverted` : ''}${U.ledger.length ? `, newest first · <code>${esc(U.path)}</code>` : ''}</span></h3></summary>${ledgerRows}${rejected}</details>`;
   }
 
   // the KPI strip + override list + sample rows for one upload, as previewUpload summarised it
@@ -1186,6 +1207,8 @@ const LP = (function () {
     // accepted from this browser, not yet rebuilt into the site; dropped once the build has the id
     const pending = new Map(Object.entries(load('lp-uploads', {})).filter(([id]) => !onFile.has(id)));
     store('lp-uploads', Object.fromEntries(pending));
+    // reverts so far, counting one posted from this browser and not yet rebuilt in: what the next upload_id carries
+    const generation = () => (U.generation || 0) + [...pending.values()].filter(p => p.target === REVERT).length;
     let cur = null;  // { filename, text, columns|null, target, why, summary }
     const targetsFor = (columns, guess) => {
       const names = Object.keys(U.files).filter(n => columns === null ? formatOf(n) === 'jsonl' : formatOf(n) === 'csv').sort();
@@ -1193,7 +1216,7 @@ const LP = (function () {
       return names;
     };
     const render = () => {
-      const id = uploadId(cur.target, cur.text);
+      const id = uploadId(cur.target, cur.text, generation());
       const state = onFile.has(id) ? 'file' : pending.has(id) ? 'pending' : '';
       let s;
       try { s = previewUpload(U, cur.target, cur.text); } catch (e) { s = { error: e.message }; }
@@ -1203,16 +1226,16 @@ const LP = (function () {
         ? `Files it in the <code>${esc(U.table)}</code> table as <code>${esc(id)}</code>; the site rebuilds from it within a few minutes and every tab reads the new data. <code>dataset/</code> stays as it is.`
         : `<b class="warn">This build cannot post: no Supabase URL / anon key.</b> Accept downloads the file as <code>${esc(id)}.${formatOf(cur.target)}</code>; from the repo root:<br><code>${esc(U.command.replace('{file}', `${id}.${formatOf(cur.target)}`).replace('{target}', cur.target).replace('{who}', load('lp-who', '') || 'me'))}</code>`;
       box.innerHTML = renderUploadSummary(s, cur.filename, targetsFor(cur.columns, cur.target), cur.target, cur.why, U, state)
-        + `<div class="dl" id="lp-up-actions"><button id="lp-up-accept" ${ok ? '' : 'disabled'}>Accept</button><button id="lp-up-discard" class="secondary">Discard</button><span>${ok ? foot : 'Fix the file, or pick another target above, and drop it again.'}</span></div>`;
+        + `<div class="dl" id="lp-up-actions">${ok ? '<button id="lp-up-accept">Accept</button>' : ''}<button id="lp-up-discard" class="secondary">Discard</button><span>${ok ? foot : 'Fix the file, or pick another target above, and drop it again.'}</span></div>`;
       box.querySelector('#lp-up-target').onchange = e => { cur.target = e.target.value; cur.why = 'chosen'; render(); };
       box.querySelector('#lp-up-discard').onclick = () => { cur = null; box.innerHTML = ''; file.value = ''; };
-      box.querySelector('#lp-up-accept').onclick = accept;
+      if (ok) box.querySelector('#lp-up-accept').onclick = accept;
     };
     const accept = async () => {
       if (!cur || cur.summary.error) return;
       const who = load('lp-who', '') || askWho();
       if (!who) return;
-      const at = new Date().toISOString(), row = uploadRow(cur.target, cur.filename, cur.text, cur.summary, who, at);
+      const at = new Date().toISOString(), row = uploadRow(cur.target, cur.filename, cur.text, cur.summary, who, at, '', generation());
       const actions = box.querySelector('#lp-up-actions'), note = actions.querySelector('span'), go = actions.querySelector('#lp-up-accept');
       if (!(U.supabase_url && U.anon_key)) {
         download(`${row.upload_id}.${formatOf(cur.target)}`, row.content);
@@ -1244,6 +1267,32 @@ const LP = (function () {
       render();
     };
     const handle = f => { if (f) f.text().then(text => take(text, f.name)); };
+    const revertBox = root.querySelector('#lp-up-revert-box'), revertGo = revertBox.querySelector('#lp-up-revert'), revertNote = revertBox.querySelector('span');
+    revertGo.onclick = async () => {
+      const live = activeUploads(U.ledger);
+      if (!live.length) return;
+      if (!window.confirm(`Revert to the September export? ${plural(live.length, 'accepted upload')} will no longer apply after the next rebuild (they stay in the ledger; nothing is deleted).`)) return;
+      const who = load('lp-who', '') || askWho();
+      if (!who) return;
+      const at = new Date().toISOString(), row = revertRow(who, at);
+      const cmd = esc(U.revert_command.replace('{who}', who));
+      if (!(U.supabase_url && U.anon_key)) {
+        revertNote.innerHTML = `<b class="warn">This build cannot post: no Supabase URL / anon key.</b> From the repo root:<br><code>${cmd}</code>`;
+        return;
+      }
+      revertGo.disabled = true; revertNote.innerHTML = 'Filing…';
+      let got;
+      try { got = await postUpload(U, row); } catch (e) {
+        revertGo.disabled = false; revertBox.classList.add('failed');
+        revertNote.innerHTML = `<b class="warn">Not filed.</b> ${esc(e.message)}. Try again, or if Supabase is down, from the repo root:<br><code>${cmd}</code>`;
+        return;
+      }
+      pending.set(row.upload_id, { target: REVERT, filename: '', at }); store('lp-uploads', Object.fromEntries(pending));
+      revertBox.classList.remove('failed');
+      revertNote.innerHTML = got.already ? `<b>Already filed</b> as <code>${esc(row.upload_id)}</code>.`
+        : `<b>Reverted</b> as ${esc(who)}: <code>${esc(row.upload_id)}</code>. The site rebuilds within a few minutes; after that every tab reads <code>dataset/</code> as exported, and anything accepted from now on applies on top of it.`;
+      if (cur) render();
+    };
     drop.addEventListener('click', e => { if (e.target !== file) file.click(); });
     file.addEventListener('change', () => handle(file.files[0]));
     ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
@@ -1329,6 +1378,6 @@ const LP = (function () {
   }
 
   return { boot, bootConnector, bootBatch, extract, makeResolver, previewThreads, parseJsonl, route, normStrict, toCsv, completionRows, completionId, tickKey, postCompletions,
-           fnv1a, uploadId, schemaOf, parseCsv, parseThreads, mergeCsv, mergeThreads, guessTarget, previewUpload, uploadRow, postUpload };
+           fnv1a, uploadId, revertId, revertRow, activeUploads, schemaOf, parseCsv, parseThreads, mergeCsv, mergeThreads, guessTarget, previewUpload, uploadRow, postUpload };
 })();
 if (typeof module !== 'undefined') module.exports = LP;

@@ -4,6 +4,7 @@
     python3 golden/intake.py --preview FILE [--target NAME] # what accepting FILE would change; writes nothing
     python3 golden/intake.py --add FILE [--target NAME] [--by WHO] [--note TEXT]
                                                             # accept FILE by hand (what the tab's Accept does)
+    python3 golden/intake.py --revert [--by WHO]            # back to the September export: no upload applied
     python3 golden/intake.py --pull supabase                # pull the intake_uploads table into intake/
 
 dataset/ is the raw September export, read-only, never written. Everything that
@@ -43,6 +44,13 @@ How an upload is applied, per file kind (SCHEMAS):
 upload_id is <target stem>-<fnv1a-64 of the content>, computed the same way by
 the browser (live_priorities.js uploadId) and here, so the same file accepted
 twice lands once: the ledger, the table's primary key and --add all skip it.
+
+Revert (the tab's "Revert to Sep Raw Data State", or --revert) is a ledger row
+of its own (target `revert`, no file): nothing is deleted, but only the uploads
+accepted after the last revert are applied, so golden/current/ is dataset/
+again until the next Accept. Uploads after a revert get a -g<n> suffix on
+their upload_id (n = reverts so far), so a file that was accepted, reverted
+and accepted again is a new row, not a repeat.
 """
 from __future__ import annotations
 
@@ -69,10 +77,12 @@ CURRENT = ROOT / "golden" / "current"
 LEDGER_COLUMNS = ["upload_id", "received_at", "received_by", "target", "filename",
                   "rows", "new_rows", "changed_rows", "new_columns", "note"]
 REJECTED_COLUMNS = [*LEDGER_COLUMNS, "problem"]
+REVERT = "revert"  # the ledger row's target when it is a revert, not an upload
 SUPABASE_TABLE = "intake_uploads"
 SUPABASE_PAGE = 200
 ENV_FILE = ROOT / ".env"
 COMMAND = "python3 golden/intake.py --add {file} --target {target} --by \"{who}\" && python3 golden/build_golden.py && python3 build.py"
+REVERT_COMMAND = "python3 golden/intake.py --revert --by \"{who}\" && python3 golden/build_golden.py && python3 build.py"
 
 # What each file is keyed on. `family` files are a pattern: connections_<surname>.csv
 # may be a new file (a connector joining the roster) as well as a refresh of one on file.
@@ -102,8 +112,13 @@ def fnv1a(text: str) -> str:
     return f"{h:016x}"
 
 
-def upload_id(target: str, content: str) -> str:
-    return f"{Path(target).stem}-{fnv1a(content.lstrip(chr(0xFEFF)))}"
+def upload_id(target: str, content: str, generation: int = 0) -> str:
+    """<stem>-<hash>, plus -g<generation> once a revert has happened (generation = reverts so far)."""
+    return f"{Path(target).stem}-{fnv1a(content.lstrip(chr(0xFEFF)))}" + (f"-g{generation}" if generation else "")
+
+
+def revert_id(at: str) -> str:
+    return f"{REVERT}-{fnv1a(at)}"
 
 
 def schema_of(target: str) -> dict | None:
@@ -132,7 +147,7 @@ def target_problem(target: str) -> str | None:
 def existing_targets(base: Path = DATASET, path: Path = LEDGER) -> list[str]:
     """Every file an upload can be applied to right now: dataset/ plus new files earlier uploads created."""
     names = {p.name for p in base.iterdir() if p.is_file() and schema_of(p.name)}
-    names.update(r["target"] for r in ledger(path))
+    names.update(r["target"] for r in active(ledger(path)))
     return sorted(names)
 
 
@@ -304,6 +319,9 @@ def merge_csv(base_cols: list[str], base_rows: list[dict], up_cols: list[str], u
             new_rows.append(r)
             fresh_ids.add(id(r))
             continue
+        if id(r) in fresh_ids:  # a repeat of a row this upload added: the later row wins, nothing on file is touched
+            r.update((c, v) for c in up_cols if (v := u.get(c, "")).strip())
+            continue
         touched = False
         for c in up_cols:
             v = u.get(c, "")
@@ -312,7 +330,7 @@ def merge_csv(base_cols: list[str], base_rows: list[dict], up_cols: list[str], u
             changes.append({"key": " / ".join(k), "column": c, "from": r[c], "to": v})
             r[c] = v
             touched = True
-        if not touched and id(r) not in fresh_ids:
+        if not touched:
             unchanged += 1
     summary = {
         "format": "csv", "rows": len(up_rows), "new_rows": len(new_rows), "changed_rows": len({c["key"] for c in changes}),
@@ -395,8 +413,22 @@ def _write(path: Path, columns: list[str], rows: list[dict]) -> None:
 
 
 def ledger(path: Path = LEDGER) -> list[dict]:
-    """intake/uploads.csv, in the order accepted."""
+    """intake/uploads.csv, in the order accepted (uploads and reverts alike)."""
     return _read(path)
+
+
+def reverts(rows: list[dict]) -> list[dict]:
+    return [r for r in rows if r["target"] == REVERT]
+
+
+def generation(rows: list[dict]) -> int:
+    return len(reverts(rows))
+
+
+def active(rows: list[dict]) -> list[dict]:
+    """The uploads that apply: those accepted after the last revert."""
+    last = max((i for i, r in enumerate(rows) if r["target"] == REVERT), default=-1)
+    return [r for r in rows[last + 1:] if r["target"] != REVERT]
 
 
 def file_of(row: dict, files: Path = FILES) -> Path:
@@ -408,7 +440,7 @@ def current_source(target: str, base: Path = DATASET, files: Path = FILES, rows:
     """The file as it stands with every accepted upload applied: (columns, rows)
     for a CSV, a list of threads for slack_threads.jsonl. `rows` is the ledger
     to apply (default: the whole ledger at `path`)."""
-    uploads = [r for r in (ledger(path) if rows is None else rows) if r["target"] == target]
+    uploads = [r for r in active(ledger(path) if rows is None else rows) if r["target"] == target]
     if format_of(target) == "jsonl":
         threads = read_threads(base / target)
         for r in uploads:
@@ -435,7 +467,7 @@ def preview(target: str, content: str, base: Path = DATASET, files: Path = FILES
         up_cols, up_rows = parse_csv(content)
         _, _, summary = merge_csv(cols, data, up_cols, up_rows, schema_of(target)["keys"])
     summary["target"] = target
-    summary["new_file"] = not (base / target).exists() and target not in {r["target"] for r in rows}
+    summary["new_file"] = not (base / target).exists() and target not in {r["target"] for r in active(rows)}
     return summary
 
 
@@ -452,8 +484,8 @@ def add(target: str, content: str, by: str, filename: str = "", note: str = "", 
     """Accept an upload: write intake/files/<upload_id>.* and append the ledger
     row. Returns (row, summary); row is None when the upload_id is already on
     file (nothing written). Raises ValueError when it cannot be applied."""
-    uid = uid or upload_id(target, content)
     rows = ledger(path)
+    uid = uid or upload_id(target, content, generation(rows))
     summary = preview(target, content, base, files, path)
     if any(r["upload_id"] == uid for r in rows):
         return None, summary
@@ -463,6 +495,21 @@ def add(target: str, content: str, by: str, filename: str = "", note: str = "", 
     write_verbatim(file_of(row, files), content)
     _write(path, LEDGER_COLUMNS, [*rows, row])
     return row, summary
+
+
+def revert(by: str, note: str = "", at: str = "", uid: str = "", path: Path = LEDGER) -> dict | None:
+    """Back to the September export: append a revert row, after which no earlier
+    upload applies (they stay in the ledger as history). Returns the row, or
+    None when that revert is already on file."""
+    rows = ledger(path)
+    at = at or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    uid = uid or revert_id(at)
+    if any(r["upload_id"] == uid for r in rows):
+        return None
+    row = {"upload_id": uid, "received_at": at, "received_by": by.strip() or "unknown", "target": REVERT, "filename": "",
+           "rows": "", "new_rows": "", "changed_rows": "", "new_columns": "", "note": note}
+    _write(path, LEDGER_COLUMNS, [*rows, row])
+    return row
 
 
 # ---------------------------------------------------------------------------
@@ -497,7 +544,7 @@ def materialize(base: Path = DATASET, out: Path = CURRENT, files: Path = FILES, 
             sys.exit(f"refusing to write {out}: dataset/ is read-only input")
     rows = ledger(path)
     uploads: dict[str, int] = {}
-    for r in rows:
+    for r in active(rows):
         uploads[r["target"]] = uploads.get(r["target"], 0) + 1
     out.mkdir(parents=True, exist_ok=True)
     keep = set()
@@ -588,12 +635,15 @@ def apply_table_rows(rows: list[dict], base: Path = DATASET, files: Path = FILES
         if uid in have or uid in rejected_have:
             already += 1
             continue
+        at = r["received_at"][:19].replace(" ", "T").rstrip("Z") + "Z" if r["received_at"] else ""
         try:
             if not re.fullmatch(r"[A-Za-z0-9_\-]+", uid):
                 raise ValueError("upload_id is not a plain token")
-            row, _ = add(r["target"].strip(), r["content"], r["received_by"], r["filename"], r["note"],
-                         at=r["received_at"][:19].replace(" ", "T").rstrip("Z") + "Z" if r["received_at"] else "",
-                         uid=uid, base=base, files=files, path=path)
+            if r["target"].strip() == REVERT:
+                row = revert(r["received_by"], r["note"], at, uid, path)
+            else:
+                row, _ = add(r["target"].strip(), r["content"], r["received_by"], r["filename"], r["note"],
+                             at=at, uid=uid, base=base, files=files, path=path)
         except ValueError as e:
             rejected.append({"upload_id": uid, "received_at": r["received_at"], "received_by": r["received_by"], "target": r["target"],
                              "filename": r["filename"], "note": r["note"], "problem": str(e)})
@@ -650,9 +700,13 @@ def main() -> None:
     ap.add_argument("--target", help="the dataset/ file it updates (default: guessed from the name and columns)")
     ap.add_argument("--by", default="", help="who accepted it (received_by)")
     ap.add_argument("--note", default="")
+    ap.add_argument("--revert", action="store_true", help="back to the September export: no accepted upload applies until the next --add")
     ap.add_argument("--pull", choices=["supabase"], help="pull the Supabase intake_uploads table into intake/ first")
     args = ap.parse_args()
     pull(args.pull)
+    if args.revert:
+        row = revert(args.by, args.note)
+        print("intake/uploads.csv    " + (f"reverted to dataset/ as {row['upload_id']}" if row else "already reverted just now"))
     src = args.preview or args.add
     if src is not None:
         if not src.exists():
@@ -671,7 +725,7 @@ def main() -> None:
         try:
             if args.add:
                 row, summary = add(target, content, args.by, src.name, args.note)
-                print(f"intake/uploads.csv    {'already on file' if row is None else 'added'} {upload_id(target, content)}")
+                print(f"intake/uploads.csv    {'already on file' if row is None else 'added'} {upload_id(target, content, generation(ledger()))}")
             else:
                 summary = preview(target, content)
         except ValueError as e:
@@ -685,8 +739,9 @@ def main() -> None:
             return
     applied = materialize()
     rows = ledger()
-    print(f"golden/current/       {len(list(CURRENT.iterdir()))} files from dataset/ + {len(rows)} accepted upload(s)"
-          + (": " + ", ".join(f"{t} ({n})" for t, n in sorted(applied.items())) if applied else ""))
+    print(f"golden/current/       {len(list(CURRENT.iterdir()))} files from dataset/ + {len(active(rows))} accepted upload(s)"
+          + (": " + ", ".join(f"{t} ({n})" for t, n in sorted(applied.items())) if applied else "")
+          + (f" ({len(rows) - len(active(rows)) - generation(rows)} reverted)" if generation(rows) else ""))
 
 
 if __name__ == "__main__":

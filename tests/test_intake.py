@@ -188,8 +188,15 @@ class MergeCsvTest(unittest.TestCase):
         _, rows, s = self.merge(["request_id", "company"], [{"request_id": "R7", "company": "One"}, {"request_id": "R7", "company": "Two"}])
         self.assertEqual(rows[-1]["company"], "Two")
         self.assertEqual((len(rows), s["new_rows"], s["duplicate_keys"], s["unchanged_rows"]), (3, 1, 1, 0))
-        self.assertEqual(s["changes"], [{"key": "R7", "column": "company", "from": "One", "to": "Two"}])
-        self.assertEqual(s["changed_rows"], 1)
+        # settled within the upload: nothing on file was replaced
+        self.assertEqual((s["changes"], s["changed_rows"]), ([], 0))
+
+    def test_repeated_key_on_file_reports_one_override_per_cell(self):
+        _, rows, s = self.merge(["request_id", "company"], [{"request_id": "R1", "company": "Ant"}, {"request_id": "R1", "company": "Bee"}])
+        self.assertEqual(rows[0]["company"], "Bee")
+        self.assertEqual(s["changes"], [{"key": "R1", "column": "company", "from": "Acme", "to": "Ant"},
+                                        {"key": "R1", "column": "company", "from": "Ant", "to": "Bee"}])
+        self.assertEqual((s["changed_rows"], s["duplicate_keys"], s["unchanged_rows"]), (1, 1, 0))
 
     def test_composite_key(self):
         cols, rows, s = intake.merge_csv(["name", "company", "title"], [{"name": "A", "company": "X", "title": "t"}],
@@ -278,6 +285,11 @@ class UploadIdTest(unittest.TestCase):
         self.assertTrue(intake.upload_id("slack_threads.jsonl", "{}").startswith("slack_threads-"))
         self.assertNotEqual(intake.upload_id("intro_requests.csv", "a,b\r\n"), intake.upload_id("intro_requests.csv", "a,b\n"))
 
+    def test_generation_suffix_after_a_revert(self):
+        self.assertEqual(intake.upload_id("intro_requests.csv", "a,b\n", 0), intake.upload_id("intro_requests.csv", "a,b\n"))
+        self.assertEqual(intake.upload_id("intro_requests.csv", "a,b\n", 2), intake.upload_id("intro_requests.csv", "a,b\n") + "-g2")
+        self.assertEqual(intake.revert_id("2026-09-07T12:00:00Z"), "revert-" + intake.fnv1a("2026-09-07T12:00:00Z"))
+
 
 class PreviewAndAcceptTest(ScratchTest):
     def test_preview_writes_nothing(self):
@@ -337,6 +349,71 @@ class PreviewAndAcceptTest(ScratchTest):
         s = self.preview("connections_okonkwo.csv", "name,company,title\r\nA B,Acme,CTO\r\n")
         self.assertTrue(s["new_file"])
         self.assertEqual((s["new_rows"], s["new_columns"]), (1, ["name", "company", "title"]))
+
+
+class RevertTest(ScratchTest):
+    """"Revert to Sep Raw Data State": a ledger row after which no earlier upload applies."""
+
+    def revert(self, at="2026-09-07T12:00:00Z", **more):
+        return intake.revert("tester", at=at, path=self.ledger, **more)
+
+    def test_revert_keeps_the_history_and_current_is_the_export_again(self):
+        text = self.requests_upload(self.request_row("R9001", "Vireo Systems"))
+        first, _ = self.add("intro_requests.csv", text)
+        self.add("slack_threads.jsonl", jsonl([thread("R9001", "Vireo?")]))
+        self.assertEqual(self.materialize(), {"intro_requests.csv": 1, "slack_threads.jsonl": 1})
+        row = self.revert(note="bad export")
+        self.assertEqual(row, {"upload_id": intake.revert_id("2026-09-07T12:00:00Z"), "received_at": "2026-09-07T12:00:00Z", "received_by": "tester",
+                               "target": "revert", "filename": "", "rows": "", "new_rows": "", "changed_rows": "", "new_columns": "", "note": "bad export"})
+        rows = intake.ledger(self.ledger)
+        self.assertEqual([r["target"] for r in rows], ["intro_requests.csv", "slack_threads.jsonl", "revert"])
+        self.assertEqual((intake.active(rows), intake.generation(rows)), ([], 1))
+        self.assertEqual(len(list(self.files.iterdir())), 2, "the files stay")
+        self.assertEqual(self.materialize(), {})
+        self.assertEqual(tree_digest(self.current), self.before)
+        self.assertEqual(intake.existing_targets(self.dataset, self.ledger), intake.existing_targets(self.dataset, self.root / "none.csv"))
+        s = self.preview("intro_requests.csv", text)
+        self.assertEqual((s["new_rows"], s["changed_rows"]), (1, 0), "the preview is against the export again")
+
+    def test_same_file_accepted_again_after_a_revert_is_a_new_upload(self):
+        text = self.requests_upload(self.request_row("R9001", "Vireo Systems"))
+        first, _ = self.add("intro_requests.csv", text)
+        self.revert()
+        again, s = self.add("intro_requests.csv", text)
+        self.assertEqual(again["upload_id"], first["upload_id"] + "-g1")
+        self.assertEqual(s["new_rows"], 1)
+        self.assertIsNone(self.add("intro_requests.csv", text)[0], "but twice in the same generation is once")
+        self.assertEqual(self.materialize(), {"intro_requests.csv": 1})
+        _, rows = intake.read_csv_file(self.current / "intro_requests.csv")
+        self.assertEqual(rows[-1]["request_id"], "R9001")
+        self.assertEqual(len(rows), len(self.requests) + 1)
+        self.revert(at="2026-09-07T13:00:00Z")
+        self.assertEqual(self.add("intro_requests.csv", text)[0]["upload_id"], first["upload_id"] + "-g2")
+
+    def test_revert_is_idempotent_and_recorded_even_with_nothing_to_revert(self):
+        self.assertIsNotNone(self.revert())
+        self.assertIsNone(self.revert(), "the same revert twice is one row")
+        self.assertEqual(len(intake.ledger(self.ledger)), 1)
+        self.assertEqual(self.materialize(), {})
+        self.assertEqual(tree_digest(self.current), self.before)
+
+    def test_revert_from_the_table(self):
+        good = self.requests_upload(self.request_row("R9001", "Vireo Systems"))
+        table = [{"upload_id": "u-1", "received_at": "2026-09-06 10:00:00+00", "received_by": "priya", "target": "intro_requests.csv",
+                  "filename": "x.csv", "content": good, "rows": 1, "new_rows": 1, "changed_rows": 0, "new_columns": "", "note": None},
+                 {"upload_id": "revert-abc", "received_at": "2026-09-06 11:00:00+00", "received_by": "priya", "target": "revert",
+                  "filename": "", "content": "", "rows": None, "new_rows": None, "changed_rows": None, "new_columns": "", "note": "oops"},
+                 {"upload_id": "u-1-g1", "received_at": "2026-09-06 12:00:00+00", "received_by": "priya", "target": "intro_requests.csv",
+                  "filename": "x.csv", "content": good, "rows": 1, "new_rows": 1, "changed_rows": 0, "new_columns": "", "note": None}]
+        added, already, rejected = intake.apply_table_rows(table, self.dataset, self.files, self.ledger, self.rejected)
+        self.assertEqual((added, already, rejected), (3, 0, []))
+        rows = intake.ledger(self.ledger)
+        self.assertEqual([(r["upload_id"], r["target"], r["received_at"]) for r in rows],
+                         [("u-1", "intro_requests.csv", "2026-09-06T10:00:00Z"), ("revert-abc", "revert", "2026-09-06T11:00:00Z"),
+                          ("u-1-g1", "intro_requests.csv", "2026-09-06T12:00:00Z")])
+        self.assertEqual([r["upload_id"] for r in intake.active(rows)], ["u-1-g1"])
+        self.assertEqual(intake.apply_table_rows(table, self.dataset, self.files, self.ledger, self.rejected), (0, 3, []))
+        self.assertEqual(self.materialize(), {"intro_requests.csv": 1})
 
 
 class MaterializeTest(ScratchTest):
@@ -472,14 +549,17 @@ class BrowserParityTest(ScratchTest):
                 cols, rows = intake.read_csv_file(src)
                 files[name] = {"format": "csv", "keys": intake.schema_of(name)["keys"], "columns": cols,
                                "rows": [[r.get(c, "") for c in cols] for r in rows]}
+        rows = intake.ledger(self.ledger)
         return {"files": files, "schemas": [{"pattern": p, "keys": s["keys"], "family": bool(s.get("family")), "format": s.get("format", "csv")}
-                                            for p, s in intake.SCHEMAS.items()], "ledger": [], "ids": [], "rejected": []}
+                                            for p, s in intake.SCHEMAS.items()],
+                "ledger": rows, "ids": [r["upload_id"] for r in rows], "generation": intake.generation(rows), "rejected": []}
 
-    def run_node(self, uploads: list[dict]) -> list[dict]:
-        proc = subprocess.run([NODE, str(ROOT / "tests" / "lp_parity.js")], input=json.dumps({"intake": {"payload": self.payload(), "uploads": uploads}}),
+    def run_node(self, uploads: list[dict], at: str = "") -> dict:
+        proc = subprocess.run([NODE, str(ROOT / "tests" / "lp_parity.js")],
+                              input=json.dumps({"intake": {"payload": self.payload(), "uploads": uploads, "at": at}}),
                               capture_output=True, text=True, check=False)
         self.assertEqual(proc.returncode, 0, proc.stderr)
-        return json.loads(proc.stdout)["intake"]
+        return json.loads(proc.stdout)
 
     def python_side(self, filename: str, text: str, target: str = "") -> dict:
         columns = None
@@ -491,7 +571,8 @@ class BrowserParityTest(ScratchTest):
                 columns = []
         guess, why = intake.guess_target(filename, columns, intake.columns_on_file(**self.kw()))
         target = target or guess
-        r = {"guess": guess, "why": why, "target": target, "upload_id": intake.upload_id(target, text) if target else ""}
+        r = {"guess": guess, "why": why, "target": target,
+             "upload_id": intake.upload_id(target, text, intake.generation(intake.ledger(self.ledger))) if target else ""}
         try:
             s = self.preview(target, text)
             r["summary"] = {k: s[k] for k in ("rows", "new_rows", "changed_rows", "unchanged_rows", "duplicate_keys", "new_columns", "changes",
@@ -520,15 +601,14 @@ class BrowserParityTest(ScratchTest):
             {"filename": "bad.json", "text": "{}"},
             {"filename": "wide.csv", "text": "request_id,company_as_written\r\nR1,Acme,extra\r\n", "target": "intro_requests.csv"},
         ]
-        js = self.run_node(uploads)
+        js = self.run_node(uploads)["intake"]
         for u, got in zip(uploads, js):
             want = self.python_side(u["filename"], u["text"], u.get("target", ""))
             if not want["target"]:  # each side words "pick a target" its own way
                 self.assertIn("error", got)
                 got.pop("error"), want.pop("error")
             self.assertEqual(got, want, u["filename"])
-        self.assertEqual(js[0]["summary"]["changed_rows"], 2)
-        self.assertEqual(js[0]["summary"]["duplicate_keys"], 1)
+        self.assertEqual((js[0]["summary"]["changed_rows"], js[0]["summary"]["new_rows"], js[0]["summary"]["duplicate_keys"]), (1, 1, 1))
         self.assertEqual(js[3]["target"], "connections_okonkwo.csv")
         self.assertEqual(js[4]["target"], "")
         self.assertEqual(js[6]["summary"]["extended_threads"], 1)
@@ -536,6 +616,22 @@ class BrowserParityTest(ScratchTest):
         self.assertIn("error", js[8])
         self.assertIn("error", js[9])
         self.assertIn("error", js[10])
+
+    def test_same_view_of_the_ledger_after_a_revert(self):
+        text = self.requests_upload(self.request_row("R9001", "Vireo Systems"))
+        self.add("intro_requests.csv", text)
+        self.add("slack_threads.jsonl", jsonl([thread("R9001", "Vireo?")]))
+        intake.revert("tester", at="2026-09-07T12:00:00Z", path=self.ledger)
+        after, _ = self.add("crm_accounts.csv", "account_id,tier\r\nACC-NEW,gold\r\n")
+        uploads = [{"filename": "intro_requests.csv", "text": text}]
+        js = self.run_node(uploads, at="2026-09-07T12:00:00Z")
+        rows = intake.ledger(self.ledger)
+        self.assertEqual(js["ledger"], {"active": [r["upload_id"] for r in intake.active(rows)], "revert_id": intake.revert_id("2026-09-07T12:00:00Z")})
+        self.assertEqual(js["ledger"]["active"], [after["upload_id"]])
+        want = self.python_side("intro_requests.csv", text)
+        self.assertEqual(js["intake"][0], want)
+        self.assertTrue(want["upload_id"].endswith("-g1"))
+        self.assertEqual((want["summary"]["new_rows"], want["summary"]["changed_rows"]), (1, 0), "previewed against the export again")
 
 
 class RebuildWithUploadsTest(unittest.TestCase):
