@@ -1,27 +1,30 @@
 # Rebuild golden/, analysis/ and the site; commit the first two, publish the third.
 #
-# On every Submit from the Live Priorities tab, and every 15 minutes as a
-# backstop: pull the Supabase `completions` table into golden/completions.csv
-# (what Submit recorded), rebuild, test, commit golden/ and analysis/ when they
-# changed, and deploy docs/ to GitHub Pages as a build artifact (Settings ->
-# Pages -> Source: "GitHub Actions"). docs/ is not committed: the only site
+# On every Submit or Accept from the Live Priorities tab, and every 15 minutes
+# as a backstop: pull the Supabase `completions` table into
+# golden/completions.csv (what Submit recorded) and the `intake_uploads` table
+# into intake/ (the live-data files Accept filed; dataset/ is never written),
+# rebuild, test, commit golden/, intake/ and analysis/ when they changed, and
+# deploy docs/ to GitHub Pages as a build artifact (Settings -> Pages ->
+# Source: "GitHub Actions"). docs/ is not committed: the only site
 # that is ever published is the one this job built with the Supabase secrets.
 # Also runs on every push to main by anyone other than the bot, and by hand
 # from the Actions tab.
 #
-# The Submit trigger is a repository_dispatch event (type `completion`) that a
-# Postgres trigger on the completions table posts with pg_net the moment a row
-# lands (config/supabase_rebuild_trigger.sql). The cron alone is not enough:
-# GitHub queues scheduled runs best-effort and a */15 schedule fires every hour
-# or two in practice. Submits arriving while a run is going share the one
-# pending run the concurrency group keeps, so a burst is one rebuild, not many.
+# The Submit / Accept trigger is a repository_dispatch event (type `completion`)
+# that a Postgres trigger on each table posts with pg_net the moment a row
+# lands (config/supabase_rebuild_trigger.sql, config/supabase_schema.sql). The
+# cron alone is not enough: GitHub queues scheduled runs best-effort and a */15
+# schedule fires every hour or two in practice. Submits arriving while a run is
+# going share the one pending run the concurrency group keeps, so a burst is
+# one rebuild, not many.
 #
 # Secrets (Settings -> Secrets and variables -> Actions):
 #   SUPABASE_URL          https://<project>.supabase.co  (with or without /rest/v1)
 #   SUPABASE_ANON_KEY     the publishable key; goes into the built dashboard so the browser can insert
-#   SUPABASE_SERVICE_KEY  the secret key; read the table here, never leaves this job
+#   SUPABASE_SERVICE_KEY  the secret key; read the tables here, never leaves this job
 #
-# The bot's own commit touches golden/ and analysis/, so the job skips itself
+# The bot's own commit touches golden/, intake/ and analysis/, so the job skips itself
 # when that commit is the trigger (github.actor). The site is deployed on every
 # run whether or not anything changed: docs/build_stamp.json is what the
 # dashboard shows for "is the page current".
@@ -70,16 +73,19 @@ jobs:
       - name: Fix the build date
         run: echo "HALYARD_AS_OF=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
 
-      - name: Pull completions from Supabase and rebuild golden/
+      # intake first: golden/current/ (dataset/ + every accepted upload) is what
+      # the golden rebuild and everything after it read
+      - name: Pull completions and accepted uploads from Supabase and rebuild golden/
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python3 golden/build_golden.py --completions supabase
+        run: python3 golden/build_golden.py --completions supabase --intake supabase
 
       # docs/ is regenerated before the tests run: several tests compare the
       # built pages with what golden/ now says. Nothing is committed or deployed
-      # until the tests pass; a malformed row in the table was set aside in
-      # golden/completions_rejected.csv by the step above, never applied.
+      # until the tests pass; a malformed row in either table was set aside
+      # (golden/completions_rejected.csv, intake/rejected.csv) by the step
+      # above, never applied.
       - name: Rebuild analysis/ and docs/
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -89,11 +95,11 @@ jobs:
       - name: Tests (a failure here means nothing below is committed or deployed)
         run: python3 -m unittest discover tests
 
-      - name: Commit golden/ and analysis/ only if something changed
+      - name: Commit golden/, intake/ and analysis/ only if something changed
         run: |
           git config user.name halyard-bot
           git config user.email halyard-bot@users.noreply.github.com
-          git add -A golden analysis
+          git add -A golden intake analysis
           if git diff --staged --quiet; then
             echo "nothing changed; not committing"
             exit 0

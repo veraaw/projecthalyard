@@ -1,8 +1,12 @@
--- Rebuild the site the moment a completion lands.
+-- Rebuild the site the moment a completion or an accepted upload lands.
 --
 -- The rebuild workflow (.github/workflows/rebuild.yml) listens for a GitHub
 -- repository_dispatch event of type `completion`; this trigger posts one from
 -- Postgres with pg_net whenever an insert into public.completions lands a row.
+-- The same function is the trigger on public.intake_uploads (supabase_schema.sql
+-- attaches it): it reads only the statement's transition table, so it does not
+-- care which table fired it, and one event type is enough - the workflow pulls
+-- both tables every run.
 -- The 15-minute cron stays as a backstop: GitHub runs schedules best-effort and
 -- a */15 cron fires every hour or two in practice.
 --
@@ -85,4 +89,4 @@ create trigger completions_request_site_rebuild
 --
 -- and a run titled "rebuild" with event `repository_dispatch` at
 -- https://github.com/veraaw/projecthalyard/actions/workflows/rebuild.yml.
--- After that, every Submit from the Live Priorities tab does the same.
+-- After that, every Submit or Accept from the Live Priorities tab does the same.

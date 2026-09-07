@@ -10,7 +10,32 @@ let input = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', c => { input += c; });
 process.stdin.on('end', () => {
-  const { parser, texts, threads } = JSON.parse(input);
+  const { parser, texts, threads, intake } = JSON.parse(input);
+  // intake mode: {"intake": {"payload": <live_priorities intake payload>, "uploads": [{filename, text, target?}]}}
+  // -> per upload the guessed target and the browser's preview summary, or the error it shows;
+  // tests/test_intake.py compares it with golden/intake.py preview()
+  if (intake) {
+    const U = intake.payload, files = Object.fromEntries(Object.entries(U.files).map(([n, f]) => [n, f.columns || []]));
+    const out = intake.uploads.map(u => {
+      let columns = null;
+      const body = u.text.replace(/^\uFEFF/, '').trim();
+      if (!/\.jsonl?$/i.test(u.filename) && !body.startsWith('{') && !body.startsWith('[')) {
+        try { columns = LP.parseCsv(u.text).columns; } catch (e) { columns = []; }
+      }
+      const [guess, why] = LP.guessTarget(u.filename, columns, files, U.schemas);
+      const target = u.target || guess, r = { guess, why, target, upload_id: target ? LP.uploadId(target, u.text, U.generation || 0) : '' };
+      try {
+        const s = LP.previewUpload(U, target, u.text);
+        r.summary = Object.fromEntries(['rows', 'new_rows', 'changed_rows', 'unchanged_rows', 'duplicate_keys', 'new_columns', 'changes', 'columns',
+                                        'extended_threads', 'new_messages'].filter(k => s[k] !== undefined).map(k => [k, s[k]]));
+      } catch (e) { r.error = e.message; }
+      return r;
+    });
+    // plus the ledger as the browser reads it: which uploads still apply, and the id a revert filed at `at` gets
+    const ledger = { active: LP.activeUploads(U.ledger || []).map(r => r.upload_id), revert_id: intake.at ? LP.revertId(intake.at) : '' };
+    process.stdout.write(JSON.stringify({ intake: out, ledger }));
+    return;
+  }
   const resolver = LP.makeResolver(parser.resolver);
   const extracted = texts.map(text => {
     const ex = LP.extract(text, parser, resolver);

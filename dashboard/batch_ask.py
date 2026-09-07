@@ -39,13 +39,13 @@ from collections import defaultdict
 from pathlib import Path
 
 from golden import build_golden as bg
-from paths import CONFIG, DATASET, GOLDEN
+from paths import CONFIG, CURRENT, GOLDEN
 
 TEMPLATES = CONFIG / "batch_ask_templates.json"
 ALLOCATION = GOLDEN / "golden_allocation.csv"
 REQUESTS = GOLDEN / "golden_requests.csv"
-OUTCOMES = DATASET / "intro_outcomes.csv"
-RAW_REQUESTS = DATASET / "intro_requests.csv"
+OUTCOMES = CURRENT / "intro_outcomes.csv"
+RAW_REQUESTS = CURRENT / "intro_requests.csv"
 
 ROSTER_TEMPLATE, OFFERER_TEMPLATE, NETWORK_TEMPLATE = "roster", "offerer", "network"
 OFFER = "offer"

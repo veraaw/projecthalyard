@@ -17,9 +17,9 @@ import json
 import re
 
 from golden.clock import as_of
-from paths import DATASET, INTEGRITY
+from paths import CURRENT, INTEGRITY
 
-DATA = DATASET
+DATA = CURRENT
 OUT = INTEGRITY
 ISO = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 

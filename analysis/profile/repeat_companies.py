@@ -14,7 +14,7 @@ import csv
 from collections import defaultdict
 from itertools import combinations
 
-from paths import DATASET, GOLDEN, PROFILE
+from paths import CURRENT, GOLDEN, PROFILE
 
 
 def rows(path):
@@ -22,7 +22,7 @@ def rows(path):
         return list(csv.DictReader(fh))
 
 
-requests = rows(DATASET / "intro_requests.csv")
+requests = rows(CURRENT / "intro_requests.csv")
 golden = {r["request_id"]: r for r in rows(GOLDEN / "golden_requests.csv")}
 company_name = {r["company_id"]: r["company_name"] for r in rows(GOLDEN / "golden_companies.csv")}
 

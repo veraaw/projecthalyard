@@ -13,9 +13,9 @@ from collections import Counter, defaultdict
 from datetime import datetime
 
 from golden.build_golden import OFFER_RE
-from paths import DATASET, SLACK
+from paths import CURRENT, SLACK
 
-DATA = str(DATASET)
+DATA = str(CURRENT)
 
 
 def rows(name):

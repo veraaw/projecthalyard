@@ -45,9 +45,9 @@ from dashboard.sankey_funnel import build_figure
 from dashboard.trace_section import fragment as trace_fragment, sidebar as trace_sidebar
 from golden import build_golden as bg
 from golden.clock import as_of
-from paths import DATASET, DOCS, PROFILE, ROUTING
+from paths import CURRENT, DOCS, PROFILE, ROUTING
 
-DATA = str(DATASET)
+DATA = str(CURRENT)
 
 
 def rows(name):
@@ -1206,6 +1206,16 @@ nav.bands a.band{{font-weight:600;font-size:12px;text-transform:uppercase;letter
 #lp .ask+.drop{{margin-top:12px;padding:22px 16px;font-size:14.5px}}
 #lp .presets{{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 10px;font-family:var(--sans);font-size:13px;color:var(--mute);align-items:center}}
 #lp .presets button{{font-size:13px;padding:6px 12px}}
+#lp .upload-head{{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin:16px 0 4px;font-family:var(--sans);font-size:14px}}
+#lp .upload-head select{{font:inherit;padding:4px 8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}}
+#lp table.changes td.from{{color:var(--mute);text-decoration:line-through}}
+#lp table.changes td.to{{font-weight:500}}
+#lp table.sample td{{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+#lp tr.reverted td{{color:var(--mute);text-decoration:line-through}}
+#lp tr.reverted td.foot,#lp tr.reverted td .foot{{text-decoration:none}}
+#lp tr.revert td{{background:var(--bg);border-top:2px solid var(--warn)}}
+#lp #lp-up-revert-box{{margin:14px 0}}
+#lp .dl.failed{{border-left:2px solid var(--warn);padding-left:12px}}
 #lp .ask{{display:flex;gap:12px;align-items:stretch}}
 #lp #lp-route-go{{padding:8px 22px;font-size:15px}}
 #lp textarea{{flex:1;font-family:var(--serif);font-size:16px;line-height:1.5;padding:14px 16px;border:1px solid var(--line);background:var(--surface);color:var(--ink);resize:vertical;min-height:120px}}

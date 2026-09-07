@@ -21,6 +21,9 @@ recommendation) and prints the counts per group.
 The dashboard reads analysis/joins/join_rates.md and analysis/profile/profile.md,
 so those steps run before it. The tests run first (`python3 -m unittest
 discover tests`): a failure exits non-zero and stops the build.
+
+Before any step, golden/current/ is rewritten from dataset/ plus the uploads
+accepted in intake/ (golden/intake.py): every step reads that, never dataset/.
 """
 import argparse
 import os
@@ -31,7 +34,7 @@ from pathlib import Path
 
 from analysis.crm.writeback import write_all as write_crm_writeback
 from analysis.trace import write_all as write_traces
-from golden import clock
+from golden import clock, intake
 
 ROOT = Path(__file__).resolve().parent
 
@@ -73,6 +76,8 @@ def main(argv):
     if not steps:
         sys.exit(f"no step matches {wanted}; known steps: {', '.join(n for n, _ in STEPS)}")
     print(f"as of {today.isoformat()}")
+    applied = intake.materialize()
+    print("golden/current/ from dataset/" + (" + " + ", ".join(f"{t} (+{n})" for t, n in sorted(applied.items())) if applied else " (no uploads accepted)"))
     for name, step in steps:
         print(f"--- {name} ({step if isinstance(step, str) else step.__doc__})")
         try:

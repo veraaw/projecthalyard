@@ -13,9 +13,9 @@ from collections import defaultdict
 from datetime import datetime, timezone
 
 from golden.build_golden import OFFER_RE
-from paths import DATASET, ROUTING
+from paths import CURRENT, ROUTING
 
-DATA = str(DATASET)
+DATA = str(CURRENT)
 OUT = str(ROUTING / "routing_kpis.md")
 
 def rows(name):

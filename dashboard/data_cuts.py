@@ -23,9 +23,9 @@ from dashboard import company_value as cv
 from dashboard import request_state as rs
 from golden import build_golden as bg
 from golden.clock import as_of
-from paths import DATASET, GOLDEN as GOLDEN_DIR, JOINS
+from paths import CURRENT, GOLDEN as GOLDEN_DIR, JOINS
 
-DATA = str(DATASET)
+DATA = str(CURRENT)
 GOLDEN = str(GOLDEN_DIR)
 SOURCES = ("dataset", "golden")
 
@@ -57,13 +57,16 @@ def d(v):
     return date.fromisoformat(v.strip()) if v.strip() else None
 
 
-def as_filed(g, raw, roles):
+def as_filed(g, raw, roles, extra=()):
     """A golden_requests.csv row in intro_requests.csv's shape, so one cut reads
     either. The facts golden carries win (they are what was filed, kept even
     when the raw export changes); the columns it does not carry come from the
     raw row while the export still has the request, and requester_role from the
-    same requester's other rows for a request ingested from a Slack thread."""
+    same requester's other rows for a request ingested from a Slack thread.
+    `extra` names the columns the export has beyond the September shape (an
+    accepted upload can add some); they come from the raw row, blank without one."""
     return {
+        **{c: raw.get(c, "") for c in extra},
         "request_id": g["request_id"], "requested_by": g["requested_by"],
         "requester_role": raw.get("requester_role", "") or roles.get(g["requested_by"].strip(), ""),
         "request_date": g["request_date"], "raw_ask": g["raw_ask"],
@@ -71,6 +74,11 @@ def as_filed(g, raw, roles):
         "target_title_raw": g["target_title"], "deal_value_usd": g["value_usd"], "urgency": g["urgency_declared"],
         "path_found_flag": raw.get("path_found_flag", ""), "status": g["status_as_filed"],
     }
+
+
+# intro_requests.csv's September columns, the ones as_filed fills from golden
+RAW_SHAPE = ("request_id", "requested_by", "requester_role", "request_date", "raw_ask", "target_company_raw", "target_person_raw",
+             "target_title_raw", "deal_value_usd", "urgency", "path_found_flag", "status")
 
 
 def load(source="dataset", completions=None):
@@ -93,7 +101,8 @@ def load(source="dataset", completions=None):
     if source == "golden":
         raw_by_id = {r["request_id"]: r for r in raw_requests}
         roles = {r["requested_by"].strip(): r["requester_role"] for r in raw_requests if r["requester_role"].strip()}
-        requests = [as_filed(g, raw_by_id.get(g["request_id"], {}), roles) for g in golden_requests]
+        extra = [c for c in (raw_requests[0] if raw_requests else {}) if c not in RAW_SHAPE]
+        requests = [as_filed(g, raw_by_id.get(g["request_id"], {}), roles, extra) for g in golden_requests]
         completions = bg.load_completions() if completions is None else completions
         outcomes = bg.with_completions(dataset("intro_outcomes.csv"), completions)
     else:
