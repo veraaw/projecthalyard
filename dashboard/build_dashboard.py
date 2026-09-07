@@ -535,7 +535,7 @@ def headline_kpis(data):
     """The strip at the top of the Live Data tab: what the asks returned, how fast, and what is reachable but unasked."""
     y, lat, b = data_cuts.yield_cut(data), data_cuts.latency_cut(data), data_cuts.backlog_cut(data)
     return f"""<div class="kpis headline">
-    {kpi(usd(y["opp"]), "opportunity value created", f"from {y['asks']} asks, {y['intros']} intros, {y['opps']} opportunities")}
+    {kpi(usd(y["opp"]), "opportunity value created", f"from {y['asks']} asks, {y['intros']} intros, {y['opps']} opportunities at {y['opp_companies']} companies, each counted once")}
     {kpi(usd(y["opp_per_ask"]), "return per ask", f"{usd(y['opp_per_intro'])} per intro")}
     {kpi(days(lat["median_to_intro"]), "median ask to intro", f"{days(lat['median_to_ask'])} request to ask")}
     {kpi(days(lat["median_to_resp"]), "median ask to first response", f"over {lat['asks']} asks")}

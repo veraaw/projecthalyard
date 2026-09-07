@@ -937,7 +937,13 @@ class GoldenSourceCutsTest(unittest.TestCase):
         self.assertEqual((y["asks"], y["intros"], y["opps"]), (stages["Asked"], stages["Intros"], stages["Opportunities"]))
         by_id = {r["request_id"]: r for r in self.gold["requests"]}
         self.assertEqual(y["routed"], sum(float(by_id[o["request_id"]]["deal_value_usd"] or 0) for o in self.gold["outcomes"]))
-        self.assertEqual(y["opp"], sum(float(o["opportunity_value_usd"] or 0) for o in self.gold["outcomes"]))
+        # one $ per company (dashboard/company_value.py), the rule Live Priorities prices every row by
+        live = lp.Live(AS_OF)
+        opp_rows = [self.gold["golden_requests"][o["request_id"]] for o in self.gold["outcomes"] if o["opportunity_created"] == "Y"]
+        self.assertEqual(y["opp"], live.dollars_total(opp_rows))
+        self.assertEqual(y["opp_companies"], len({r["company_id"] for r in opp_rows}))
+        self.assertLess(y["opp_companies"], y["opps"], "a company with two opportunities logged counts once")
+        self.assertNotEqual(y["opp"], sum(float(o["opportunity_value_usd"] or 0) for o in self.gold["outcomes"]))
         self.assertAlmostEqual(y["routed_per_ask"], y["routed"] / y["asks"])
         self.assertAlmostEqual(y["opp_per_intro"], y["opp"] / y["intros"])
         self.assertGreater(y["requested"], y["routed"], "the never-asked requests carry value too")

@@ -19,6 +19,7 @@ import sys
 from collections import Counter, defaultdict
 from datetime import date, timedelta
 
+from dashboard import company_value as cv
 from dashboard import request_state as rs
 from golden import build_golden as bg
 from golden.clock import as_of
@@ -126,6 +127,18 @@ def request_states(data):
     return rs.classify(data["requests"], data["outcome_by_request"], rs.current_allocation(data["allocation"]))
 
 
+def dollars(data, request_ids):
+    """The one $ per company (dashboard/company_value.py) across the requests: a
+    company named by several of them counts once, at its CRM ARR potential or
+    else its latest deal value; a request that resolved to no company at its own."""
+    by_company = defaultdict(list)
+    for g in data["golden_requests"].values():
+        if g["company_id"]:
+            by_company[g["company_id"]].append(g)
+    rows = [data["golden_requests"].get(rid.strip(), {"company_id": "", "value_usd": ""}) for rid in request_ids]
+    return cv.total(rows, data["golden_companies"], by_company)
+
+
 def in_cycle(data):
     """How many requests the current allocation cycle holds: the denominator for
     a count of this cycle's requests."""
@@ -228,15 +241,19 @@ def in_window(r, since):
 
 def yield_cut(data, since=None):
     """What the asks returned: the deal value routed to a connector and the
-    opportunity value that came back, each per ask and per intro. `since`
-    keeps requests dated on or after it."""
+    value of the companies that came back as opportunities, each per ask and
+    per intro. The opportunity value is dollars(): one $ per company, so a
+    company with two opportunities logged counts once. `since` keeps requests
+    dated on or after it."""
     req = {r["request_id"].strip(): r for r in data["requests"] if in_window(r, since)}
     asked = [(req[o["request_id"].strip()], o) for o in data["outcomes"] if o["request_id"].strip() in req]
     asks, intros = len(asked), sum(1 for _, o in asked if yes(o, "intro_sent"))
     routed = sum(money(r["deal_value_usd"]) for r, _ in asked)
-    opp = sum(money(o["opportunity_value_usd"]) for _, o in asked)
+    opp_rows = [o for _, o in asked if yes(o, "opportunity_created")]
+    opp = dollars(data, [o["request_id"] for o in opp_rows])
+    opp_companies = {data["golden_requests"].get(o["request_id"].strip(), {}).get("company_id", "") or o["request_id"] for o in opp_rows}
     return {
-        "asks": asks, "intros": intros, "opps": sum(1 for _, o in asked if yes(o, "opportunity_created")),
+        "asks": asks, "intros": intros, "opps": len(opp_rows), "opp_companies": len(opp_companies),
         "routed": routed, "routed_per_ask": routed / asks if asks else 0, "routed_per_intro": routed / intros if intros else 0,
         "opp": opp, "opp_per_ask": opp / asks if asks else 0, "opp_per_intro": opp / intros if intros else 0,
         "requested": sum(money(r["deal_value_usd"]) for r in req.values()),
