@@ -618,6 +618,27 @@ nav.bands a.band{{font-weight:600;font-size:12px;text-transform:uppercase;letter
 @media(max-width:900px){{#lp .strip{{grid-template-columns:repeat(3,1fr)}}}}
 #lp table.top td.order{{color:var(--mute)}}
 #lp table.top td.ev{{font-size:18px;font-weight:500;color:var(--blue)}}
+/* the ranked queue: roomier rows, the rank and the expected value carry the eye, the arithmetic sits quietly under each score */
+#lp table.prio{{font-size:14.5px;line-height:1.4}}
+#lp table.prio th{{padding:10px 12px 12px;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;vertical-align:bottom;white-space:nowrap}}
+#lp table.prio th .fm{{display:block;margin-top:3px;font-size:11px;letter-spacing:0;text-transform:none;white-space:normal;max-width:130px}}
+#lp table.prio td{{padding:18px 12px}}
+#lp table.prio th:first-child,#lp table.prio td:first-child{{padding-right:2px;width:24px}}
+#lp table.prio td.order{{font-size:20px;font-weight:500;line-height:1.1;letter-spacing:-.02em;width:26px}}
+#lp table.prio td.co{{min-width:230px}}
+#lp table.prio td.co a{{font-size:16px;font-weight:500}}
+#lp table.prio .rid{{font-family:var(--mono);font-size:12px}}
+#lp table.prio td.who{{min-width:120px}}
+#lp table.prio td.via{{min-width:150px}}
+#lp table.prio td.ev{{font-size:22px;line-height:1.1;letter-spacing:-.02em;white-space:nowrap}}
+#lp table.prio td.parts{{min-width:130px}}
+#lp table.prio td.parts b{{display:block;font-size:16px;line-height:1.1}}
+#lp table.prio td.parts .math{{display:block;margin-top:5px;font-size:12px;color:var(--mute);white-space:nowrap}}
+#lp table.prio td.parts .foot{{display:block;margin-top:3px;font-size:12px}}
+#lp table.prio .notify{{margin-top:8px;white-space:normal;max-width:300px}}
+#lp table.prio tbody tr:hover td{{background:var(--bg)}}
+#lp table.prio tr.done td{{text-decoration:none}}
+#lp table.prio tr.done td.order,#lp table.prio tr.done td.co a{{text-decoration:line-through}}
 #lp tr.done td{{color:var(--mute);text-decoration:line-through}}
 #lp table.top tr.done td.ev{{color:var(--mute)}}
 #lp table.top tr.quiet td{{color:var(--mute)}}
@@ -672,11 +693,12 @@ nav.bands a.band{{font-weight:600;font-size:12px;text-transform:uppercase;letter
 #lp table.preview tr.pick:hover td{{background:var(--bg)}}
 #lp table.preview tr.detail>td{{padding:4px 18px 18px;background:var(--bg);border-left:2px solid var(--blue)}}
 #lp table.preview tr.detail dl.route{{margin-top:10px}}
-#lp .ask+.drop{{margin-top:10px;padding:14px}}
-#lp .presets{{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 8px;font-family:var(--sans);font-size:12.5px;color:var(--mute);align-items:center}}
-#lp .presets button{{font-size:12.5px;padding:5px 10px}}
-#lp .ask{{display:flex;gap:10px;align-items:stretch}}
-#lp textarea{{flex:1;font-family:var(--serif);font-size:15px;line-height:1.45;padding:10px 12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);resize:vertical;min-height:64px}}
+#lp .ask+.drop{{margin-top:12px;padding:22px 16px;font-size:14.5px}}
+#lp .presets{{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 10px;font-family:var(--sans);font-size:13px;color:var(--mute);align-items:center}}
+#lp .presets button{{font-size:13px;padding:6px 12px}}
+#lp .ask{{display:flex;gap:12px;align-items:stretch}}
+#lp #lp-route-go{{padding:8px 22px;font-size:15px}}
+#lp textarea{{flex:1;font-family:var(--serif);font-size:16px;line-height:1.5;padding:14px 16px;border:1px solid var(--line);background:var(--surface);color:var(--ink);resize:vertical;min-height:120px}}
 #lp textarea:focus{{outline:none;border-color:var(--blue)}}
 #lp dl.route{{display:grid;grid-template-columns:max-content 1fr;gap:8px 20px;margin:18px 0 6px;font-size:15px}}
 #lp dl.route dt{{font-family:var(--sans);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);padding-top:4px}}
