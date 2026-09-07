@@ -1757,9 +1757,10 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
     return rows
 
 
-def merge_write(rows: list[dict], source: dict[str, dict | None]) -> tuple[int, int, int, list[str], list[str]]:
+def merge_write(rows: list[dict], source: dict[str, dict | None], drop: set[str] = frozenset()) -> tuple[int, int, int, list[str], list[str]]:
     """Merge the recomputed rows into golden_requests.csv. Every filed row is
-    kept. Rows whose request_id is new are appended. On a filed row,
+    kept, except the request_ids in `drop` (the ones an intake revert took the
+    only source of: intake.reverted_request_ids). Rows whose request_id is new are appended. On a filed row,
     RECOMPUTED_COLUMNS take the recomputed value; ROUTING_COLUMNS take it too
     while the row has no asked_date (the allocation they describe is redone
     every run); OUTCOME_COLUMNS are filled in once, when the row has no
@@ -1777,6 +1778,9 @@ def merge_write(rows: list[dict], source: dict[str, dict | None]) -> tuple[int, 
     existing = read_csv(REQUESTS_OUT) if REQUESTS_OUT.exists() else []
     has_bom = REQUESTS_OUT.exists() and REQUESTS_OUT.read_bytes()[:3] == b"\xef\xbb\xbf"
     filed_cols = list(existing[0].keys()) if existing else REQUEST_COLUMNS
+    dropped = len(existing)
+    existing = [r for r in existing if r["request_id"] not in drop]
+    dropped -= len(existing)
     missing = [c for c in filed_cols if c not in REQUEST_COLUMNS]
     if missing:
         sys.exit(f"{REQUESTS_OUT} has columns not in the schema ({', '.join(missing)}); refusing to write.")
@@ -1814,7 +1818,7 @@ def merge_write(rows: list[dict], source: dict[str, dict | None]) -> tuple[int, 
     filed_ids = {e["request_id"] for e in existing}
     new = [r for r in rows if r["request_id"] not in filed_ids]
 
-    if added or has_bom or changed:
+    if added or has_bom or changed or dropped:
         write_csv(REQUESTS_OUT, REQUEST_COLUMNS, existing + new)
     else:
         write_csv(REQUESTS_OUT, REQUEST_COLUMNS, new, mode="a")
@@ -1967,7 +1971,9 @@ def main() -> None:
     # In-scope set = CRM accounts + every company in the request file (rows
     # already filed, plus raw requests about to be appended). IDs are pinned to
     # the existing golden files before any supply-side source is read.
-    filed = read_csv(REQUESTS_OUT) if REQUESTS_OUT.exists() else []
+    # a request an intake revert took the only source of leaves the file (append-only otherwise)
+    reverted = intake.reverted_request_ids()
+    filed = [r for r in (read_csv(REQUESTS_OUT) if REQUESTS_OUT.exists() else []) if r["request_id"] not in reverted]
     roster = load_roster()
     reg = Registry(read_csv(CURRENT / "crm_accounts.csv"),
                    [inv["fund"] for inv in read_csv(CURRENT / "investor_network.csv")],
@@ -1981,7 +1987,7 @@ def main() -> None:
     completions = load_completions()
     outcomes = with_completions(read_csv(CURRENT / "intro_outcomes.csv"), completions)
     rates = delivery_rates(roster, outcomes, threads)
-    history = read_allocation()
+    history = [a for a in read_allocation() if a["request_id"] not in reverted]
     signals = history_signals(history, outcomes, today)
 
     supply = build_supply(reg, roster, rates, today, {rid: rq["company"] for rid, rq in resolved.items()}, threads)
@@ -1992,8 +1998,11 @@ def main() -> None:
     allocation = allocate(roster, rates, outcomes, supply_by, resolved, today, decided_at, signals)
     requests = build_requests(reg, roster, rates, supply_by, resolved, threads, allocation, filed, outcomes, completions)
     kept, appended, changed, added, warnings = merge_write(
-        requests, {rid: rq["source"] for rid, rq in resolved.items()})
+        requests, {rid: rq["source"] for rid, rq in resolved.items()}, reverted)
     carried = sum(1 for rq in resolved.values() if rq["source"] is None)
+    if reverted:
+        print(f"intake revert         {len(reverted)} request(s) dropped from golden_requests.csv, their only source an upload set aside: "
+              + ", ".join(sorted(reverted)[:10]))
 
     # Derived files: all three computed from the request file as just written,
     # then swapped in together.

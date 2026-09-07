@@ -682,6 +682,44 @@ class RebuildWithUploadsTest(unittest.TestCase):
         self.run_in_root("golden/intake.py", "--add", str(up), "--by", "tester")
         self.assertEqual(len(intake._read(self.root / "intake" / "uploads.csv")), 2, "the same file twice is one upload")
 
+    def golden_requests(self) -> dict[str, dict]:
+        with open(self.root / "golden" / "golden_requests.csv", newline="", encoding="utf-8-sig") as f:
+            return {r["request_id"]: r for r in csv.DictReader(f)}
+
+    def test_revert_takes_the_requests_an_upload_brought_out_of_golden(self):
+        raw = self.golden_requests()
+        up = self.root / "up.csv"
+        up.write_bytes(csv_text(REQUEST_COLUMNS, [["R9001", "Vireo Systems", "CDO", "Live Router", "2026-09-01", "Intro to Vireo?"],
+                                                   [next(iter(raw)), "", "", "", "", ""]]).encode())  # one new, one on file already
+        sl = self.root / "slack.jsonl"
+        sl.write_text(jsonl([thread("R9003", "Anyone close to the CTO at Halcyon Bio (halcyonbio.com)?", "I can - on it")]))
+        self.run_in_root("golden/intake.py", "--add", str(up), "--by", "tester")
+        self.run_in_root("golden/intake.py", "--add", str(sl), "--target", "slack_threads.jsonl")
+        self.run_in_root("golden/build_golden.py")
+        self.assertEqual(set(self.golden_requests()) - set(raw), {"R9001", "R9003"})
+        with open(self.root / "golden" / "golden_allocation.csv", newline="", encoding="utf-8-sig") as f:
+            self.assertIn("R9003", {a["request_id"] for a in csv.DictReader(f)})
+        out = self.run_in_root("golden/intake.py", "--revert", "--by", "tester").stdout
+        self.assertIn("reverted to dataset/", out)
+        self.assertEqual(intake.reverted_request_ids(self.root / "dataset", self.root / "intake" / "files", self.root / "intake" / "uploads.csv"),
+                         {"R9001", "R9003"}, "the request already on file is not the upload's to take away")
+        self.assertEqual(tree_digest(self.root / "golden" / "current"), self.before)
+        build = self.run_in_root("golden/build_golden.py").stdout
+        self.assertIn("2 request(s) dropped from golden_requests.csv", build)
+        self.assertIn(f"{len(raw)} rows ({len(raw)} kept, of which 0 not in dataset/intro_requests.csv and carried forward", build)
+        after = self.golden_requests()
+        self.assertEqual(set(after), set(raw))
+        self.assertEqual({k: v["raw_ask"] for k, v in after.items()}, {k: v["raw_ask"] for k, v in raw.items()})
+        with open(self.root / "golden" / "golden_allocation.csv", newline="", encoding="utf-8-sig") as f:
+            self.assertNotIn("R9003", {a["request_id"] for a in csv.DictReader(f)})
+        self.assertEqual(len(intake._read(self.root / "intake" / "uploads.csv")), 3, "the ledger keeps the history")
+        self.assertEqual(tree_digest(self.root / "dataset"), self.before)
+        # accepted again after the revert: back in, under a new upload_id
+        out = self.run_in_root("golden/intake.py", "--add", str(up), "--by", "tester").stdout
+        self.assertIn("-g1", out)
+        self.run_in_root("golden/build_golden.py")
+        self.assertIn("R9001", self.golden_requests())
+
 
 if __name__ == "__main__":
     unittest.main()

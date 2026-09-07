@@ -65,8 +65,10 @@ in `intro_requests.csv` becomes a request. The same file accepted twice is one u
 Without Supabase, Accept offers the file to download plus the `golden/intake.py --add`
 command that does the same thing locally. **Revert to Sep Raw Data State** (same band)
 files a revert row instead of a file: nothing is deleted from `intake/`, but from the next
-rebuild no upload accepted before it applies, so `golden/current/` is `dataset/` again;
-uploads accepted afterwards apply on top of that. `golden/intake.py`'s docstring has the
+rebuild no upload accepted before it applies, so `golden/current/` is `dataset/` again and
+a request those uploads were the only source of leaves `golden_requests.csv` (the one
+exception to that file being append-only); uploads accepted afterwards apply on top of
+that. `golden/intake.py`'s docstring has the
 details.
 
 The Live Priorities tab posts completions and uploads with the publishable key in

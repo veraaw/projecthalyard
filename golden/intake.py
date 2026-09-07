@@ -48,7 +48,9 @@ twice lands once: the ledger, the table's primary key and --add all skip it.
 Revert (the tab's "Revert to Sep Raw Data State", or --revert) is a ledger row
 of its own (target `revert`, no file): nothing is deleted, but only the uploads
 accepted after the last revert are applied, so golden/current/ is dataset/
-again until the next Accept. Uploads after a revert get a -g<n> suffix on
+again until the next Accept, and build_golden.py drops the requests those
+uploads were the only source of from golden_requests.csv (reverted_request_ids;
+the one exception to that file being append-only). Uploads after a revert get a -g<n> suffix on
 their upload_id (n = reverts so far), so a file that was accepted, reverted
 and accepted again is a new row, not a repeat.
 """
@@ -510,6 +512,32 @@ def revert(by: str, note: str = "", at: str = "", uid: str = "", path: Path = LE
            "rows": "", "new_rows": "", "changed_rows": "", "new_columns": "", "note": note}
     _write(path, LEDGER_COLUMNS, [*rows, row])
     return row
+
+
+def reverted_request_ids(base: Path = DATASET, files: Path = FILES, path: Path = LEDGER) -> set[str]:
+    """The request_ids that reached golden_requests.csv only through uploads a
+    revert set aside: every request_id in a reverted intro_requests.csv or
+    slack_threads.jsonl upload that the current files (dataset/ plus the
+    uploads still applied) do not have. golden_requests.csv is append-only
+    otherwise; the build drops these so a revert really is one."""
+    rows = ledger(path)
+    live = {r["upload_id"] for r in active(rows)}
+    gone = [r for r in rows if r["target"] != REVERT and r["upload_id"] not in live]
+    if not gone:
+        return set()
+    ids: set[str] = set()
+    for r in gone:
+        text = read_verbatim(file_of(r, files))
+        if r["target"] == "slack_threads.jsonl":
+            ids.update(t["request_id"].strip() for t in parse_threads(text))
+        elif r["target"] == "intro_requests.csv":
+            ids.update(u.get("request_id", "").strip() for u in parse_csv(text)[1])
+    ids.discard("")
+    if ids:
+        _, data = current_source("intro_requests.csv", base, files, rows, path)
+        ids.difference_update(u.get("request_id", "").strip() for u in data)
+        ids.difference_update(t["request_id"].strip() for t in current_source("slack_threads.jsonl", base, files, rows, path))
+    return ids
 
 
 # ---------------------------------------------------------------------------
