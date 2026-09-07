@@ -23,6 +23,7 @@ import csv
 import json
 import re
 import shutil
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -851,6 +852,94 @@ class GoldenSourceCutsTest(unittest.TestCase):
                                   live_by[cyc]["intros_cumulative"], live_by[cyc]["capacity_pct"]), cyc)
         self.assertEqual([p["connector"] for p in raw["per_connector"]], [p["connector"] for p in live["per_connector"]])
 
+    def test_yield_is_what_the_asks_routed_and_returned(self):
+        y = self.dc.yield_cut(self.gold)
+        stages = dict(self.dc.funnel_cut(self.gold))
+        self.assertEqual((y["asks"], y["intros"], y["opps"]), (stages["Asked"], stages["Intros"], stages["Opportunities"]))
+        by_id = {r["request_id"]: r for r in self.gold["requests"]}
+        self.assertEqual(y["routed"], sum(float(by_id[o["request_id"]]["deal_value_usd"] or 0) for o in self.gold["outcomes"]))
+        self.assertEqual(y["opp"], sum(float(o["opportunity_value_usd"] or 0) for o in self.gold["outcomes"]))
+        self.assertAlmostEqual(y["routed_per_ask"], y["routed"] / y["asks"])
+        self.assertAlmostEqual(y["opp_per_intro"], y["opp"] / y["intros"])
+        self.assertGreater(y["requested"], y["routed"], "the never-asked requests carry value too")
+        cx = self.dc.connector_cut(self.gold)
+        self.assertLessEqual(sum(c["opp_value"] for c in cx["connectors"]), y["opp"], "off-roster asks return too; the ranking is the roster")
+        self.assertEqual([c["opp_per_ask"] for c in cx["by_return"]], sorted((c["opp_per_ask"] for c in cx["by_return"]), reverse=True))
+        for c in cx["by_return"]:
+            self.assertAlmostEqual(c["opp_per_ask"], c["opp_value"] / c["asked"], msg=c["name"])
+        empty = self.dc.yield_cut(self.gold, since="2999-01-01")
+        self.assertEqual((empty["asks"], empty["routed_per_ask"], empty["opp_per_intro"]), (0, 0, 0), "an empty window does not divide by zero")
+
+    def test_backlog_is_the_never_asked_split_by_whether_a_path_exists(self):
+        b = self.dc.backlog_cut(self.gold)
+        stages = dict(self.dc.funnel_cut(self.gold))
+        self.assertEqual(b["never"], stages["Requests"] - stages["Asked"])
+        self.assertEqual(b["with_path"] + b["without_path"], b["never"])
+        self.assertAlmostEqual(b["with_path_value"] + b["without_path_value"], b["never_value"])
+        self.assertEqual(sum(c["requests"] for c in b["companies"]), b["with_path"])
+        self.assertAlmostEqual(sum(c["value"] for c in b["companies"]), b["with_path_value"])
+        reach = {s["company_id"] for s in self.gold["supply"]}
+        for c in b["companies"]:
+            self.assertIn(c["company_id"], reach)
+            self.assertTrue(c["connectors"] and c["name"], c)
+        self.assertEqual([c["requests"] for c in b["companies"]], sorted((c["requests"] for c in b["companies"]), reverse=True))
+        # an ask sent from Live Priorities takes its request out of the backlog on the next build
+        rid = next(r["request_id"] for r in self.gold["requests"]
+                   if r["request_id"] not in {o["request_id"] for o in self.gold["outcomes"]}
+                   and self.gold["golden_requests"][r["request_id"]]["company_id"] in reach)
+        row = {c: "" for c in bg.COMPLETION_COLUMNS}
+        row.update(completion_id=f"{rid}:ask_sent:2026-09-06", completed_at="2026-09-06T10:15:00+00:00",
+                   completed_by="vera", action=bg.ASKED, request_id=rid, connector=self.raw["roster"][0]["name"].strip())
+        after = self.dc.backlog_cut(self.dc.load("golden", completions=[row]))
+        self.assertEqual((after["never"], after["with_path"]), (b["never"] - 1, b["with_path"] - 1))
+
+    def test_blockage_buckets_every_never_asked_request_by_its_blocked_reason(self):
+        bl = self.dc.blockage_cut(self.gold)
+        self.assertEqual(bl["never"], self.dc.backlog_cut(self.gold)["never"])
+        self.assertEqual(bl["allocated"] + bl["blocked"], bl["never"], "allocated this cycle or blocked, nothing else")
+        self.assertEqual(bl["other"], [], "every blocked_reason build_golden.py writes has a bucket")
+        self.assertEqual(sum(k["count"] for k in bl["kinds"].values()), bl["blocked"])
+        for k in bl["kinds"].values():
+            self.assertEqual(sum(n for _, n in k["reasons"]), k["count"], k["label"])
+        self.assertAlmostEqual(bl["supply_share"], bl["kinds"]["supply"]["count"] / bl["blocked"])
+        self.assertEqual([k["label"] for k in bl["kinds"].values()], ["missing relationship", "process gap", "correctly not asked"])
+        reasons = Counter(self.gold["golden_requests"][r["request_id"]]["blocked_reason"] for r in self.gold["requests"]
+                          if r["request_id"] not in {o["request_id"] for o in self.gold["outcomes"]})
+        self.assertEqual(bl["allocated"], reasons[""])
+        self.assertEqual(bl["kinds"]["supply"]["count"], reasons[bg.BLOCK_NO_PATH] + reasons[bg.BLOCK_NO_ROSTER_PATH])
+        self.assertEqual(bl["kinds"]["closed"]["count"], reasons[bg.BLOCK_CLOSED_LOST] + reasons[bg.ALREADY_INTRODUCED])
+        self.assertEqual(dict(bl["kinds"]["process"]["reasons"]).get("capacity exhausted", 0), reasons[bg.CAPACITY_EXHAUSTED])
+        allocated = {r["request_id"] for r in self.gold["golden_requests"].values() if r["routed_to"].strip() and not r["blocked_reason"].strip()
+                     and r["request_id"] not in {o["request_id"] for o in self.gold["outcomes"]}}
+        self.assertEqual(bl["allocated"], len(allocated), "no blocked_reason means the allocator routed it this cycle")
+
+    def test_latency_medians_overall_and_by_month(self):
+        lat = self.dc.latency_cut(self.gold, today=AS_OF)
+        by_id = {r["request_id"]: r for r in self.gold["requests"]}
+        to_ask = [(date.fromisoformat(o["asked_date"]) - date.fromisoformat(by_id[o["request_id"]]["request_date"])).days
+                  for o in self.gold["outcomes"] if o["asked_date"].strip()]
+        to_resp = [(date.fromisoformat(o["response_date"]) - date.fromisoformat(o["asked_date"])).days
+                   for o in self.gold["outcomes"] if o["responded"] == "Y" and o["response_date"].strip()]
+        to_intro = [(date.fromisoformat(o["intro_date"]) - date.fromisoformat(o["asked_date"])).days
+                    for o in self.gold["outcomes"] if o["intro_sent"] == "Y" and o["intro_date"].strip()]
+        self.assertEqual(lat["asks"], len(to_ask))
+        self.assertEqual(lat["median_to_ask"], statistics.median(to_ask))
+        self.assertEqual(lat["median_to_resp"], statistics.median(to_resp))
+        self.assertEqual(lat["median_to_intro"], statistics.median(to_intro))
+        self.assertEqual(lat["max_to_ask"], max(to_ask))
+        self.assertLessEqual(lat["max_to_ask"], 7, "every ask on file went out inside a week")
+        self.assertEqual(lat["asked_within_week"], len(to_ask))
+        self.assertEqual(lat["waiting_past_max"], self.dc.backlog_cut(self.gold)["never"], "every unasked request is older than the slowest ask")
+        months = sorted({r["request_date"][:7] for r in self.gold["requests"]})
+        self.assertEqual([m["month"] for m in lat["monthly"]], months)
+        self.assertEqual(sum(m["requests"] for m in lat["monthly"]), len(self.gold["requests"]))
+        self.assertEqual(sum(m["asked"] for m in lat["monthly"]), lat["asks"])
+        for m in lat["monthly"]:
+            self.assertLessEqual(m["asked"], m["requests"], m["month"])
+            if m["asked"] == 0:
+                self.assertIsNone(m["to_ask"], m["month"])
+        self.assertEqual(self.dc.latency_cut({"requests": [], "outcomes": []}, today=AS_OF)["median_to_ask"], None, "no asks, no median")
+
 
 @unittest.skipUnless((ROOT / "docs" / "livedata.html").exists(), "run `python3 build.py dashboard` first")
 class BuiltPagesTest(unittest.TestCase):
@@ -909,7 +998,7 @@ class BuiltPagesTest(unittest.TestCase):
         self.assertIn('id="sankey"', html)
         self.assertIn('id="sankey-12m"', html)
 
-    STRATEGIC = ["funnel", "accounts", "requesters", "connectors", "cycles"]
+    STRATEGIC = ["funnel", "accounts", "requesters", "connectors", "latency", "cycles"]
 
     def sections(self, name):
         return re.findall(r'<(?:section|div class="divider") id="([^"]+)"', self.pages[name])
@@ -917,7 +1006,7 @@ class BuiltPagesTest(unittest.TestCase):
     def test_raw_sept_carries_the_live_charts_after_file_flow_and_joins_below_the_divider(self):
         html = self.pages["halyardscoping.html"]
         order = self.sections("halyardscoping.html")
-        self.assertEqual(order[:7], ["flow", *self.STRATEGIC, "overview"], "the Live Data charts follow File Flow")
+        self.assertEqual(order[:8], ["flow", *self.STRATEGIC, "overview"], "the Live Data charts follow File Flow")
         self.assertEqual(order[order.index("integrity-divider"):],
                          ["integrity-divider", "joins", "targets", "quality", "verify", "integrity"],
                          "the divider sits right above Joins; Joins is above CSV Profile")
@@ -937,8 +1026,8 @@ class BuiltPagesTest(unittest.TestCase):
             html = self.pages[name]
             ids = Counter(re.findall(r'\bid="([^"]+)"', html))
             self.assertEqual([k for k, v in ids.items() if v > 1], [], f"{name}: no id twice")
-            for div in ("sankey", "sankey-12m", "demand", "demand-12m", "req-asks", "req-value", "req-accounts",
-                        "req-rate", "req-urgency", "cycles-chart"):
+            for div in ("sankey", "sankey-12m", "blockage", "blockage-12m", "demand", "demand-12m", "req-asks", "req-value",
+                        "req-accounts", "req-rate", "req-urgency", "connector-return", "latency-chart", "cycles-chart"):
                 self.assertIn(f'id="{div}"', html, f"{name} draws {div}")
             self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 2, f"{name}: funnel and Top 20 toggles")
             self.assertEqual(html.count("querySelectorAll('.seg[data-scope]')"), 1, f"{name}: the toggle script once")
@@ -948,6 +1037,64 @@ class BuiltPagesTest(unittest.TestCase):
         self.assertNotIn("exist only as a Submit on Live Priorities", raw, "Raw Sept reads the exports as filed")
         self.assertIn("as filed; capacity used is roster asks", raw)
         self.assertIn("counts this build's allocation as slots used", live)
+
+    def test_live_data_opens_on_the_headline_kpis(self):
+        from dashboard import data_cuts
+        html = self.pages["livedata.html"]
+        gold = data_cuts.load("golden")
+        y, lat, b = data_cuts.yield_cut(gold), data_cuts.latency_cut(gold), data_cuts.backlog_cut(gold)
+        strip = html.split('<div class="kpis headline">')[1].split("</div>\n\n")[0]
+        self.assertLess(html.index('<div class="kpis headline">'), html.index('<section id="funnel">'), "the strip is above every section")
+        labels = re.findall(r'<div class="l">([^<]+)</div>', strip)
+        self.assertEqual(labels, ["opportunity value created", "return per ask", "median ask to intro",
+                                  "median ask to first response", "reachable but never asked"])
+        for text in (f"from {y['asks']} asks", f"{lat['median_to_intro']:g} d", f"{lat['median_to_resp']:g} d",
+                     f"{b['with_path']} requests with a path in supply_reach.csv"):
+            self.assertIn(text, strip)
+        self.assertNotIn('class="kpis headline"', self.pages["halyardscoping.html"], "Raw Sept keeps its own top")
+
+    def test_backlog_box_donut_and_yield_sit_under_the_sankey(self):
+        from dashboard import data_cuts
+        gold = data_cuts.load("golden")
+        b, bl = data_cuts.backlog_cut(gold), data_cuts.blockage_cut(gold)
+        for name in ("halyardscoping.html", "livedata.html"):
+            html = self.pages[name]
+            for view, sankey_id, donut_id in (("all", "sankey", "blockage"), ("12m", "sankey-12m", "blockage-12m")):
+                block = html.split(f'<div class="fview" data-view="{view}"')[1].split("<h3>Stage table</h3>")[0]
+                i = [block.index(f'id="{sankey_id}"'), block.index("requests never reach a connector."),
+                     block.index("<h3>Why they never reach a connector</h3>"), block.index(f'id="{donut_id}"'),
+                     block.index("<h3>Yield</h3>")]
+                self.assertEqual(i, sorted(i), f"{name}/{view}: sankey, then the box, the donut, then yield")
+                self.assertIn("of the blockage is a missing relationship.", block)
+                for label in ("routed to a connector", "routed per ask", "opportunity value created", "return per ask"):
+                    self.assertIn(f'<div class="l">{label}</div>', block, f"{name}/{view}")
+            whole = html.split('<div class="fview" data-view="all">')[1]
+            self.assertIn(f"<b>{b['never']} requests never reach a connector.</b>", whole)
+            self.assertIn(f"{b['with_path']} of them are for companies that already have a path in <code>supply_reach.csv</code>, "
+                          f"a backlog worth ${b['with_path_value'] / 1e6:.1f}M", whole)
+            self.assertIn(f"Of the {bl['never']} never asked, {bl['allocated']} are allocated this cycle and not yet asked; {bl['blocked']} are blocked.", whole)
+            self.assertIn(f"<b>Only {bl['supply_share']:.0%} of the blockage is a missing relationship.</b>", whole)
+
+    def test_connectors_ranked_by_return_per_ask_and_a_latency_section(self):
+        from dashboard import data_cuts
+        for name, source in (("halyardscoping.html", "dataset"), ("livedata.html", "golden")):
+            html = self.pages[name]
+            cuts = data_cuts.load(source)
+            ranked = data_cuts.connector_cut(cuts)["by_return"]
+            block = html.split("<h3>Ranked by return per ask</h3>")[1].split("<h3>Routing ignores the roster notes</h3>")[0]
+            self.assertIn("<th>Opp $</th><th>Per ask $</th><th>Per intro $</th>", block.replace("\n", ""), name)
+            names = re.findall(r"<tr><td>\d+</td><td>([^<]+)</td>", block)
+            self.assertEqual(names, [c["name"] for c in ranked], f"{name}: best return per ask first")
+            self.assertEqual([c["opp_per_ask"] for c in ranked], sorted((c["opp_per_ask"] for c in ranked), reverse=True))
+            lat = data_cuts.latency_cut(cuts)
+            section = html.split('<section id="latency">')[1].split("</section>")[0]
+            self.assertIn("<h2>Latency</h2>", section)
+            self.assertIn("<b>A request not asked inside a week is never asked.</b>", section)
+            self.assertIn(f"({lat['asked_within_week']} of {lat['asks']} inside seven)", section)
+            self.assertIn('<th>Month requested</th>', section)
+            self.assertEqual(len(re.findall(r"<tr><td>\d{4}-\d{2}</td>", section)), len(lat["monthly"]), f"{name}: one row a month")
+            for label in ("median request to ask", "median ask to first response", "median ask to intro"):
+                self.assertIn(f'<div class="l">{label}</div>', section, name)
 
     def test_live_data_top_20_by_asks_has_the_same_toggle_as_the_funnel(self):
         from dashboard import data_cuts
