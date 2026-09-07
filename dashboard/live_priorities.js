@@ -780,7 +780,9 @@ const LP = (function () {
 
     // ---- band 3 · actionable now: ticking a row changes what the queue proposes tomorrow — spends a connector slot
     const T = D.priorities;
-    sec.top = `<section id="top"><h2>Top ${T.top.length} Priorities <span class="foot">Do these next: sorted by expected value across ${T.considered} live requests with a connector to act on · each spends a connector slot</span></h2>`
+    const retries = T.considered_by.reduce((n, b) => n + b.retries, 0);
+    const considered = T.considered_by.map(b => `${b.count} ${esc(b.label)}` + (b.retries ? ` (${b.retries === b.count ? (b.count === 1 ? 'a retry' : 'all retries') : `${b.retries} of them retries`})` : '')).join('; ');
+    sec.top = `<section id="top"><h2>Top ${T.top.length} Priorities <span class="foot">Do these next: sorted by expected value across ${T.considered} live requests with a connector to act on — ${considered}${retries ? ` · a retry re-asks after a fizzled intro (${plural(retries, 'request')} in all)` : ''} · each spends a connector slot</span></h2>`
       + priorityTable(T.top, X, state, 'rank', true)
       + (T.rest.length ? `<details class="rest"><summary><h3>The Rest of the Queue <span class="foot">${plural(T.rest.length, 'more request')}, ranked ${T.top.length + 1}–${T.considered} by the same expected value · ${esc(T.rest_value_fmt)}${T.rest_no_slot ? ` · ${T.rest_no_slot} have no slot this cycle` : ''} · Tick here too once an ask goes out</span></h3></summary>`
         + priorityTable(T.rest, X, state, 'rank', true) + `</details>` : '')

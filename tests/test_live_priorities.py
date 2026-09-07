@@ -203,6 +203,28 @@ class PayloadTest(unittest.TestCase):
         self.assertIn("request priority × connector score", T["formula"]["expected_value"])
         self.assertEqual(T["formula"]["stage_weight"]["Negotiation"], lp.STAGE_WEIGHT["Negotiation"])
 
+    def test_the_considered_count_splits_by_why_each_request_is_in_the_queue(self):
+        """The header's N live requests = allocated this cycle + routed with no slot +
+        held on an unresolved ask, each split saying how many are retries."""
+        T, A, L = self.P["priorities"], self.P["asks"], lp.Live(AS_OF)
+        ranked = L.ranked()
+        self.assertEqual(sum(b["count"] for b in T["considered_by"]), T["considered"], "every ranked request in one split")
+        self.assertEqual(sorted(rid for b in T["considered_by"] for rid in b["request_ids"]), sorted(r["request_id"] for r in ranked))
+        by = {b["key"]: b for b in T["considered_by"]}
+        self.assertEqual([b["key"] for b in T["considered_by"]], [k for k, _ in lp.CONSIDERED_BY if k in by], "header order")
+        self.assertEqual(by["allocated"]["count"], A["allocated"], "the Current Asks total")
+        self.assertEqual(by["no_slot"]["count"], A["no_slot"], "the Current Asks no-slot count")
+        self.assertEqual(sorted(by["allocated"]["request_ids"]), sorted(r["request_id"] for r in ranked if r["allocated"]))
+        held = {r["request_id"] for e in A["exceptions"] if e["reason"] == bg.UNRESOLVED_ASK for r in e["rows"]}
+        self.assertEqual(set(by.get("held", {"request_ids": []})["request_ids"]), held & {r["request_id"] for r in ranked})
+        self.assertNotIn("other", by, "every ranked request is allocated, out of slots, or held")
+        retry = {r["request_id"] for r in ranked if r["retry"]}
+        for b in T["considered_by"]:
+            self.assertEqual(b["retries"], len(retry & set(b["request_ids"])), b["key"])
+            self.assertEqual(b["label"], dict(lp.CONSIDERED_BY)[b["key"]])
+        self.assertEqual(sum(b["retries"] for b in T["considered_by"]), len(retry))
+        self.assertEqual(by["allocated"]["retries"], self.P["introduced"]["retry_requests"], "the Already Introduced retries")
+
     def test_current_asks_match_golden_allocation(self):
         A, L = self.P["asks"], lp.Live(AS_OF)
         alloc = read_csv(ROOT / "golden" / "golden_allocation.csv")
