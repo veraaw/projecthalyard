@@ -92,7 +92,12 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: python3 build.py --skip-tests
 
+      # same env as the build: docs/ is what gets deployed, and a test that
+      # rebuilt a page without these would publish one that cannot post
       - name: Tests (a failure here means nothing below is committed or deployed)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: python3 -m unittest discover tests
 
       - name: Commit golden/, intake/ and analysis/ only if something changed

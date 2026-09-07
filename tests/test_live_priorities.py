@@ -30,7 +30,7 @@ import sys
 import tempfile
 import unittest
 from collections import Counter
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from unittest import mock
 
@@ -1388,10 +1388,11 @@ class BuiltPagesTest(unittest.TestCase):
                           f"a backlog worth ${b['with_path_value'] / 1e6:.1f}M (one $ per company)", funnel)
 
     def test_remaining_unrouted_is_its_own_section_on_live_data_only(self):
-        from dashboard import build_dashboard, data_cuts
+        from dashboard import data_cuts  # never build_dashboard: importing it rewrites docs/
+        from golden.clock import as_of
         gold = data_cuts.load("golden")
         bl = data_cuts.blockage_cut(gold)
-        bl12 = data_cuts.blockage_cut(gold, since=build_dashboard.ROLLING_SINCE)
+        bl12 = data_cuts.blockage_cut(gold, since=(as_of() - timedelta(days=365)).isoformat())
         raw = self.pages["halyardscoping.html"]
         for gone in ('<section id="unrouted">', "Remaining Unrouted", 'id="blockage"', 'id="blockage-12m"', "of the blockage is a missing relationship."):
             self.assertNotIn(gone, raw, "Raw Sept has no Remaining Unrouted donut")
