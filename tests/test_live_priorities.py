@@ -1160,8 +1160,10 @@ class BuiltPagesTest(unittest.TestCase):
                          ["flow", "flow", *self.STRATEGIC, "overview", "timing", "scoping", "integrity-divider",
                           "joins", "targets", "quality", "verify", "integrity"])
         self.assertEqual(re.findall(r'<a class="band" href="#[^"]+">([^<]+)<', side), ["Strategic data", "Data integrity"])
-        self.assertEqual(self.sections("livedata.html"), [self.STRATEGIC[0], "inflight", *self.STRATEGIC[1:]],
-                         "Live Data alone carries Requests in Flight, right after the funnel")
+        self.assertEqual(self.sections("livedata.html"), [self.STRATEGIC[0], "unrouted", "inflight", *self.STRATEGIC[1:]],
+                         "Live Data alone carries Remaining Unrouted and Requests in Flight, right after the funnel")
+        live_side = self.pages["livedata.html"].split('<nav class="toc"')[1].split("</nav>")[0]
+        self.assertEqual(re.findall(r'href="#([^"]+)"', live_side), [self.STRATEGIC[0], "unrouted", "inflight", *self.STRATEGIC[1:]])
         self.assertNotIn('id="inflight"', html, "Raw Sept reads the exports as filed; nothing is in flight there")
 
     def test_requests_in_flight_shows_the_live_priorities_counts(self):
@@ -1206,17 +1208,23 @@ class BuiltPagesTest(unittest.TestCase):
         self.assertIn("as filed; capacity used is roster asks", raw)
         self.assertIn("counts this build's allocation as slots used", live)
 
-    def test_live_data_accounts_carries_the_allocation_blockage_donut(self):
-        live, raw = self.pages["livedata.html"], self.pages["halyardscoping.html"]
-        accounts = live.split('<section id="accounts">')[1].split("</section>")[0]
-        self.assertIn('id="allocation-blockage"', accounts, "drawn inside Accounts")
-        self.assertLess(accounts.index('id="demand"'), accounts.index("<h3>Blockage by Allocation Exception</h3>"))
-        self.assertLess(accounts.index('id="allocation-blockage"'), accounts.index("<h3>Per-company detail</h3>"))
-        self.assertIn("blocked\\u003cbr\\u003eof 200 requests on file", accounts, "the denominator on the chart")
-        self.assertIn('"values":[28,47,9]', accounts)
-        self.assertIn('"labels":["supply","process","correctly not asked"]', accounts)
-        self.assertIn("status gate: Closed - no path 18\\u003cbr\\u003estatus gate: Intro sent 14\\u003cbr\\u003ecompany unresolved 8\\u003cbr\\u003ecapacity exhausted this cycle 7", accounts, "the tooltip names the prefixes it sums")
-        caption = re.sub(r"<[^>]+>", "", accounts[accounts.index("<h3>Blockage by Allocation Exception</h3>"):])
+    def test_accounts_no_longer_repeats_the_blockage_donut(self):
+        for name in ("halyardscoping.html", "livedata.html"):
+            html = self.pages[name]
+            self.assertNotIn("allocation-blockage", html, name)
+            self.assertNotIn("Blockage by Allocation Exception", html, name)
+            accounts = html.split('<section id="accounts">')[1].split("</section>")[0]
+            self.assertNotIn("of the blockage is a missing relationship.", accounts, f"{name}: the donut lives in Remaining Unrouted only")
+
+    def test_remaining_unrouted_cumulative_donut_reads_the_allocation(self):
+        live = self.pages["livedata.html"]
+        panel = live.split('<section id="unrouted">')[1].split("</section>")[0]
+        cumulative = panel.split('<div class="fview" data-view="all">')[1]
+        self.assertIn("blocked\\u003cbr\\u003eof 200 requests on file", cumulative, "the denominator on the chart")
+        self.assertIn('"values":[28,47,9]', cumulative)
+        self.assertIn('"labels":["supply","process","correctly not asked"]', cumulative)
+        self.assertIn("status gate: Closed - no path 18\\u003cbr\\u003estatus gate: Intro sent 14\\u003cbr\\u003ecompany unresolved 8\\u003cbr\\u003ecapacity exhausted this cycle 7", cumulative, "the tooltip names the prefixes it sums")
+        caption = re.sub(r"<[^>]+>", "", cumulative)
         self.assertIn("115 of the 200 requests on file never reach a connector; 84 of those are blocked. The other 31 are allocated this cycle and not yet asked; they carry a routed_to and are not blocked.", caption)
         self.assertIn("Only 33% of the blockage is a missing relationship.", caption)
         self.assertIn("Closed - no path 18 (9 with a path available, 9 without: 5 no path, 4 no resolvable company)", caption)
@@ -1225,7 +1233,6 @@ class BuiltPagesTest(unittest.TestCase):
         self.assertIn("blocked_reason is not an input", caption)
         self.assertIn("(5 in status gate: Closed - no path, 8 in status gate: Intro sent)", caption)
         self.assertNotIn("Outside the wedges", caption, "nothing unmapped this build")
-        self.assertNotIn("allocation-blockage", raw, "Raw Sept reads the exports, not the allocation")
 
     def test_live_data_opens_on_the_headline_kpis(self):
         from dashboard import data_cuts
@@ -1242,48 +1249,54 @@ class BuiltPagesTest(unittest.TestCase):
             self.assertIn(text, strip)
         self.assertNotIn('class="kpis headline"', self.pages["halyardscoping.html"], "Raw Sept keeps its own top")
 
-    def test_backlog_box_and_donut_sit_under_the_sankey_with_no_yield_strip(self):
-        from dashboard import build_dashboard, data_cuts
+    def test_backlog_box_sits_under_the_sankey_with_no_yield_strip(self):
+        from dashboard import data_cuts
         gold = data_cuts.load("golden")
-        b, bl = data_cuts.backlog_cut(gold), data_cuts.blockage_cut(gold)
-        bl12 = data_cuts.blockage_cut(gold, since=build_dashboard.ROLLING_SINCE)
+        b = data_cuts.backlog_cut(gold)
         for name in ("halyardscoping.html", "livedata.html"):
             html = self.pages[name]
             funnel = html.split('<section id="funnel">')[1].split("</section>")[0]
+            i = [funnel.index('id="sankey-12m"'), funnel.index('id="sankey"'),
+                 funnel.index("<h3>Stage table, last 12 months</h3>"), funnel.index("<h3>Stage table</h3>")]
+            self.assertEqual(i, sorted(i), f"{name}: sankeys, then the stage tables")
             self.assertEqual(funnel.count("never reach a connector.</b>"), 2, f"{name}: a backlog box under each sankey")
             self.assertNotIn("<h3>Yield</h3>", funnel, f"{name}: no yield strip")
             for label in ("routed to a connector", "routed per ask"):
                 self.assertNotIn(f'<div class="l">{label}</div>', funnel, f"{name}: {label} left with the yield strip")
             self.assertNotIn("Why they never reach a connector", funnel)
             self.assertEqual(funnel.count('data-scope="funnel"'), 1)
+            for gone in ('id="unrouted"', "Remaining Unrouted", 'id="blockage"', "of the blockage is a missing relationship."):
+                self.assertNotIn(gone, funnel, f"{name}: the unrouted donut is not inside the funnel section")
             self.assertIn(f"<b>{b['never']} of the {b['total']} requests on file never reach a connector.</b>", funnel)
             self.assertIn(f"{b['with_path']} of them are for companies that already have a path in <code>supply_reach.csv</code>, "
                           f"a backlog worth ${b['with_path_value'] / 1e6:.1f}M", funnel)
-            if name == "halyardscoping.html":
-                for gone in ('<div id="unrouted">', "<h3>Remaining Unrouted</h3>", 'id="blockage"', "of the blockage is a missing relationship."):
-                    self.assertNotIn(gone, funnel, f"{name}: Raw Sept has no Remaining Unrouted donut")
-                continue
-            # sankey + backlog box in each funnel view, then one Remaining Unrouted panel with its own toggle, then the stage tables
-            i = [funnel.index('id="sankey-12m"'), funnel.index('id="sankey"'), funnel.index('<div id="unrouted">'),
-                 funnel.index("<h3>Remaining Unrouted</h3>"), funnel.index('id="unrouted-toggle" data-scope="unrouted"'),
-                 funnel.index('id="blockage-12m"'), funnel.index('id="blockage"'),
-                 funnel.index("<h3>Stage table, last 12 months</h3>"), funnel.index("<h3>Stage table</h3>")]
-            self.assertEqual(i, sorted(i), f"{name}: sankeys, then the unrouted panel, then the stage tables")
-            self.assertEqual(funnel.count("<h3>Remaining Unrouted</h3>"), 1, f"{name}: one panel, toggled on its own")
-            panel = funnel.split('<div id="unrouted">')[1].split("<h3>Stage table, last 12 months</h3>")[0]
-            self.assertIn('<button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button>', panel)
-            self.assertIn('id="unrouted-window" data-all="', panel)
-            self.assertIn(f"{bl['never']} of {bl['total']} requests on file never asked", panel)
-            self.assertEqual(panel.count("of the blockage is a missing relationship."), 2, f"{name}: a donut and its reading per view")
-            self.assertNotIn("from <code>blocked_reason</code>", panel, "grouped by the request's state, not blocked_reason")
-            self.assertIn("blocked\\u003cbr\\u003eof 200 requests on file", panel, "the denominator on the cumulative donut")
-            self.assertIn("blocked\\u003cbr\\u003eof " + str(bl12["in_window"]) + " requests dated ", panel, "and on the last-12-months donut")
-            self.assertIn('<div class="fview" data-view="12m" hidden>', panel)
-            self.assertIn('<div class="fview" data-view="all">', panel)
-            self.assertIn(f"{bl['never']} of the {bl['total']} requests on file never reach a connector; {bl['blocked']} of those are blocked. The other {bl['allocated']} are allocated this cycle and not yet asked", funnel)
-            self.assertIn(f"{bl12['never']} of the {bl12['in_window']} requests dated ", funnel, f"{name}: the 12-month view states its own population")
-            self.assertIn(f"<b>Only {bl['supply_share']:.0%} of the blockage is a missing relationship.</b>", funnel)
-            self.assertIn("v.parentElement.closest(scopes) !== scope", html, f"{name}: the funnel toggle leaves the nested unrouted toggle alone")
+
+    def test_remaining_unrouted_is_its_own_section_on_live_data_only(self):
+        from dashboard import build_dashboard, data_cuts
+        gold = data_cuts.load("golden")
+        bl = data_cuts.blockage_cut(gold)
+        bl12 = data_cuts.blockage_cut(gold, since=build_dashboard.ROLLING_SINCE)
+        raw = self.pages["halyardscoping.html"]
+        for gone in ('<section id="unrouted">', "Remaining Unrouted", 'id="blockage"', 'id="blockage-12m"', "of the blockage is a missing relationship."):
+            self.assertNotIn(gone, raw, "Raw Sept has no Remaining Unrouted donut")
+        html = self.pages["livedata.html"]
+        self.assertEqual(html.count("<h2>Remaining Unrouted</h2>"), 1, "one section, toggled on its own")
+        panel = html.split('<section id="unrouted">')[1].split("</section>")[0]
+        i = [panel.index('id="unrouted-toggle" data-scope="unrouted"'), panel.index('id="blockage-12m"'), panel.index('id="blockage"')]
+        self.assertEqual(i, sorted(i))
+        self.assertIn('<button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button>', panel)
+        self.assertIn('id="unrouted-window" data-all="', panel)
+        self.assertIn(f"{bl['never']} of {bl['total']} requests on file never asked", panel)
+        self.assertEqual(panel.count("of the blockage is a missing relationship."), 2, "a donut and its reading per view")
+        self.assertNotIn("from <code>blocked_reason</code>", panel, "grouped by the request's state, not blocked_reason")
+        self.assertIn("blocked\\u003cbr\\u003eof 200 requests on file", panel, "the denominator on the cumulative donut")
+        self.assertIn("blocked\\u003cbr\\u003eof " + str(bl12["in_window"]) + " requests dated ", panel, "and on the last-12-months donut")
+        self.assertIn('<div class="fview" data-view="12m" hidden>', panel)
+        self.assertIn('<div class="fview" data-view="all">', panel)
+        self.assertIn(f"{bl['never']} of the {bl['total']} requests on file never reach a connector; {bl['blocked']} of those are blocked. The other {bl['allocated']} are allocated this cycle and not yet asked", panel)
+        self.assertIn(f"{bl12['never']} of the {bl12['in_window']} requests dated ", panel, "the 12-month view states its own population")
+        self.assertIn(f"<b>Only {bl['supply_share']:.0%} of the blockage is a missing relationship.</b>", panel)
+        self.assertIn("v.parentElement.closest(scopes) !== scope", html, "each toggle only flips its own views")
 
     def test_connectors_ranked_by_return_per_ask_and_a_latency_section(self):
         from dashboard import data_cuts
