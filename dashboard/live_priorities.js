@@ -588,12 +588,14 @@ const LP = (function () {
   }
 
   // when this site was last built, from docs/build_stamp.json (deployed with
-  // the rest of docs/ on every scheduled rebuild), and the last run of
-  // the scheduled rebuild from the public GitHub Actions API when the repo is
-  // known — that run is what says the page is current even when nothing changed.
-  // Stale = no successful run in 3 cycles (or, with no API, a build over a day
-  // old). Both are best-effort: a page opened from disk shows the as-of date.
-  const STALE_RUN_MS = 45 * 60000, STALE_BUILD_MS = 24 * 3600 * 1000;
+  // the rest of docs/ on every rebuild), and the last run of the rebuild
+  // workflow from the public GitHub Actions API when the repo is known — that
+  // run is what says the page is current even when nothing changed. Stale = no
+  // successful run in 3 hours: the workflow runs on every Submit and on a
+  // 15-minute cron, but GitHub fires that cron every hour or two in practice, so
+  // anything tighter warns on a healthy site. With no API, a build over a day
+  // old. Both are best-effort: a page opened from disk shows the as-of date.
+  const STALE_RUN_MS = 3 * 3600 * 1000, STALE_BUILD_MS = 24 * 3600 * 1000;
   const ago = (iso, now = Date.now()) => {
     const m = Math.round((now - Date.parse(iso)) / 60000);
     return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
@@ -617,7 +619,7 @@ const LP = (function () {
     if (st) parts.push(`Site built <b>${esc(utc(st.built_at))}</b> (${ago(st.built_at)}; as of ${esc(st.as_of)}, ${plural(st.completions, 'completion')} applied)`);
     else parts.push(`As of <b>${esc(D.as_of)}</b>`);
     if (run) parts.push(`Last rebuild check <a href="${esc(run.html_url)}" target="_blank" rel="noopener">${ago(run.updated_at || run.created_at)}</a>`);
-    if (stale) parts.push('<b class="warn">Stale: the 15-minute rebuild has not run lately</b>');
+    if (stale) parts.push('<b class="warn">Stale: no rebuild in over 3 hours; the site may not reflect recent Submits</b>');
     el.innerHTML = parts.join(' · ');
   }
 
