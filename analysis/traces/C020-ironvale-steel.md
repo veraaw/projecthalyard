@@ -37,14 +37,14 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
-| 0.123 | 0.600 | Priya Raghunathan (Investor) | direct | Tanvi Eastcott — Chief Data Officer | connections_raghunathan.csv: Tanvi Eastcott, Chief Data Officer at Ironvale Steel, connected 2027-07-04 | Priya Raghunathan asked on 2026-02-20 (R1086), no reply for 198 days - askable, ranked last |
-| 0.067 | 0.325 | Priya Raghunathan (Investor) | direct | Tomás Ferreira — VP Enterprise Architecture | connections_raghunathan.csv: Tomás Ferreira, VP Enterprise Architecture at Ironvale Steel, connected 2017-06-21 | Priya Raghunathan asked on 2026-02-20 (R1086), no reply for 198 days - askable, ranked last |
-| 0.041 | 0.202 | Priya Raghunathan (Investor) | alumni | Tomás Ferreira — ex-Ironvale Steel (2015-2020), now VP Enterprise Architecture at Ironvale Steel | investor_network.csv: Tomás Ferreira prior_employer=Ironvale Steel (2015-2020); connections_raghunathan.csv: connection of Priya Raghunathan since 2017-06-21 | Priya Raghunathan asked on 2026-02-20 (R1086), no reply for 198 days - askable, ranked last |
+| 0.123 | 0.600 | Priya Raghunathan (Investor) | direct | Tanvi Eastcott — Chief Data Officer | connections_raghunathan.csv: Tanvi Eastcott, Chief Data Officer at Ironvale Steel, connected 2027-07-04 | Priya Raghunathan asked on 2026-02-20 (R1086), no reply for 199 days - askable, ranked last |
+| 0.067 | 0.325 | Priya Raghunathan (Investor) | direct | Tomás Ferreira — VP Enterprise Architecture | connections_raghunathan.csv: Tomás Ferreira, VP Enterprise Architecture at Ironvale Steel, connected 2017-06-21 | Priya Raghunathan asked on 2026-02-20 (R1086), no reply for 199 days - askable, ranked last |
+| 0.041 | 0.202 | Priya Raghunathan (Investor) | alumni | Tomás Ferreira — ex-Ironvale Steel (2015-2020), now VP Enterprise Architecture at Ironvale Steel | investor_network.csv: Tomás Ferreira prior_employer=Ironvale Steel (2015-2020); connections_raghunathan.csv: connection of Priya Raghunathan since 2017-06-21 | Priya Raghunathan asked on 2026-02-20 (R1086), no reply for 199 days - askable, ranked last |
 
-## 4. Chronology (31 events, 5 requests, newest first, as of 2026-09-06)
+## 4. Chronology (31 events, 5 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1086 never replied (asked 2026-02-20, 198 days ago)
+<- 2026-09-07  intro_outcomes.csv   Priya Raghunathan    R1086 never replied (asked 2026-02-20, 199 days ago)
    2026-02-20  intro_outcomes.csv   Priya Raghunathan    R1086 asked
    2026-02-20  slack_threads.jsonl  Sloane Fairweather   R1086 slack: "is this the same as the one from last month?"
    2026-02-18  slack_threads.jsonl  Rafael Salcedo       R1086 slack: "adding Hana Nakashima who might know"
@@ -52,7 +52,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
    2026-02-17  slack_threads.jsonl  Sloane Fairweather   R1086 slack: "who do we know at Ironvale Steel? VP Enterprise Architecture would be ideal but I'll take anyone senior"
 !! 2026-02-17  intro_requests.csv   Sloane Fairweather   R1086 raised by Sloane Fairweather (Strategic AE): wants VP Enterprise Architecture, $150,000, Critical urgency, filed "Open"  [same title as R1141, 84 days earlier]
 
-<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1031 never replied (asked 2025-11-30, 280 days ago)
+<- 2026-09-07  intro_outcomes.csv   Priya Raghunathan    R1031 never replied (asked 2025-11-30, 281 days ago)
    2025-11-30  intro_outcomes.csv   Priya Raghunathan    R1031 asked
    2025-11-30  slack_threads.jsonl  Rafael Salcedo       R1031 slack: "wrong channel? this feels like a partner ask"
    2025-11-28  slack_threads.jsonl  Hana Nakashima       R1031 slack: "what's the deal size here?"
@@ -79,7 +79,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
    2025-11-25  slack_threads.jsonl  Curtis Hartigan      R1141 slack: "need help getting to Ironvale Steel. Priya Rushworth-Fairweather is the VP Enterprise Architecture there, cold outbound is going nowhere"
    2025-11-25  intro_requests.csv   Curtis Hartigan      R1141 raised by Curtis Hartigan (AE, Financial Services): wants VP Enterprise Architecture, $400,000, High urgency, filed "Intro sent"
 
-!! 2026-04-16  crm_accounts.csv     Hana Nakashima       last CRM touch on A1009  [143 days ago, nothing since]
+!! 2026-04-16  crm_accounts.csv     Hana Nakashima       last CRM touch on A1009  [144 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

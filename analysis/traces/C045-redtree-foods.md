@@ -44,10 +44,10 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 | 0.098 | 0.308 | Priya Raghunathan (Investor) | direct | Coretta Bellinger — VP Data & Analytics | connections_raghunathan.csv: Coretta Bellinger, VP Data & Analytics at Redtree Foods, connected 2014-07-03 | Priya Raghunathan agreed on 2025-12-16 (R1135), no intro - nudge |
 | 0.060 | 0.187 | Priya Raghunathan (Investor) | alumni | Coretta Bellinger — ex-Redtree Foods (2012-2016), now VP Data & Analytics at Redtree Foods | investor_network.csv: Coretta Bellinger prior_employer=Redtree Foods (2012-2016); connections_raghunathan.csv: connection of Priya Raghunathan since 2014-07-03 | Priya Raghunathan agreed on 2025-12-16 (R1135), no intro - nudge |
 
-## 4. Chronology (18 events, 4 requests, newest first, as of 2026-09-06)
+## 4. Chronology (18 events, 4 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1135 said yes 264 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Priya Raghunathan    R1135 said yes 265 days ago and never forwarded
 ++ 2025-12-16  intro_outcomes.csv   Priya Raghunathan    R1135 replied (3 days after the ask)
    2025-12-13  intro_outcomes.csv   Priya Raghunathan    R1135 asked
    2025-12-08  slack_threads.jsonl  Curtis Hartigan      R1135 slack: "looking for a path to Ilse Oldfield-Dobrescu — email domain is redtreefoods.com, that's all I have"

@@ -41,14 +41,14 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
-| 0.180 | 0.519 | Marcus Aldridge (Advisor) | direct | Anouk Kirkbride — Head of Developer Productivity | connections_aldridge.csv: Anouk Kirkbride, Head of Developer Productivity at Nortonbury Logistics, connected 2026-07-07 | Marcus Aldridge asked on 2026-03-04 (R1077), no reply for 186 days - askable, ranked last |
+| 0.180 | 0.519 | Marcus Aldridge (Advisor) | direct | Anouk Kirkbride — Head of Developer Productivity | connections_aldridge.csv: Anouk Kirkbride, Head of Developer Productivity at Nortonbury Logistics, connected 2026-07-07 | Marcus Aldridge asked on 2026-03-04 (R1077), no reply for 187 days - askable, ranked last |
 
 why not #1: Amara Brenneman-Fairweather at capacity 2/2 -> R1013 to Perrine Brenneman-Wexford
 
-## 4. Chronology (13 events, 3 requests, newest first, as of 2026-09-06)
+## 4. Chronology (13 events, 3 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1077 never replied (asked 2026-03-04, 186 days ago)
+<- 2026-09-07  intro_outcomes.csv   Marcus Aldridge      R1077 never replied (asked 2026-03-04, 187 days ago)
    2026-03-04  intro_outcomes.csv   Marcus Aldridge      R1077 asked
    2026-02-26  slack_threads.jsonl  Rafael Salcedo       R1077 slack: "trying to reach Head of Developer Productivity at Nortonbury Logistics — anyone have a path?"
    2026-02-26  intro_requests.csv   Rafael Salcedo       R1077 raised by Rafael Salcedo (AE, Transport & Logistics): wants Head of Developer Productivity, $750,000, Low urgency, filed "Open"
@@ -63,7 +63,7 @@ why not #1: Amara Brenneman-Fairweather at capacity 2/2 -> R1013 to Perrine Bren
    2026-03-30  slack_threads.jsonl  Curtis Hartigan      R1016 slack: "does anyone know anyone at Nortonbury Logistics? looking for Chief Operating Officer, ideally warm"
 !! 2026-03-30  intro_requests.csv   Curtis Hartigan      R1016 raised by Curtis Hartigan (AE, Financial Services): wants Chief Operating Officer, $1,200,000, High urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
 
-!! 2026-01-22  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1039  [227 days ago, nothing since]
+!! 2026-01-22  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1039  [228 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

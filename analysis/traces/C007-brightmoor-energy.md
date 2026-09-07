@@ -30,10 +30,10 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Elena Duvall at capacity 3/3, not asked again here: Elena Duvall agreed on 2026-07-06 (R1190), no intro - nudge -> R1123 unrouted (unresolved ask on every path)
 
-## 4. Chronology (33 events, 5 requests, newest first, as of 2026-09-06)
+## 4. Chronology (33 events, 5 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1190 said yes 62 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Elena Duvall         R1190 said yes 63 days ago and never forwarded
 ++ 2026-07-06  intro_outcomes.csv   Elena Duvall         R1190 replied (1 days after the ask)
    2026-07-06  slack_threads.jsonl  Imani Mkhize         R1190 slack: "adding Curtis Hartigan who might know"
    2026-07-05  intro_outcomes.csv   Elena Duvall         R1190 asked
@@ -42,7 +42,7 @@ why not #1: Elena Duvall at capacity 3/3, not asked again here: Elena Duvall agr
    2026-07-02  slack_threads.jsonl  Yusuf Petrossian     R1190 slack: "asking again: Brightmoor Energy. VP Enterprise Architecture. Happy to draft the forward myself if someone can vouch."
 !! 2026-07-02  intro_requests.csv   Yusuf Petrossian     R1190 raised by Yusuf Petrossian (SDR Lead): wants VP Enterprise Architecture, $1,200,000, Critical urgency, filed "Routed"  [same title as R1123, 71 days earlier]
 
-<- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1029 never replied (asked 2026-07-18, 50 days ago)
+<- 2026-09-07  intro_outcomes.csv   Elena Duvall         R1029 never replied (asked 2026-07-18, 51 days ago)
    2026-07-18  intro_outcomes.csv   Elena Duvall         R1029 asked
    2026-07-13  slack_threads.jsonl  Rafael Salcedo       R1029 slack: "Brightmoor Energy is the target. Our champion at Yarrowdale Media used to work with their team, and I think Marlowe Freight Systems is a supplier of theirs. Any path?"
    2026-07-13  intro_requests.csv   Rafael Salcedo       R1029 raised by Rafael Salcedo (AE, Transport & Logistics): wants VP Engineering, $150,000, Medium urgency, filed "Stalled"
@@ -70,7 +70,7 @@ why not #1: Elena Duvall at capacity 3/3, not asked again here: Elena Duvall agr
    2025-10-28  slack_threads.jsonl  Bertrand Vandermolen R1139 slack: "asking again: Brightmoor Energy. VP Data & Analytics. Happy to draft the forward myself if someone can vouch."
 !! 2025-10-28  intro_requests.csv   Bertrand Vandermolen R1139 raised by Bertrand Vandermolen (AE, EMEA): wants VP Data & Analytics, $1,200,000, Critical urgency, filed "Closed - no path"  [2 paths in supply_reach.csv]
 
-!! 2025-12-22  crm_accounts.csv     Imani Mkhize         last CRM touch on A1006  [258 days ago, nothing since]
+!! 2025-12-22  crm_accounts.csv     Imani Mkhize         last CRM touch on A1006  [259 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

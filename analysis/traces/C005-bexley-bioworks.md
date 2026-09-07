@@ -29,7 +29,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Priya Raghunathan at capacity 3/3 -> R1048 to Tomás Beckett
 
-## 4. Chronology (5 events, 1 request, newest first, as of 2026-09-06)
+## 4. Chronology (5 events, 1 request, newest first, as of 2026-09-07)
 
 ```
    2026-04-18  slack_threads.jsonl  Hana Nakashima       R1048 slack: "adding Curtis Hartigan who might know"
@@ -37,7 +37,7 @@ why not #1: Priya Raghunathan at capacity 3/3 -> R1048 to Tomás Beckett
    2026-04-14  slack_threads.jsonl  Bertrand Vandermolen R1048 slack: "any connections into Bexley Bioworks? we're up against a renewal window and I need an intro to Chief Data Officer"
    2026-04-14  intro_requests.csv   Bertrand Vandermolen R1048 raised by Bertrand Vandermolen (AE, EMEA): wants Chief Data Officer, $750,000, High urgency, filed "Stalled"
 
-!! 2026-03-01  crm_accounts.csv     Sloane Fairweather   last CRM touch on A1045  [189 days ago, nothing since]
+!! 2026-03-01  crm_accounts.csv     Sloane Fairweather   last CRM touch on A1045  [190 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

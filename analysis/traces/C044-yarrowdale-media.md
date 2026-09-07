@@ -12,7 +12,7 @@
 ## Currently routing to: Tomás Beckett
 
 - the next request goes to the top askable path: Tomás Beckett, direct via Bertrand Cardoso, route score 0.164, 8/8 capacity used this cycle
-- not asked again here: Bertrand Vandermolen asked on 2026-07-12 (R1169), no reply - day 56 of 60
+- not asked again here: Bertrand Vandermolen asked on 2026-07-12 (R1169), no reply - day 57 of 60
 
 ## 3. Who can reach them
 
@@ -35,12 +35,12 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
-| 0.182 | 0.800 | Bertrand Vandermolen (not on roster) | offer | Chief Information Officer | slack_threads.jsonl R1169 2026-07-10 Bertrand Vandermolen: "I met their Chief Information Officer at a conference last spring, happy to reach out" | Bertrand Vandermolen asked on 2026-07-12 (R1169), no reply - day 56 of 60 |
+| 0.182 | 0.800 | Bertrand Vandermolen (not on roster) | offer | Chief Information Officer | slack_threads.jsonl R1169 2026-07-10 Bertrand Vandermolen: "I met their Chief Information Officer at a conference last spring, happy to reach out" | Bertrand Vandermolen asked on 2026-07-12 (R1169), no reply - day 57 of 60 |
 
-## 4. Chronology (6 events, 1 request, newest first, as of 2026-09-06)
+## 4. Chronology (6 events, 1 request, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Bertrand Vandermolen R1169 never replied (asked 2026-07-12, 56 days ago)
+<- 2026-09-07  intro_outcomes.csv   Bertrand Vandermolen R1169 never replied (asked 2026-07-12, 57 days ago)
    2026-07-12  intro_outcomes.csv   Bertrand Vandermolen R1169 asked
 ** 2026-07-10  slack_threads.jsonl  Bertrand Vandermolen R1169 slack: "I met their Chief Information Officer at a conference last spring, happy to reach out"
    2026-07-10  slack_threads.jsonl  Curtis Hartigan      R1169 slack: "long shot — Yarrowdale Media. Tanvi Thackeray-Wolstenholme (VP Data & Analytics). Anyone?"

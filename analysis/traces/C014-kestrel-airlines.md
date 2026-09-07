@@ -23,7 +23,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Espen Rushworth-Oyelaran at capacity 2/2 -> R1054 to Wren Petrossian-Norrington
 
-## 4. Chronology (5 events, 1 request, newest first, as of 2026-09-06)
+## 4. Chronology (5 events, 1 request, newest first, as of 2026-09-07)
 
 ```
    2026-01-13  slack_threads.jsonl  Curtis Hartigan      R1054 slack: "what's the deal size here?"
@@ -31,7 +31,7 @@ why not #1: Espen Rushworth-Oyelaran at capacity 2/2 -> R1054 to Wren Petrossian
    2026-01-10  slack_threads.jsonl  Nadia Okonkwo        R1054 slack: "trying to reach Chief Operating Officer at Kestrel Airlines — anyone have a path?"
    2026-01-10  intro_requests.csv   Nadia Okonkwo        R1054 raised by Nadia Okonkwo (AE, Industrials): wants Chief Operating Officer, $1,200,000, Low urgency, filed "Routed"
 
-!! 2025-10-14  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1012  [327 days ago, nothing since]
+!! 2025-10-14  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1012  [328 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

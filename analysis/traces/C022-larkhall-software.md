@@ -18,7 +18,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (9 events, 2 requests, newest first, as of 2026-09-06)
+## 4. Chronology (9 events, 2 requests, newest first, as of 2026-09-07)
 
 ```
    2026-05-28  slack_threads.jsonl  Yusuf Petrossian     R1010 slack: "no idea sorry"
@@ -31,5 +31,5 @@ nobody in the network reaches this company
    2026-05-09  slack_threads.jsonl  Bertrand Vandermolen R1062 slack: "who do we know at Larkhall Software? Head of Developer Productivity would be ideal but I'll take anyone senior"
 !! 2026-05-09  intro_requests.csv   Bertrand Vandermolen R1062 raised by Bertrand Vandermolen (AE, EMEA): wants Head of Developer Productivity, $400,000, Critical urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
 
-!! 2026-03-16  crm_accounts.csv     Imani Mkhize         last CRM touch on A1022  [174 days ago, nothing since]
+!! 2026-03-16  crm_accounts.csv     Imani Mkhize         last CRM touch on A1022  [175 days ago, nothing since]
 ```

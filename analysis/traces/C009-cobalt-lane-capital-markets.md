@@ -33,7 +33,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Malik Thackeray-Okonkwo investor network, roster asked first -> R1076 to Priya Raghunathan
 
-## 4. Chronology (15 events, 2 requests, newest first, as of 2026-09-06)
+## 4. Chronology (15 events, 2 requests, newest first, as of 2026-09-07)
 
 ```
 ++ 2026-02-07  intro_outcomes.csv   Tomás Beckett        R1076 intro sent
@@ -52,7 +52,7 @@ why not #1: Malik Thackeray-Okonkwo investor network, roster asked first -> R107
    2025-11-11  slack_threads.jsonl  Hana Nakashima       R1078 slack: "asking again: Cobalt Lane Capital Markets. VP Engineering. Happy to draft the forward myself if someone can vouch."
    2025-11-11  intro_requests.csv   Hana Nakashima       R1078 raised by Hana Nakashima (AE, Healthcare): wants VP Engineering, $2,000,000, Medium urgency, filed "Intro sent"
 
-!! 2025-11-27  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1038  [283 days ago, nothing since]
+!! 2025-11-27  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1038  [284 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

@@ -35,12 +35,12 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
-| 0.097 | 0.472 | Priya Raghunathan (Investor) | direct | Dev Ingleby — Head of Platform Engineering | connections_raghunathan.csv: Dev Ingleby, Head of Platform Engineering at Meridian Peak Foods, connected 2024-11-02 | Priya Raghunathan asked on 2025-10-21 (R1172), no reply for 320 days - askable, ranked last |
+| 0.097 | 0.472 | Priya Raghunathan (Investor) | direct | Dev Ingleby — Head of Platform Engineering | connections_raghunathan.csv: Dev Ingleby, Head of Platform Engineering at Meridian Peak Foods, connected 2024-11-02 | Priya Raghunathan asked on 2025-10-21 (R1172), no reply for 321 days - askable, ranked last |
 
-## 4. Chronology (15 events, 2 requests, newest first, as of 2026-09-06)
+## 4. Chronology (15 events, 2 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1172 never replied (asked 2025-10-21, 320 days ago)
+<- 2026-09-07  intro_outcomes.csv   Priya Raghunathan    R1172 never replied (asked 2025-10-21, 321 days ago)
    2025-10-21  intro_outcomes.csv   Priya Raghunathan    R1172 asked
    2025-10-21  slack_threads.jsonl  Hana Nakashima       R1172 slack: "any connections into Meridian Peak Foods? we're up against a renewal window and I need an intro to VP Engineering"
 !! 2025-10-21  intro_requests.csv   Hana Nakashima       R1172 raised by Hana Nakashima (AE, Healthcare): wants VP Engineering, $150,000, High urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
@@ -56,7 +56,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
    2026-07-22  slack_threads.jsonl  Bertrand Vandermolen R1168 slack: "any connections into Meridian Peak Foods? we're up against a renewal window and I need an intro to VP Engineering"
 !! 2026-07-22  intro_requests.csv   Bertrand Vandermolen R1168 raised by Bertrand Vandermolen (AE, EMEA): wants VP Engineering, $750,000, Medium urgency, filed "Open"  [same title as R1172, 274 days earlier]
 
-!! 2026-04-21  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1034  [138 days ago, nothing since]
+!! 2026-04-21  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1034  [139 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

@@ -43,7 +43,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 | 0.172 | 0.720 | Otto Cathcart-Brenneman (investor network) | investor_network | CEO / exec team — Ashgrove Capital portfolio company | investor_network.csv: Otto Cathcart-Brenneman (Venture capital investor), portfolio_company=Quillon Pharma, board_seat=False |  |
 | 0.172 | 0.720 | Xiomara Achterberg-Norrington (investor network) | investor_network | CEO / exec team — Northgate Growth portfolio company | investor_network.csv: Xiomara Achterberg-Norrington (Growth equity investor), portfolio_company=Quillon Pharma, board_seat=False |  |
 
-## 4. Chronology (10 events, 2 requests, newest first, as of 2026-09-06)
+## 4. Chronology (10 events, 2 requests, newest first, as of 2026-09-07)
 
 ```
    2026-05-17  slack_threads.jsonl  Yusuf Petrossian     R1178 slack: "what's the deal size here?"
@@ -57,7 +57,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
    2025-10-07  slack_threads.jsonl  Sloane Fairweather   R1198 slack: "who do we know at Quillon Pharma? Chief Operating Officer would be ideal but I'll take anyone senior"
 !! 2025-10-07  intro_requests.csv   Sloane Fairweather   R1198 raised by Sloane Fairweather (Strategic AE): wants Chief Operating Officer, $750,000, Critical urgency, filed "Closed - no path"  [15 paths in supply_reach.csv]
 
-!! 2025-07-07  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1019  [426 days ago, nothing since]
+!! 2025-07-07  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1019  [427 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

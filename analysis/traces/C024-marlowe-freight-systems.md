@@ -34,7 +34,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: parked on live intro (R1129, Marcus Aldridge, 2026-05-19, meeting booked): R1134
 
-## 4. Chronology (19 events, 3 requests, newest first, as of 2026-09-06)
+## 4. Chronology (19 events, 3 requests, newest first, as of 2026-09-07)
 
 ```
 ++ 2026-05-19  intro_outcomes.csv   Marcus Aldridge      R1129 opportunity created, $1,200,000
@@ -58,7 +58,7 @@ why not #1: parked on live intro (R1129, Marcus Aldridge, 2026-05-19, meeting bo
    2025-09-06  slack_threads.jsonl  Yusuf Petrossian     R1045 slack: "who do we know at Marlowe Freight Systems? VP Enterprise Architecture would be ideal but I'll take anyone senior"
 !! 2025-09-06  intro_requests.csv   Yusuf Petrossian     R1045 raised by Yusuf Petrossian (SDR Lead): wants VP Enterprise Architecture, $750,000, High urgency, filed "Closed - no path"  [3 paths in supply_reach.csv]
 
-!! 2026-02-02  crm_accounts.csv     Imani Mkhize         last CRM touch on A1047  [216 days ago, nothing since]
+!! 2026-02-02  crm_accounts.csv     Imani Mkhize         last CRM touch on A1047  [217 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

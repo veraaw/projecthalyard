@@ -36,16 +36,16 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
-| 0.184 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Hollowbrook Grocers, board_seat=True | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last |
-| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Chief Operating Officer | slack_threads.jsonl R1124 2025-11-10 Priya Raghunathan: "I met their Chief Operating Officer at a conference last spring, happy to reach out" | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last |
-| 0.069 | 0.337 | Priya Raghunathan (Investor) | direct | Freya Havercamp — Staff Engineer | connections_raghunathan.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2022-05-16 | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last |
+| 0.184 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Hollowbrook Grocers, board_seat=True | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 298 days - askable, ranked last |
+| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Chief Operating Officer | slack_threads.jsonl R1124 2025-11-10 Priya Raghunathan: "I met their Chief Operating Officer at a conference last spring, happy to reach out" | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 298 days - askable, ranked last |
+| 0.069 | 0.337 | Priya Raghunathan (Investor) | direct | Freya Havercamp — Staff Engineer | connections_raghunathan.csv: Freya Havercamp, Staff Engineer at Hollowbrook Grocers, connected 2022-05-16 | Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 298 days - askable, ranked last |
 
-why not #1: Priya Raghunathan at capacity 3/3, ranked last: Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 297 days - askable, ranked last -> R1065, R1084, R1159 to Dana Whitfield
+why not #1: Priya Raghunathan at capacity 3/3, ranked last: Priya Raghunathan asked on 2025-11-13 (R1124), no reply for 298 days - askable, ranked last -> R1065, R1084, R1159 to Dana Whitfield
 
-## 4. Chronology (18 events, 4 requests, newest first, as of 2026-09-06)
+## 4. Chronology (18 events, 4 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1124 never replied (asked 2025-11-13, 297 days ago)
+<- 2026-09-07  intro_outcomes.csv   Priya Raghunathan    R1124 never replied (asked 2025-11-13, 298 days ago)
    2025-11-13  intro_outcomes.csv   Priya Raghunathan    R1124 asked
 ** 2025-11-10  slack_threads.jsonl  Priya Raghunathan    R1124 slack: "I met their Chief Operating Officer at a conference last spring, happy to reach out"
    2025-11-10  slack_threads.jsonl  Yusuf Petrossian     R1124 slack: "need help getting to Hollowbrook Grocers. Anouk Halloran-Lindqvist is the VP Engineering there, cold outbound is going nowhere"
@@ -66,7 +66,7 @@ why not #1: Priya Raghunathan at capacity 3/3, ranked last: Priya Raghunathan as
    2025-12-11  slack_threads.jsonl  Bertrand Vandermolen R1159 slack: "Glasspoint Health introduced us to Pelham Beverage, but the account I actually need is Hollowbrook Grocers (VP Enterprise Architecture)."
    2025-12-11  intro_requests.csv   Bertrand Vandermolen R1159 raised by Bertrand Vandermolen (AE, EMEA): wants VP Enterprise Architecture, $1,200,000, Critical urgency, filed "Open"
 
-!! 2026-05-16  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1024  [113 days ago, nothing since]
+!! 2026-05-16  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1024  [114 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

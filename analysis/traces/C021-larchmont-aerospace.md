@@ -20,7 +20,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (12 events, 4 requests, newest first, as of 2026-09-06)
+## 4. Chronology (12 events, 4 requests, newest first, as of 2026-09-07)
 
 ```
    2026-07-01  slack_threads.jsonl  Curtis Hartigan      R1030 slack: "long shot — Larchmont Aerospace. Kofi Højgaard-Zettergren (Head of Platform Engineering). Anyone?"
@@ -38,5 +38,5 @@ nobody in the network reaches this company
    2025-10-29  slack_threads.jsonl  Imani Mkhize         R1021 slack: "does anyone know anyone at Larchmont Aerospace? looking for VP Data & Analytics, ideally warm"
 !! 2025-10-29  intro_requests.csv   Imani Mkhize         R1021 raised by Imani Mkhize (Enterprise AE, West): wants VP Data & Analytics, $1,200,000, Medium urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
 
-!! 2025-12-17  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1042  [263 days ago, nothing since]
+!! 2025-12-17  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1042  [264 days ago, nothing since]
 ```

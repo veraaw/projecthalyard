@@ -29,7 +29,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Curtis Sandoval-Glückstein at capacity 2/2 (holds R1080, R1191) -> R1002 to Bertrand Achterberg-Quillane
 
-## 4. Chronology (16 events, 4 requests, newest first, as of 2026-09-06)
+## 4. Chronology (16 events, 4 requests, newest first, as of 2026-09-07)
 
 ```
    2026-01-16  slack_threads.jsonl  Nadia Okonkwo        R1080 slack: "adding Rafael Salcedo who might know"
@@ -51,7 +51,7 @@ why not #1: Curtis Sandoval-Glückstein at capacity 2/2 (holds R1080, R1191) -> 
    2025-09-14  slack_threads.jsonl  Imani Mkhize         R1002 slack: "does anyone know anyone at Volney Industrial Systems? looking for VP Data & Analytics, ideally warm"
    2025-09-14  intro_requests.csv   Imani Mkhize         R1002 raised by Imani Mkhize (Enterprise AE, West): wants VP Data & Analytics, $400,000, High urgency, filed "Open"
 
-!! 2026-01-13  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1049  [236 days ago, nothing since]
+!! 2026-01-13  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1049  [237 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

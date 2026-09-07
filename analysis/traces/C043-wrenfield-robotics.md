@@ -33,7 +33,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Matteo Ferreira-Yarrow at capacity 2/2 (holds R1018, R1156) -> R1195 unrouted (capacity exhausted)
 
-## 4. Chronology (14 events, 3 requests, newest first, as of 2026-09-06)
+## 4. Chronology (14 events, 3 requests, newest first, as of 2026-09-07)
 
 ```
    2026-06-03  slack_threads.jsonl  Sloane Fairweather   R1018 slack: "is this the same as the one from last month?"
@@ -52,7 +52,7 @@ why not #1: Matteo Ferreira-Yarrow at capacity 2/2 (holds R1018, R1156) -> R1195
    2025-10-01  slack_threads.jsonl  Hana Nakashima       R1156 slack: "long shot — Wrenfield Robotics. Astrid Vandermolen-Petrossian (Head of Developer Productivity). Anyone?"
    2025-10-01  intro_requests.csv   Hana Nakashima       R1156 raised by Hana Nakashima (AE, Healthcare): wants Head of Developer Productivity, $1,200,000, High urgency, filed "Routed"
 
-!! 2025-10-15  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1036  [326 days ago, nothing since]
+!! 2025-10-15  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1036  [327 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

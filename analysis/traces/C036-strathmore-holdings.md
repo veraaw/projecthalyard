@@ -49,10 +49,10 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Freya Oldfield-Ibarra investor network, roster asked first -> R1027, R1125, R1132 to Tomás Beckett
 
-## 4. Chronology (36 events, 7 requests, newest first, as of 2026-09-06)
+## 4. Chronology (36 events, 7 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1102 said yes 309 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Marcus Aldridge      R1102 said yes 310 days ago and never forwarded
 ++ 2025-11-01  intro_outcomes.csv   Marcus Aldridge      R1102 replied (1 days after the ask)
    2025-10-31  intro_outcomes.csv   Marcus Aldridge      R1102 asked
    2025-10-31  slack_threads.jsonl  Hana Nakashima       R1102 slack: "is this the same as the one from last month?"
@@ -61,12 +61,12 @@ why not #1: Freya Oldfield-Ibarra investor network, roster asked first -> R1027,
    2025-10-27  slack_threads.jsonl  Yusuf Petrossian     R1102 slack: "any connections into Strathmore Rail? we're up against a renewal window and I need an intro to VP Engineering"
    2025-10-27  intro_requests.csv   Yusuf Petrossian     R1102 raised by Yusuf Petrossian (SDR Lead): wants VP Engineering, $400,000, Low urgency, filed "Routed"
 
-<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1094 never replied (asked 2026-06-23, 75 days ago)
+<- 2026-09-07  intro_outcomes.csv   Marcus Aldridge      R1094 never replied (asked 2026-06-23, 76 days ago)
    2026-06-23  intro_outcomes.csv   Marcus Aldridge      R1094 asked
    2026-06-23  slack_threads.jsonl  Hana Nakashima       R1094 slack: "long shot — Strathmore Rail. Hugo Glückstein-Sandoval (VP Data & Analytics). Anyone?"
 !! 2026-06-23  intro_requests.csv   Hana Nakashima       R1094 raised by Hana Nakashima (AE, Healthcare): wants VP Data & Analytics, $750,000, High urgency, filed "Open"  [same title as R1053, 7 days earlier]
 
-<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1093 never replied (asked 2025-12-16, 264 days ago)
+<- 2026-09-07  intro_outcomes.csv   Marcus Aldridge      R1093 never replied (asked 2025-12-16, 265 days ago)
    2025-12-19  slack_threads.jsonl  Hana Nakashima       R1093 slack: "is this the same as the one from last month?"
    2025-12-18  slack_threads.jsonl  Curtis Hartigan      R1093 slack: "adding Bertrand Vandermolen who might know"
    2025-12-17  slack_threads.jsonl  Nadia Okonkwo        R1093 slack: "wrong channel? this feels like a partner ask"
@@ -74,7 +74,7 @@ why not #1: Freya Oldfield-Ibarra investor network, roster asked first -> R1027,
    2025-12-16  slack_threads.jsonl  Curtis Hartigan      R1093 slack: "long shot — Strathmore Rail. Rafael Hartigan-Zubkov (Head of Platform Engineering). Anyone?"
 !! 2025-12-16  intro_requests.csv   Curtis Hartigan      R1093 raised by Curtis Hartigan (AE, Financial Services): wants Head of Platform Engineering, $1,200,000, Critical urgency, filed "Closed - no path"  [13 paths in supply_reach.csv]
 
-<- 2026-09-06  intro_outcomes.csv   Marcus Aldridge      R1053 never replied (asked 2026-06-22, 76 days ago)
+<- 2026-09-07  intro_outcomes.csv   Marcus Aldridge      R1053 never replied (asked 2026-06-22, 77 days ago)
    2026-06-22  intro_outcomes.csv   Marcus Aldridge      R1053 asked
    2026-06-16  slack_threads.jsonl  Rafael Salcedo       R1053 slack: "asking again: Strathmore Rail. VP Data & Analytics. Happy to draft the forward myself if someone can vouch."
    2026-06-16  intro_requests.csv   Rafael Salcedo       R1053 raised by Rafael Salcedo (AE, Transport & Logistics): wants VP Data & Analytics, $400,000, Medium urgency, filed "Stalled"

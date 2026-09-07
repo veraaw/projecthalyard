@@ -47,10 +47,10 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Otto Cathcart-Brenneman investor network, roster asked first -> R1022 to Elena Duvall; R1091, R1179 to Marcus Aldridge
 
-## 4. Chronology (25 events, 4 requests, newest first, as of 2026-09-06)
+## 4. Chronology (25 events, 4 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Tomás Beckett        R1130 said yes 199 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Tomás Beckett        R1130 said yes 200 days ago and never forwarded
 ++ 2026-02-19  intro_outcomes.csv   Tomás Beckett        R1130 replied (9 days after the ask)
    2026-02-10  intro_outcomes.csv   Tomás Beckett        R1130 asked
 ** 2026-02-06  slack_threads.jsonl  Tomás Beckett        R1130 slack: "I'll take this one — I've got a direct line to their exec team"
@@ -78,7 +78,7 @@ why not #1: Otto Cathcart-Brenneman investor network, roster asked first -> R102
    2025-12-10  slack_threads.jsonl  Nadia Okonkwo        R1179 slack: "need help getting to Blackwood Industrial. Rhys Balogun-Kirkbride is the SVP Digital there, cold outbound is going nowhere"
    2025-12-10  intro_requests.csv   Nadia Okonkwo        R1179 raised by Nadia Okonkwo (AE, Industrials): wants SVP Digital, $250,000, High urgency, filed "Open"
 
-!! 2025-09-26  crm_accounts.csv     Imani Mkhize         last CRM touch on A1010  [345 days ago, nothing since]
+!! 2025-09-26  crm_accounts.csv     Imani Mkhize         last CRM touch on A1010  [346 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network
