@@ -36,9 +36,11 @@
     "requester_unknown": "unattributed",
     "asked_twice": ", asked twice",
     "asked_n": ", asked {n}x",
-    "retry": "  retry: {connector} introduced {requester} there on {date} and it went quiet, so a fresh name would help",
-    "retry_network": "  for context: {connector} introduced {requester} there on {date} and it went quiet, so a fresh name would help",
-    "retry_own": "  retry: you introduced {requester} there on {date} and it went quiet, so a fresh name (or a nudge to the first) would help",
+    "retry": "  retry: {connector} introduced {requester} to {target} on {date} and it went quiet, so a fresh name would help",
+    "retry_network": "  for context: {connector} introduced {requester} to {target} on {date} and it went quiet, so a fresh name would help",
+    "retry_own": "  retry: you introduced {requester} to {target} on {date} and it went quiet, so a fresh name (or a nudge to the first) would help",
+    "retry_target_title": "their {title}",
+    "retry_target_unknown": "someone there",
     "retry_undated": "an earlier date"
   }
 }

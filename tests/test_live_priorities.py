@@ -304,12 +304,12 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual((retry["connector"], retry["intro_date"], retry["request_id"], retry["requested_by"], retry["meeting_booked"], retry["live"]),
                          ("Dana Whitfield", "2026-03-18", "R1003", "Imani Mkhize", False, False))
         self.assertGreater(retry["days"], bg.INTRO_LIVE_DAYS)
-        self.assertIn("Dana's 2026-03-18 intro to Imani Mkhize went nowhere", retry["note"])
+        self.assertIn("Dana's 2026-03-18 intro of Imani Mkhize to their VP Engineering went nowhere", retry["note"])
         self.assertIn("C045", [r["company_id"] for r in I["retries"]])
         self.assertEqual(I["retry_requests"], sum(len(r["request_ids"]) for r in I["retries"]))
         dana = next(c for c in P["connectors"] if c["connector"] == "Dana Whitfield")
         self.assertTrue(all(q["retry"] for q in dana["queue"] if q["company_id"] == "C045"))
-        self.assertIn("retry: you introduced Imani Mkhize there on 2026-03-18", dana["batch_ask"]["message"])
+        self.assertIn("retry: you introduced Imani Mkhize to their VP Engineering on 2026-03-18", dana["batch_ask"]["message"])
         # the retry label is the company's fizzled intro, on every fresh-ask surface, and only there
         retried = {x["company_id"] for x in I["retries"]}
         for r in L.ranked():
@@ -373,7 +373,7 @@ class PayloadTest(unittest.TestCase):
                          ("C003", "2026-09-05", 0, False, "chase"), "counted from the re-ask, unanswered")
         self.assertEqual((s["retry"]["request_id"], s["retry"]["intro_date"], s["retry"]["requested_by"]),
                          ("R1154", "2026-03-11", "Yusuf Petrossian"))
-        self.assertIn("Marcus's 2026-03-11 intro to Yusuf Petrossian went nowhere", s["retry"]["note"])
+        self.assertIn("Marcus's 2026-03-11 intro of Yusuf Petrossian to their Head of Platform Engineering went nowhere", s["retry"]["note"])
         self.assertEqual(card["asked_this_cycle"], marcus["asked_this_cycle"] + 1, "the retry spends a slot this cycle")
         self.assertEqual([c["asks"] for c in card["cycles"]][-1], [c["asks"] for c in marcus["cycles"]][-1] + 1)
 
@@ -394,7 +394,7 @@ class PayloadTest(unittest.TestCase):
         self.assertGreater(i["days"], bg.INTRO_LIVE_DAYS)
         r1024 = next(r for r in L.ranked() if r["request_id"] == "R1024")
         self.assertEqual(r1024["retry"]["request_id"], "R1038")
-        self.assertIn("Elena's 2026-06-10 intro to Nadia Okonkwo went nowhere: meeting booked, no opportunity", r1024["retry"]["note"])
+        self.assertIn("Elena's 2026-06-10 intro of Nadia Okonkwo to their Chief Operating Officer went nowhere: meeting booked, no opportunity", r1024["retry"]["note"])
         marcus = next(c for c in P["connectors"] if c["connector"] == "Marcus Aldridge")
         self.assertIn("R1024", [q["request_id"] for q in marcus["queue"]])
         self.assertIn("C002", {x["company_id"] for x in P["introduced"]["retries"]})

@@ -3,12 +3,13 @@
     python3 -m dashboard.batch_ask            # print every message
     python3 -m dashboard.batch_ask 2026-09    # one cycle
 
-Reads four files and nothing else: golden/golden_allocation.csv (who each
+Reads five files and nothing else: golden/golden_allocation.csv (who each
 request routes to, in which batch, over which path), golden/golden_requests.csv
 (who asked, and the thread date of any offer made on the company),
-dataset/connector_roster.csv (stated capacity, notes, type) and
+dataset/connector_roster.csv (stated capacity, notes, type),
 dataset/intro_outcomes.csv (the intro a company already had, when the ask is a
-retry after it fizzled). `compose()` returns
+retry after it fizzled) and dataset/intro_requests.csv (the person that intro
+was meant to reach, where the rep named one). `compose()` returns
 one record per (cycle, connector) holding an allocation, with the message text
 under `message` and everything the message may not say — dollar values, route
 scores, request ids, urgency — kept in the structured fields for the page.
@@ -18,7 +19,7 @@ one block per company ordered by the batch's highest route score. Two requests
 for the same company and title render once with ", asked twice" (or "Nx"); both
 request ids stay on the record. A company whose earlier intro went nowhere
 (the allocator only routes such a company afresh once that intro has fizzled)
-carries a retry line naming who introduced whom and when. The wording lives in
+carries a retry line naming who introduced which rep to whom and when. The wording lives in
 config/batch_ask_templates.json — the roster template for connectors on the
 roster, the offerer template for someone off the roster who is being asked
 because they offered in a thread, the network template for an investor_network
@@ -45,6 +46,7 @@ ALLOCATION = GOLDEN / "golden_allocation.csv"
 REQUESTS = GOLDEN / "golden_requests.csv"
 ROSTER = DATASET / "connector_roster.csv"
 OUTCOMES = DATASET / "intro_outcomes.csv"
+RAW_REQUESTS = DATASET / "intro_requests.csv"
 
 ROSTER_TEMPLATE, OFFERER_TEMPLATE, NETWORK_TEMPLATE = "roster", "offerer", "network"
 OFFER = "offer"
@@ -91,18 +93,23 @@ def offer_date(offers: dict[str, list[tuple[str, str]]], company_id: str, connec
     return fallback[:10]
 
 
-def prior_intros(outcomes: list[dict], requests: list[dict]) -> dict[str, dict]:
-    """company_id -> the newest intro sent on the company: who sent it, to which
-    rep, on what date. Which of these count as fizzled is the allocator's call
-    (build_golden.introductions); anything it allocated afresh is by construction
-    a retry, so the composer only has to name the intro."""
+def prior_intros(outcomes: list[dict], requests: list[dict], raw: list[dict] | None = None) -> dict[str, dict]:
+    """company_id -> the newest intro sent on the company: who sent it, which
+    rep it was for, who at the company it was meant to reach (the person the rep
+    named in the raw ask, else the title asked for), on what date. Which of
+    these count as fizzled is the allocator's call (build_golden.introductions);
+    anything it allocated afresh is by construction a retry, so the composer
+    only has to name the intro."""
+    raw = bg.read_csv(RAW_REQUESTS) if raw is None else raw
     by_rid = {r["request_id"]: r for r in requests}
+    person_of = {r["request_id"]: r.get("target_person_raw", "").strip() for r in raw}
     out: dict[str, dict] = {}
     for o in outcomes:
         r = by_rid.get(o["request_id"])
         if not r or not r["company_id"] or o["intro_sent"].strip() != "Y":
             continue
         intro = {"connector": o["connector_asked"], "date": o["intro_date"][:10], "requester": r["requested_by"],
+                 "target_person": person_of.get(o["request_id"], ""), "target_title": r.get("target_title", ""),
                  "request_id": o["request_id"], "meeting_booked": o["meeting_booked"].strip() == "Y"}
         cur = out.get(r["company_id"])
         if cur is None or (intro["date"], intro["request_id"]) > (cur["date"], cur["request_id"]):
@@ -117,7 +124,15 @@ def retry_text(t: dict, intro: dict | None, who: str, template: str = ROSTER_TEM
     tpl = (b["retry_own"] if intro["connector"] == who
            else b["retry_network"] if template == NETWORK_TEMPLATE else b["retry"])
     return tpl.format(connector=intro["connector"], requester=intro["requester"] or b["requester_unknown"],
-                      date=intro["date"] or b["retry_undated"])
+                      target=retry_target(b, intro), date=intro["date"] or b["retry_undated"])
+
+
+def retry_target(b: dict, intro: dict) -> str:
+    if intro.get("target_person"):
+        return intro["target_person"]
+    if intro.get("target_title"):
+        return b["retry_target_title"].format(title=intro["target_title"])
+    return b["retry_target_unknown"]
 
 
 def path_text(t: dict, path_type: str, contact: str, date: str) -> str:
@@ -141,7 +156,7 @@ def repeat_suffix(t: dict, n: int) -> str:
 
 def compose(allocation: list[dict] | None = None, requests: list[dict] | None = None,
             roster: dict[str, dict] | None = None, templates: dict | None = None,
-            outcomes: list[dict] | None = None) -> list[dict]:
+            outcomes: list[dict] | None = None, raw: list[dict] | None = None) -> list[dict]:
     """One record per (cycle, connector) with at least one allocated row, ordered
     by cycle then connector. Deterministic for a given input."""
     allocation = bg.read_allocation(ALLOCATION) if allocation is None else allocation
@@ -151,7 +166,7 @@ def compose(allocation: list[dict] | None = None, requests: list[dict] | None = 
     outcomes = bg.read_csv(OUTCOMES) if outcomes is None else outcomes
     by_rid = {r["request_id"]: r for r in requests}
     offers = offer_dates(requests)
-    intros = prior_intros(outcomes, requests)
+    intros = prior_intros(outcomes, requests, raw)
 
     batches: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for a in allocation:
