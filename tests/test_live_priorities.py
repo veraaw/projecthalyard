@@ -452,6 +452,48 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual({rid for r in F["rows"] for rid in r["blocking"]}, held)
         self.assertNotIn("value_fmt", F, "no request-value total on the section")
 
+    def test_in_flight_puts_every_open_request_in_one_state_the_sections_agree_on(self):
+        """The Live Data table: every open request once, and each state's count is
+        the one the owning section of this tab already shows."""
+        P, F = self.P, self.P["in_flight"]
+        requests = read_csv(ROOT / "golden" / "golden_requests.csv")
+        open_ids = sorted(r["request_id"] for r in requests if r["status_as_filed"] in bg.OPEN_STATUSES)
+        self.assertEqual(F["open"], len(open_ids), 148)
+        self.assertEqual(sorted(rid for r in F["rows"] for rid in r["request_ids"]), open_ids, "each open request in exactly one state")
+        self.assertEqual(sum(r["count"] for r in F["rows"]), F["open"])
+        self.assertEqual(sum(g["count"] for g in F["groups"]), F["open"])
+        self.assertEqual(sum(o["count"] for o in F["outside"]) + F["open"], len(requests), "closed and intro-sent are named, not in flight")
+        self.assertEqual([r["key"] for r in F["rows"]], [k for k, *_ in lp.IN_FLIGHT_STATES if k not in ("quiet", "other")],
+                         "flight order; quiet and other only when non-empty")
+        by = {r["key"]: r for r in F["rows"]}
+        A, I, FU = P["asks"], P["introduced"], P["followups"]
+        reasons = {e["reason"]: len(e["rows"]) for e in A["exceptions"]}
+        self.assertEqual(by["queued"]["count"], A["allocated"], "Top Priorities")
+        self.assertEqual(by["no_slot"]["count"], A["no_slot"])
+        self.assertEqual(by["no_path"]["count"], reasons[bg.NO_PATH], "Unrouted Exceptions")
+        self.assertEqual(by["unresolved"]["count"], reasons["company unresolved"])
+        self.assertEqual(by["held"]["count"], reasons[bg.UNRESOLVED_ASK])
+        self.assertEqual(by["parked"]["count"], I["requests"], "Already Introduced")
+        self.assertEqual(by["nudge"]["count"], FU["nudge"], "Follow-Ups Owed")
+        self.assertEqual(by["chase"]["count"], FU["chase"])
+        self.assertEqual(by.get("quiet", {"count": 0})["count"], len(FU["quiet"]))
+        self.assertEqual(sorted(by["nudge"]["request_ids"] + by["chase"]["request_ids"] + by.get("quiet", {"request_ids": []})["request_ids"]),
+                         sorted(r["request_id"] for r in FU["rows"]))
+        self.assertEqual(sorted(by["parked"]["request_ids"]), sorted(rid for r in I["rows"] for rid in r["request_ids"]))
+        self.assertIn(f"{I['retry_requests']} of them a retry", by["queued"]["note"])
+        by_rid = {r["request_id"]: r for r in requests}
+        L = lp.Live(AS_OF)
+        for rid in by["meeting"]["request_ids"]:
+            self.assertEqual(L.stage_of(by_rid[rid]), "meeting booked", rid)
+        for rid in by["introduced"]["request_ids"]:
+            self.assertEqual(L.stage_of(by_rid[rid]), "introduced", rid)
+        sections = {sid for sid, _ in lp.SECTIONS}
+        for r in F["rows"]:
+            self.assertIn(r["section"], sections, f"{r['key']} points at a section of this tab")
+            self.assertEqual(r["value_usd"], L.dollars_total([by_rid[rid] for rid in r["request_ids"]]), r["key"])
+            self.assertEqual(r["value_fmt"], lp.money(r["value_usd"]))
+        self.assertEqual((F["quiet_days"], F["intro_live_days"]), (lp.NUDGE_QUIET_DAYS, bg.INTRO_LIVE_DAYS))
+
     def test_connectors(self):
         """A card per connector with a stake in the cycle: the roster in roster
         order, then the off-roster batch holders, largest batch first."""
@@ -1019,7 +1061,30 @@ class BuiltPagesTest(unittest.TestCase):
                          ["flow", "flow", *self.STRATEGIC, "overview", "timing", "scoping", "integrity-divider",
                           "joins", "targets", "quality", "verify", "integrity"])
         self.assertEqual(re.findall(r'<a class="band" href="#[^"]+">([^<]+)<', side), ["Strategic data", "Data integrity"])
-        self.assertEqual(self.sections("livedata.html"), self.STRATEGIC)
+        self.assertEqual(self.sections("livedata.html"), [self.STRATEGIC[0], "inflight", *self.STRATEGIC[1:]],
+                         "Live Data alone carries Requests in Flight, right after the funnel")
+        self.assertNotIn('id="inflight"', html, "Raw Sept reads the exports as filed; nothing is in flight there")
+
+    def test_requests_in_flight_shows_the_live_priorities_counts(self):
+        """The table on Live Data is the in_flight payload rendered, so each count is
+        the one the owning Live Priorities section shows."""
+        html = self.pages["livedata.html"]
+        F = lp.in_flight()
+        section = html.split('<section id="inflight">')[1].split("</section>")[0]
+        side = html.split('<nav class="toc"')[1].split("</nav>")[0]
+        self.assertIn('href="#inflight"', side)
+        self.assertIn(">Requests in Flight<", section)
+        cells = re.findall(r'<tr><td>([^<]+)(?:<br>[^<]*<span class="foot">[^<]*</span>)?</td><td class="num"><b>(\d+)</b></td>', section)
+        self.assertEqual(cells, [(r["label"], str(r["count"])) for r in F["rows"]], "one row per state, in flight order")
+        self.assertIn(f'<th class="num">{F["open"]}</th>', section)
+        for g in F["groups"]:
+            self.assertIn(f'<tr class="group"><th colspan="6">{g["group"]} <span class="foot">{g["count"]} requests</span></th></tr>', section)
+        for r in F["rows"]:
+            self.assertIn(f'href="livepriorities.html#{r["section"]}"', section, f"{r['key']} links to the section that owns it")
+            self.assertIn(f'<td class="num">{r["value_fmt"]}</td>', section)
+        for key, label in (("nudge", "nudges"), ("chase", "chases")):
+            n = next(r["count"] for r in F["rows"] if r["key"] == key)
+            self.assertIn(f"{n} {label}", section)
 
     def test_the_two_tabs_render_the_same_charts_from_their_own_source(self):
         for name in ("halyardscoping.html", "livedata.html"):
