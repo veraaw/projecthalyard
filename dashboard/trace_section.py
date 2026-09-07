@@ -132,7 +132,10 @@ def fragment() -> str:
       + routeNotes.map(n => `<p class="note">${{esc(n)}}</p>`).join('') + `</div>`;
 
     out += `<h3>3. Who Can Reach Them</h3>`;
-    if (!t.reach.length) out += `<p class="empty">Nobody in the network reaches this company</p>`;
+    if (!t.reach.length) {{
+      out += `<p class="empty">Nobody in the network reaches this company</p>`;
+      if (t.industry_fallback) out += `<div class="finding"><b>Suggested roster fallback: ${{esc(t.industry_fallback.connector)}}.</b> Their stated focus areas include ${{esc(t.industry_fallback.industry)}}. This is a sourcing suggestion, not a path on file.</div>`;
+    }}
     else {{
       const maxScore = Math.max(...t.reach.map(p => p.route_score)) || 1, maxRaw = Math.max(...t.reach.map(p => p.strength)) || 1;
       const haircut = t.reach.some(p => p.reach_type.startsWith('{INVESTOR_NETWORK}')) ? `; {INVESTOR_NETWORK} rows (our network, not our roster) take a {round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score` : '';

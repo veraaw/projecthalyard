@@ -105,6 +105,21 @@ class HarrowgateTest(unittest.TestCase):
             self.assertIn("(R1057), no intro - nudge", r["unresolved_ask"])
         self.assertIn("| route score | strength | connector | reach | contact | evidence | unresolved ask |", self.text)
 
+    def test_no_reach_suggests_first_roster_person_covering_industry(self):
+        t = Trace(self.data, find_company(self.data, "Halcyon Grid"), AS_OF)
+        fallback = t.as_dict()["industry_fallback"]
+        self.assertEqual(fallback["connector"], "Marcus Aldridge")
+        self.assertEqual(fallback["industry"], "Utilities")
+        self.assertEqual(t.as_dict()["reach"], [])
+        self.assertIn("suggested roster fallback: Marcus Aldridge covers Utilities", t.render())
+        self.assertEqual(t.current_route()["why"], bg.NO_PATH,
+                         "the suggestion does not become a route")
+
+    def test_reach_keeps_priority_and_suppresses_industry_fallback(self):
+        before = [p["connector"] for p in self.trace.paths]
+        self.assertIsNone(self.trace.as_dict()["industry_fallback"])
+        self.assertEqual([p["connector"] for p in self.trace.paths], before)
+
     def test_currently_routing_to(self):
         """The header above section 3: where this cycle's requests went, else the
         allocator's first askable path; the connectors stepped over and why."""
