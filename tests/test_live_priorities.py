@@ -20,6 +20,7 @@ Three things are checked:
 from __future__ import annotations
 
 import csv
+import inspect
 import json
 import re
 import shutil
@@ -451,6 +452,48 @@ class PayloadTest(unittest.TestCase):
         held = {r["request_id"] for e in self.P["asks"]["exceptions"] if e["reason"] == bg.UNRESOLVED_ASK for r in e["rows"]}
         self.assertEqual({rid for r in F["rows"] for rid in r["blocking"]}, held)
         self.assertNotIn("value_fmt", F, "no request-value total on the section")
+
+    def test_in_flight_puts_every_open_request_in_one_state_the_sections_agree_on(self):
+        """The Live Data table: every open request once, and each state's count is
+        the one the owning section of this tab already shows."""
+        P, F = self.P, self.P["in_flight"]
+        requests = read_csv(ROOT / "golden" / "golden_requests.csv")
+        open_ids = sorted(r["request_id"] for r in requests if r["status_as_filed"] in bg.OPEN_STATUSES)
+        self.assertEqual(F["open"], len(open_ids), 148)
+        self.assertEqual(sorted(rid for r in F["rows"] for rid in r["request_ids"]), open_ids, "each open request in exactly one state")
+        self.assertEqual(sum(r["count"] for r in F["rows"]), F["open"])
+        self.assertEqual(sum(g["count"] for g in F["groups"]), F["open"])
+        self.assertEqual(sum(o["count"] for o in F["outside"]) + F["open"], len(requests), "closed and intro-sent are named, not in flight")
+        self.assertEqual([r["key"] for r in F["rows"]], [k for k, *_ in lp.IN_FLIGHT_STATES if k not in ("quiet", "other")],
+                         "flight order; quiet and other only when non-empty")
+        by = {r["key"]: r for r in F["rows"]}
+        A, I, FU = P["asks"], P["introduced"], P["followups"]
+        reasons = {e["reason"]: len(e["rows"]) for e in A["exceptions"]}
+        self.assertEqual(by["queued"]["count"], A["allocated"], "Top Priorities")
+        self.assertEqual(by["no_slot"]["count"], A["no_slot"])
+        self.assertEqual(by["no_path"]["count"], reasons[bg.NO_PATH], "Unrouted Exceptions")
+        self.assertEqual(by["unresolved"]["count"], reasons["company unresolved"])
+        self.assertEqual(by["held"]["count"], reasons[bg.UNRESOLVED_ASK])
+        self.assertEqual(by["parked"]["count"], I["requests"], "Already Introduced")
+        self.assertEqual(by["nudge"]["count"], FU["nudge"], "Follow-Ups Owed")
+        self.assertEqual(by["chase"]["count"], FU["chase"])
+        self.assertEqual(by.get("quiet", {"count": 0})["count"], len(FU["quiet"]))
+        self.assertEqual(sorted(by["nudge"]["request_ids"] + by["chase"]["request_ids"] + by.get("quiet", {"request_ids": []})["request_ids"]),
+                         sorted(r["request_id"] for r in FU["rows"]))
+        self.assertEqual(sorted(by["parked"]["request_ids"]), sorted(rid for r in I["rows"] for rid in r["request_ids"]))
+        self.assertIn(f"{I['retry_requests']} of them a retry", by["queued"]["note"])
+        by_rid = {r["request_id"]: r for r in requests}
+        L = lp.Live(AS_OF)
+        for rid in by["meeting"]["request_ids"]:
+            self.assertEqual(L.stage_of(by_rid[rid]), "meeting booked", rid)
+        for rid in by["introduced"]["request_ids"]:
+            self.assertEqual(L.stage_of(by_rid[rid]), "introduced", rid)
+        sections = {sid for sid, _ in lp.SECTIONS}
+        for r in F["rows"]:
+            self.assertIn(r["section"], sections, f"{r['key']} points at a section of this tab")
+            self.assertEqual(r["value_usd"], L.dollars_total([by_rid[rid] for rid in r["request_ids"]]), r["key"])
+            self.assertEqual(r["value_fmt"], lp.money(r["value_usd"]))
+        self.assertEqual((F["quiet_days"], F["intro_live_days"]), (lp.NUDGE_QUIET_DAYS, bg.INTRO_LIVE_DAYS))
 
     def test_connectors(self):
         """A card per connector with a stake in the cycle: the roster in roster
@@ -908,11 +951,59 @@ class GoldenSourceCutsTest(unittest.TestCase):
                           if r["request_id"] not in {o["request_id"] for o in self.gold["outcomes"]})
         self.assertEqual(bl["allocated"], reasons[""])
         self.assertEqual(bl["kinds"]["supply"]["count"], reasons[bg.BLOCK_NO_PATH] + reasons[bg.BLOCK_NO_ROSTER_PATH])
-        self.assertEqual(bl["kinds"]["closed"]["count"], reasons[bg.BLOCK_CLOSED_LOST] + reasons[bg.ALREADY_INTRODUCED])
+        self.assertEqual(bl["kinds"]["closed"]["count"], reasons[bg.ALREADY_INTRODUCED])
         self.assertEqual(dict(bl["kinds"]["process"]["reasons"]).get("capacity exhausted", 0), reasons[bg.CAPACITY_EXHAUSTED])
         allocated = {r["request_id"] for r in self.gold["golden_requests"].values() if r["routed_to"].strip() and not r["blocked_reason"].strip()
                      and r["request_id"] not in {o["request_id"] for o in self.gold["outcomes"]}}
         self.assertEqual(bl["allocated"], len(allocated), "no blocked_reason means the allocator routed it this cycle")
+
+    def test_allocation_blockage_buckets_the_never_asked_on_the_allocators_exception(self):
+        """The Accounts donut: the 115 with no intro_outcomes row, first match wins on the
+        golden_allocation.csv row (allocated_to, then exception_reason's prefix), else the status gate."""
+        ab = self.dc.allocation_blockage_cut(self.gold)
+        never = [r["request_id"] for r in self.gold["requests"] if r["request_id"] not in {o["request_id"] for o in self.gold["outcomes"]}]
+        self.assertEqual(len(never), 115)
+        self.assertEqual(sorted(ab["by_request"]), sorted(never), "every never-asked request lands in a bucket")
+        self.assertEqual(sum(b["count"] for b in ab["buckets"]), 115, "each in exactly one")
+        self.assertEqual([(b["bucket"], b["count"]) for b in ab["buckets"]], [
+            ("allocated, not yet asked", 31),
+            ("no path to this company in the network", 28),
+            ("status gate: Closed - no path", 18),
+            ("status gate: Intro sent", 14),
+            ("already introduced", 9),
+            ("company unresolved", 8),
+            ("capacity exhausted this cycle", 7),
+        ])
+        self.assertNotIn("blocked_reason", inspect.getsource(self.dc.allocation_blockage_cut), "computed from the allocation exception, not the remediation ranking")
+        # the classifier itself, by hand
+        current = {a["request_id"]: a for a in bg.latest_cycle(self.gold["allocation"])}
+        for rid in never:
+            g, a = self.gold["golden_requests"][rid], current.get(rid)
+            want = ("allocated, not yet asked" if a and a["allocated_to"].strip()
+                    else a["exception_reason"].split(":")[0] if a and a["exception_reason"].strip()
+                    else "status gate: " + g["status_as_filed"])
+            self.assertEqual(ab["by_request"][rid], want, rid)
+        # three slices over the 84 blocked, tooltips naming the prefixes they sum; nothing unmapped
+        self.assertEqual((ab["total"], ab["never"], ab["allocated"], ab["blocked"]), (200, 115, 31, 84))
+        self.assertEqual({k: s["count"] for k, s in ab["slices"].items()}, {"supply": 28, "process": 47, "closed": 9})
+        self.assertEqual([b["bucket"] for b in ab["slices"]["process"]["buckets"]],
+                         ["status gate: Closed - no path", "status gate: Intro sent", "company unresolved", "capacity exhausted this cycle"])
+        self.assertEqual([b["bucket"] for b in ab["slices"]["supply"]["buckets"]], [bg.NO_PATH])
+        self.assertEqual([b["bucket"] for b in ab["slices"]["closed"]["buckets"]], [bg.ALREADY_INTRODUCED])
+        self.assertEqual(ab["unmapped"], [])
+        self.assertAlmostEqual(ab["supply_share"], 28 / 84)
+        # the footnote: no path in supply_reach.csv, the 28 plus the 13 the status gate kept from the allocator
+        self.assertEqual(ab["no_path"], 41)
+        self.assertEqual([(b["bucket"], b["no_path"]) for b in ab["no_path_gated"]], [("status gate: Closed - no path", 5), ("status gate: Intro sent", 8)])
+        closed = next(b for b in ab["buckets"] if b["bucket"] == "status gate: Closed - no path")
+        self.assertEqual((closed["with_path"], closed["no_path"], closed["unresolved"]), (9, 5, 4), "9 closed with a path available, 9 correctly")
+        # an exception prefix build_golden.py could write that no slice claims is reported, never dropped
+        odd_id = next(rid for rid, b in ab["by_request"].items() if b == bg.NO_PATH)
+        gold = dict(self.gold, allocation=[dict(a, exception_reason="something new: detail") if a["request_id"] == odd_id and a["cycle"] == current[odd_id]["cycle"] else a
+                                            for a in self.gold["allocation"]])
+        odd = self.dc.allocation_blockage_cut(gold)
+        self.assertEqual([(b["bucket"], b["count"]) for b in odd["unmapped"]], [("something new", 1)])
+        self.assertEqual((odd["slices"]["supply"]["count"], sum(b["count"] for b in odd["buckets"])), (27, 115))
 
     def test_latency_medians_overall_and_by_month(self):
         lat = self.dc.latency_cut(self.gold, today=AS_OF)
@@ -1020,7 +1111,30 @@ class BuiltPagesTest(unittest.TestCase):
                          ["flow", "flow", *self.STRATEGIC, "overview", "timing", "scoping", "integrity-divider",
                           "joins", "targets", "quality", "verify", "integrity"])
         self.assertEqual(re.findall(r'<a class="band" href="#[^"]+">([^<]+)<', side), ["Strategic data", "Data integrity"])
-        self.assertEqual(self.sections("livedata.html"), self.STRATEGIC)
+        self.assertEqual(self.sections("livedata.html"), [self.STRATEGIC[0], "inflight", *self.STRATEGIC[1:]],
+                         "Live Data alone carries Requests in Flight, right after the funnel")
+        self.assertNotIn('id="inflight"', html, "Raw Sept reads the exports as filed; nothing is in flight there")
+
+    def test_requests_in_flight_shows_the_live_priorities_counts(self):
+        """The table on Live Data is the in_flight payload rendered, so each count is
+        the one the owning Live Priorities section shows."""
+        html = self.pages["livedata.html"]
+        F = lp.in_flight()
+        section = html.split('<section id="inflight">')[1].split("</section>")[0]
+        side = html.split('<nav class="toc"')[1].split("</nav>")[0]
+        self.assertIn('href="#inflight"', side)
+        self.assertIn(">Requests in Flight<", section)
+        cells = re.findall(r'<tr><td>([^<]+)(?:<br>[^<]*<span class="foot">[^<]*</span>)?</td><td class="num"><b>(\d+)</b></td>', section)
+        self.assertEqual(cells, [(r["label"], str(r["count"])) for r in F["rows"]], "one row per state, in flight order")
+        self.assertIn(f'<th class="num">{F["open"]}</th>', section)
+        for g in F["groups"]:
+            self.assertIn(f'<tr class="group"><th colspan="6">{g["group"]} <span class="foot">{g["count"]} requests</span></th></tr>', section)
+        for r in F["rows"]:
+            self.assertIn(f'href="livepriorities.html#{r["section"]}"', section, f"{r['key']} links to the section that owns it")
+            self.assertIn(f'<td class="num">{r["value_fmt"]}</td>', section)
+        for key, label in (("nudge", "nudges"), ("chase", "chases")):
+            n = next(r["count"] for r in F["rows"] if r["key"] == key)
+            self.assertIn(f"{n} {label}", section)
 
     def test_the_two_tabs_render_the_same_charts_from_their_own_source(self):
         for name in ("halyardscoping.html", "livedata.html"):
@@ -1030,7 +1144,7 @@ class BuiltPagesTest(unittest.TestCase):
             for div in ("sankey", "sankey-12m", "blockage", "blockage-12m", "demand", "demand-12m", "req-asks", "req-value",
                         "req-accounts", "req-rate", "req-urgency", "connector-return", "latency-chart", "cycles-chart"):
                 self.assertIn(f'id="{div}"', html, f"{name} draws {div}")
-            self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 2, f"{name}: funnel and Top 20 toggles")
+            self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 3, f"{name}: funnel, Remaining Unrouted and Top 20 toggles")
             self.assertEqual(html.count("querySelectorAll('.seg[data-scope]')"), 1, f"{name}: the toggle script once")
         raw, live = self.pages["halyardscoping.html"], self.pages["livedata.html"]
         self.assertIn("<code>golden/completions.csv</code> applied", live)
@@ -1038,6 +1152,25 @@ class BuiltPagesTest(unittest.TestCase):
         self.assertNotIn("exist only as a Submit on Live Priorities", raw, "Raw Sept reads the exports as filed")
         self.assertIn("as filed; capacity used is roster asks", raw)
         self.assertIn("counts this build's allocation as slots used", live)
+
+    def test_live_data_accounts_carries_the_allocation_blockage_donut(self):
+        live, raw = self.pages["livedata.html"], self.pages["halyardscoping.html"]
+        accounts = live.split('<section id="accounts">')[1].split("</section>")[0]
+        self.assertIn('id="allocation-blockage"', accounts, "drawn inside Accounts")
+        self.assertLess(accounts.index('id="demand"'), accounts.index("<h3>Blockage by Allocation Exception</h3>"))
+        self.assertLess(accounts.index('id="allocation-blockage"'), accounts.index("<h3>Per-company detail</h3>"))
+        self.assertIn("blocked\\u003cbr\\u003eof 200 requests on file", accounts, "the denominator on the chart")
+        self.assertIn('"values":[28,47,9]', accounts)
+        self.assertIn('"labels":["supply","process","correctly not asked"]', accounts)
+        self.assertIn("status gate: Closed - no path 18\\u003cbr\\u003estatus gate: Intro sent 14\\u003cbr\\u003ecompany unresolved 8\\u003cbr\\u003ecapacity exhausted this cycle 7", accounts, "the tooltip names the prefixes it sums")
+        caption = re.sub(r"<[^>]+>", "", accounts[accounts.index("<h3>Blockage by Allocation Exception</h3>"):])
+        self.assertIn("31 more are allocated this cycle and not yet asked; they carry a routed_to and are not blocked. 115 never reach a connector; 84 of those are blocked.", caption)
+        self.assertIn("Only 33% of the blockage is a missing relationship.", caption)
+        self.assertIn("Closed - no path 18 (9 with a path available, 9 without: 5 no path, 4 no resolvable company)", caption)
+        self.assertIn("41 never-asked requests (of 200 on file) name a company with no path in supply_reach.csv: the 28 above plus 13 the status gate excluded", caption)
+        self.assertIn("(5 in status gate: Closed - no path, 8 in status gate: Intro sent)", caption)
+        self.assertNotIn("Outside the wedges", caption, "nothing unmapped this build")
+        self.assertNotIn("allocation-blockage", raw, "Raw Sept reads the exports, not the allocation")
 
     def test_live_data_opens_on_the_headline_kpis(self):
         from dashboard import data_cuts
@@ -1060,21 +1193,34 @@ class BuiltPagesTest(unittest.TestCase):
         b, bl = data_cuts.backlog_cut(gold), data_cuts.blockage_cut(gold)
         for name in ("halyardscoping.html", "livedata.html"):
             html = self.pages[name]
-            for view, sankey_id, donut_id in (("all", "sankey", "blockage"), ("12m", "sankey-12m", "blockage-12m")):
-                block = html.split(f'<div class="fview" data-view="{view}"')[1].split("<h3>Stage table</h3>")[0]
-                i = [block.index(f'id="{sankey_id}"'), block.index("requests never reach a connector."),
-                     block.index("<h3>Why they never reach a connector</h3>"), block.index(f'id="{donut_id}"'),
-                     block.index("<h3>Yield</h3>")]
-                self.assertEqual(i, sorted(i), f"{name}/{view}: sankey, then the box, the donut, then yield")
-                self.assertIn("of the blockage is a missing relationship.", block)
-                for label in ("routed to a connector", "routed per ask", "opportunity value created", "return per ask"):
-                    self.assertIn(f'<div class="l">{label}</div>', block, f"{name}/{view}")
-            whole = html.split('<div class="fview" data-view="all">')[1]
+            funnel = html.split('<section id="funnel">')[1].split("</section>")[0]
+            # sankey + backlog box in each funnel view, then one Remaining Unrouted panel with its own toggle, then yield in each view
+            i = [funnel.index('id="sankey-12m"'), funnel.index('id="sankey"'), funnel.index('<div id="unrouted">'),
+                 funnel.index("<h3>Remaining Unrouted</h3>"), funnel.index('id="unrouted-toggle" data-scope="unrouted"'),
+                 funnel.index('id="blockage-12m"'), funnel.index('id="blockage"'), funnel.index("<h3>Yield</h3>"),
+                 funnel.index("<h3>Stage table, last 12 months</h3>"), funnel.index("<h3>Stage table</h3>")]
+            self.assertEqual(i, sorted(i), f"{name}: sankeys, then the unrouted panel, then yield and the stage tables")
+            self.assertEqual(funnel.count("requests never reach a connector."), 2, f"{name}: a backlog box under each sankey")
+            self.assertEqual(funnel.count("<h3>Yield</h3>"), 2, f"{name}: yield in each funnel view")
+            self.assertEqual(funnel.count("<h3>Remaining Unrouted</h3>"), 1, f"{name}: one panel, toggled on its own")
+            self.assertNotIn("Why they never reach a connector", funnel)
+            self.assertEqual(funnel.count('data-scope="funnel"'), 1)
+            panel = funnel.split('<div id="unrouted">')[1].split("<h3>Yield</h3>")[0]
+            self.assertIn('<button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button>', panel)
+            self.assertIn('id="unrouted-window" data-all="', panel)
+            self.assertIn(f"{bl['never']} never asked", panel)
+            self.assertEqual(panel.count("of the blockage is a missing relationship."), 2, f"{name}: a donut and its reading per view")
+            self.assertIn('<div class="fview" data-view="12m" hidden>', panel)
+            self.assertIn('<div class="fview" data-view="all">', panel)
+            whole = funnel
             self.assertIn(f"<b>{b['never']} requests never reach a connector.</b>", whole)
             self.assertIn(f"{b['with_path']} of them are for companies that already have a path in <code>supply_reach.csv</code>, "
                           f"a backlog worth ${b['with_path_value'] / 1e6:.1f}M", whole)
             self.assertIn(f"Of the {bl['never']} never asked, {bl['allocated']} are allocated this cycle and not yet asked; {bl['blocked']} are blocked.", whole)
             self.assertIn(f"<b>Only {bl['supply_share']:.0%} of the blockage is a missing relationship.</b>", whole)
+            for label in ("routed to a connector", "routed per ask", "opportunity value created", "return per ask"):
+                self.assertEqual(funnel.count(f'<div class="l">{label}</div>'), 2, f"{name}: {label} in both views")
+            self.assertIn("v.parentElement.closest(scopes) !== scope", html, f"{name}: the funnel toggle leaves the nested unrouted toggle alone")
 
     def test_connectors_ranked_by_return_per_ask_and_a_latency_section(self):
         from dashboard import data_cuts
@@ -1100,7 +1246,7 @@ class BuiltPagesTest(unittest.TestCase):
     def test_live_data_top_20_by_asks_has_the_same_toggle_as_the_funnel(self):
         from dashboard import data_cuts
         html = self.pages["livedata.html"]
-        self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 2, "funnel and Top 20 each carry the toggle")
+        self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 3, "funnel, Remaining Unrouted and Top 20 each carry the toggle")
         self.assertIn('id="demand-toggle" data-scope="demand-views"', html)
         self.assertIn('id="demand"', html)
         self.assertIn('id="demand-12m"', html)

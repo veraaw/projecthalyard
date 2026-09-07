@@ -39,7 +39,8 @@ from dashboard import data_cuts, theme
 from dashboard.funnel_overview import dropoff_rows, ratios
 from dashboard.live_priorities import (BANDS as PRIORITIES_BANDS, BATCH_PAGE as BATCH_HTML, BUILD_STAMP,
                                        PAGE as PRIORITIES_HTML, batch_fragment, connector_fragments,
-                                       cycles as connector_cycles, fragment as priorities_fragment)
+                                       cycles as connector_cycles, fragment as priorities_fragment,
+                                       in_flight as priorities_in_flight)
 from dashboard.sankey_funnel import build_figure
 from dashboard.trace_section import fragment as trace_fragment, sidebar as trace_sidebar
 from golden import build_golden as bg
@@ -354,13 +355,17 @@ def names_list(xs):
 
 SEG_SCRIPT = """<script>
 (function () {
-  // Cumulative / Last 12 months: each .seg swaps the .fview blocks inside its data-scope element
-  document.querySelectorAll('.seg[data-scope]').forEach(function (seg) {
+  // Cumulative / Last 12 months: each .seg swaps the .fview blocks inside its data-scope element,
+  // leaving alone the ones that belong to a toggle nested inside it
+  var segs = document.querySelectorAll('.seg[data-scope]');
+  var scopes = Array.prototype.map.call(segs, function (s) { return '#' + s.dataset.scope; }).join(',');
+  segs.forEach(function (seg) {
     var scope = document.getElementById(seg.dataset.scope), note = document.getElementById(seg.dataset.scope + '-window');
     seg.querySelectorAll('button').forEach(function (b) {
       b.onclick = function () {
         seg.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
         scope.querySelectorAll('.fview').forEach(function (v) {
+          if (v.parentElement.closest(scopes) !== scope) return;
           v.hidden = v.dataset.view !== b.dataset.view;
           if (!v.hidden && window.Plotly) v.querySelectorAll('.js-plotly-plot').forEach(function (p) { Plotly.Plots.resize(p); });
         });
@@ -373,6 +378,41 @@ SEG_SCRIPT = """<script>
 
 STRATEGIC_NAV = [("#funnel", "Funnel", ""), ("#accounts", "Accounts", ""), ("#requesters", "Requesters", ""),
                  ("#connectors", "Connectors", ""), ("#latency", "Latency", ""), ("#cycles", "Intros by Cycle", "")]
+LIVE_NAV = STRATEGIC_NAV[:1] + [("#inflight", "Requests in Flight", "")] + STRATEGIC_NAV[1:]
+
+
+def in_flight_section(f):
+    """Every open request in one state, the counts Live Priorities shows in its own sections."""
+    section_label = {sid: label for _, _, sections in PRIORITIES_BANDS for sid, label in sections}
+    by_key = {r["key"]: r for r in f["rows"]}
+    waiting = sum(r["count"] for r in f["rows"] if r["group"] == "Asked, waiting on the connector")
+    body = ""
+    for g in f["groups"]:
+        body += f'<tr class="group"><th colspan="6">{esc(g["group"])} <span class="foot">{g["count"]} requests</span></th></tr>'
+        for r in f["rows"]:
+            if r["group"] != g["group"]:
+                continue
+            where = (f'<a href="{PRIORITIES_HTML}#{r["section"]}">{esc(section_label[r["section"]])}</a>' if r["section"] else "—")
+            body += (f'<tr><td>{esc(r["label"])}' + (f'<br><span class="foot">{esc(r["note"])}</span>' if r["note"] else "")
+                     + f'</td><td class="num"><b>{r["count"]}</b></td><td class="num">{pct(r["count"], f["open"])}</td>'
+                     f'<td class="num">{esc(r["value_fmt"])}</td><td>{esc(r["next"])}</td><td>{where}</td></tr>')
+    body += f'<tr class="total"><th>All requests in flight</th><th class="num">{f["open"]}</th><th class="num">100%</th><th colspan="3"></th></tr>'
+    outside = " and ".join(f'{o["count"]} filed <code>{esc(o["status"])}</code>' for o in f["outside"])
+    return f"""
+<section id="inflight">
+  <h2>Requests in Flight</h2>
+  <p class="lede">Every request filed Open, Routed or Stalled in <code>golden/golden_requests.csv</code>, each in exactly one state as of the build. The counts are the ones the <a href="{PRIORITIES_HTML}">Live Priorities</a> tab shows section by section: the queue and its exceptions from <code>golden/golden_allocation.csv</code>, the nudges and chases from the ask log, the parked requests from the live intros. Not in flight: {outside}.</p>
+  <div class="kpis">
+    {kpi(f["open"], "requests in flight", f"{len(f['rows'])} states")}
+    {kpi(by_key["queued"]["count"], "queued this cycle", f"{by_key['no_slot']['count']} more routed with no slot")}
+    {kpi(waiting, "waiting on a connector", f"{by_key['nudge']['count']} nudges and {by_key['chase']['count']} chases owed")}
+    {kpi(by_key["parked"]["count"] + by_key["introduced"]["count"], "on a live intro", f"{by_key['parked']['count']} parked behind one, {by_key['introduced']['count']} introduced")}
+    {kpi(by_key["meeting"]["count"], "meeting booked", by_key["meeting"]["note"] or "no opportunity logged yet")}
+  </div>
+  <table class="inflight"><thead><tr><th>State</th><th>Requests</th><th>Of in flight</th><th>Value</th><th>What happens next</th><th>On Live Priorities</th></tr></thead><tbody>{body}</tbody></table>
+  <p class="foot">Value counts each company once (CRM ARR potential, else the deal value filed), as Live Priorities does. A nudge is owed on an ask the connector agreed to and has not delivered; a chase on one they never answered; either waits {f["quiet_days"]} days after a follow-up. An intro is live for {f["intro_live_days"]} days, or while its meeting has not stalled. Code: <code>dashboard/live_priorities.py</code> (<code>in_flight</code>).</p>
+</section>
+"""
 
 
 def days(x):
@@ -413,14 +453,13 @@ def blockage_donut(bl, div_id):
     return plot(fig, div_id)
 
 
-def blockage_panel(bl, div_id):
+def blockage_view(bl, div_id):
     """The donut with its reading: who is waiting on a connector and why the rest are blocked."""
     def reasons(kind):
         k = bl["kinds"][kind]
         return ", ".join(f"{r} {n}" for r, n in k["reasons"]) or "none"
     other = f' Unclassified: {", ".join(f"{r} {n}" for r, n in bl["other"])}.' if bl["other"] else ""
-    return f"""<h3>Why they never reach a connector</h3>
-  <div class="grid2">
+    return f"""<div class="grid2">
     <div>{blockage_donut(bl, div_id)}</div>
     <div>
       <p class="lede">Of the {bl["never"]} never asked, {bl["allocated"]} are allocated this cycle and not yet asked; {bl["blocked"]} are blocked.</p>
@@ -429,6 +468,65 @@ def blockage_panel(bl, div_id):
                f'Correctly not asked {bl["kinds"]["closed"]["count"]}: {reasons("closed")}.{other}', warn=True)}
       <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>blockage_cut</code>), from <code>blocked_reason</code> in <code>golden/golden_requests.csv</code>.</p>
     </div>
+  </div>"""
+
+
+def allocation_donut(ab, div_id):
+    """Three slices over the blocked never-asked requests, bucketed on the allocator's exception_reason;
+    each slice's tooltip lists the exact prefixes it sums."""
+    slices = [ab["slices"][k] for k in ("supply", "process", "closed")]
+    sums = ["<br>".join(f'{b["bucket"]} {b["count"]}' for b in s["buckets"]) or "nothing this cycle" for s in slices]
+    fig = go.Figure(go.Pie(
+        labels=[s["label"] for s in slices], values=[s["count"] for s in slices], hole=.62, sort=False, direction="clockwise",
+        marker=dict(colors=[theme.WARN, theme.ACCENT, theme.NEUTRAL_DARK], line=dict(color=theme.SURFACE, width=2)),
+        text=[str(s["count"]) for s in slices], textinfo="text", textposition="inside", textfont=dict(size=14, color="#fff"),
+        customdata=sums,
+        hovertemplate="<b>%{label}</b>: %{value} of " + str(ab["blocked"]) + " blocked (%{percent})<br>sums exception_reason:<br>%{customdata}<extra></extra>"))
+    fig.update_layout(height=320, autosize=True, margin=dict(l=10, r=10, t=10, b=10), showlegend=True, **theme.PLOTLY_LAYOUT)
+    fig.update_layout(legend=dict(orientation="v", x=1, y=.5, xanchor="left"))
+    fig.add_annotation(text=f'<b>{ab["blocked"]}</b><br><span style="font-size:11px">blocked<br>of {ab["total"]} requests on file</span>',
+                       x=.5, y=.5, showarrow=False, font=dict(size=22, color=theme.INK))
+    return plot(fig, div_id)
+
+
+def allocation_bucket_text(b):
+    """A bucket with its count and, where the same status gate holds requests both with and without a
+    path on file, that split."""
+    without = b["no_path"] + b["unresolved"]
+    if not (b["with_path"] and without):
+        return f'{b["bucket"]} {b["count"]}'
+    parts = [f'{b["no_path"]} no path'] * bool(b["no_path"]) + [f'{b["unresolved"]} no resolvable company'] * bool(b["unresolved"])
+    return f'{b["bucket"]} {b["count"]} ({b["with_path"]} with a path available, {without} without: {", ".join(parts)})'
+
+
+def allocation_blockage_panel(ab, div_id):
+    """The Accounts donut with its caption: what is stated rather than drawn."""
+    def slice_text(kind):
+        s = ab["slices"][kind]
+        return f'{s["label"].capitalize()} {s["count"]}: ' + ("; ".join(allocation_bucket_text(b) for b in s["buckets"]) or "none this cycle") + "."
+    gated = sum(b["no_path"] for b in ab["no_path_gated"])
+    gated_text = ", ".join(f'{b["no_path"]} in {b["bucket"]}' for b in ab["no_path_gated"])
+    unmapped = (finding("Outside the wedges.", "Buckets no slice claims: " + "; ".join(allocation_bucket_text(b) for b in ab["unmapped"]) + ".", warn=True)
+                if ab["unmapped"] else "")
+    return f"""<h3>Blockage by Allocation Exception</h3>
+  <p class="lede">The never-asked requests bucketed by what actually stopped them: the current cycle's <code>exception_reason</code> in <code>golden/golden_allocation.csv</code> (the text before the first colon), or, for a request the allocator never saw, the status it was filed under. <code>blocked_reason</code> is not used here: it ranks what would unblock a request, not why the system stopped.</p>
+  {allocation_donut(ab, div_id)}
+  <p class="lede">{ab["allocated"]} more are allocated this cycle and not yet asked; they carry a <code>routed_to</code> and are not blocked. {ab["never"]} never reach a connector; {ab["blocked"]} of those are blocked.</p>
+  {finding(f'Only {ab["supply_share"]:.0%} of the blockage is a missing relationship.', f'{slice_text("supply")} {slice_text("process")} {slice_text("closed")}', warn=True)}
+  {unmapped}
+  <p class="foot">{ab["no_path"]} never-asked requests (of {ab["total"]} on file) name a company with no path in <code>supply_reach.csv</code>: the {ab["slices"]["supply"]["count"]} above plus {gated} the status gate excluded before they were evaluated{f" ({gated_text})" if gated_text else ""}. That figure overlaps the slices, so it is a footnote, not a wedge.</p>
+  <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>allocation_blockage_cut</code>). Slice tooltips list the exception prefixes they sum: the same vocabulary as Unrouted Exceptions on Live Priorities.</p>"""
+
+
+def blockage_panel(data, window_all):
+    """Remaining Unrouted, with its own Cumulative / Last 12 months toggle so it can be read against either funnel view."""
+    bl, bl_12m = data_cuts.blockage_cut(data), data_cuts.blockage_cut(data, since=ROLLING_SINCE)
+    return f"""<div id="unrouted">
+  <h3>Remaining Unrouted</h3>
+  <div class="seg" id="unrouted-toggle" data-scope="unrouted" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
+  <span class="foot" id="unrouted-window" data-all="{window_all}: {bl['never']} never asked" data-12m="Requests dated {ROLLING_SINCE} or later: {bl_12m['never']} of the {bl['never']} never asked">{window_all}: {bl['never']} never asked</span>
+  <div class="fview" data-view="12m" hidden>{blockage_view(bl_12m, "blockage-12m")}</div>
+  <div class="fview" data-view="all">{blockage_view(bl, "blockage")}</div>
   </div>"""
 
 
@@ -468,7 +566,7 @@ def headline_kpis(data):
   </div>"""
 
 
-def strategic_sections(data, cyc, live):
+def strategic_sections(data, cyc, live, in_flight=None):
     """The five sections the two data dashboards share (funnel, accounts, requesters, connectors,
     intros by cycle), rendered from one data_cuts.load() result and one cycles dict. `live` picks
     the wording and the source lines: the Live Data tab reads golden/ with the ask log as the
@@ -503,7 +601,14 @@ def strategic_sections(data, cyc, live):
   {funnel_kpis(counts_12m)}
   {sankey(stages_12m, "sankey-12m")}
   {backlog_box(data_cuts.backlog_cut(data, since=ROLLING_SINCE))}
-  {blockage_panel(data_cuts.blockage_cut(data, since=ROLLING_SINCE), "blockage-12m")}
+  </div>
+  <div class="fview" data-view="all">
+  {funnel_kpis(counts)}
+  {sankey(stages, "sankey")}
+  {backlog_box(data_cuts.backlog_cut(data))}
+  </div>
+  {blockage_panel(data, window_all)}
+  <div class="fview" data-view="12m" hidden>
   {yield_strip(data_cuts.yield_cut(data, since=ROLLING_SINCE))}
   <div class="grid2">
     <div>
@@ -519,10 +624,6 @@ def strategic_sections(data, cyc, live):
   </div>
   </div>
   <div class="fview" data-view="all">
-  {funnel_kpis(counts)}
-  {sankey(stages, "sankey")}
-  {backlog_box(data_cuts.backlog_cut(data))}
-  {blockage_panel(data_cuts.blockage_cut(data), "blockage")}
   {yield_strip(data_cuts.yield_cut(data))}
   <div class="grid2">
     <div>
@@ -539,7 +640,7 @@ def strategic_sections(data, cyc, live):
   </div>
   </div>
 </section>
-"""
+""" + (in_flight_section(in_flight) if in_flight else "")
 
     # accounts
     demand = data_cuts.account_demand_cut(data)
@@ -585,6 +686,7 @@ def strategic_sections(data, cyc, live):
       {finding("Unresolvable asks cluster too.", f"{unresolvable_asks} requests resolve to no company at all: " + "; ".join(f'{b["requests"]} {b["name"].strip("()")}' for b in demand["unresolvable"]) + ". They sit at the bottom of the detail table and are excluded from the company counts above.")}
     </div>
   </div>
+  {allocation_blockage_panel(data_cuts.allocation_blockage_cut(data), "allocation-blockage") if live else ""}
   <h3>Per-company detail</h3>
   <p class="foot">Paths in network = distinct ways to reach the company in <code>golden/supply_reach.csv</code>.</p>
   {demand_table}
@@ -953,6 +1055,10 @@ td:nth-child(n+2):not(:last-child).num,th.num{{text-align:right}}
 .fo tr.ratio td{{color:var(--mute);border-bottom:none;padding-top:10px}}
 .fo tr.ratio td.num{{color:var(--ink);font-weight:600}}
 table.cycles td.num,table.cycles th.num{{text-align:right;white-space:nowrap}}
+table.inflight td.num,table.inflight th.num{{text-align:right;white-space:nowrap}}
+table.inflight tr.group th{{color:var(--ink);font-weight:600;font-size:13px;padding-top:18px;border-bottom-color:var(--line)}}
+table.inflight tr.group th .foot{{font-weight:400;margin-left:6px}}
+table.inflight tr.total th{{color:var(--ink);font-weight:600;font-size:14px;border-top:1px solid var(--ink);border-bottom:none}}
 table.cycles td.date{{font-family:var(--mono);font-size:12.5px;white-space:nowrap}}
 table.cycles tr.now td{{background:{theme.rgba(theme.BATON, 0.08)};font-weight:500}}
 table.cycles tr.now td .foot{{font-weight:400}}
@@ -1650,14 +1756,14 @@ live_page = f"""{head("Live Data Dashboard")}
   <p>Funnel, accounts, requesters and connectors: {len(live_cuts["requests"])} requests after entity resolution, with every ask sent since · Source: <code>golden/</code>, rebuilt from <code>dataset/</code> and Supabase by the rebuild workflow · {built}</p>
 </header>
 <div class="layout">
-{sidebar(STRATEGIC_NAV)}
+{sidebar(LIVE_NAV)}
 <main>
 
 {headline_kpis(live_cuts)}
 
 <p class="lede part-lede">Computed from <code>golden/</code> (<code>golden_requests.csv</code>, <code>golden_companies.csv</code>, <code>supply_reach.csv</code>, <code>completions.csv</code>) after entity resolution, so companies are counted by identity rather than by how the name was typed. The ask log is <code>intro_outcomes.csv</code> with <code>golden/completions.csv</code> applied: a Submit on <a href="{PRIORITIES_HTML}">Live Priorities</a> lands in Supabase, the rebuild pulls it into <code>completions.csv</code>, and the ask counts here from that build on; requests added later, CRM changes and new <code>intro_outcomes.csv</code> rows flow in the same way, through <code>python3 golden/build_golden.py</code>. The <a href="{RAW_HTML}">Raw Sept Data Dashboard</a> has the same charts from the September exports alone.</p>
 
-{strategic_sections(live_cuts, connector_cycles(TODAY), live=True)}
+{strategic_sections(live_cuts, connector_cycles(TODAY), live=True, in_flight=priorities_in_flight(TODAY))}
 
 <p class="foot">Regenerate with <code>python3 build.py dashboard</code>; <code>python3 golden/build_golden.py --completions supabase</code> first to pick up asks sent since the last build. Everything on this tab is computed from <code>golden/</code> at build time. The <a href="{TRACE_HTML}">Company Trace</a> tab has the full history of any one company.</p>
 </main>
