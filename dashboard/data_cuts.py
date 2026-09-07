@@ -19,6 +19,7 @@ import sys
 from collections import Counter, defaultdict
 from datetime import date, timedelta
 
+from dashboard import request_state as rs
 from golden import build_golden as bg
 from golden.clock import as_of
 from paths import DATASET, GOLDEN as GOLDEN_DIR, JOINS
@@ -114,8 +115,21 @@ def load(source="dataset", completions=None):
         "golden_requests": {r["request_id"]: r for r in golden_requests},
         "golden_companies": {c["company_id"]: c for c in golden("golden_companies.csv")},
         "supply": golden("supply_reach.csv"),
-        "allocation": golden("golden_allocation.csv"),
+        "allocation": bg.read_allocation(GOLDEN_DIR / "golden_allocation.csv"),
     }
+
+
+def request_states(data):
+    """{request_id: state} over every request on file (dashboard/request_state.py),
+    against the current cycle of data["allocation"] keyed by request_id: the
+    classified table every cut filters."""
+    return rs.classify(data["requests"], data["outcome_by_request"], rs.current_allocation(data["allocation"]))
+
+
+def in_cycle(data):
+    """How many requests the current allocation cycle holds: the denominator for
+    a count of this cycle's requests."""
+    return len(rs.current_allocation(data["allocation"]))
 
 
 # --------------------------------------------------------------------------- 0. funnel stages
@@ -126,9 +140,10 @@ def funnel_cut(data, since=None):
     """[(stage, count)] the way the Sankey wants it: every request, then how
     many the ask log has as asked, responded, introduced, met and turned into an
     opportunity. `since` (YYYY-MM-DD) keeps requests dated on or after it."""
+    states = request_states(data)
     req = [r for r in data["requests"] if not since or r["request_date"].strip()[:10] >= since]
     asked = [(r, data["outcome_by_request"][r["request_id"].strip()]) for r in req
-             if r["request_id"].strip() in data["outcome_by_request"]]
+             if states[r["request_id"].strip()] == rs.ASKED]
     return [
         ("Requests", len(req)),
         ("Asked", len(asked)),
@@ -140,50 +155,23 @@ def funnel_cut(data, since=None):
 
 
 # --------------------------------------------------------------------------- 0b. where the never-asked stopped
-# golden_requests.csv's blocked_reason ranks remediations (CRM record and account stage are checked before the
-# allocation result), so the Accounts donut buckets on the allocator's own exception_reason instead: the text
-# before the first ":" is the vocabulary Unrouted Exceptions on Live Priorities uses.
-ALLOCATED = "allocated, not yet asked"
-STATUS_GATE = "status gate: "  # + status_as_filed: no allocation row, the status kept the request from the allocator
-COMPANY_UNRESOLVED = "company unresolved"  # the exception_reason build_golden files when the ask names no resolvable company
-GATE_CLOSED, GATE_INTRO_SENT = STATUS_GATE + "Closed - no path", STATUS_GATE + "Intro sent"
-# slice -> (label, the buckets it sums)
-ALLOCATION_SLICES = {
-    "supply": ("supply", [bg.NO_PATH]),
-    "process": ("process", [GATE_CLOSED, GATE_INTRO_SENT, COMPANY_UNRESOLVED, bg.CAPACITY_EXHAUSTED]),
-    "closed": ("correctly not asked", [bg.ALREADY_INTRODUCED]),
-}
-
-
-def allocation_bucket(status_as_filed, a):
-    """Where a never-asked request stopped, first match wins: its current-cycle
-    allocation row names a connector (waiting for its ask), or an exception
-    (the prefix before the first ":"); with no row, the status it was filed
-    under kept it from the allocator."""
-    if a and a["allocated_to"].strip():
-        return ALLOCATED
-    if a and a["exception_reason"].strip():
-        return a["exception_reason"].split(":")[0].strip()
-    return STATUS_GATE + status_as_filed.strip()
-
-
-def allocation_blockage_cut(data):
-    """The never-asked requests (no row in the ask log) bucketed by what stopped
-    them, from golden_allocation.csv's current cycle, and the three slices over
-    the blocked ones (ALLOCATION_SLICES; a bucket in no slice is reported, never
-    dropped). Each bucket carries how many of its requests name a resolved
-    company with no path in supply_reach.csv: for the buckets outside the supply
-    slice that is the footnote, requests the status gate excluded before the
-    allocator could say "no path". Display only: reads the allocation, never
-    changes it."""
-    current = {a["request_id"].strip(): a for a in bg.latest_cycle(data["allocation"])}
+def blockage_cut(data, since=None):
+    """The never-asked requests (state != asked in request_states) bucketed by
+    their state, and the three slices over the blocked ones (request_state.SLICES;
+    a state in no slice is reported, never dropped). `since` (YYYY-MM-DD) keeps
+    requests dated on or after it: the same classified table, filtered. Each
+    bucket carries how many of its requests name a resolved company with no path
+    in supply_reach.csv: for the buckets outside the supply slice that is the
+    footnote, requests the status gate excluded before the allocator could say
+    "no path". Display only: reads the allocation, never changes it."""
+    states = request_states(data)
     reach = {s["company_id"].strip() for s in data["supply"] if s["company_id"].strip()}
-    never = [data["golden_requests"].get(r["request_id"].strip(), {"request_id": r["request_id"], "company_id": "", "status_as_filed": r["status"]})
-             for r in data["requests"] if r["request_id"].strip() not in data["outcome_by_request"]]
+    never = [data["golden_requests"].get(r["request_id"].strip(), {"request_id": r["request_id"], "company_id": ""})
+             for r in data["requests"] if in_window(r, since) and states[r["request_id"].strip()] != rs.ASKED]
     by_request, counts, with_path, no_path = {}, Counter(), Counter(), Counter()
     for g in never:
         rid = g["request_id"].strip()
-        bucket = by_request[rid] = allocation_bucket(g.get("status_as_filed", ""), current.get(rid))
+        bucket = by_request[rid] = states[rid]
         counts[bucket] += 1
         cid = g.get("company_id", "").strip()
         if cid:
@@ -191,11 +179,11 @@ def allocation_blockage_cut(data):
     # unresolved: the request names no company the registry knows, so there is nothing to have a path to
     buckets = [{"bucket": b, "count": n, "with_path": with_path[b], "no_path": no_path[b], "unresolved": n - with_path[b] - no_path[b]}
                for b, n in counts.most_common()]
-    slice_of = {b: s for s, (_, bs) in ALLOCATION_SLICES.items() for b in bs}
-    slices = {s: {"label": label, "count": 0, "buckets": []} for s, (label, _) in ALLOCATION_SLICES.items()}
+    slice_of = {b: s for s, (_, bs) in rs.SLICES.items() for b in bs}
+    slices = {s: {"label": label, "count": 0, "buckets": []} for s, (label, _) in rs.SLICES.items()}
     unmapped = []
     for b in buckets:
-        if b["bucket"] == ALLOCATED:
+        if b["bucket"] == rs.ALLOCATED:
             continue
         s = slice_of.get(b["bucket"])
         if s is None:
@@ -203,19 +191,21 @@ def allocation_blockage_cut(data):
             continue
         slices[s]["count"] += b["count"]
         slices[s]["buckets"].append(b)
-    blocked = len(never) - counts[ALLOCATED]
-    gated = [b for b in buckets if b["no_path"] and b["bucket"] != ALLOCATED and slice_of.get(b["bucket"]) != "supply"]
+    blocked = len(never) - counts[rs.ALLOCATED]
+    gated = [b for b in buckets if b["no_path"] and b["bucket"] != rs.ALLOCATED and slice_of.get(b["bucket"]) != "supply"]
     return {
         "total": len(data["requests"]),
+        "in_window": sum(1 for r in data["requests"] if in_window(r, since)),
+        "in_cycle": in_cycle(data),
         "never": len(never),
-        "allocated": counts[ALLOCATED],
+        "allocated": counts[rs.ALLOCATED],
         "blocked": blocked,
         "buckets": buckets,
         "by_request": by_request,
         "slices": slices,
         "unmapped": unmapped,
         "supply_share": slices["supply"]["count"] / blocked if blocked else 0,
-        "no_path": sum(b["no_path"] for b in buckets if b["bucket"] != ALLOCATED),
+        "no_path": sum(b["no_path"] for b in buckets if b["bucket"] != rs.ALLOCATED),
         "no_path_gated": gated,
     }
 
@@ -257,11 +247,12 @@ def backlog_cut(data, since=None):
     """Requests that never reached a connector, split by whether the resolved
     company already has a path in golden/supply_reach.csv: those could be asked
     today, and their deal value is what the backlog is worth."""
-    asked = {o["request_id"].strip() for o in data["outcomes"]}
+    states = request_states(data)
     reach = defaultdict(set)
     for s in data["supply"]:
         reach[s["company_id"]].add(s["connector"].strip())
-    never = [r for r in data["requests"] if in_window(r, since) and r["request_id"].strip() not in asked]
+    windowed = [r for r in data["requests"] if in_window(r, since)]
+    never = [r for r in windowed if states[r["request_id"].strip()] != rs.ASKED]
     with_path, without = [], []
     for r in never:
         cid = data["golden_requests"].get(r["request_id"].strip(), {}).get("company_id", "")
@@ -276,60 +267,11 @@ def backlog_cut(data, since=None):
                   "requests": n, "value": value_by_company[cid], "connectors": sorted(reach[cid])}
                  for cid, n in by_company.most_common()]
     return {
+        "total": len(data["requests"]), "in_window": len(windowed),
         "never": len(never), "never_value": sum(money(r["deal_value_usd"]) for r in never),
         "with_path": len(with_path), "with_path_value": sum(money(r["deal_value_usd"]) for r in with_path),
         "without_path": len(without), "without_path_value": sum(money(r["deal_value_usd"]) for r in without),
         "companies": companies,
-    }
-
-
-# blocked_reason (golden_requests.csv) -> which kind of blockage it is
-BLOCKAGE = {
-    "supply": ("missing relationship", [bg.BLOCK_NO_PATH, bg.BLOCK_NO_ROSTER_PATH]),
-    "process": ("process gap", [bg.BLOCK_NEVER_ROUTED, bg.CAPACITY_EXHAUSTED, bg.BLOCK_NO_COMPANY,
-                                bg.BLOCK_FUND_OR_OPCO, bg.STALE_ASK, bg.UNRESOLVED_ASK]),
-    "closed": ("correctly not asked", [bg.ALREADY_INTRODUCED]),
-}
-REASON_LABEL = {
-    bg.BLOCK_NO_PATH: "no path in roster or investor network", bg.BLOCK_NO_ROSTER_PATH: "only off-roster paths",
-    bg.BLOCK_NEVER_ROUTED: "path exists, never routed",
-    bg.CAPACITY_EXHAUSTED: "capacity exhausted", bg.BLOCK_NO_COMPANY: "no company named", bg.BLOCK_FUND_OR_OPCO: "fund named",
-    bg.STALE_ASK: "proposed, no outcome logged", bg.UNRESOLVED_ASK: "unresolved ask on every path",
-    bg.ALREADY_INTRODUCED: "already introduced",
-}
-
-
-def blockage_cut(data, since=None):
-    """Why the never-asked requests never reached a connector, from
-    golden_requests.csv's blocked_reason. A request with none is allocated in
-    the current cycle and waits for its ask; the rest are blocked, in three
-    kinds: supply (nobody reaches the company), process (a path or the data
-    exists but the request stalled on our side) and correctly not asked (an
-    intro is already in play)."""
-    asked = {o["request_id"].strip() for o in data["outcomes"]}
-    never = [data["golden_requests"].get(r["request_id"].strip(), {}) for r in data["requests"]
-             if in_window(r, since) and r["request_id"].strip() not in asked]
-    reasons = Counter(g.get("blocked_reason", "").strip() for g in never)
-    kind_of = {reason: kind for kind, (_, rs) in BLOCKAGE.items() for reason in rs}
-    kinds = {kind: {"label": label, "count": 0, "reasons": []} for kind, (label, _) in BLOCKAGE.items()}
-    other = []
-    for reason, n in reasons.most_common():
-        if not reason:
-            continue
-        kind = kind_of.get(reason)
-        if kind is None:
-            other.append((reason, n))
-            continue
-        kinds[kind]["count"] += n
-        kinds[kind]["reasons"].append((REASON_LABEL.get(reason, reason), n))
-    blocked = sum(k["count"] for k in kinds.values()) + sum(n for _, n in other)
-    return {
-        "never": len(never),
-        "allocated": reasons.get("", 0),
-        "blocked": blocked,
-        "kinds": kinds,
-        "other": other,
-        "supply_share": kinds["supply"]["count"] / blocked if blocked else 0,
     }
 
 
@@ -821,7 +763,7 @@ def cycle_cut(data):
 
 
 CUTS = [("Funnel", funnel_cut), ("Yield", yield_cut), ("Backlog with a path", backlog_cut), ("Blockage", blockage_cut),
-        ("Blockage by allocation exception", allocation_blockage_cut), ("Latency", latency_cut),
+        ("Latency", latency_cut),
         ("Scoped joins", join_summary_cut), ("Account demand", account_demand_cut),
         ("Top accounts by value", top_accounts_cut), ("Connectors", connector_cut),
         ("Target person provenance", target_person_cut), ("Routing time", routing_time_cut),
