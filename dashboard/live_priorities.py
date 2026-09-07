@@ -101,6 +101,9 @@ IN_FLIGHT_STATES = [
     ("meeting", "Introduced", "Meeting booked", "the rep logs the opportunity", "stages"),
     ("other", "Not yet asked", "Open, nothing on file", "", ""),
 ]
+# why a request is in the ranked queue, in the order the Top Priorities header lists them
+CONSIDERED_BY = [("allocated", "allocated a slot this cycle"), ("no_slot", "routed, no slot this cycle"),
+                 ("held", "held on an unresolved ask"), ("other", "ranked on a best path")]
 THREADS_COMMAND = "python3 golden/build_golden.py --threads {file} && python3 build.py"
 # the heads-up to the account owner behind an allocation row's notify_owner (build_golden.NOTIFY_STAGES);
 # drafted here so it can be copied, never sent
@@ -704,8 +707,32 @@ class Live:
         rows = self.ranked()
         rest = rows[TOP_N:]
         return {"top": rows[:TOP_N], "rest": rest, "considered": len(rows), "formula": self.formula(),
+                "considered_by": self.considered_by(rows),
                 "rest_value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in rest])),
                 "rest_no_slot": sum(1 for r in rest if not r["allocated"])}
+
+    def considered_by(self, rows: list[dict]) -> list[dict]:
+        """The ranked queue split by why each request is in it: allocated a slot this
+        cycle, routed but out of slots, or held on an unresolved ask (the allocator's
+        exception, still ranked on its best path). Each split says how many of its
+        requests are a retry after a fizzled intro, which is not a split of its own:
+        a retry is allocated or waits for a slot like any first ask."""
+        def why(r: dict) -> str:
+            if r["allocated"]:
+                return "allocated"
+            reason = self.alloc_by_rid[r["request_id"]]["exception_reason"]
+            if reason.startswith(bg.CAPACITY_EXHAUSTED):
+                return "no_slot"
+            if reason.startswith(bg.UNRESOLVED_ASK):
+                return "held"
+            return "other"
+        groups = defaultdict(list)
+        for r in rows:
+            groups[why(r)].append(r)
+        return [{"key": key, "label": label, "count": len(groups[key]),
+                 "retries": sum(1 for r in groups[key] if r["retry"]),
+                 "request_ids": sorted(r["request_id"] for r in groups[key])}
+                for key, label in CONSIDERED_BY if groups[key]]
 
     # -- 3. current asks ------------------------------------------------------
     def batch_companies(self, rows: list[dict]) -> list[dict]:
