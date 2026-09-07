@@ -876,10 +876,10 @@ const LP = (function () {
     }
     sec.crm += `</details></section>`;
 
-    // ---- assemble: five labelled bands, each carrying its membership test
+    // ---- assemble: five titled bands
     let out = `<p class="stamp" id="lp-stamp">As of <b>${esc(D.as_of)}</b></p>`;
-    D.bands.forEach((b, i) => {
-      out += `<div class="band" id="band-${esc(b.id)}"><div class="band-h"><span class="k">Band ${i + 1}</span><span class="t">${esc(b.title)}</span><span class="foot">${esc(b.test)}</span></div>`
+    D.bands.forEach(b => {
+      out += `<div class="band" id="band-${esc(b.id)}"><div class="band-h"><span class="t">${esc(b.title)}</span></div>`
         + b.sections.map(id => sec[id]).join('') + `</div>`;
     });
 

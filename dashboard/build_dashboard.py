@@ -583,9 +583,7 @@ nav.bands a{{margin:0}}
 nav.bands a.band{{font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}}
 #lp .band{{margin:0 0 36px;scroll-margin-top:calc(var(--topbar,140px) + 16px)}}
 #lp .band-h{{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin:0 0 12px;padding:0 0 8px;border-bottom:2px solid var(--ink);font-family:var(--sans)}}
-#lp .band-h .k{{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--baton)}}
 #lp .band-h .t{{font-size:18px;font-weight:500;letter-spacing:-.01em}}
-#lp .band-h .foot{{flex-basis:100%;font-style:italic}}
 #lp section.masthead{{padding:14px 18px 10px}}
 #lp .masthead .strip{{margin:0}}
 #lp .masthead .strip .cell{{padding:10px 12px 8px}}
@@ -1418,7 +1416,7 @@ priorities_page = f"""{head("Live Priorities")}
   <p>What to do next, and who does it. Every number here is computed by <code>dashboard/live_priorities.py</code> from <code>golden/</code> and <code>dataset/</code> at build time and written into the page; the browser only renders it. Every company name opens its <a href="{TRACE_HTML}">Company Trace</a> · {built}</p>
 </header>
 <div class="layout">
-{sidebar([x for bid, title, _, sections in PRIORITIES_BANDS
+{sidebar([x for bid, title, sections in PRIORITIES_BANDS
           for x in [(f"#band-{bid}", esc(title.split(":")[0]), "band")] + [(f"#{sid}", esc(label), "") for sid, label in sections]])}
 <main>
 {priorities_fragment()}
