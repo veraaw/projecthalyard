@@ -63,8 +63,11 @@ upload has a non-empty differing cell, new columns are added blank on old rows; 
 thread already on file gains only the messages it lacks, and a thread for a request_id not
 in `intro_requests.csv` becomes a request. The same file accepted twice is one upload.
 Without Supabase, Accept offers the file to download plus the `golden/intake.py --add`
-command that does the same thing locally. **Revert to Sep Raw Data State** (same band)
-files a revert row instead of a file: nothing is deleted from `intake/`, but from the next
+command that does the same thing locally. Until the `intake_uploads` section of
+`config/supabase_schema.sql` has been run, the rebuild notes the missing table and goes on
+without it (the site still publishes); any other failure to read the table stops it.
+**Revert to Sep Raw Data State** (same band) files a revert row instead of a file: nothing
+is deleted from `intake/`, but from the next
 rebuild no upload accepted before it applies, so `golden/current/` is `dataset/` again and
 a request those uploads were the only source of leaves `golden_requests.csv` (the one
 exception to that file being append-only); uploads accepted afterwards apply on top of

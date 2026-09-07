@@ -39,9 +39,11 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import urllib.error
 from contextlib import redirect_stderr
 from io import StringIO
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -532,6 +534,24 @@ class SupabaseRowsTest(ScratchTest):
         self.assertEqual(calls[0][0], "https://x.supabase.co/rest/v1/intake_uploads?select=*&order=received_at.asc,upload_id.asc")
         self.assertEqual(calls[0][1], "Bearer service-key")
         self.assertEqual([c[2] for c in calls], [f"0-{intake.SUPABASE_PAGE - 1}", f"{intake.SUPABASE_PAGE}-{2 * intake.SUPABASE_PAGE - 1}"])
+
+    def test_pull_goes_on_without_the_table_but_not_past_any_other_failure(self):
+        def http(code):
+            def fetch(url, key):
+                raise urllib.error.HTTPError(url, code, "x", {}, None)
+            return fetch
+
+        env = {"SUPABASE_URL": "https://x.supabase.co", "SUPABASE_SERVICE_KEY": "k"}
+        with mock.patch.dict("os.environ", env), mock.patch.object(intake, "LEDGER", self.ledger), \
+                redirect_stderr(StringIO()) as err:
+            intake.pull("supabase", fetch=http(404))
+        self.assertIn("no Supabase intake_uploads table yet", err.getvalue())
+        self.assertIn("config/supabase_schema.sql", err.getvalue())
+        for fetch in (http(401), lambda url, key: (_ for _ in ()).throw(OSError("no route"))):
+            with mock.patch.dict("os.environ", env), self.assertRaises(SystemExit) as died:
+                intake.pull("supabase", fetch=fetch)
+            self.assertIn("could not read the Supabase intake_uploads table", str(died.exception))
+            self.assertIn("--add FILE", str(died.exception))
 
 
 @unittest.skipUnless(NODE, "node is not installed")
