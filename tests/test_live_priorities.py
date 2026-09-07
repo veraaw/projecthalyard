@@ -1078,7 +1078,7 @@ class BuiltPagesTest(unittest.TestCase):
             for div in ("sankey", "sankey-12m", "blockage", "blockage-12m", "demand", "demand-12m", "req-asks", "req-value",
                         "req-accounts", "req-rate", "req-urgency", "connector-return", "latency-chart", "cycles-chart"):
                 self.assertIn(f'id="{div}"', html, f"{name} draws {div}")
-            self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 2, f"{name}: funnel and Top 20 toggles")
+            self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 3, f"{name}: funnel, Remaining Unrouted and Top 20 toggles")
             self.assertEqual(html.count("querySelectorAll('.seg[data-scope]')"), 1, f"{name}: the toggle script once")
         raw, live = self.pages["halyardscoping.html"], self.pages["livedata.html"]
         self.assertIn("<code>golden/completions.csv</code> applied", live)
@@ -1127,21 +1127,34 @@ class BuiltPagesTest(unittest.TestCase):
         b, bl = data_cuts.backlog_cut(gold), data_cuts.blockage_cut(gold)
         for name in ("halyardscoping.html", "livedata.html"):
             html = self.pages[name]
-            for view, sankey_id, donut_id in (("all", "sankey", "blockage"), ("12m", "sankey-12m", "blockage-12m")):
-                block = html.split(f'<div class="fview" data-view="{view}"')[1].split("<h3>Stage table</h3>")[0]
-                i = [block.index(f'id="{sankey_id}"'), block.index("requests never reach a connector."),
-                     block.index("<h3>Why they never reach a connector</h3>"), block.index(f'id="{donut_id}"'),
-                     block.index("<h3>Yield</h3>")]
-                self.assertEqual(i, sorted(i), f"{name}/{view}: sankey, then the box, the donut, then yield")
-                self.assertIn("of the blockage is a missing relationship.", block)
-                for label in ("routed to a connector", "routed per ask", "opportunity value created", "return per ask"):
-                    self.assertIn(f'<div class="l">{label}</div>', block, f"{name}/{view}")
-            whole = html.split('<div class="fview" data-view="all">')[1]
+            funnel = html.split('<section id="funnel">')[1].split("</section>")[0]
+            # sankey + backlog box in each funnel view, then one Remaining Unrouted panel with its own toggle, then yield in each view
+            i = [funnel.index('id="sankey-12m"'), funnel.index('id="sankey"'), funnel.index('<div id="unrouted">'),
+                 funnel.index("<h3>Remaining Unrouted</h3>"), funnel.index('id="unrouted-toggle" data-scope="unrouted"'),
+                 funnel.index('id="blockage-12m"'), funnel.index('id="blockage"'), funnel.index("<h3>Yield</h3>"),
+                 funnel.index("<h3>Stage table, last 12 months</h3>"), funnel.index("<h3>Stage table</h3>")]
+            self.assertEqual(i, sorted(i), f"{name}: sankeys, then the unrouted panel, then yield and the stage tables")
+            self.assertEqual(funnel.count("requests never reach a connector."), 2, f"{name}: a backlog box under each sankey")
+            self.assertEqual(funnel.count("<h3>Yield</h3>"), 2, f"{name}: yield in each funnel view")
+            self.assertEqual(funnel.count("<h3>Remaining Unrouted</h3>"), 1, f"{name}: one panel, toggled on its own")
+            self.assertNotIn("Why they never reach a connector", funnel)
+            self.assertEqual(funnel.count('data-scope="funnel"'), 1)
+            panel = funnel.split('<div id="unrouted">')[1].split("<h3>Yield</h3>")[0]
+            self.assertIn('<button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button>', panel)
+            self.assertIn('id="unrouted-window" data-all="', panel)
+            self.assertIn(f"{bl['never']} never asked", panel)
+            self.assertEqual(panel.count("of the blockage is a missing relationship."), 2, f"{name}: a donut and its reading per view")
+            self.assertIn('<div class="fview" data-view="12m" hidden>', panel)
+            self.assertIn('<div class="fview" data-view="all">', panel)
+            whole = funnel
             self.assertIn(f"<b>{b['never']} requests never reach a connector.</b>", whole)
             self.assertIn(f"{b['with_path']} of them are for companies that already have a path in <code>supply_reach.csv</code>, "
                           f"a backlog worth ${b['with_path_value'] / 1e6:.1f}M", whole)
             self.assertIn(f"Of the {bl['never']} never asked, {bl['allocated']} are allocated this cycle and not yet asked; {bl['blocked']} are blocked.", whole)
             self.assertIn(f"<b>Only {bl['supply_share']:.0%} of the blockage is a missing relationship.</b>", whole)
+            for label in ("routed to a connector", "routed per ask", "opportunity value created", "return per ask"):
+                self.assertEqual(funnel.count(f'<div class="l">{label}</div>'), 2, f"{name}: {label} in both views")
+            self.assertIn("v.parentElement.closest(scopes) !== scope", html, f"{name}: the funnel toggle leaves the nested unrouted toggle alone")
 
     def test_connectors_ranked_by_return_per_ask_and_a_latency_section(self):
         from dashboard import data_cuts
@@ -1167,7 +1180,7 @@ class BuiltPagesTest(unittest.TestCase):
     def test_live_data_top_20_by_asks_has_the_same_toggle_as_the_funnel(self):
         from dashboard import data_cuts
         html = self.pages["livedata.html"]
-        self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 2, "funnel and Top 20 each carry the toggle")
+        self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 3, "funnel, Remaining Unrouted and Top 20 each carry the toggle")
         self.assertIn('id="demand-toggle" data-scope="demand-views"', html)
         self.assertIn('id="demand"', html)
         self.assertIn('id="demand-12m"', html)

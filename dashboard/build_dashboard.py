@@ -354,13 +354,17 @@ def names_list(xs):
 
 SEG_SCRIPT = """<script>
 (function () {
-  // Cumulative / Last 12 months: each .seg swaps the .fview blocks inside its data-scope element
-  document.querySelectorAll('.seg[data-scope]').forEach(function (seg) {
+  // Cumulative / Last 12 months: each .seg swaps the .fview blocks inside its data-scope element,
+  // leaving alone the ones that belong to a toggle nested inside it
+  var segs = document.querySelectorAll('.seg[data-scope]');
+  var scopes = Array.prototype.map.call(segs, function (s) { return '#' + s.dataset.scope; }).join(',');
+  segs.forEach(function (seg) {
     var scope = document.getElementById(seg.dataset.scope), note = document.getElementById(seg.dataset.scope + '-window');
     seg.querySelectorAll('button').forEach(function (b) {
       b.onclick = function () {
         seg.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
         scope.querySelectorAll('.fview').forEach(function (v) {
+          if (v.parentElement.closest(scopes) !== scope) return;
           v.hidden = v.dataset.view !== b.dataset.view;
           if (!v.hidden && window.Plotly) v.querySelectorAll('.js-plotly-plot').forEach(function (p) { Plotly.Plots.resize(p); });
         });
@@ -413,14 +417,13 @@ def blockage_donut(bl, div_id):
     return plot(fig, div_id)
 
 
-def blockage_panel(bl, div_id):
+def blockage_view(bl, div_id):
     """The donut with its reading: who is waiting on a connector and why the rest are blocked."""
     def reasons(kind):
         k = bl["kinds"][kind]
         return ", ".join(f"{r} {n}" for r, n in k["reasons"]) or "none"
     other = f' Unclassified: {", ".join(f"{r} {n}" for r, n in bl["other"])}.' if bl["other"] else ""
-    return f"""<h3>Why they never reach a connector</h3>
-  <div class="grid2">
+    return f"""<div class="grid2">
     <div>{blockage_donut(bl, div_id)}</div>
     <div>
       <p class="lede">Of the {bl["never"]} never asked, {bl["allocated"]} are allocated this cycle and not yet asked; {bl["blocked"]} are blocked.</p>
@@ -477,6 +480,18 @@ def allocation_blockage_panel(ab, div_id):
   {unmapped}
   <p class="foot">{ab["no_path"]} never-asked requests (of {ab["total"]} on file) name a company with no path in <code>supply_reach.csv</code>: the {ab["slices"]["supply"]["count"]} above plus {gated} the status gate excluded before they were evaluated{f" ({gated_text})" if gated_text else ""}. That figure overlaps the slices, so it is a footnote, not a wedge.</p>
   <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>allocation_blockage_cut</code>). Slice tooltips list the exception prefixes they sum: the same vocabulary as Unrouted Exceptions on Live Priorities.</p>"""
+
+
+def blockage_panel(data, window_all):
+    """Remaining Unrouted, with its own Cumulative / Last 12 months toggle so it can be read against either funnel view."""
+    bl, bl_12m = data_cuts.blockage_cut(data), data_cuts.blockage_cut(data, since=ROLLING_SINCE)
+    return f"""<div id="unrouted">
+  <h3>Remaining Unrouted</h3>
+  <div class="seg" id="unrouted-toggle" data-scope="unrouted" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
+  <span class="foot" id="unrouted-window" data-all="{window_all}: {bl['never']} never asked" data-12m="Requests dated {ROLLING_SINCE} or later: {bl_12m['never']} of the {bl['never']} never asked">{window_all}: {bl['never']} never asked</span>
+  <div class="fview" data-view="12m" hidden>{blockage_view(bl_12m, "blockage-12m")}</div>
+  <div class="fview" data-view="all">{blockage_view(bl, "blockage")}</div>
+  </div>"""
 
 
 def return_chart(cs, div_id):
@@ -550,7 +565,14 @@ def strategic_sections(data, cyc, live):
   {funnel_kpis(counts_12m)}
   {sankey(stages_12m, "sankey-12m")}
   {backlog_box(data_cuts.backlog_cut(data, since=ROLLING_SINCE))}
-  {blockage_panel(data_cuts.blockage_cut(data, since=ROLLING_SINCE), "blockage-12m")}
+  </div>
+  <div class="fview" data-view="all">
+  {funnel_kpis(counts)}
+  {sankey(stages, "sankey")}
+  {backlog_box(data_cuts.backlog_cut(data))}
+  </div>
+  {blockage_panel(data, window_all)}
+  <div class="fview" data-view="12m" hidden>
   {yield_strip(data_cuts.yield_cut(data, since=ROLLING_SINCE))}
   <div class="grid2">
     <div>
@@ -566,10 +588,6 @@ def strategic_sections(data, cyc, live):
   </div>
   </div>
   <div class="fview" data-view="all">
-  {funnel_kpis(counts)}
-  {sankey(stages, "sankey")}
-  {backlog_box(data_cuts.backlog_cut(data))}
-  {blockage_panel(data_cuts.blockage_cut(data), "blockage")}
   {yield_strip(data_cuts.yield_cut(data))}
   <div class="grid2">
     <div>
