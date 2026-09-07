@@ -1,9 +1,8 @@
 # Project Halyard
 
-Where intro requests stall between Slack, the CRM and the people who can make the
-introduction, and what to do about it next. Every number is rebuilt from the raw
-exports; the result is a static dashboard built into `docs/` and published to GitHub Pages
-by the rebuild workflow.
+A comprehensive dashboard to show where asks for intros should be routed to. Shows where intro requests stall between Slack, the CRM
+the people who can make the introduction. Also gives a solution on what to do about it next. Every number is rebuilt from the raw
+exports; the result is a static dashboard built into `docs/` and published to GitHub Pages by the rebuild workflow.
 
 ```
 dataset/    raw exports, read-only and never written: intro_requests, intro_outcomes, crm_accounts,
@@ -71,8 +70,7 @@ is deleted from `intake/`, but from the next
 rebuild no upload accepted before it applies, so `golden/current/` is `dataset/` again and
 a request those uploads were the only source of leaves `golden_requests.csv` (the one
 exception to that file being append-only); uploads accepted afterwards apply on top of
-that. `golden/intake.py`'s docstring has the
-details.
+that. `golden/intake.py`'s docstring has the details.
 
 The Live Priorities tab posts completions and uploads with the publishable key in
 `SUPABASE_URL` / `SUPABASE_ANON_KEY`; the build reads them back with
