@@ -732,6 +732,126 @@ class RequesterCutTest(unittest.TestCase):
         self.assertLessEqual(cut["crm_value"], sum(b["crm_value"] for b in rows), "the total counts a shared account once")
 
 
+class GoldenSourceCutsTest(unittest.TestCase):
+    """data_cuts.load("golden"): what the Live Data tab is computed from. The same cuts
+    as the Raw Sept tab, over golden_requests.csv and the ask log with completions applied."""
+
+    @classmethod
+    def setUpClass(cls):
+        from dashboard import data_cuts
+        cls.dc = data_cuts
+        cls.raw = data_cuts.load()
+        cls.gold = data_cuts.load("golden", completions=[])
+
+    def test_only_the_two_sources(self):
+        with self.assertRaises(ValueError):
+            self.dc.load("supabase")
+        self.assertEqual((self.raw["source"], self.gold["source"]), ("dataset", "golden"))
+
+    def test_golden_requests_wear_the_raw_shape(self):
+        raw_by_id = {r["request_id"]: r for r in self.raw["requests"]}
+        self.assertEqual([r["request_id"] for r in self.gold["requests"]], list(self.gold["golden_requests"]))
+        for r in self.gold["requests"]:
+            self.assertEqual(set(r), set(raw_by_id[r["request_id"]]), "every column a cut reads")
+            g = self.gold["golden_requests"][r["request_id"]]
+            self.assertEqual((r["requested_by"], r["request_date"], r["status"], r["urgency"], r["deal_value_usd"]),
+                             (g["requested_by"], g["request_date"], g["status_as_filed"], g["urgency_declared"], g["value_usd"]),
+                             "the facts golden carries win")
+            self.assertEqual(r["requester_role"], raw_by_id[r["request_id"]]["requester_role"])
+        # a request golden carries that the raw export no longer has: role from the requester's other rows
+        g = dict(next(iter(self.gold["golden_requests"].values())), request_id="R999")
+        roles = {r["requested_by"].strip(): r["requester_role"] for r in self.raw["requests"]}
+        extra = self.dc.as_filed(g, {}, roles)
+        self.assertEqual(extra["requester_role"], roles[g["requested_by"].strip()])
+        self.assertEqual((extra["target_person_raw"], extra["path_found_flag"]), ("", ""))
+
+    def test_without_completions_golden_agrees_with_raw_today(self):
+        # the exports and golden/ describe the same 200 requests, so every shared cut agrees until an
+        # ask is sent; the Live Data tab only diverges from Raw Sept on what happened since
+        self.assertEqual(self.dc.funnel_cut(self.gold), self.dc.funnel_cut(self.raw))
+        self.assertEqual(self.dc.funnel_cut(self.gold), funnel_stages(),
+                         "the same stages sankey_funnel.py computes from golden_requests.csv")
+        self.assertEqual(self.dc.funnel_cut(self.gold, since="2026-01-01"), funnel_stages(since="2026-01-01"))
+        self.assertEqual(self.dc.requester_cut(self.gold), self.dc.requester_cut(self.raw))
+        self.assertEqual(self.dc.connector_cut(self.gold), self.dc.connector_cut(self.raw))
+        self.assertEqual(self.dc.account_demand_cut(self.gold), self.dc.account_demand_cut(self.raw))
+        self.assertEqual(self.dc.top_accounts_cut(self.gold), self.dc.top_accounts_cut(self.raw))
+        self.assertEqual(self.dc.cycle_cut(self.gold), self.dc.cycle_cut(self.raw))
+
+    def test_an_ask_sent_from_live_priorities_counts_from_the_next_build(self):
+        asked = {o["request_id"] for o in self.raw["outcomes"]}
+        rid = next(r["request_id"] for r in self.raw["requests"] if r["request_id"] not in asked)
+        connector = self.raw["roster"][0]["name"].strip()
+        row = {c: "" for c in bg.COMPLETION_COLUMNS}
+        row.update(completion_id=f"{rid}:ask_sent:2026-09-06", completed_at="2026-09-06T10:15:00+00:00",
+                   completed_by="vera", action=bg.ASKED, request_id=rid, connector=connector)
+        after = self.dc.load("golden", completions=[row])
+        self.assertEqual(after["completions"], [row])
+        self.assertEqual(self.dc.load()["completions"], [], "the Raw Sept tab never sees a completion")
+
+        before_f, after_f = dict(self.dc.funnel_cut(self.gold)), dict(self.dc.funnel_cut(after))
+        self.assertEqual(after_f["Requests"], before_f["Requests"])
+        self.assertEqual(after_f["Asked"], before_f["Asked"] + 1, "one more ask, nothing back yet")
+        self.assertEqual(after_f["Responded"], before_f["Responded"])
+        self.assertEqual(after["outcome_by_request"][rid]["source"], "completions.csv")
+
+        who = next(r["requested_by"].strip() for r in self.raw["requests"] if r["request_id"] == rid)
+        routed = lambda cut: {b["name"]: b["routed"] for b in cut["requesters"]}  # noqa: E731
+        before_r, after_r = routed(self.dc.requester_cut(self.gold)), routed(self.dc.requester_cut(after))
+        self.assertEqual(after_r[who], before_r[who] + 1)
+        self.assertEqual({k: v for k, v in after_r.items() if k != who}, {k: v for k, v in before_r.items() if k != who})
+
+        asked_of = lambda cut: {c["name"]: c["asked"] for c in cut["connectors"]}  # noqa: E731
+        before_c, after_c = asked_of(self.dc.connector_cut(self.gold)), asked_of(self.dc.connector_cut(after))
+        self.assertEqual(after_c[connector], before_c[connector] + 1)
+
+        cid = self.gold["golden_requests"][rid]["company_id"]
+        if cid:
+            by_cid = lambda cut: {b["company_id"]: b["routed"] for b in cut["companies"]}  # noqa: E731
+            before_d, after_d = by_cid(self.dc.account_demand_cut(self.gold)), by_cid(self.dc.account_demand_cut(after))
+            self.assertEqual(after_d[cid], before_d[cid] + 1)
+
+        before_y, after_y = self.dc.cycle_cut(self.gold), self.dc.cycle_cut(after)
+        self.assertEqual(after_y["asks_total"], before_y["asks_total"] + 1)
+        self.assertEqual(after_y["cycle"], "2026-09", "the ask opens the month it was sent in")
+        sept = next(r for r in after_y["rows"] if r["cycle"] == "2026-09")
+        self.assertEqual((sept["asks"], sept["used"], sept["intros"]), (1, 1, 0))
+        self.assertEqual(after_y["intros_total"], before_y["intros_total"])
+
+    def test_a_re_ask_after_a_fizzled_intro_is_a_second_ask_in_its_month(self):
+        fizzled = next(o for o in self.raw["outcomes"] if o["intro_sent"] == "Y" and o["meeting_booked"] != "Y")
+        rid = fizzled["request_id"]
+        row = {c: "" for c in bg.COMPLETION_COLUMNS}
+        row.update(completion_id=f"{rid}:ask_sent:2026-09-06", completed_at="2026-09-06T10:15:00+00:00",
+                   completed_by="vera", action=bg.ASKED, request_id=rid, connector=fizzled["connector_asked"])
+        after = self.dc.load("golden", completions=[row])
+        self.assertEqual(after["outcome_by_request"][rid]["reasked_date"], "2026-09-06")
+        self.assertEqual(self.dc.ask_dates(after["outcome_by_request"][rid]), [fizzled["asked_date"], "2026-09-06"])
+        self.assertEqual(self.dc.funnel_cut(after), self.dc.funnel_cut(self.gold), "the request was already asked")
+        before_y, after_y = self.dc.cycle_cut(self.gold), self.dc.cycle_cut(after)
+        self.assertEqual(after_y["asks_total"], before_y["asks_total"] + 1)
+        self.assertEqual(next(r for r in after_y["rows"] if r["cycle"] == "2026-09")["asks"], 1)
+
+    def test_cycle_cut_matches_live_priorities_on_the_months_on_file(self):
+        # the Raw Sept tab's cycles are Live Priorities' cycle table with no allocation and no current
+        # cycle; on the closed months both count the same asks, slots and intros
+        live = lp.cycles(AS_OF)
+        raw = self.dc.cycle_cut(self.raw)
+        self.assertEqual(raw["roster_capacity"], live["roster_capacity"])
+        self.assertTrue(set(raw["off_roster"]) <= set(live["off_roster"]), "Live Priorities adds whoever is allocated off-roster")
+        self.assertFalse(any(r["current"] for r in raw["rows"]))
+        self.assertTrue(all(r["allocated"] == 0 for r in raw["rows"]))
+        live_by = {r["cycle"]: r for r in live["rows"] if not r["current"]}
+        raw_by = {r["cycle"]: r for r in raw["rows"]}
+        self.assertTrue(set(raw_by) <= set(live_by) | {live["cycle"]})
+        for cyc, r in raw_by.items():
+            if cyc in live_by:
+                self.assertEqual((r["asks"], r["used"], r["intros"], r["intros_cumulative"], r["capacity_pct"]),
+                                 (live_by[cyc]["asks"], live_by[cyc]["used"], live_by[cyc]["intros"],
+                                  live_by[cyc]["intros_cumulative"], live_by[cyc]["capacity_pct"]), cyc)
+        self.assertEqual([p["connector"] for p in raw["per_connector"]], [p["connector"] for p in live["per_connector"]])
+
+
 @unittest.skipUnless((ROOT / "docs" / "livedata.html").exists(), "run `python3 build.py dashboard` first")
 class BuiltPagesTest(unittest.TestCase):
     """What `python3 build.py dashboard` writes under docs/."""
@@ -788,6 +908,46 @@ class BuiltPagesTest(unittest.TestCase):
         self.assertIn('<div class="fview" data-view="12m" hidden>', html)
         self.assertIn('id="sankey"', html)
         self.assertIn('id="sankey-12m"', html)
+
+    STRATEGIC = ["funnel", "accounts", "requesters", "connectors", "cycles"]
+
+    def sections(self, name):
+        return re.findall(r'<(?:section|div class="divider") id="([^"]+)"', self.pages[name])
+
+    def test_raw_sept_carries_the_live_charts_after_file_flow_and_joins_below_the_divider(self):
+        html = self.pages["halyardscoping.html"]
+        order = self.sections("halyardscoping.html")
+        self.assertEqual(order[:7], ["flow", *self.STRATEGIC, "overview"], "the Live Data charts follow File Flow")
+        self.assertEqual(order[order.index("integrity-divider"):],
+                         ["integrity-divider", "joins", "targets", "quality", "verify", "integrity"],
+                         "the divider sits right above Joins; Joins is above CSV Profile")
+        self.assertLess(order.index("scoping"), order.index("integrity-divider"), "Slack Threads is strategic")
+        self.assertIn('<div class="divider" id="integrity-divider">\n  <span class="t">Data integrity</span>', html)
+        self.assertIn("Everything from here down checks the files themselves", html)
+        # the sidebar walks the page in order, with the two bands
+        side = html.split('<nav class="toc"')[1].split("</nav>")[0]
+        self.assertEqual(re.findall(r'href="#([^"]+)"', side),
+                         ["flow", "flow", *self.STRATEGIC, "overview", "timing", "scoping", "integrity-divider",
+                          "joins", "targets", "quality", "verify", "integrity"])
+        self.assertEqual(re.findall(r'<a class="band" href="#[^"]+">([^<]+)<', side), ["Strategic data", "Data integrity"])
+        self.assertEqual(self.sections("livedata.html"), self.STRATEGIC)
+
+    def test_the_two_tabs_render_the_same_charts_from_their_own_source(self):
+        for name in ("halyardscoping.html", "livedata.html"):
+            html = self.pages[name]
+            ids = Counter(re.findall(r'\bid="([^"]+)"', html))
+            self.assertEqual([k for k, v in ids.items() if v > 1], [], f"{name}: no id twice")
+            for div in ("sankey", "sankey-12m", "demand", "demand-12m", "req-asks", "req-value", "req-accounts",
+                        "req-rate", "req-urgency", "cycles-chart"):
+                self.assertIn(f'id="{div}"', html, f"{name} draws {div}")
+            self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 2, f"{name}: funnel and Top 20 toggles")
+            self.assertEqual(html.count("querySelectorAll('.seg[data-scope]')"), 1, f"{name}: the toggle script once")
+        raw, live = self.pages["halyardscoping.html"], self.pages["livedata.html"]
+        self.assertIn("<code>golden/completions.csv</code> applied", live)
+        self.assertIn("exist only as a Submit on Live Priorities", live)
+        self.assertNotIn("exist only as a Submit on Live Priorities", raw, "Raw Sept reads the exports as filed")
+        self.assertIn("as filed; capacity used is roster asks", raw)
+        self.assertIn("counts this build's allocation as slots used", live)
 
     def test_live_data_top_20_by_asks_has_the_same_toggle_as_the_funnel(self):
         from dashboard import data_cuts

@@ -1,9 +1,14 @@
 """Build the site in docs/ (gitignored; the rebuild workflow deploys it to GitHub Pages):
 
   index.html           redirect to halyardscoping.html, with a link to every tab
-  halyardscoping.html  Raw Sept Data Dashboard — Slack thread findings, CSV profile,
-                       joins, timing and the integrity audit, straight from dataset/
-  livedata.html        Live Data Dashboard — funnel, accounts and connectors from golden/
+  halyardscoping.html  Raw Sept Data Dashboard — the file flow, then the same funnel /
+                       accounts / requesters / connectors / cycles charts as livedata.html
+                       from dataset/ as filed, the funnel overview, timing and Slack
+                       findings, and below a divider the data-integrity material: joins,
+                       target people, flags, the CSV profile and the integrity audit
+  livedata.html        Live Data Dashboard — funnel, accounts, requesters, connectors and
+                       cycles from golden/ with completions.csv applied (asks sent from
+                       Live Priorities count from the build that pulls them)
   companytrace.html    Company Trace (dashboard/trace_section.py)
   livepriorities.html  Live Priorities — what to do next (dashboard/live_priorities.py)
   connector-<slug>.html  one per connector, in the second tab row: their top 5, then the
@@ -35,7 +40,7 @@ from dashboard.funnel_overview import dropoff_rows, ratios
 from dashboard.live_priorities import (BANDS as PRIORITIES_BANDS, BATCH_PAGE as BATCH_HTML, BUILD_STAMP,
                                        PAGE as PRIORITIES_HTML, batch_fragment, connector_fragments,
                                        cycles as connector_cycles, fragment as priorities_fragment)
-from dashboard.sankey_funnel import GOLDEN as GOLDEN_REQUESTS, build_figure, funnel_stages
+from dashboard.sankey_funnel import build_figure
 from dashboard.trace_section import fragment as trace_fragment, sidebar as trace_sidebar
 from golden import build_golden as bg
 from golden.clock import as_of
@@ -60,11 +65,6 @@ def esc(s):
 # --------------------------------------------------------------------------- funnel
 TODAY = as_of()
 ROLLING_SINCE = (TODAY - timedelta(days=365)).isoformat()
-stages = funnel_stages()
-stages_12m = funnel_stages(since=ROLLING_SINCE)
-with open(GOLDEN_REQUESTS, newline="", encoding="utf-8-sig") as _f:
-    _dates = sorted(r["request_date"].strip()[:10] for r in csv.DictReader(_f) if r["request_date"].strip())
-stages_first, stages_last = _dates[0][:7], _dates[-1][:7]
 
 
 def plot(fig, div_id):
@@ -79,9 +79,6 @@ def sankey(stg, div_id):
                       margin=dict(l=10, r=10, t=20, b=20), paper_bgcolor="rgba(0,0,0,0)")
     return plot(fig, div_id)
 
-
-sankey_div = sankey(stages, "sankey")
-sankey_div_12m = sankey(stages_12m, "sankey-12m")
 
 # --------------------------------------------------------------------------- slack scoping
 requests = {r["request_id"]: r for r in rows("intro_requests.csv")}
@@ -168,8 +165,6 @@ req_missing_company = sum(1 for r in requests.values() if not r["target_company_
 req_missing_person = sum(1 for r in requests.values() if not r["target_person_raw"].strip())
 req_missing_flag = sum(1 for r in requests.values() if not r["path_found_flag"].strip())
 outcome_dup_ids = len(outcomes) - len({o["request_id"] for o in outcomes})
-opp_status_mismatch = [o["request_id"] for o in outcomes
-                       if o["opportunity_created"] == "Y" and requests[o["request_id"]]["status"] in ("Open", "Stalled", "Routed")]
 
 # --------------------------------------------------------------------------- integrity audit
 integrity_div = integrity_fragment()  # also refreshes analysis/integrity/findings.md
@@ -183,10 +178,6 @@ def table(headers, body_rows, cls=""):
     h = "".join(f"<th>{esc(x)}</th>" for x in headers)
     b = "".join("<tr>" + "".join(f"<td>{esc(c)}</td>" for c in r) + "</tr>" for r in body_rows)
     return f'<table class="{cls}"><thead><tr>{h}</tr></thead><tbody>{b}</tbody></table>'
-
-
-counts = [c for _, c in stages]
-counts_12m = [c for _, c in stages_12m]
 
 
 def pct(a, b, digits=0):
@@ -223,10 +214,12 @@ overview_table = ('<table class="fo"><thead><tr><th>Category</th><th>Funnel drop
                   f'<tbody>{ov_body}</tbody></table>')
 
 # --------------------------------------------------------------------------- additional data cuts
+# the Raw Sept tab reads the September exports as filed; the Live Data tab reads golden/ with the
+# ask log as the build applies it (intro_outcomes.csv + golden/completions.csv, see data_cuts.load)
 cuts = data_cuts.load()
+live_cuts = data_cuts.load("golden")
 joins = data_cuts.join_summary_cut(cuts)
 demand = data_cuts.account_demand_cut(cuts)
-top_accounts = data_cuts.top_accounts_cut(cuts)
 connectors = data_cuts.connector_cut(cuts)
 targets = data_cuts.target_person_cut(cuts)
 timing = data_cuts.routing_time_cut(cuts)
@@ -237,9 +230,6 @@ coverage = data_cuts.outcome_delta_cut(cuts)
 joins_rows = [(link, f"{left:.1f}%", f"{right:.1f}%", note or "—")
               for link, left, right, note in sorted(joins["joins"], key=lambda j: min(j[1], j[2]))]
 joins_table = table(["Link (left -> right)", "Left matched", "Right matched", "What it means"], joins_rows)
-
-demand_12m = data_cuts.account_demand_cut(cuts, since=ROLLING_SINCE)
-demand_top = demand["companies"][:20]
 
 
 def demand_chart(dm, div_id):
@@ -256,102 +246,26 @@ def demand_chart(dm, div_id):
     return plot(fig, div_id)
 
 
-demand_div = demand_chart(demand, "demand")
-demand_div_12m = demand_chart(demand_12m, "demand-12m")
-demand_rows = [(b["name"], b["industry"] or ("—" if b["in_crm"] else "no CRM record"), b["requests"], b["routed"], b["requests"] - b["routed"],
-                len(b["requesters"]), b["paths"], usd(b["value"])) for b in demand_top]
-demand_rows += [(b["name"], "unresolvable", b["requests"], b["routed"], b["requests"] - b["routed"],
-                 len(b["requesters"]), "—", "—") for b in demand["unresolvable"]]
-demand_table = table(["Company", "Industry", "Asks", "Routed", "Never routed", "Requesters", "Paths in network", "Value"],
-                     demand_rows)
-unresolvable_asks = sum(b["requests"] for b in demand["unresolvable"])
-
-top_rows = [(b["name"], usd(b["value"]), "CRM ARR" if b["value_source"] == "CRM" else "deal value",
-             b["requests"], b["routed"], f'{b["responded"]}/{b["intros"]}/{b["meetings"]}/{b["opps"]}',
-             b["owner"] or "no CRM account",
-             ", ".join(b["internal_connectors"]) or "—",
-             ", ".join(b["outside_connectors"]) or "—")
-            for b in top_accounts["companies"]]
-top_table = table(["Company", "Value", "Value from", "Asks", "Routed", "Resp/Intro/Mtg/Opp",
-                   "CRM owner", "Internal connectors asked", "Advisor / investor asked"], top_rows)
-
-connector_rows = [(c["name"], c["type"], c["capacity"], c["asked"], c["responded"], c["intros"],
-                   c["meetings"], c["opps"], usd(c["value"]), usd(c["opp_value"]),
-                   f'{c["in_focus"]}/{c["asked"]}', c["focus_areas"], c["notes"])
-                  for c in connectors["connectors"]]
-connector_table = table(["Connector", "Type", "Capacity/mo", "Asked", "Responded", "Intros", "Meetings",
-                         "Opps", "Requested $", "Opp $", "In focus area", "Stated focus", "Roster note"],
-                        connector_rows)
-
 target_table = table(["Looked up in", "Distinct target people found"],
                      [(label, n) for label, n in targets["hits"]])
 
+
 # --------------------------------------------------------------------------- requesters
-requesters = data_cuts.requester_cut(cuts)
-req_rows = requesters["requesters"]
-REQ_X = [f'{b["name"]}<br><span style="font-size:11px;color:{theme.MUTE}">{b["kind"]}</span>' for b in req_rows]
-
-
-def requester_chart(traces, div_id, ytitle, tickformat=None, barmode="group"):
+def requester_chart(req_rows, traces, div_id, ytitle, tickformat=None, barmode="group"):
     """One bar per requester, in the order of the table (most asks first)."""
+    xs = [f'{b["name"]}<br><span style="font-size:11px;color:{theme.MUTE}">{b["kind"]}</span>' for b in req_rows]
     fig = go.Figure()
     for t in traces:
-        fig.add_bar(x=REQ_X, **t)
+        fig.add_bar(x=xs, **t)
     # headroom so the labels printed above the bars clear the legend
     tops = [sum(ys) for ys in zip(*(t["y"] for t in traces))] if barmode == "stack" else [y for t in traces for y in t["y"]]
     fig.update_layout(barmode=barmode, height=360, autosize=True, margin=dict(l=10, r=10, t=30, b=10),
                       showlegend=len(traces) > 1, **theme.PLOTLY_LAYOUT)
     fig.update_layout(legend=dict(orientation="h", y=1.14, x=0),
                       xaxis=dict(tickfont=dict(size=12), tickangle=-40, fixedrange=True),
-                      yaxis=dict(title=ytitle, tickformat=tickformat, range=[0, max(tops) * 1.18], fixedrange=True))
+                      yaxis=dict(title=ytitle, tickformat=tickformat, range=[0, max(tops or [0]) * 1.18], fixedrange=True))
     return plot(fig, div_id)
 
-
-req_asks_div = requester_chart(
-    [dict(y=[b["requests"] for b in req_rows], marker_color=theme.ACCENT, text=[b["requests"] for b in req_rows],
-          textposition="outside", customdata=[b["routed"] for b in req_rows],
-          hovertemplate="%{y} requests<br>%{customdata} routed to a connector<extra></extra>")],
-    "req-asks", "requests")
-req_value_div = requester_chart(
-    [dict(y=[b["crm_value"] for b in req_rows], marker_color=theme.ACCENT, text=[usd(b["crm_value"]) for b in req_rows],
-          textposition="outside", customdata=[b["crm_accounts"] for b in req_rows],
-          hovertemplate="$%{y:,.0f} ARR potential<br>across %{customdata} CRM accounts<extra></extra>")],
-    "req-value", "CRM ARR potential", tickformat="$~s")
-req_accounts_div = requester_chart(
-    [dict(y=[b["crm_accounts"] for b in req_rows], name="With a CRM account", marker_color=theme.ACCENT,
-          hovertemplate="%{y} accounts in the CRM<extra></extra>"),
-     dict(y=[b["accounts"] - b["crm_accounts"] for b in req_rows], name="No CRM record", marker_color=theme.NEUTRAL,
-          text=[b["accounts"] for b in req_rows], textposition="outside", cliponaxis=False,
-          hovertemplate="%{y} companies with no CRM record<extra></extra>")],
-    "req-accounts", "distinct companies", barmode="stack")
-req_rate_div = requester_chart(
-    [dict(y=[b["intro_rate"] for b in req_rows], marker_color=theme.ACCENT, text=[f'{b["intro_rate"]:.0%}' for b in req_rows],
-          textposition="outside", customdata=[[b["intros"], b["requests"]] for b in req_rows],
-          hovertemplate="%{customdata[0]} intros / %{customdata[1]} requests<extra></extra>")],
-    "req-rate", "intros / requests", tickformat=".0%")
-req_urgency_div = requester_chart(
-    [dict(y=[b["critical_share"] for b in req_rows], name="Critical", marker_color=theme.WARN,
-          text=[f'{b["critical_share"]:.0%}' for b in req_rows], textposition="outside",
-          customdata=[[b["critical"], b["requests"]] for b in req_rows],
-          hovertemplate="Critical on %{customdata[0]} of %{customdata[1]} requests<extra></extra>"),
-     dict(y=[b["critical_high_share"] for b in req_rows], name="Critical + High", marker_color=theme.NEUTRAL_DARK,
-          text=[f'{b["critical_high_share"]:.0%}' for b in req_rows], textposition="outside",
-          customdata=[[b["critical_high"], b["requests"]] for b in req_rows],
-          hovertemplate="Critical or High on %{customdata[0]} of %{customdata[1]} requests<extra></extra>")],
-    "req-urgency", "share of own requests", tickformat=".0%")
-requester_table = table(["Requester", "Role", "Asks", "Routed", "Intros", "Intro rate", "Accounts", "In CRM",
-                         "CRM ARR potential", "Critical", "Critical + High"],
-                        [(b["name"], b["role"], b["requests"], b["routed"], b["intros"], f'{b["intro_rate"]:.0%}',
-                          b["accounts"], b["crm_accounts"], usd(b["crm_value"]),
-                          f'{b["critical"]} ({b["critical_share"]:.0%})', f'{b["critical_high"]} ({b["critical_high_share"]:.0%})')
-                         for b in req_rows])
-req_top = req_rows[0]
-req_best_rate = max(req_rows, key=lambda b: b["intro_rate"])
-req_worst_rate = min(req_rows, key=lambda b: b["intro_rate"])
-req_most_critical = max(req_rows, key=lambda b: b["critical_share"])
-req_least_critical = min(req_rows, key=lambda b: b["critical_share"])
-req_most_value = max(req_rows, key=lambda b: b["crm_value"])
-req_unresolved = sum(b["unresolved"] for b in req_rows)
 
 weeks = timing["weekly"]
 roll = []
@@ -378,24 +292,23 @@ monthly_table = table(["Month", "Requests", "Routed", "Intros sent", "Completion
                       monthly_rows)
 
 # --------------------------------------------------------------------------- intros by cycle
-cycles = connector_cycles(TODAY)
-cyc_rows = cycles["rows"]
-cyc_fig = go.Figure()
-cyc_fig.add_bar(x=[r["cycle"] for r in cyc_rows], y=[r["used"] for r in cyc_rows], name="Roster slots used",
-                marker_color=theme.NEUTRAL)
-cyc_fig.add_bar(x=[r["cycle"] for r in cyc_rows], y=[r["intros"] for r in cyc_rows], name="Intros made",
-                marker_color=theme.ACCENT)
-cyc_fig.add_scatter(x=[r["cycle"] for r in cyc_rows], y=[r["intros_cumulative"] for r in cyc_rows],
-                    name="Cumulative intros", mode="lines+markers", line=dict(color=theme.WARN, width=2))
-cyc_fig.add_scatter(x=[r["cycle"] for r in cyc_rows], y=[r["capacity_pct"] for r in cyc_rows],
-                    name="Capacity used", yaxis="y2", mode="lines", line=dict(color=theme.BATON, width=2, dash="dot"))
-cyc_fig.update_layout(barmode="overlay", height=380, autosize=True, margin=dict(l=10, r=10, t=10, b=30),
-                      **theme.PLOTLY_LAYOUT)
-cyc_fig.update_layout(legend=dict(orientation="h", y=1.08, x=0),
-                      xaxis=dict(title="cycle", type="category"), yaxis=dict(title="asks / intros"),
-                      yaxis2=dict(overlaying="y", side="right", tickformat=".0%", rangemode="tozero",
-                                  title="capacity used", showgrid=False))
-cyc_div = plot(cyc_fig, "cycles-chart")
+def cycle_chart(cyc_rows, div_id):
+    cyc_fig = go.Figure()
+    cyc_fig.add_bar(x=[r["cycle"] for r in cyc_rows], y=[r["used"] for r in cyc_rows], name="Roster slots used",
+                    marker_color=theme.NEUTRAL)
+    cyc_fig.add_bar(x=[r["cycle"] for r in cyc_rows], y=[r["intros"] for r in cyc_rows], name="Intros made",
+                    marker_color=theme.ACCENT)
+    cyc_fig.add_scatter(x=[r["cycle"] for r in cyc_rows], y=[r["intros_cumulative"] for r in cyc_rows],
+                        name="Cumulative intros", mode="lines+markers", line=dict(color=theme.WARN, width=2))
+    cyc_fig.add_scatter(x=[r["cycle"] for r in cyc_rows], y=[r["capacity_pct"] for r in cyc_rows],
+                        name="Capacity used", yaxis="y2", mode="lines", line=dict(color=theme.BATON, width=2, dash="dot"))
+    cyc_fig.update_layout(barmode="overlay", height=380, autosize=True, margin=dict(l=10, r=10, t=10, b=30),
+                          **theme.PLOTLY_LAYOUT)
+    cyc_fig.update_layout(legend=dict(orientation="h", y=1.08, x=0),
+                          xaxis=dict(title="cycle", type="category"), yaxis=dict(title="asks / intros"),
+                          yaxis2=dict(overlaying="y", side="right", tickformat=".0%", rangemode="tozero",
+                                      title="capacity used", showgrid=False))
+    return plot(cyc_fig, div_id)
 
 
 def cycle_cell(r):
@@ -418,16 +331,381 @@ def cycle_table(rows):
             f'<th class="num">Intros made</th><th class="num">Cumulative intros</th></tr></thead><tbody>{body}</tbody></table>')
 
 
-cyc_connector_rows = [(p["connector"], p["rows"][-1]["capacity"], f'{p["rows"][-1]["used"]} ({p["rows"][-1]["capacity_pct"]:.0%})',
-                       p["rows"][-1]["intros"], p["rows"][-1]["intros_cumulative"],
-                       f'{sum(r["asks"] for r in p["rows"]) / len(p["rows"]):.1f}',
-                       f'{sum(r["capacity_pct"] for r in p["rows"][:-1]) / max(1, len(p["rows"]) - 1):.0%}',
-                       f'{sum(r["intros"] for r in p["rows"]) / len(p["rows"]):.1f}')
-                      for p in cycles["per_connector"]]
-cyc_connector_table = table(["Connector", "Capacity/mo", "Slots used this cycle", "Intros this cycle", "Cumulative intros",
-                             "Asks / cycle", "Capacity used / cycle", "Intros / cycle"], cyc_connector_rows)
-cyc_prev = [r for r in cyc_rows if not r["current"]]
-cyc_avg_pct = sum(r["capacity_pct"] for r in cyc_prev) / len(cyc_prev) if cyc_prev else 0
+def cycle_connector_table(cyc):
+    rows_ = [(p["connector"], p["rows"][-1]["capacity"], f'{p["rows"][-1]["used"]} ({p["rows"][-1]["capacity_pct"] or 0:.0%})',
+              p["rows"][-1]["intros"], p["rows"][-1]["intros_cumulative"],
+              f'{sum(r["asks"] for r in p["rows"]) / max(1, len(p["rows"])):.1f}',
+              f'{sum(r["capacity_pct"] or 0 for r in p["rows"][:-1]) / max(1, len(p["rows"]) - 1):.0%}',
+              f'{sum(r["intros"] for r in p["rows"]) / max(1, len(p["rows"])):.1f}')
+             for p in cyc["per_connector"] if p["rows"]]
+    return table(["Connector", "Capacity/mo", "Slots used this cycle", "Intros this cycle", "Cumulative intros",
+                  "Asks / cycle", "Capacity used / cycle", "Intros / cycle"], rows_)
+
+
+# --------------------------------------------------------------------------- the shared strategic sections
+def finding(title, text, warn=False):
+    return f'<div class="finding{" warn" if warn else ""}"><b>{title}</b>{text}</div>'
+
+
+def names_list(xs):
+    xs = list(xs)
+    return ", ".join(xs[:-1]) + " and " + xs[-1] if len(xs) > 1 else "".join(xs)
+
+
+SEG_SCRIPT = """<script>
+(function () {
+  // Cumulative / Last 12 months: each .seg swaps the .fview blocks inside its data-scope element
+  document.querySelectorAll('.seg[data-scope]').forEach(function (seg) {
+    var scope = document.getElementById(seg.dataset.scope), note = document.getElementById(seg.dataset.scope + '-window');
+    seg.querySelectorAll('button').forEach(function (b) {
+      b.onclick = function () {
+        seg.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
+        scope.querySelectorAll('.fview').forEach(function (v) {
+          v.hidden = v.dataset.view !== b.dataset.view;
+          if (!v.hidden && window.Plotly) v.querySelectorAll('.js-plotly-plot').forEach(function (p) { Plotly.Plots.resize(p); });
+        });
+        if (note) note.textContent = note.dataset[b.dataset.view];
+      };
+    });
+  });
+})();
+</script>"""
+
+STRATEGIC_NAV = [("#funnel", "Funnel", ""), ("#accounts", "Accounts", ""), ("#requesters", "Requesters", ""),
+                 ("#connectors", "Connectors", ""), ("#cycles", "Intros by Cycle", "")]
+
+
+def strategic_sections(data, cyc, live):
+    """The five sections the two data dashboards share (funnel, accounts, requesters, connectors,
+    intros by cycle), rendered from one data_cuts.load() result and one cycles dict. `live` picks
+    the wording and the source lines: the Live Data tab reads golden/ with the ask log as the
+    build applies it and says whatever the current data says; the Raw Sept tab reads the
+    September exports as filed and keeps the September findings, by name, where those names
+    are still on the roster."""
+    n_req = len(data["requests"])
+    ask_log = ('the ask log (<code>intro_outcomes.csv</code> with <code>golden/completions.csv</code> applied)' if live
+               else '<code>intro_outcomes.csv</code>')
+    status_file = "<code>status_as_filed</code>" if live else "<code>intro_requests.csv</code>"
+    dates = sorted(r["request_date"].strip()[:10] for r in data["requests"] if r["request_date"].strip())
+    first, last = (dates[0][:7], dates[-1][:7]) if dates else ("", "")
+    window_all = f"Every request on file, {first} to {last}"
+
+    # funnel
+    stages = data_cuts.funnel_cut(data)
+    stages_12m = data_cuts.funnel_cut(data, since=ROLLING_SINCE)
+    counts, counts_12m = [c for _, c in stages], [c for _, c in stages_12m]
+    mismatch = data_cuts.opportunity_status_mismatch(data)
+    completion_asks = [o for o in data["outcomes"] if o.get("source") == "completions.csv"]
+    reasks = [o for o in data["outcomes"] if o.get("reasked_date", "").strip()]
+    funnel_source = (f'From <code>golden/golden_requests.csv</code> joined to {ask_log}: {len(completion_asks)} of the '
+                     f'{counts[1]} asks so far exist only as a Submit on Live Priorities, and {len(reasks)} intros that fizzled '
+                     f'have been re-asked.' if live else 'From <code>intro_requests.csv</code> and <code>intro_outcomes.csv</code>.')
+    funnel = f"""
+<section id="funnel">
+  <h2>Where the Requests Go</h2>
+  <p class="lede">{funnel_source} Node labels show how many requests survive each step. Pipeline $ is deliberately omitted: the same <code>deal_value_usd</code> would be re-counted at every stage a request passes through.</p>
+  <div class="seg" id="funnel-toggle" data-scope="funnel" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
+  <span class="foot" id="funnel-window" data-all="{window_all}" data-12m="Requests dated {ROLLING_SINCE} or later ({counts_12m[0]} of {counts[0]}), rolling from the build date">{window_all}</span>
+  <div class="fview" data-view="12m" hidden>
+  {funnel_kpis(counts_12m)}
+  {sankey(stages_12m, "sankey-12m")}
+  <div class="grid2">
+    <div>
+      <h3>Stage table, last 12 months</h3>
+      {funnel_table(stages_12m)}
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      {finding("The biggest leak is still before anyone is asked.", f"{counts_12m[0]-counts_12m[1]} of {counts_12m[0]} requests ({pct(counts_12m[0]-counts_12m[1], counts_12m[0])}) never reach a connector.", warn=True)}
+      {finding("Once asked.", f"{pct(counts_12m[2], counts_12m[1])} respond, {pct(counts_12m[3], counts_12m[2])} of responders send the intro, {pct(counts_12m[4], counts_12m[3])} of intros book a meeting, {pct(counts_12m[5], counts_12m[4])} of meetings create an opportunity.")}
+      <p class="foot">Same stages and source as the cumulative view, restricted to <code>request_date &gt;= {ROLLING_SINCE}</code>; the window moves every time the page is rebuilt.</p>
+    </div>
+  </div>
+  </div>
+  <div class="fview" data-view="all">
+  {funnel_kpis(counts)}
+  {sankey(stages, "sankey")}
+  <div class="grid2">
+    <div>
+      <h3>Stage table</h3>
+      {funnel_table(stages)}
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      {finding("The biggest leak is before anyone is asked.", f"{counts[0]-counts[1]} of {counts[0]} requests ({pct(counts[0]-counts[1], counts[0])}) never reach a connector, a larger drop than every downstream stage combined.", warn=True)}
+      {finding("Once asked, the funnel is healthy-ish.", f"{pct(counts[2], counts[1])} respond, {pct(counts[3], counts[2])} of responders send the intro, {pct(counts[4], counts[3])} of intros book a meeting, {pct(counts[5], counts[4])} of meetings create an opportunity.")}
+      {finding("Status and outcomes disagree.", f"{len(mismatch)} of the {counts[5]} opportunity requests still show status Open/Stalled/Routed in {status_file}" + (f" ({', '.join(mismatch)})." if mismatch else "."))}
+      <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>funnel_cut</code>), drawn by <code>dashboard/sankey_funnel.py</code>.</p>
+    </div>
+  </div>
+  </div>
+</section>
+"""
+
+    # accounts
+    demand = data_cuts.account_demand_cut(data)
+    demand_12m = data_cuts.account_demand_cut(data, since=ROLLING_SINCE)
+    top_accounts = data_cuts.top_accounts_cut(data)
+    demand_top = demand["companies"][:20]
+    demand_rows = [(b["name"], b["industry"] or ("—" if b["in_crm"] else "no CRM record"), b["requests"], b["routed"], b["requests"] - b["routed"],
+                    len(b["requesters"]), b["paths"], usd(b["value"])) for b in demand_top]
+    demand_rows += [(b["name"], "unresolvable", b["requests"], b["routed"], b["requests"] - b["routed"],
+                     len(b["requesters"]), "—", "—") for b in demand["unresolvable"]]
+    demand_table = table(["Company", "Industry", "Asks", "Routed", "Never routed", "Requesters", "Paths in network", "Value"], demand_rows)
+    unresolvable_asks = sum(b["requests"] for b in demand["unresolvable"])
+    top_rows = [(b["name"], usd(b["value"]), "CRM ARR" if b["value_source"] == "CRM" else "deal value",
+                 b["requests"], b["routed"], f'{b["responded"]}/{b["intros"]}/{b["meetings"]}/{b["opps"]}',
+                 b["owner"] or "no CRM account", ", ".join(b["internal_connectors"]) or "—", ", ".join(b["outside_connectors"]) or "—")
+                for b in top_accounts["companies"]]
+    top_table = table(["Company", "Value", "Value from", "Asks", "Routed", "Resp/Intro/Mtg/Opp",
+                       "CRM owner", "Internal connectors asked", "Advisor / investor asked"], top_rows)
+    most = demand["companies"][0] if demand["companies"] else {"requests": 0, "name": "—"}
+    never_routed = [b["name"] for b in demand_top if b["routed"] == 0]
+    accounts = f"""
+<section id="accounts">
+  <h2>Account-Level Demand</h2>
+  <p class="lede">Asks per company after entity resolution ({len(demand["companies"])} distinct companies behind {n_req - unresolvable_asks} of {n_req} requests, by <code>company_id</code> from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked. The {unresolvable_asks} asks that resolve to no company are grouped by why rather than by the name written.{" Industry, owner and ARR are the CRM's, as <code>golden/golden_companies.csv</code> carries them after the last rebuild." if live else ""}</p>
+  <div class="kpis">
+    {kpi(len(demand["companies"]), "distinct companies requested", f"{demand['repeat_share']:.0%} of asks are for a repeat company")}
+    {kpi(demand["singletons"], "companies asked exactly once", f"{len(demand['companies']) - demand['singletons']} asked more than once")}
+    {kpi(most["requests"], f"asks for {most['name']}", "the most-requested company")}
+    {kpi(sum(1 for b in demand["companies"] if b["routed"] == 0), "companies never routed once", "nobody was asked for any of their requests")}
+  </div>
+  <div class="grid2">
+    <div id="demand-views">
+      <h3>Top 20 companies by asks</h3>
+      <div class="seg" id="demand-toggle" data-scope="demand-views" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
+      <span class="foot" id="demand-views-window" data-all="{window_all}" data-12m="Requests dated {ROLLING_SINCE} or later ({demand_12m['asks']} of {demand['asks']} asks, {len(demand_12m['companies'])} companies), rolling from the build date">{window_all}</span>
+      <div class="fview" data-view="12m" hidden>{demand_chart(demand_12m, "demand-12m")}</div>
+      <div class="fview" data-view="all">{demand_chart(demand, "demand")}</div>
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      {finding("Demand is concentrated and repetitive.", f"{demand['repeat_share']:.0%} of all asks are for a company that was already requested at least once. The same {len(demand['companies']) - demand['singletons']} companies come back again and again, which is what the duplicate-checking in Slack is reacting to.", warn=True)}
+      {finding("Some companies are asked repeatedly and never routed.", f"{', '.join(never_routed)} each have multiple asks and zero connector rows.", warn=True) if never_routed else finding("Every company in the top 20 has been routed at least once.", "No repeat company is still waiting for its first ask.")}
+      {finding("Unresolvable asks cluster too.", f"{unresolvable_asks} requests resolve to no company at all: " + "; ".join(f'{b["requests"]} {b["name"].strip("()")}' for b in demand["unresolvable"]) + ". They sit at the bottom of the detail table and are excluded from the company counts above.")}
+    </div>
+  </div>
+  <h3>Per-company detail</h3>
+  <p class="foot">Paths in network = distinct ways to reach the company in <code>golden/supply_reach.csv</code>.</p>
+  {demand_table}
+  <h3>Top 20 accounts by value</h3>
+  <p class="lede">Value is the CRM <code>arr_potential_usd</code> where the company has a CRM account, otherwise the largest <code>deal_value_usd</code> filed on a request. Internal touchpoints are split into roster connectors employed internally versus advisors and investors.</p>
+  {top_table}
+</section>
+{SEG_SCRIPT}
+"""
+
+    # requesters
+    requesters = data_cuts.requester_cut(data)
+    req_rows = requesters["requesters"]
+    n_sdr, n_ae = sum(1 for b in req_rows if b["kind"] == "SDR"), sum(1 for b in req_rows if b["kind"] == "AE")
+    req_asks_div = requester_chart(req_rows,
+        [dict(y=[b["requests"] for b in req_rows], marker_color=theme.ACCENT, text=[b["requests"] for b in req_rows],
+              textposition="outside", customdata=[b["routed"] for b in req_rows],
+              hovertemplate="%{y} requests<br>%{customdata} routed to a connector<extra></extra>")],
+        "req-asks", "requests")
+    req_value_div = requester_chart(req_rows,
+        [dict(y=[b["crm_value"] for b in req_rows], marker_color=theme.ACCENT, text=[usd(b["crm_value"]) for b in req_rows],
+              textposition="outside", customdata=[b["crm_accounts"] for b in req_rows],
+              hovertemplate="$%{y:,.0f} ARR potential<br>across %{customdata} CRM accounts<extra></extra>")],
+        "req-value", "CRM ARR potential", tickformat="$~s")
+    req_accounts_div = requester_chart(req_rows,
+        [dict(y=[b["crm_accounts"] for b in req_rows], name="With a CRM account", marker_color=theme.ACCENT,
+              hovertemplate="%{y} accounts in the CRM<extra></extra>"),
+         dict(y=[b["accounts"] - b["crm_accounts"] for b in req_rows], name="No CRM record", marker_color=theme.NEUTRAL,
+              text=[b["accounts"] for b in req_rows], textposition="outside", cliponaxis=False,
+              hovertemplate="%{y} companies with no CRM record<extra></extra>")],
+        "req-accounts", "distinct companies", barmode="stack")
+    req_rate_div = requester_chart(req_rows,
+        [dict(y=[b["intro_rate"] for b in req_rows], marker_color=theme.ACCENT, text=[f'{b["intro_rate"]:.0%}' for b in req_rows],
+              textposition="outside", customdata=[[b["intros"], b["requests"]] for b in req_rows],
+              hovertemplate="%{customdata[0]} intros / %{customdata[1]} requests<extra></extra>")],
+        "req-rate", "intros / requests", tickformat=".0%")
+    req_urgency_div = requester_chart(req_rows,
+        [dict(y=[b["critical_share"] for b in req_rows], name="Critical", marker_color=theme.WARN,
+              text=[f'{b["critical_share"]:.0%}' for b in req_rows], textposition="outside",
+              customdata=[[b["critical"], b["requests"]] for b in req_rows],
+              hovertemplate="Critical on %{customdata[0]} of %{customdata[1]} requests<extra></extra>"),
+         dict(y=[b["critical_high_share"] for b in req_rows], name="Critical + High", marker_color=theme.NEUTRAL_DARK,
+              text=[f'{b["critical_high_share"]:.0%}' for b in req_rows], textposition="outside",
+              customdata=[[b["critical_high"], b["requests"]] for b in req_rows],
+              hovertemplate="Critical or High on %{customdata[0]} of %{customdata[1]} requests<extra></extra>")],
+        "req-urgency", "share of own requests", tickformat=".0%")
+    requester_table = table(["Requester", "Role", "Asks", "Routed", "Intros", "Intro rate", "Accounts", "In CRM",
+                             "CRM ARR potential", "Critical", "Critical + High"],
+                            [(b["name"], b["role"], b["requests"], b["routed"], b["intros"], f'{b["intro_rate"]:.0%}',
+                              b["accounts"], b["crm_accounts"], usd(b["crm_value"]),
+                              f'{b["critical"]} ({b["critical_share"]:.0%})', f'{b["critical_high"]} ({b["critical_high_share"]:.0%})')
+                             for b in req_rows])
+    req_top = req_rows[0]
+    req_best_rate = max(req_rows, key=lambda b: b["intro_rate"])
+    req_worst_rate = min(req_rows, key=lambda b: b["intro_rate"])
+    req_most_critical = max(req_rows, key=lambda b: b["critical_share"])
+    req_least_critical = min(req_rows, key=lambda b: b["critical_share"])
+    req_most_value = max(req_rows, key=lambda b: b["crm_value"])
+    req_unresolved = sum(b["unresolved"] for b in req_rows)
+    req_title = "The SDR and the Seven AEs" if not live and (n_sdr, n_ae) == (1, 7) else f"{n_sdr} SDR{'s' if n_sdr != 1 else ''} and {n_ae} AE{'s' if n_ae != 1 else ''}"
+    requesters_html = f"""
+<section id="requesters">
+  <h2>Requesters: {req_title}</h2>
+  <p class="lede">Every request on file grouped by <code>requested_by</code>, in order of asks. Accounts are the distinct companies behind a requester's asks after entity resolution, so asking twice for the same company counts one account, and its CRM <code>arr_potential_usd</code> counts once. Intro rate is intros sent over every request filed, routed or not. Urgency is what the requester declared in <code>urgency</code>.</p>
+  <div class="kpis">
+    {kpi(len(req_rows), "requesters", f"{n_sdr} SDR · {n_ae} AEs")}
+    {kpi(f"{req_top['requests']}", f"asks from {req_top['name']}", f"{pct(req_top['requests'], requesters['requests'])} of {requesters['requests']} requests, the most of anyone")}
+    {kpi(f"{requesters['intro_rate']:.0%}", "intro rate across every requester", f"{requesters['intros']} intros / {requesters['requests']} requests · {req_best_rate['intro_rate']:.0%} ({req_best_rate['name']}) to {req_worst_rate['intro_rate']:.0%} ({req_worst_rate['name']})")}
+    {kpi(f"{requesters['critical_share']:.0%}", "of requests declared Critical", f"{requesters['critical_high_share']:.0%} Critical or High")}
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Cumulative asks per requester</h3>
+      {req_asks_div}
+    </div>
+    <div>
+      <h3>CRM value per requester</h3>
+      {req_value_div}
+      <p class="foot">Sum of <code>arr_potential_usd</code> over the distinct CRM accounts each requester asked for; companies with no CRM record contribute nothing.</p>
+    </div>
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Accounts per requester</h3>
+      {req_accounts_div}
+    </div>
+    <div>
+      <h3>Intro rate per requester</h3>
+      {req_rate_div}
+    </div>
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>How often they declare Critical, and Critical or High</h3>
+      {req_urgency_div}
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      {finding("Who files the asks.", f"{req_top['name']} ({req_top['kind']}) files the most at {req_top['requests']}, {req_rows[-1]['name']} the fewest at {req_rows[-1]['requests']}; {req_rows[0]['requests'] - req_rows[-1]['requests']} requests separate the top from the bottom of {len(req_rows)} people.")}
+      {finding("Where the CRM value sits.", f"{req_most_value['name']} carries the most at {usd(req_most_value['crm_value'])} across {req_most_value['crm_accounts']} accounts. The bars overlap: {requesters['shared_accounts']} of the {requesters['accounts']} companies requested were asked for by more than one person, so the same account's ARR appears under each of them; de-duplicated, {usd(requesters['crm_value'])} sits behind the {requesters['crm_accounts']} companies with a CRM account. {req_unresolved} requests resolve to no company and count toward asks only.")}
+      {finding(f"Intro rate ranges from {req_worst_rate['intro_rate']:.0%} to {req_best_rate['intro_rate']:.0%}.", f"{req_best_rate['name']} lands {req_best_rate['intros']} intros from {req_best_rate['requests']} requests; {req_worst_rate['name']} lands {req_worst_rate['intros']} from {req_worst_rate['requests']}. The whole floor averages {requesters['intro_rate']:.0%}.", warn=True)}
+      {finding("Critical means different things to different people.", f"{req_most_critical['name']} marks {req_most_critical['critical_share']:.0%} of their asks Critical, {req_least_critical['name']} {req_least_critical['critical_share']:.0%}. Add High and {requesters['critical_high_share']:.0%} of all requests are in the top two tiers, so urgency barely separates one ask from the next.", warn=True)}
+    </div>
+  </div>
+  <h3>Per requester</h3>
+  {requester_table}
+</section>
+"""
+
+    # connectors
+    cx = data_cuts.connector_cut(data)
+    cs = cx["connectors"]
+    by_name = {c["name"]: c for c in cs}
+    connector_table = table(["Connector", "Type", "Capacity/mo", "Asked", "Responded", "Intros", "Meetings",
+                             "Opps", "Requested $", "Opp $", "In focus area", "Stated focus", "Roster note"],
+                            [(c["name"], c["type"], c["capacity"], c["asked"], c["responded"], c["intros"],
+                              c["meetings"], c["opps"], usd(c["value"]), usd(c["opp_value"]),
+                              f'{c["in_focus"]}/{c["asked"]}', c["focus_areas"], c["notes"]) for c in cs])
+    busiest = cs[0] if cs else {"asked": 0, "name": "—"}
+    sept_names = ("Owen Trask", "Dana Whitfield", "Elena Duvall", "Marcus Aldridge", "Tomás Beckett")
+    if not live and all(n in by_name for n in sept_names):
+        owen, dana, elena, marcus, tomas = (by_name[n] for n in sept_names)
+        left = finding("The notes predicted the failures.", f'Owen Trask ("tapped no more than twice a month") was asked {owen["asked"]} times in {cx["months"]} months and sent zero intros; Dana Whitfield ("travels constantly; slow to respond") got {dana["asked"]} asks and booked no meetings.', warn=True)
+        right_title = "Where the notes were right"
+        right = (finding('Elena Duvall, "deep but narrow".', f'{elena["in_focus"]} of her {elena["asked"]} asks were heavy industry, and that is where her intros came from.')
+                 + finding('Marcus Aldridge, "asked far more than anyone else", capacity 4/month.', f'{marcus["asked"]} asks with the weakest response rate of the four heavily-used connectors ({pct(marcus["responded"], marcus["asked"])}).')
+                 + finding('Tomás Beckett, "fast responder, broad but shallow".', f'{pct(tomas["responded"], tomas["asked"])} response rate but only {pct(tomas["intros"], tomas["responded"])} of those responses became an intro.'))
+    else:
+        asked_cs = [c for c in cs if c["asked"]]
+        silent = [c for c in asked_cs if not c["intros"]]
+        best_resp = max(asked_cs, key=lambda c: c["responded"] / c["asked"]) if asked_cs else None
+        best_intro = max(asked_cs, key=lambda c: c["intros"] / c["asked"]) if asked_cs else None
+        idle = [c for c in cs if not c["asked"]]
+        left = (finding("Asked and never delivered.", f'{names_list(c["name"] for c in silent)} took {sum(c["asked"] for c in silent)} asks between them and sent no intro.', warn=True) if silent
+                else finding("Every connector asked has delivered at least once.", "No roster connector is carrying asks with nothing to show for them."))
+        if idle:
+            left += finding("Capacity nobody uses.", f'{names_list(c["name"] for c in idle)} ({sum(c["capacity"] for c in idle)} stated slots a month) have not been asked at all.')
+        right_title = "Who converts"
+        right = ((finding(f'{best_resp["name"]} answers most reliably.', f'{pct(best_resp["responded"], best_resp["asked"])} of {best_resp["asked"]} asks got a response.') if best_resp else "")
+                 + (finding(f'{best_intro["name"]} turns asks into intros most often.', f'{best_intro["intros"]} intros from {best_intro["asked"]} asks ({pct(best_intro["intros"], best_intro["asked"])}); the roster as a whole lands {pct(sum(c["intros"] for c in cs), cx["asked"])}.') if best_intro else "")
+                 + finding(f'{busiest["name"]} carries the most.', f'{busiest["asked"]} asks against a stated capacity of {busiest["capacity"]} a month over {cx["months"]} months; the rest of the roster shares {cx["asked"] - busiest["asked"]}.'))
+    connectors_html = f"""
+<section id="connectors">
+  <h2>Connectors: The {len(cs)} on the Roster</h2>
+  <p class="lede">Funnel per connector from {ask_log}, with the stated capacity and free-text note from <code>dataset/connector_roster.csv</code>. An ask is "in focus area" when the resolved company's CRM industry is one of the connector's stated focus areas.</p>
+  <div class="kpis">
+    {kpi(f"{cx['in_focus']} / {cx['asked']}", "asks inside the stated focus area", f"over {cx['months']} months")}
+    {kpi(f"{cx['in_focus_intro_rate']:.0%}", "intro rate for in-focus asks", f"vs {cx['off_focus_intro_rate']:.0%} outside the focus area")}
+    {kpi(f"{busiest['asked']}", f"asks to {busiest['name']}", "the most-asked connector")}
+    {kpi(sum(n for _, n in cx["off_roster"]), "asks to people not on the roster", ", ".join(n for n, _ in cx["off_roster"]) or "everyone asked is on the roster")}
+  </div>
+  {connector_table}
+  <div class="grid2">
+    <div>
+      <h3>Routing ignores the roster notes</h3>
+      {finding(f"Only {cx['in_focus']} of {cx['asked']} asks land in a stated focus area, and those convert at {cx['in_focus_intro_rate']:.0%} vs {cx['off_focus_intro_rate']:.0%}.", "Focus area is the single strongest predictor of an intro in this data, and it is almost never used when choosing who to ask.", warn=True)}
+      {left}
+    </div>
+    <div>
+      <h3>{right_title}</h3>
+      {right}
+    </div>
+  </div>
+</section>
+"""
+
+    # cycles
+    cyc_rows = cyc["rows"]
+    closed = [r for r in cyc_rows if not r["current"]]
+    now = cyc["current"]
+    avg_pct = sum(r["capacity_pct"] or 0 for r in closed) / len(closed) if closed else 0
+    busiest_pct = max((r["capacity_pct"] or 0 for r in closed), default=0)
+    before = ([r for r in cyc_rows if r["cycle"] < now["cycle"]] or [None])[-1]
+    if live:
+        cyc_lede = (f'Every connector summed, one row per cycle (a calendar month, the allocator\'s unit) from the first ask on file to the current cycle {cyc["cycle"]}. '
+                    f'Asks by <code>asked_date</code> and intros by <code>intro_date</code> from {ask_log}; capacity used is roster asks against the roster\'s stated monthly capacity of {cyc["roster_capacity"]} in <code>connector_roster.csv</code>. '
+                    f'The current cycle counts this build\'s allocation as slots used, since those asks are about to go out. Each connector\'s own record is on their tab under Live Priorities.')
+        now_label, now_sub = "intros made this cycle", f"{cyc['cycle']} · {before['intros'] if before else 0} in {before['cycle'] if before else 'the cycle before'}"
+        cap_label = "roster capacity used this cycle"
+        closed_word = "closed cycles"
+        fill = ("This cycle's allocation is the first to fill it." if (now["capacity_pct"] or 0) >= 1
+                else f"This cycle's allocation takes it to {now['capacity_pct'] or 0:.0%}.")
+    else:
+        cyc_lede = (f'Every connector summed, one row per calendar month from the first ask on file to the last month the exports touch, {cyc["cycle"]}. '
+                    f'Asks by <code>asked_date</code> and intros by <code>intro_date</code> from <code>intro_outcomes.csv</code> as filed; capacity used is roster asks against the roster\'s stated monthly capacity of {cyc["roster_capacity"]} in <code>connector_roster.csv</code>. '
+                    f'Nothing is allocated here: the <a href="{LIVE_HTML}">Live Data Dashboard</a> adds the current cycle\'s allocation and the asks sent since.')
+        now_label, now_sub = f"intros made in {cyc['cycle']}", f"the last month on file · {before['intros'] if before else 0} in {before['cycle'] if before else 'the month before'}"
+        cap_label = f"roster capacity used in {cyc['cycle']}"
+        closed_word = "months"
+        fill = ""
+    cycles_html = f"""
+<section id="cycles">
+  <h2>Intros by Cycle</h2>
+  <p class="lede">{cyc_lede}</p>
+  <div class="kpis">
+    {kpi(now["intros"], now_label, now_sub)}
+    {kpi(cyc["intros_total"], "cumulative intros", f"since {cyc_rows[0]['cycle'] if cyc_rows else '—'}, from {cyc['asks_total']} asks")}
+    {kpi(f"{now['capacity_pct'] or 0:.0%}", cap_label, f"{now['used']} of {cyc['roster_capacity']} slots" + (f" · {now['allocated_off_roster']} more allocated off-roster" if now.get('allocated_off_roster') else ""))}
+    {kpi(f"{avg_pct:.0%}", "capacity used per cycle, to date", f"average over {len(closed)} {closed_word}; best month {cyc['best']['cycle']} with {cyc['best']['intros']} intros")}
+  </div>
+  {cycle_chart(cyc_rows, "cycles-chart")}
+  <div class="grid2">
+    <div>
+      <h3>By cycle, all connectors</h3>
+      {cycle_table(cyc_rows)}
+    </div>
+    <div>
+      <h3>Reading it</h3>
+      {finding(f"{closed_word.capitalize()} on file used {avg_pct:.0%} of roster capacity.", f"That is the average against {cyc['roster_capacity']} stated monthly slots; the busiest month used {busiest_pct:.0%}. {fill}".strip(), warn=True)}
+      {finding(f"Intros arrive at roughly {cyc['intros_total'] / max(1, len(closed)):.1f} a month.", f"{cyc['intros_total']} intros over {len(closed)} {closed_word} from {cyc['asks_total']} asks, about one intro per {cyc['asks_total'] / max(1, cyc['intros_total']):.1f} asks. The cumulative line is the honest read; single months swing between {min((r['intros'] for r in closed), default=0)} and {max((r['intros'] for r in closed), default=0)}.")}
+      <p class="foot">Asks to people off the roster ({", ".join(cyc['off_roster']) or "none so far"}) are counted in asks and intros but not against capacity, as they have none stated.</p>
+    </div>
+  </div>
+  <h3>Per connector, {"this cycle" if live else cyc["cycle"]} and the run rate</h3>
+  {cycle_connector_table(cyc)}
+  <p class="foot">Run-rate columns average every cycle since {cyc_rows[0]['cycle'] if cyc_rows else '—'}; capacity used per cycle averages {closed_word} {"before this one" if live else "on file"}. Click a connector's tab for their cycle-by-cycle table.</p>
+</section>
+"""
+    return funnel + accounts + requesters_html + connectors_html + cycles_html
+
 
 dup_table = table(["Reply text", "Occurrences"], [(text, n) for text, n in slack["dup_phrases"]])
 
@@ -496,6 +774,10 @@ main{{max-width:1240px;margin:0 auto;padding:28px 40px 72px}}
 .tscroll.tall{{max-height:min(70vh,640px);overflow-y:auto}}
 .tscroll.tall thead th{{position:sticky;top:0;z-index:1;background:var(--surface);border-bottom-color:transparent;box-shadow:inset 0 -1px 0 var(--ink)}}
 section{{background:var(--surface);border:1px solid var(--line);padding:28px 32px;margin:0 0 20px;scroll-margin-top:calc(var(--topbar,140px) + 16px)}}
+/* the rule between the strategic sections and the data-integrity ones on the Raw Sept tab */
+.divider{{margin:40px 0 20px;padding:14px 0 0;border-top:2px solid var(--baton);scroll-margin-top:calc(var(--topbar,140px) + 16px)}}
+.divider .t{{display:block;font:600 11px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--baton)}}
+.divider p{{margin:6px 0 0;color:var(--mute);font-size:15px;max-width:76ch}}
 h2{{margin:0 0 6px;font-size:22px}}
 h3{{margin:28px 0 10px;font-size:12px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}}
 h3 .foot{{font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px}}
@@ -976,15 +1258,16 @@ raw_page = f"""{head("Raw Sept Data Dashboard")}
 {tabs(RAW_HTML)}
 <header>
   <h1>Raw Sept Data Dashboard</h1>
-  <p>Scoping and verification of 200 warm-intro requests · Aug 2025 to Jul 2026 · Source: the September exports in <code>dataset/</code>, as filed · {built}</p>
+  <p>Scoping and verification of {len(requests)} warm-intro requests · Aug 2025 to Jul 2026 · Source: the September exports in <code>dataset/</code>, as filed · {built}</p>
 </header>
 <div class="layout">
-{sidebar([("#flow", "File Flow", ""), ("#overview", "Funnel Overview", ""), ("#joins", "Joins", ""), ("#targets", "Target People", ""),
-          ("#timing", "Timing", ""), ("#scoping", "Slack Threads", ""), ("#quality", "Flags &amp; Coverage", ""), ("#verify", "CSV Profile", ""),
-          ("#integrity", "Integrity Audit", "")])}
+{sidebar([("#flow", "Strategic data", "band"), ("#flow", "File Flow", ""), *STRATEGIC_NAV, ("#overview", "Funnel Overview", ""),
+          ("#timing", "Timing", ""), ("#scoping", "Slack Threads", ""),
+          ("#integrity-divider", "Data integrity", "band"), ("#joins", "Joins", ""), ("#targets", "Target People", ""),
+          ("#quality", "Flags &amp; Coverage", ""), ("#verify", "CSV Profile", ""), ("#integrity", "Integrity Audit", "")])}
 <main>
 
-<p class="lede part-lede">Computed directly from the exports in <code>dataset/</code>: intro requests and outcomes, CRM accounts, connection lists, roster and Slack threads, as filed. The <a href="{LIVE_HTML}">Live Data Dashboard</a> tab shows the same requests after entity resolution.</p>
+<p class="lede part-lede">Computed directly from the exports in <code>dataset/</code>: intro requests and outcomes, CRM accounts, connection lists, roster and Slack threads, as filed. The <a href="{LIVE_HTML}">Live Data Dashboard</a> tab shows the same charts from <code>golden/</code>, with the asks sent since September applied.</p>
 
 <section id="flow">
   <h2>How the Files Connect</h2>
@@ -992,64 +1275,12 @@ raw_page = f"""{head("Raw Sept Data Dashboard")}
   <img src="routing_flow.png" alt="Intro-request routing flow across the CSV files" style="display:block;max-width:720px;width:100%;margin:0 auto">
   <p class="foot">Source: <code>analysis/routing/routing_flow.mmd</code>; narrative in <code>analysis/routing/routing_flow.md</code>.</p>
 </section>
-
+{strategic_sections(cuts, data_cuts.cycle_cut(cuts), live=False)}
 <section id="overview">
   <h2>Funnel Overview</h2>
   <p class="lede">Every request drops out at the first stage it fails, so the eight buckets partition all {ov_n} requests. Unrouted requests split on whether the target company appears in <code>dataset/connections_*.csv</code>; a target counts as identifiable when a company can be recovered from <code>target_company_raw</code>, the company names in <code>raw_ask</code>, or an email domain in <code>raw_ask</code>.</p>
   {overview_table}
   <p class="foot">Buckets and ratios: <code>dashboard/funnel_overview.py</code> (also prints the table standalone).</p>
-</section>
-
-<section id="joins">
-  <h2>Scoped Joins</h2>
-  <p class="lede">Every entity link measured in both directions at the loosest normalization tier (lowercase, punctuation and legal suffixes stripped), from <code>analysis/joins/join_rates.md</code>. "Left matched" is the share of distinct left-hand values that find a counterpart.</p>
-  <div class="kpis">
-    {kpi(len(joins["perfect"]), "joins clean in both directions", f"of {len(joins['joins'])} links measured")}
-    {kpi(f"{joins['concerning'][0][1]:.0f}%", "worst link: target_person_raw -> connections", "no requested person exists in the network")}
-    {kpi("54.5%", "connector_asked on the roster", f"{len(connectors['off_roster'])} people asked who are not connectors")}
-    {kpi("42.5%", "requests with an outcome row", f"{coverage['missing']} requests have none")}
-  </div>
-  <div class="grid2">
-    <div>
-      <h3>Joins you can build on</h3>
-      <div class="finding"><b><code>intro_outcomes.request_id</code> -> <code>intro_requests.request_id</code>: 100%.</b>Every outcome row resolves to a real request and no request_id is duplicated, so the funnel is safe to read forward from a request.</div>
-      <div class="finding"><b><code>requested_by</code> -> <code>crm_accounts.owner</code>: 100% / 100%.</b>The same eight names, spelled identically, on both sides, so requester-level and owner-level analysis can be mixed freely.</div>
-      <div class="finding"><b><code>connector_roster.connections_file</code> -> files on disk: 100%.</b>Supply is fully enumerable: six rosters, six exports, {len(cuts["connections"]):,} contacts.</div>
-    </div>
-    <div>
-      <h3>Joins that break the analysis</h3>
-      <div class="finding warn"><b><code>target_person_raw</code> -> <code>connections_*.name</code>: 0% / 0%.</b>Not one of the {targets["distinct"]} named individuals appears anywhere in the network (see below). Person-level routing is impossible; only the company can be matched.</div>
-      <div class="finding warn"><b><code>connector_asked</code> -> <code>connector_roster.name</code>: 54.5%.</b>{sum(n for _, n in connectors["off_roster"])} asks went to {len(connectors["off_roster"])} people who are not connectors ({", ".join(n for n, _ in connectors["off_roster"])}), so capacity and focus-area rules never applied to them.</div>
-      <div class="finding warn"><b><code>target_company_raw</code> -> <code>crm_accounts.account_name</code>: 71.2%, and only after normalization.</b>Exact match is 65.4%; the CRM side needs legal-suffix stripping to reach 84%. Every company cut below is therefore built on the resolved <code>golden/</code> company id instead of the raw string.</div>
-      <div class="finding warn"><b><code>connections_*.company</code> -> <code>target_company_raw</code>: 58% / 55.8%.</b>Supply and demand barely overlap: 21 companies in the network are never requested and 23 requested companies have no contact at all.</div>
-    </div>
-  </div>
-  <h3>All measured links</h3>
-  {joins_table}
-</section>
-
-<section id="targets">
-  <h2>Target People: Does the Named Individual Exist Anywhere?</h2>
-  <p class="lede">{targets["named"]} of {targets["requests"]} requests name a person in <code>target_person_raw</code> ({targets["blank"]} leave it blank). Each name was looked up in every other file in <code>dataset/</code>.</p>
-  <div class="kpis">
-    {kpi(f"0 / {targets['distinct']}", "named targets found anywhere", "across connections, investors, roster, CRM owners, Slack")}
-    {kpi(f"{targets['in_own_thread']} / {targets['named']}", "named only in their own thread", "the name exists solely as free text")}
-    {kpi(f"{targets['recombined']} / {targets['distinct']}", "names built from network surnames", "double-barrelled recombinations of contact surnames")}
-    {kpi(f"{targets['title_reachable']} / {targets['named']}", "reachable by title instead", "a contact at the same company holds the requested title")}
-  </div>
-  <div class="grid2">
-    <div>
-      <h3>Lookup result</h3>
-      {target_table}
-      <p class="foot">Exact match after trimming; the same lookup at looser tiers in <code>analysis/joins/join_rates.md</code> is also 0%.</p>
-    </div>
-    <div>
-      <h3>Findings</h3>
-      <div class="finding warn"><b><code>target_person_raw</code> is unjoinable by construction.</b>All {targets["distinct"]} names are distinct, none appears in {len(cuts["connections"]):,} contacts, {len(cuts["investors"])} investor rows, the roster, the CRM owners or as a Slack author. Every surname token, however, is a surname that does occur in the network. The names are recombinations, so any fuzzy matcher will produce plausible false positives.</div>
-      <div class="finding"><b>The usable signal is the title.</b>For {targets["title_reachable"]} of the {targets["named"]} person-named requests, a contact at the same company already holds exactly the requested title, so routing should match company plus title and ignore the name.</div>
-      <div class="finding"><b>Data point to track:</b><code>target_person_resolvable</code> = 0 / {targets["distinct"]}, <code>target_title_reachable</code> = {targets["title_reachable"]} / {targets["named"]}. Recomputed on every build in <code>dashboard/data_cuts.py</code>.</div>
-    </div>
-  </div>
 </section>
 
 <section id="timing">
@@ -1115,6 +1346,63 @@ raw_page = f"""{head("Raw Sept Data Dashboard")}
   <h3>Offers to help with no logged ask</h3>
   {table(["Request", "Offered by", "Deal value (USD)", "Request status", "Reply"],
          [(rid, m["user"], f"{float(requests[rid]['deal_value_usd']):,.0f}", requests[rid]["status"], m["text"]) for rid, m in offers_unlogged])}
+</section>
+
+<div class="divider" id="integrity-divider">
+  <span class="t">Data integrity</span>
+  <p>Everything above reads the business: where requests go, which accounts and requesters drive demand, what the connectors deliver and when. Everything from here down checks the files themselves: whether the keys join, whether the flags and statuses carry information, what each export looks like column by column. It sets how far to trust the numbers above; it does not change them.</p>
+</div>
+
+<section id="joins">
+  <h2>Scoped Joins</h2>
+  <p class="lede">Every entity link measured in both directions at the loosest normalization tier (lowercase, punctuation and legal suffixes stripped), from <code>analysis/joins/join_rates.md</code>. "Left matched" is the share of distinct left-hand values that find a counterpart.</p>
+  <div class="kpis">
+    {kpi(len(joins["perfect"]), "joins clean in both directions", f"of {len(joins['joins'])} links measured")}
+    {kpi(f"{joins['concerning'][0][1]:.0f}%", "worst link: target_person_raw -> connections", "no requested person exists in the network")}
+    {kpi("54.5%", "connector_asked on the roster", f"{len(connectors['off_roster'])} people asked who are not connectors")}
+    {kpi("42.5%", "requests with an outcome row", f"{coverage['missing']} requests have none")}
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Joins you can build on</h3>
+      <div class="finding"><b><code>intro_outcomes.request_id</code> -> <code>intro_requests.request_id</code>: 100%.</b>Every outcome row resolves to a real request and no request_id is duplicated, so the funnel is safe to read forward from a request.</div>
+      <div class="finding"><b><code>requested_by</code> -> <code>crm_accounts.owner</code>: 100% / 100%.</b>The same eight names, spelled identically, on both sides, so requester-level and owner-level analysis can be mixed freely.</div>
+      <div class="finding"><b><code>connector_roster.connections_file</code> -> files on disk: 100%.</b>Supply is fully enumerable: six rosters, six exports, {len(cuts["connections"]):,} contacts.</div>
+    </div>
+    <div>
+      <h3>Joins that break the analysis</h3>
+      <div class="finding warn"><b><code>target_person_raw</code> -> <code>connections_*.name</code>: 0% / 0%.</b>Not one of the {targets["distinct"]} named individuals appears anywhere in the network (see below). Person-level routing is impossible; only the company can be matched.</div>
+      <div class="finding warn"><b><code>connector_asked</code> -> <code>connector_roster.name</code>: 54.5%.</b>{sum(n for _, n in connectors["off_roster"])} asks went to {len(connectors["off_roster"])} people who are not connectors ({", ".join(n for n, _ in connectors["off_roster"])}), so capacity and focus-area rules never applied to them.</div>
+      <div class="finding warn"><b><code>target_company_raw</code> -> <code>crm_accounts.account_name</code>: 71.2%, and only after normalization.</b>Exact match is 65.4%; the CRM side needs legal-suffix stripping to reach 84%. Every company cut below is therefore built on the resolved <code>golden/</code> company id instead of the raw string.</div>
+      <div class="finding warn"><b><code>connections_*.company</code> -> <code>target_company_raw</code>: 58% / 55.8%.</b>Supply and demand barely overlap: 21 companies in the network are never requested and 23 requested companies have no contact at all.</div>
+    </div>
+  </div>
+  <h3>All measured links</h3>
+  {joins_table}
+</section>
+
+<section id="targets">
+  <h2>Target People: Does the Named Individual Exist Anywhere?</h2>
+  <p class="lede">{targets["named"]} of {targets["requests"]} requests name a person in <code>target_person_raw</code> ({targets["blank"]} leave it blank). Each name was looked up in every other file in <code>dataset/</code>.</p>
+  <div class="kpis">
+    {kpi(f"0 / {targets['distinct']}", "named targets found anywhere", "across connections, investors, roster, CRM owners, Slack")}
+    {kpi(f"{targets['in_own_thread']} / {targets['named']}", "named only in their own thread", "the name exists solely as free text")}
+    {kpi(f"{targets['recombined']} / {targets['distinct']}", "names built from network surnames", "double-barrelled recombinations of contact surnames")}
+    {kpi(f"{targets['title_reachable']} / {targets['named']}", "reachable by title instead", "a contact at the same company holds the requested title")}
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Lookup result</h3>
+      {target_table}
+      <p class="foot">Exact match after trimming; the same lookup at looser tiers in <code>analysis/joins/join_rates.md</code> is also 0%.</p>
+    </div>
+    <div>
+      <h3>Findings</h3>
+      <div class="finding warn"><b><code>target_person_raw</code> is unjoinable by construction.</b>All {targets["distinct"]} names are distinct, none appears in {len(cuts["connections"]):,} contacts, {len(cuts["investors"])} investor rows, the roster, the CRM owners or as a Slack author. Every surname token, however, is a surname that does occur in the network. The names are recombinations, so any fuzzy matcher will produce plausible false positives.</div>
+      <div class="finding"><b>The usable signal is the title.</b>For {targets["title_reachable"]} of the {targets["named"]} person-named requests, a contact at the same company already holds exactly the requested title, so routing should match company plus title and ignore the name.</div>
+      <div class="finding"><b>Data point to track:</b><code>target_person_resolvable</code> = 0 / {targets["distinct"]}, <code>target_title_reachable</code> = {targets["title_reachable"]} / {targets["named"]}. Recomputed on every build in <code>dashboard/data_cuts.py</code>.</div>
+    </div>
+  </div>
 </section>
 
 <section id="quality">
@@ -1203,204 +1491,17 @@ live_page = f"""{head("Live Data Dashboard")}
 {tabs(LIVE_HTML)}
 <header>
   <h1>Live Data Dashboard</h1>
-  <p>Funnel, accounts and connectors: the same {len(requests)} requests after entity resolution · Source: <code>golden/</code>, rebuilt from <code>dataset/</code> by <code>python3 build.py</code> · {built}</p>
+  <p>Funnel, accounts, requesters and connectors: {len(live_cuts["requests"])} requests after entity resolution, with every ask sent since · Source: <code>golden/</code>, rebuilt from <code>dataset/</code> and Supabase by the rebuild workflow · {built}</p>
 </header>
 <div class="layout">
-{sidebar([("#funnel", "Funnel", ""), ("#accounts", "Accounts", ""), ("#requesters", "Requesters", ""), ("#connectors", "Connectors", ""), ("#cycles", "Intros by Cycle", "")])}
+{sidebar(STRATEGIC_NAV)}
 <main>
 
-<p class="lede part-lede">Computed from <code>golden/</code> (<code>golden_requests.csv</code>, <code>golden_companies.csv</code>, <code>supply_reach.csv</code>) after entity resolution, so companies are counted by identity rather than by how the name was typed.</p>
+<p class="lede part-lede">Computed from <code>golden/</code> (<code>golden_requests.csv</code>, <code>golden_companies.csv</code>, <code>supply_reach.csv</code>, <code>completions.csv</code>) after entity resolution, so companies are counted by identity rather than by how the name was typed. The ask log is <code>intro_outcomes.csv</code> with <code>golden/completions.csv</code> applied: a Submit on <a href="{PRIORITIES_HTML}">Live Priorities</a> lands in Supabase, the rebuild pulls it into <code>completions.csv</code>, and the ask counts here from that build on; requests added later, CRM changes and new <code>intro_outcomes.csv</code> rows flow in the same way, through <code>python3 golden/build_golden.py</code>. The <a href="{RAW_HTML}">Raw Sept Data Dashboard</a> has the same charts from the September exports alone.</p>
 
-<section id="funnel">
-  <h2>Where the Requests Go</h2>
-  <p class="lede">From <code>golden/golden_requests.csv</code>. Node labels show how many requests survive each step. Pipeline $ is deliberately omitted: the same <code>deal_value_usd</code> would be re-counted at every stage a request passes through.</p>
-  <div class="seg" id="funnel-toggle" data-scope="funnel" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
-  <span class="foot" id="funnel-window" data-all="Every request on file, {stages_first} to {stages_last}" data-12m="Requests dated {ROLLING_SINCE} or later ({counts_12m[0]} of {counts[0]}), rolling from the build date">Every request on file, {stages_first} to {stages_last}</span>
-  <div class="fview" data-view="12m" hidden>
-  {funnel_kpis(counts_12m)}
-  {sankey_div_12m}
-  <div class="grid2">
-    <div>
-      <h3>Stage table, last 12 months</h3>
-      {funnel_table(stages_12m)}
-    </div>
-    <div>
-      <h3>Reading it</h3>
-      <div class="finding warn"><b>The biggest leak is still before anyone is asked.</b>{counts_12m[0]-counts_12m[1]} of {counts_12m[0]} requests ({pct(counts_12m[0]-counts_12m[1], counts_12m[0])}) never reach a connector.</div>
-      <div class="finding"><b>Once asked.</b>{pct(counts_12m[2], counts_12m[1])} respond, {pct(counts_12m[3], counts_12m[2])} of responders send the intro, {pct(counts_12m[4], counts_12m[3])} of intros book a meeting, {pct(counts_12m[5], counts_12m[4])} of meetings create an opportunity.</div>
-      <p class="foot">Same stages and source as the cumulative view, restricted to <code>request_date &gt;= {ROLLING_SINCE}</code>; the window moves every time the page is rebuilt.</p>
-    </div>
-  </div>
-  </div>
-  <div class="fview" data-view="all">
-  {funnel_kpis(counts)}
-  {sankey_div}
-  <div class="grid2">
-    <div>
-      <h3>Stage table</h3>
-      {funnel_table(stages)}
-    </div>
-    <div>
-      <h3>Reading it</h3>
-      <div class="finding warn"><b>The biggest leak is before anyone is asked.</b>{counts[0]-counts[1]} of {counts[0]} requests ({(counts[0]-counts[1])/counts[0]:.0%}) never reach a connector, a larger drop than every downstream stage combined.</div>
-      <div class="finding"><b>Once asked, the funnel is healthy-ish.</b>{counts[2]/counts[1]:.0%} respond, {counts[3]/counts[2]:.0%} of responders send the intro, {counts[4]/counts[3]:.0%} of intros book a meeting, {counts[5]/counts[4]:.0%} of meetings create an opportunity.</div>
-      <div class="finding"><b>Status and outcomes disagree.</b>{len(opp_status_mismatch)} of the {counts[5]} opportunity requests still show status Open/Stalled/Routed in <code>intro_requests.csv</code> ({", ".join(opp_status_mismatch)}).</div>
-      <p class="foot">Code: <code>dashboard/sankey_funnel.py</code>.</p>
-    </div>
-  </div>
-  </div>
-</section>
+{strategic_sections(live_cuts, connector_cycles(TODAY), live=True)}
 
-<section id="accounts">
-  <h2>Account-Level Demand</h2>
-  <p class="lede">Asks per company after entity resolution ({len(demand["companies"])} distinct companies behind {len(requests) - unresolvable_asks} of {len(requests)} requests, from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked. The {unresolvable_asks} asks that resolve to no company are grouped by why rather than by the name written.</p>
-  <div class="kpis">
-    {kpi(len(demand["companies"]), "distinct companies requested", f"{demand['repeat_share']:.0%} of asks are for a repeat company")}
-    {kpi(demand["singletons"], "companies asked exactly once", f"{len(demand['companies']) - demand['singletons']} asked more than once")}
-    {kpi(demand["companies"][0]["requests"], f"asks for {demand['companies'][0]['name']}", "the most-requested company")}
-    {kpi(sum(1 for b in demand["companies"] if b["routed"] == 0), "companies never routed once", "nobody was asked for any of their requests")}
-  </div>
-  <div class="grid2">
-    <div id="demand-views">
-      <h3>Top 20 companies by asks</h3>
-      <div class="seg" id="demand-toggle" data-scope="demand-views" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
-      <span class="foot" id="demand-views-window" data-all="Every request on file, {stages_first} to {stages_last}" data-12m="Requests dated {ROLLING_SINCE} or later ({demand_12m['asks']} of {demand['asks']} asks, {len(demand_12m['companies'])} companies), rolling from the build date">Every request on file, {stages_first} to {stages_last}</span>
-      <div class="fview" data-view="12m" hidden>{demand_div_12m}</div>
-      <div class="fview" data-view="all">{demand_div}</div>
-    </div>
-    <div>
-      <h3>Reading it</h3>
-      <div class="finding warn"><b>Demand is concentrated and repetitive.</b>{demand['repeat_share']:.0%} of all asks are for a company that was already requested at least once. The same {len(demand['companies']) - demand['singletons']} companies come back again and again, which is what the duplicate-checking in Slack is reacting to.</div>
-      <div class="finding warn"><b>Some companies are asked repeatedly and never routed.</b>{", ".join(b["name"] for b in demand["companies"][:20] if b["routed"] == 0)} each have multiple asks and zero connector rows.</div>
-      <div class="finding"><b>Unresolvable asks cluster too.</b>{unresolvable_asks} requests resolve to no company at all: {"; ".join(f'{b["requests"]} {b["name"].strip("()")}' for b in demand["unresolvable"])}. They sit at the bottom of the detail table and are excluded from the company counts above.</div>
-    </div>
-  </div>
-  <h3>Per-company detail</h3>
-  <p class="foot">Paths in network = distinct ways to reach the company in <code>golden/supply_reach.csv</code>.</p>
-  {demand_table}
-  <h3>Top 20 accounts by value</h3>
-  <p class="lede">Value is the CRM <code>arr_potential_usd</code> where the company has a CRM account, otherwise the largest <code>deal_value_usd</code> filed on a request. Internal touchpoints are split into roster connectors employed internally versus advisors and investors.</p>
-  {top_table}
-</section>
-<script>
-(function () {{
-  // Cumulative / Last 12 months: each .seg swaps the .fview blocks inside its data-scope element
-  document.querySelectorAll('.seg[data-scope]').forEach(function (seg) {{
-    var scope = document.getElementById(seg.dataset.scope), note = document.getElementById(seg.dataset.scope + '-window');
-    seg.querySelectorAll('button').forEach(function (b) {{
-      b.onclick = function () {{
-        seg.querySelectorAll('button').forEach(function (x) {{ x.classList.toggle('on', x === b); }});
-        scope.querySelectorAll('.fview').forEach(function (v) {{
-          v.hidden = v.dataset.view !== b.dataset.view;
-          if (!v.hidden && window.Plotly) v.querySelectorAll('.js-plotly-plot').forEach(function (p) {{ Plotly.Plots.resize(p); }});
-        }});
-        if (note) note.textContent = note.dataset[b.dataset.view];
-      }};
-    }});
-  }});
-}})();
-</script>
-
-<section id="requesters">
-  <h2>Requesters: The SDR and the Seven AEs</h2>
-  <p class="lede">Every request on file grouped by <code>requested_by</code>, in order of asks. Accounts are the distinct companies behind a requester's asks after entity resolution, so asking twice for the same company counts one account, and its CRM <code>arr_potential_usd</code> counts once. Intro rate is intros sent over every request filed, routed or not. Urgency is what the requester declared in <code>urgency</code>.</p>
-  <div class="kpis">
-    {kpi(len(req_rows), "requesters", f"{sum(1 for b in req_rows if b['kind'] == 'SDR')} SDR · {sum(1 for b in req_rows if b['kind'] == 'AE')} AEs")}
-    {kpi(f"{req_top['requests']}", f"asks from {req_top['name']}", f"{pct(req_top['requests'], requesters['requests'])} of {requesters['requests']} requests, the most of anyone")}
-    {kpi(f"{requesters['intro_rate']:.0%}", "intro rate across every requester", f"{requesters['intros']} intros / {requesters['requests']} requests · {req_best_rate['intro_rate']:.0%} ({req_best_rate['name']}) to {req_worst_rate['intro_rate']:.0%} ({req_worst_rate['name']})")}
-    {kpi(f"{requesters['critical_share']:.0%}", "of requests declared Critical", f"{requesters['critical_high_share']:.0%} Critical or High")}
-  </div>
-  <div class="grid2">
-    <div>
-      <h3>Cumulative asks per requester</h3>
-      {req_asks_div}
-    </div>
-    <div>
-      <h3>CRM value per requester</h3>
-      {req_value_div}
-      <p class="foot">Sum of <code>arr_potential_usd</code> over the distinct CRM accounts each requester asked for; companies with no CRM record contribute nothing.</p>
-    </div>
-  </div>
-  <div class="grid2">
-    <div>
-      <h3>Accounts per requester</h3>
-      {req_accounts_div}
-    </div>
-    <div>
-      <h3>Intro rate per requester</h3>
-      {req_rate_div}
-    </div>
-  </div>
-  <div class="grid2">
-    <div>
-      <h3>How often they declare Critical, and Critical or High</h3>
-      {req_urgency_div}
-    </div>
-    <div>
-      <h3>Reading it</h3>
-      <div class="finding"><b>Who files the asks.</b>{req_top['name']} ({req_top['kind']}) files the most at {req_top['requests']}, {req_rows[-1]['name']} the fewest at {req_rows[-1]['requests']}; {req_rows[0]['requests'] - req_rows[-1]['requests']} requests separate the top from the bottom of {len(req_rows)} people.</div>
-      <div class="finding"><b>Where the CRM value sits.</b>{req_most_value['name']} carries the most at {usd(req_most_value['crm_value'])} across {req_most_value['crm_accounts']} accounts. The bars overlap: {requesters['shared_accounts']} of the {requesters['accounts']} companies requested were asked for by more than one person, so the same account's ARR appears under each of them; de-duplicated, {usd(requesters['crm_value'])} sits behind the {requesters['crm_accounts']} companies with a CRM account. {req_unresolved} requests resolve to no company and count toward asks only.</div>
-      <div class="finding warn"><b>Intro rate ranges from {req_worst_rate['intro_rate']:.0%} to {req_best_rate['intro_rate']:.0%}.</b>{req_best_rate['name']} lands {req_best_rate['intros']} intros from {req_best_rate['requests']} requests; {req_worst_rate['name']} lands {req_worst_rate['intros']} from {req_worst_rate['requests']}. The whole floor averages {requesters['intro_rate']:.0%}.</div>
-      <div class="finding warn"><b>Critical means different things to different people.</b>{req_most_critical['name']} marks {req_most_critical['critical_share']:.0%} of their asks Critical, {req_least_critical['name']} {req_least_critical['critical_share']:.0%}. Add High and {requesters['critical_high_share']:.0%} of all requests are in the top two tiers, so urgency barely separates one ask from the next.</div>
-    </div>
-  </div>
-  <h3>Per requester</h3>
-  {requester_table}
-</section>
-
-<section id="connectors">
-  <h2>Connectors: The Six on the Roster</h2>
-  <p class="lede">Funnel per connector from <code>intro_outcomes.csv</code>, with the stated capacity and free-text note from <code>dataset/connector_roster.csv</code>. An ask is "in focus area" when the resolved company's CRM industry is one of the connector's stated focus areas.</p>
-  <div class="kpis">
-    {kpi(f"{connectors['in_focus']} / {connectors['asked']}", "asks inside the stated focus area", f"over {connectors['months']} months")}
-    {kpi(f"{connectors['in_focus_intro_rate']:.0%}", "intro rate for in-focus asks", f"vs {connectors['off_focus_intro_rate']:.0%} outside the focus area")}
-    {kpi(f"{connectors['connectors'][0]['asked']}", f"asks to {connectors['connectors'][0]['name']}", "the most-asked connector")}
-    {kpi(sum(n for _, n in connectors["off_roster"]), "asks to people not on the roster", ", ".join(n for n, _ in connectors["off_roster"]))}
-  </div>
-  {connector_table}
-  <div class="grid2">
-    <div>
-      <h3>Routing ignores the roster notes</h3>
-      <div class="finding warn"><b>Only {connectors['in_focus']} of {connectors['asked']} asks land in a stated focus area, and those convert at {connectors['in_focus_intro_rate']:.0%} vs {connectors['off_focus_intro_rate']:.0%}.</b>Focus area is the single strongest predictor of an intro in this data, and it is almost never used when choosing who to ask.</div>
-      <div class="finding warn"><b>The notes predicted the failures.</b>Owen Trask ("tapped no more than twice a month") was asked {[c["asked"] for c in connectors["connectors"] if c["name"] == "Owen Trask"][0]} times in {connectors["months"]} months and sent zero intros; Dana Whitfield ("travels constantly; slow to respond") got {[c["asked"] for c in connectors["connectors"] if c["name"] == "Dana Whitfield"][0]} asks and booked no meetings.</div>
-    </div>
-    <div>
-      <h3>Where the notes were right</h3>
-      <div class="finding"><b>Elena Duvall, "deep but narrow".</b>{[c["in_focus"] for c in connectors["connectors"] if c["name"] == "Elena Duvall"][0]} of her {[c["asked"] for c in connectors["connectors"] if c["name"] == "Elena Duvall"][0]} asks were heavy industry, and that is where her intros came from.</div>
-      <div class="finding"><b>Marcus Aldridge, "asked far more than anyone else", capacity 4/month.</b>{[c["asked"] for c in connectors["connectors"] if c["name"] == "Marcus Aldridge"][0]} asks with the weakest response rate of the four heavily-used connectors ({[f"{c['responded']/c['asked']:.0%}" for c in connectors["connectors"] if c["name"] == "Marcus Aldridge"][0]}).</div>
-      <div class="finding"><b>Tomás Beckett, "fast responder, broad but shallow".</b>{[f"{c['responded']/c['asked']:.0%}" for c in connectors["connectors"] if c["name"] == "Tomás Beckett"][0]} response rate but only {[f"{c['intros']/c['responded']:.0%}" for c in connectors["connectors"] if c["name"] == "Tomás Beckett"][0]} of those responses became an intro.</div>
-    </div>
-  </div>
-</section>
-
-<section id="cycles">
-  <h2>Intros by Cycle</h2>
-  <p class="lede">Every connector summed, one row per cycle (a calendar month, the allocator's unit) from the first ask on file to the current cycle {cycles["cycle"]}. Asks by <code>asked_date</code> and intros by <code>intro_date</code> from <code>intro_outcomes.csv</code>; capacity used is roster asks against the roster's stated monthly capacity of {cycles["roster_capacity"]} in <code>connector_roster.csv</code>. The current cycle counts this build's allocation as slots used, since those asks are about to go out. Each connector's own record is on their tab under Live Priorities.</p>
-  <div class="kpis">
-    {kpi(cycles["current"]["intros"], "intros made this cycle", f"{cycles['cycle']} · {cyc_prev[-1]['intros'] if cyc_prev else 0} in {cyc_prev[-1]['cycle'] if cyc_prev else 'the cycle before'}")}
-    {kpi(cycles["intros_total"], "cumulative intros", f"since {cycles['rows'][0]['cycle']}, from {cycles['asks_total']} asks")}
-    {kpi(f"{cycles['current']['capacity_pct']:.0%}", "roster capacity used this cycle", f"{cycles['current']['used']} of {cycles['roster_capacity']} slots" + (f" · {cycles['current']['allocated_off_roster']} more allocated off-roster" if cycles['current']['allocated_off_roster'] else ""))}
-    {kpi(f"{cyc_avg_pct:.0%}", "capacity used per cycle, to date", f"average over {len(cyc_prev)} closed cycles; best month {cycles['best']['cycle']} with {cycles['best']['intros']} intros")}
-  </div>
-  {cyc_div}
-  <div class="grid2">
-    <div>
-      <h3>By cycle, all connectors</h3>
-      {cycle_table(cyc_rows)}
-    </div>
-    <div>
-      <h3>Reading it</h3>
-      <div class="finding warn"><b>Closed cycles used {cyc_avg_pct:.0%} of roster capacity.</b>That is the average against {cycles['roster_capacity']} stated monthly slots; the busiest month used {max(r['capacity_pct'] for r in cyc_prev):.0%}. {"This cycle's allocation is the first to fill it." if cycles['current']['capacity_pct'] >= 1 else f"This cycle's allocation takes it to {cycles['current']['capacity_pct']:.0%}."}</div>
-      <div class="finding"><b>Intros arrive at roughly {cycles['intros_total'] / max(1, len(cyc_prev)):.1f} a month.</b>{cycles['intros_total']} intros over {len(cyc_prev)} closed cycles from {cycles['asks_total']} asks, about one intro per {cycles['asks_total'] / max(1, cycles['intros_total']):.1f} asks. The cumulative line is the honest read; single months swing between {min(r['intros'] for r in cyc_prev)} and {max(r['intros'] for r in cyc_prev)}.</div>
-      <p class="foot">Asks to people off the roster ({", ".join(cycles['off_roster'])}) are counted in asks and intros but not against capacity, as they have none stated.</p>
-    </div>
-  </div>
-  <h3>Per connector, this cycle and the run rate</h3>
-  {cyc_connector_table}
-  <p class="foot">Run-rate columns average every cycle since {cycles['rows'][0]['cycle']}; capacity used per cycle averages closed cycles only. Click a connector's tab for their cycle-by-cycle table.</p>
-</section>
-
-<p class="foot">Regenerate with <code>python3 build.py dashboard</code>. Everything on this tab is computed from <code>golden/</code> at build time. The <a href="{TRACE_HTML}">Company Trace</a> tab has the full history of any one company.</p>
+<p class="foot">Regenerate with <code>python3 build.py dashboard</code>; <code>python3 golden/build_golden.py --completions supabase</code> first to pick up asks sent since the last build. Everything on this tab is computed from <code>golden/</code> at build time. The <a href="{TRACE_HTML}">Company Trace</a> tab has the full history of any one company.</p>
 </main>
 </div>
 </body></html>
@@ -1520,6 +1621,7 @@ BUILD_STAMP.write_text(json.dumps({
     "completions": len(bg.load_completions()),
 }) + "\n", encoding="utf-8")
 print(f"wrote {BUILD_STAMP}")
-print(f"funnel {counts}  offers {len(offers)} unlogged {len(offers_unlogged)} adds {len(adds)}/{adds_followed} "
+print(f"funnel raw {[c for _, c in data_cuts.funnel_cut(cuts)]} golden {[c for _, c in data_cuts.funnel_cut(live_cuts)]}  "
+      f"offers {len(offers)} unlogged {len(offers_unlogged)} adds {len(adds)}/{adds_followed} "
       f"no_reply {len(no_reply)}/{len(no_reply_asked)} median_h {statistics.median(first_reply_h):.1f} "
       f"flags {len(flags)} dupes {len(crm_dupes)}/{crm_dup_owner_conflicts}")

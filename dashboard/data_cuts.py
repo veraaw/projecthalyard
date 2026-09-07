@@ -1,9 +1,13 @@
 """Additional dashboard data cuts, computed from `dataset/` and `golden/`.
 
 Each `*_cut()` function returns plain data (dicts/lists of tuples) for
-`dashboard/build_dashboard.py` to render; nothing here touches HTML.
+`dashboard/build_dashboard.py` to render; nothing here touches HTML. `load()`
+reads either the raw September exports (the Raw Sept tab) or the golden files
+with the ask log as the build reads it (the Live Data tab); every cut takes the
+result and works the same on both.
 
-    python3 -m dashboard.data_cuts      # prints every cut as text
+    python3 -m dashboard.data_cuts             # prints every cut as text, from dataset/
+    python3 -m dashboard.data_cuts golden      # the same from golden/
 """
 import csv
 import glob
@@ -11,13 +15,16 @@ import json
 import os
 import re
 import statistics
+import sys
 from collections import Counter, defaultdict
 from datetime import date, timedelta
 
+from golden import build_golden as bg
 from paths import DATASET, GOLDEN as GOLDEN_DIR, JOINS
 
 DATA = str(DATASET)
 GOLDEN = str(GOLDEN_DIR)
+SOURCES = ("dataset", "golden")
 
 DUP_CHECK = re.compile(r"same as|already (?:lose|lost|ask|asked|have)|did we not already|didn'?t we|last month|duplicate", re.I)
 
@@ -47,25 +54,99 @@ def d(v):
     return date.fromisoformat(v.strip()) if v.strip() else None
 
 
-def load():
-    """Everything the cuts need, joined on request_id / company_id."""
-    requests = dataset("intro_requests.csv")
-    outcomes = dataset("intro_outcomes.csv")
+def as_filed(g, raw, roles):
+    """A golden_requests.csv row in intro_requests.csv's shape, so one cut reads
+    either. The facts golden carries win (they are what was filed, kept even
+    when the raw export changes); the columns it does not carry come from the
+    raw row while the export still has the request, and requester_role from the
+    same requester's other rows for a request ingested from a Slack thread."""
+    return {
+        "request_id": g["request_id"], "requested_by": g["requested_by"],
+        "requester_role": raw.get("requester_role", "") or roles.get(g["requested_by"].strip(), ""),
+        "request_date": g["request_date"], "raw_ask": g["raw_ask"],
+        "target_company_raw": g["company_as_written"], "target_person_raw": raw.get("target_person_raw", ""),
+        "target_title_raw": g["target_title"], "deal_value_usd": g["value_usd"], "urgency": g["urgency_declared"],
+        "path_found_flag": raw.get("path_found_flag", ""), "status": g["status_as_filed"],
+    }
+
+
+def load(source="dataset", completions=None):
+    """Everything the cuts need, joined on request_id / company_id.
+
+    source="dataset": requests and the ask log as the September exports state
+    them. source="golden": every request golden_requests.csv holds (the raw
+    export's rows, plus requests carried forward after the export dropped them
+    or ingested from Slack threads with `build_golden.py --threads`), and the
+    ask log with golden/completions.csv applied, so an ask sent from Live
+    Priorities counts from the moment the rebuild pulls it from Supabase and a
+    re-ask after a fizzled intro is `reasked_date`. Either way the company
+    behind a request is its golden company_id, and the CRM facts (industry,
+    owner, ARR) are golden_companies.csv's, rebuilt from crm_accounts.csv on
+    every run. `completions` stands in for golden/completions.csv (tests)."""
+    if source not in SOURCES:
+        raise ValueError(f"source must be one of {SOURCES}, not {source!r}")
+    raw_requests = dataset("intro_requests.csv")
+    golden_requests = golden("golden_requests.csv")
+    if source == "golden":
+        raw_by_id = {r["request_id"]: r for r in raw_requests}
+        roles = {r["requested_by"].strip(): r["requester_role"] for r in raw_requests if r["requester_role"].strip()}
+        requests = [as_filed(g, raw_by_id.get(g["request_id"], {}), roles) for g in golden_requests]
+        completions = bg.load_completions() if completions is None else completions
+        outcomes = bg.with_completions(dataset("intro_outcomes.csv"), completions)
+    else:
+        requests = raw_requests
+        completions = []
+        outcomes = dataset("intro_outcomes.csv")
     with open(os.path.join(DATA, "slack_threads.jsonl"), encoding="utf-8") as f:
         threads = [json.loads(line) for line in f if line.strip()]
     return {
+        "source": source,
         "requests": requests,
         "outcomes": outcomes,
         "outcome_by_request": {o["request_id"].strip(): o for o in outcomes},
+        "completions": completions,
         "crm": dataset("crm_accounts.csv"),
         "roster": dataset("connector_roster.csv"),
         "investors": dataset("investor_network.csv"),
         "connections": [r for p in sorted(glob.glob(os.path.join(DATA, "connections_*.csv"))) for r in _rows(p)],
         "threads": threads,
-        "golden_requests": {r["request_id"]: r for r in golden("golden_requests.csv")},
+        "golden_requests": {r["request_id"]: r for r in golden_requests},
         "golden_companies": {c["company_id"]: c for c in golden("golden_companies.csv")},
         "supply": golden("supply_reach.csv"),
     }
+
+
+# --------------------------------------------------------------------------- 0. funnel stages
+STAGES = ("Requests", "Asked", "Responded", "Intros", "Meetings", "Opportunities")
+
+
+def funnel_cut(data, since=None):
+    """[(stage, count)] the way the Sankey wants it: every request, then how
+    many the ask log has as asked, responded, introduced, met and turned into an
+    opportunity. `since` (YYYY-MM-DD) keeps requests dated on or after it."""
+    req = [r for r in data["requests"] if not since or r["request_date"].strip()[:10] >= since]
+    asked = [(r, data["outcome_by_request"][r["request_id"].strip()]) for r in req
+             if r["request_id"].strip() in data["outcome_by_request"]]
+    return [
+        ("Requests", len(req)),
+        ("Asked", len(asked)),
+        ("Responded", sum(1 for _, o in asked if yes(o, "responded"))),
+        ("Intros", sum(1 for _, o in asked if yes(o, "intro_sent"))),
+        ("Meetings", sum(1 for _, o in asked if yes(o, "meeting_booked"))),
+        ("Opportunities", sum(1 for _, o in asked if yes(o, "opportunity_created"))),
+    ]
+
+
+def ask_dates(o):
+    """Every ask an outcome row records: the first, plus the retry after its intro fizzled."""
+    return [x for x in (o["asked_date"].strip(), o.get("reasked_date", "").strip()) if x]
+
+
+def opportunity_status_mismatch(data):
+    """Requests whose ask log has an opportunity while the request is still filed Open/Stalled/Routed."""
+    status = {r["request_id"].strip(): r["status"].strip() for r in data["requests"]}
+    return sorted(o["request_id"] for o in data["outcomes"]
+                  if yes(o, "opportunity_created") and status.get(o["request_id"].strip()) in ("Open", "Stalled", "Routed"))
 
 
 # --------------------------------------------------------------------------- 1. scoped joins
@@ -226,9 +307,9 @@ def connector_cut(data):
         s["intros"] += yes(o, "intro_sent")
         s["meetings"] += yes(o, "meeting_booked")
         s["opps"] += yes(o, "opportunity_created")
-        s["value"] += money(request_by_id[o["request_id"]]["deal_value_usd"])
+        s["value"] += money(request_by_id.get(o["request_id"], {}).get("deal_value_usd", 0))
         s["opp_value"] += money(o["opportunity_value_usd"])
-        cid = data["golden_requests"][o["request_id"]]["company_id"]
+        cid = data["golden_requests"].get(o["request_id"], {}).get("company_id", "")
         if industry_of.get(cid, "") in focus[name]:
             s["in_focus"] += 1
             s["in_focus_intros"] += yes(o, "intro_sent")
@@ -449,18 +530,76 @@ def requester_cut(data):
             "shared_accounts": sum(1 for c in Counter(c for b in rows for c in b["companies"]).values() if c > 1)}
 
 
-CUTS = [("Scoped joins", join_summary_cut), ("Account demand", account_demand_cut),
+# --------------------------------------------------------------------------- 11. intros by cycle
+def month_after(cyc):
+    y, m = int(cyc[:4]), int(cyc[5:7])
+    return f"{y + 1:04d}-01" if m == 12 else f"{y:04d}-{m + 1:02d}"
+
+
+def cycle_rows(data, names, cycles):
+    """Per cycle (a calendar month): asks by asked_date, intros by intro_date,
+    roster asks against the stated monthly capacity of whoever in `names` is on
+    the roster, and the running total of intros. The same shape as
+    live_priorities.Live.cycle_rows, without an allocation to count."""
+    names = set(names)
+    roster = {r["name"].strip(): r for r in data["roster"]}
+    on_roster = {n for n in names if n in roster}
+    cap = sum(int(roster[n]["stated_monthly_capacity"] or 0) for n in on_roster)
+    mine = [o for o in data["outcomes"] if o["connector_asked"].strip() in names]
+    rows, cum = [], 0
+    for cyc in cycles:
+        asks = sum(1 for o in mine for x in ask_dates(o) if x.startswith(cyc))
+        used = sum(1 for o in mine if o["connector_asked"].strip() in on_roster for x in ask_dates(o) if x.startswith(cyc))
+        intros = sum(1 for o in mine if yes(o, "intro_sent") and o["intro_date"].strip().startswith(cyc))
+        cum += intros
+        rows.append({
+            "cycle": cyc, "current": False, "asks": asks, "allocated": 0, "allocated_off_roster": 0,
+            "used": used, "capacity": cap, "capacity_pct": round(used / cap, 3) if cap else None,
+            "intros": intros, "intros_cumulative": cum,
+        })
+    return rows
+
+
+def cycle_cut(data):
+    """Every connector summed, one row per calendar month from the first ask on
+    file to the last month the ask log touches; no month is 'current' because
+    the log is read as filed, with no allocation about to go out."""
+    months = {x[:7] for o in data["outcomes"] for x in ask_dates(o)}
+    months |= {o["intro_date"].strip()[:7] for o in data["outcomes"] if yes(o, "intro_sent") and o["intro_date"].strip()}
+    cycles = []
+    if months:
+        cyc, last = min(months), max(months)
+        while cyc <= last:
+            cycles.append(cyc)
+            cyc = month_after(cyc)
+    roster = [r["name"].strip() for r in data["roster"]]
+    names = sorted({o["connector_asked"].strip() for o in data["outcomes"]} | set(roster))
+    rows = cycle_rows(data, names, cycles)
+    last = rows[-1] if rows else {"cycle": "", "capacity": 0, "intros": 0, "intros_cumulative": 0, "used": 0, "capacity_pct": None}
+    return {
+        "cycle": last["cycle"], "rows": rows, "current": last,
+        "roster_capacity": last["capacity"], "off_roster": sorted(n for n in names if n not in roster),
+        "intros_total": last["intros_cumulative"], "asks_total": sum(r["asks"] for r in rows),
+        "best": max(rows, key=lambda r: (r["intros"], r["cycle"])) if rows else last,
+        "per_connector": [{"connector": n, "rows": cycle_rows(data, [n], cycles)} for n in roster],
+    }
+
+
+CUTS = [("Funnel", funnel_cut), ("Scoped joins", join_summary_cut), ("Account demand", account_demand_cut),
         ("Top accounts by value", top_accounts_cut), ("Connectors", connector_cut),
         ("Target person provenance", target_person_cut), ("Routing time", routing_time_cut),
         ("Slack threads", slack_cut), ("Flag / status noise", flag_noise_cut),
-        ("Outcomes vs requests", outcome_delta_cut), ("Requesters", requester_cut)]
+        ("Outcomes vs requests", outcome_delta_cut), ("Requesters", requester_cut), ("Intros by cycle", cycle_cut)]
 
 
 if __name__ == "__main__":
-    data = load()
+    data = load(sys.argv[1] if len(sys.argv) > 1 else "dataset")
     for label, cut in CUTS:
         result = cut(data)
         print(f"\n=== {label}")
+        if isinstance(result, list):
+            print(", ".join(f"{k} {v}" for k, v in result))
+            continue
         for key, value in result.items():
             if isinstance(value, list) and value and isinstance(value[0], dict):
                 print(f"{key}: {len(value)} rows, first = { {k: v for k, v in list(value[0].items())[:6]} }")
