@@ -40,6 +40,7 @@ from os.path import commonprefix
 from analysis.crm import writeback as wb
 from analysis.trace import all_traces
 from dashboard import batch_ask
+from dashboard import company_value as cv
 from dashboard import request_state as rs
 from golden import build_golden as bg
 from golden import parse as gp
@@ -544,16 +545,10 @@ class Live:
         return bg.stage_of(r, self.outcome_by_rid.get(r["request_id"]), self.alloc_by_rid.get(r["request_id"]))
 
     def company_value(self, cid: str) -> tuple[int, str]:
-        """One $ per company: CRM ARR potential (golden_companies.value_usd, the max
-        across its accounts) when the company has one, else the deal value on its
-        most recent request that carries one. Returns (usd, source)."""
-        c = self.companies.get(cid, {})
-        if c.get("crm_account_ids") and usd(c.get("value_usd")):
-            return usd(c["value_usd"]), "crm"
-        for r in sorted(self.by_company.get(cid, []), key=lambda r: (r["request_date"], r["request_id"]), reverse=True):
-            if usd(r["value_usd"]):
-                return usd(r["value_usd"]), "deal"
-        return 0, "none"
+        """One $ per company (dashboard/company_value.py): CRM ARR potential when the
+        company has one, else the deal value on its most recent request that carries
+        one. Returns (usd, source)."""
+        return cv.company_value(self.companies.get(cid, {}), self.by_company.get(cid, []))
 
     def dollars(self, cid: str, request_value: str = "") -> int:
         """The one $ shown for a row: company_value() when the row has a company;
@@ -563,16 +558,7 @@ class Live:
     def dollars_total(self, rows: list[dict]) -> int:
         """Sum of one $ per distinct company across rows carrying company_id (and
         value_usd for the unresolved ones), so a company on two rows counts once."""
-        seen: set[str] = set()
-        total = 0
-        for r in rows:
-            cid = r.get("company_id", "")
-            if not cid:
-                total += usd(r.get("value_usd", ""))
-            elif cid not in seen:
-                seen.add(cid)
-                total += self.dollars(cid)
-        return total
+        return cv.total(rows, self.companies, self.by_company)
 
     def company_stage(self, cid: str) -> str:
         """The furthest stage any of the company's requests has reached: a company
