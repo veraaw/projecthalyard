@@ -142,7 +142,7 @@ def profile_column(name, values):
         )
 
     def describe(chars):
-        return ", ".join(f"{c!r} ({unicodedata.name(c, 'U+%04X' % ord(c))})" for c in sorted(chars)[:6])
+        return ", ".join(f"{c!r} ({unicodedata.name(c, f'U+{ord(c):04X}')})" for c in sorted(chars)[:6])
 
     na_letters = {c for v in nonempty for c in v if ord(c) > 127 and c.isalpha()}
     na_other = {c for v in nonempty for c in v if ord(c) > 127 and not c.isalpha()}

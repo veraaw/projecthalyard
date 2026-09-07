@@ -12,6 +12,7 @@ import statistics
 from collections import Counter, defaultdict
 from datetime import datetime
 
+from golden.build_golden import OFFER_RE
 from paths import DATASET, SLACK
 
 DATA = str(DATASET)
@@ -22,7 +23,8 @@ def rows(name):
         return list(csv.DictReader(fh))
 
 
-threads = [json.loads(l) for l in open(os.path.join(DATA, "slack_threads.jsonl"), encoding="utf-8") if l.strip()]
+with open(os.path.join(DATA, "slack_threads.jsonl"), encoding="utf-8") as _fh:
+    threads = [json.loads(l) for l in _fh if l.strip()]
 requests = {r["request_id"]: r for r in rows("intro_requests.csv")}
 outcomes = defaultdict(list)
 for r in rows("intro_outcomes.csv"):
@@ -62,9 +64,6 @@ canned = [(p, n) for p, n in masked.most_common() if n > 1]
 canned_total = sum(n for _, n in canned)
 
 # ---- 2. offers to help -----------------------------------------------------
-OFFER_RE = re.compile(
-    r"happy to intro|leave it with me|I'll take this one|I met their |happy to reach out", re.I
-)
 offers = [(rid, m) for rid, m in replies if OFFER_RE.search(m["text"])]
 
 # ---- 3. offers not followed by an ask --------------------------------------

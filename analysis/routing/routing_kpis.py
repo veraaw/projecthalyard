@@ -8,20 +8,15 @@ Read-only. Add a new `kpi_*` function and list it in KPIS to extend the report.
 import csv
 import json
 import os
-import re
 import statistics
 from collections import defaultdict
 from datetime import datetime, timezone
 
+from golden.build_golden import OFFER_RE
 from paths import DATASET, ROUTING
 
 DATA = str(DATASET)
 OUT = str(ROUTING / "routing_kpis.md")
-
-OFFER_RE = re.compile(
-    r"happy to intro|leave it with me|I'll take this one|I met their |happy to reach out", re.I
-)
-
 
 def rows(name):
     with open(os.path.join(DATA, name), newline="", encoding="utf-8") as fh:
@@ -36,11 +31,8 @@ def day(s):
     return datetime.strptime(s.strip(), "%Y-%m-%d").replace(tzinfo=timezone.utc)
 
 
-THREADS = [
-    json.loads(line)
-    for line in open(os.path.join(DATA, "slack_threads.jsonl"), encoding="utf-8")
-    if line.strip()
-]
+with open(os.path.join(DATA, "slack_threads.jsonl"), encoding="utf-8") as _fh:
+    THREADS = [json.loads(line) for line in _fh if line.strip()]
 THREAD_BY_ID = {t["request_id"]: t for t in THREADS}
 REQUESTS = {r["request_id"]: r for r in rows("intro_requests.csv")}
 OUTCOMES = defaultdict(list)

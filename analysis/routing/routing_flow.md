@@ -1,8 +1,9 @@
 # Intro-request routing flow
 
 Top-down view of how an intro request moves from Slack to a logged outcome, with the four
-reference tables that feed the routing step. Figures come from `scoping/routing_kpis.md`,
-`scoping/slack_thread_findings.md`, and `scoping/join_rates.md`.
+reference tables that feed the routing step. Figures come from `analysis/routing/routing_kpis.md`,
+`analysis/slack/slack_thread_findings.md`, and `analysis/joins/join_rates.md`; the case against
+reading them as a routing problem at all is in `analysis/routing/counterargument.md`.
 
 ![Intro-request routing flow](routing_flow.png)
 

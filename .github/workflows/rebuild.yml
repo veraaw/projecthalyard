@@ -65,8 +65,8 @@ jobs:
       # docs/ is regenerated before the tests run: several tests compare the
       # built pages with what golden/ now says, so on the old pages they would
       # fail every time a completion changed the queue. Nothing is committed
-      # until the tests pass, and a malformed completion has already stopped the
-      # step above before completions.csv was touched.
+      # until the tests pass; a malformed row in the table was set aside in
+      # golden/completions_rejected.csv by the step above, never applied.
       - name: Rebuild analysis/ and docs/
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
