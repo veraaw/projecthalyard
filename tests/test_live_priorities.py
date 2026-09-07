@@ -1261,8 +1261,8 @@ class BuiltPagesTest(unittest.TestCase):
             self.assertEqual(i, sorted(i), f"{name}: sankeys, then the stage tables")
             self.assertEqual(funnel.count("never reach a connector.</b>"), 2, f"{name}: a backlog box under each sankey")
             self.assertNotIn("<h3>Yield</h3>", funnel, f"{name}: no yield strip")
-            for label in ("routed to a connector", "routed per ask"):
-                self.assertNotIn(f'<div class="l">{label}</div>', funnel, f"{name}: {label} left with the yield strip")
+            for label in ("routed to a connector", "routed per ask", "opportunity value created", "return per ask"):
+                self.assertNotIn(f'<div class="l">{label}</div>', funnel, f"{name}: {label} left the funnel section")
             self.assertNotIn("Why they never reach a connector", funnel)
             self.assertEqual(funnel.count('data-scope="funnel"'), 1)
             for gone in ('id="unrouted"', "Remaining Unrouted", 'id="blockage"', "of the blockage is a missing relationship."):
