@@ -432,6 +432,53 @@ def blockage_panel(bl, div_id):
   </div>"""
 
 
+def allocation_donut(ab, div_id):
+    """Three slices over the blocked never-asked requests, bucketed on the allocator's exception_reason;
+    each slice's tooltip lists the exact prefixes it sums."""
+    slices = [ab["slices"][k] for k in ("supply", "process", "closed")]
+    sums = ["<br>".join(f'{b["bucket"]} {b["count"]}' for b in s["buckets"]) or "nothing this cycle" for s in slices]
+    fig = go.Figure(go.Pie(
+        labels=[s["label"] for s in slices], values=[s["count"] for s in slices], hole=.62, sort=False, direction="clockwise",
+        marker=dict(colors=[theme.WARN, theme.ACCENT, theme.NEUTRAL_DARK], line=dict(color=theme.SURFACE, width=2)),
+        text=[str(s["count"]) for s in slices], textinfo="text", textposition="inside", textfont=dict(size=14, color="#fff"),
+        customdata=sums,
+        hovertemplate="<b>%{label}</b>: %{value} of " + str(ab["blocked"]) + " blocked (%{percent})<br>sums exception_reason:<br>%{customdata}<extra></extra>"))
+    fig.update_layout(height=320, autosize=True, margin=dict(l=10, r=10, t=10, b=10), showlegend=True, **theme.PLOTLY_LAYOUT)
+    fig.update_layout(legend=dict(orientation="v", x=1, y=.5, xanchor="left"))
+    fig.add_annotation(text=f'<b>{ab["blocked"]}</b><br><span style="font-size:11px">blocked<br>of {ab["total"]} requests on file</span>',
+                       x=.5, y=.5, showarrow=False, font=dict(size=22, color=theme.INK))
+    return plot(fig, div_id)
+
+
+def allocation_bucket_text(b):
+    """A bucket with its count and, where the same status gate holds requests both with and without a
+    path on file, that split."""
+    without = b["no_path"] + b["unresolved"]
+    if not (b["with_path"] and without):
+        return f'{b["bucket"]} {b["count"]}'
+    parts = [f'{b["no_path"]} no path'] * bool(b["no_path"]) + [f'{b["unresolved"]} no resolvable company'] * bool(b["unresolved"])
+    return f'{b["bucket"]} {b["count"]} ({b["with_path"]} with a path available, {without} without: {", ".join(parts)})'
+
+
+def allocation_blockage_panel(ab, div_id):
+    """The Accounts donut with its caption: what is stated rather than drawn."""
+    def slice_text(kind):
+        s = ab["slices"][kind]
+        return f'{s["label"].capitalize()} {s["count"]}: ' + ("; ".join(allocation_bucket_text(b) for b in s["buckets"]) or "none this cycle") + "."
+    gated = sum(b["no_path"] for b in ab["no_path_gated"])
+    gated_text = ", ".join(f'{b["no_path"]} in {b["bucket"]}' for b in ab["no_path_gated"])
+    unmapped = (finding("Outside the wedges.", "Buckets no slice claims: " + "; ".join(allocation_bucket_text(b) for b in ab["unmapped"]) + ".", warn=True)
+                if ab["unmapped"] else "")
+    return f"""<h3>Blockage by Allocation Exception</h3>
+  <p class="lede">The never-asked requests bucketed by what actually stopped them: the current cycle's <code>exception_reason</code> in <code>golden/golden_allocation.csv</code> (the text before the first colon), or, for a request the allocator never saw, the status it was filed under. <code>blocked_reason</code> is not used here: it ranks what would unblock a request, not why the system stopped.</p>
+  {allocation_donut(ab, div_id)}
+  <p class="lede">{ab["allocated"]} more are allocated this cycle and not yet asked; they carry a <code>routed_to</code> and are not blocked. {ab["never"]} never reach a connector; {ab["blocked"]} of those are blocked.</p>
+  {finding(f'Only {ab["supply_share"]:.0%} of the blockage is a missing relationship.', f'{slice_text("supply")} {slice_text("process")} {slice_text("closed")}', warn=True)}
+  {unmapped}
+  <p class="foot">{ab["no_path"]} never-asked requests (of {ab["total"]} on file) name a company with no path in <code>supply_reach.csv</code>: the {ab["slices"]["supply"]["count"]} above plus {gated} the status gate excluded before they were evaluated{f" ({gated_text})" if gated_text else ""}. That figure overlaps the slices, so it is a footnote, not a wedge.</p>
+  <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>allocation_blockage_cut</code>). Slice tooltips list the exception prefixes they sum: the same vocabulary as Unrouted Exceptions on Live Priorities.</p>"""
+
+
 def return_chart(cs, div_id):
     """Connectors ranked by opportunity value per ask, best first."""
     fig = go.Figure()
@@ -585,6 +632,7 @@ def strategic_sections(data, cyc, live):
       {finding("Unresolvable asks cluster too.", f"{unresolvable_asks} requests resolve to no company at all: " + "; ".join(f'{b["requests"]} {b["name"].strip("()")}' for b in demand["unresolvable"]) + ". They sit at the bottom of the detail table and are excluded from the company counts above.")}
     </div>
   </div>
+  {allocation_blockage_panel(data_cuts.allocation_blockage_cut(data), "allocation-blockage") if live else ""}
   <h3>Per-company detail</h3>
   <p class="foot">Paths in network = distinct ways to reach the company in <code>golden/supply_reach.csv</code>.</p>
   {demand_table}

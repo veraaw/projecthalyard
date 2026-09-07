@@ -20,6 +20,7 @@ Three things are checked:
 from __future__ import annotations
 
 import csv
+import inspect
 import json
 import re
 import shutil
@@ -913,6 +914,54 @@ class GoldenSourceCutsTest(unittest.TestCase):
                      and r["request_id"] not in {o["request_id"] for o in self.gold["outcomes"]}}
         self.assertEqual(bl["allocated"], len(allocated), "no blocked_reason means the allocator routed it this cycle")
 
+    def test_allocation_blockage_buckets_the_never_asked_on_the_allocators_exception(self):
+        """The Accounts donut: the 115 with no intro_outcomes row, first match wins on the
+        golden_allocation.csv row (allocated_to, then exception_reason's prefix), else the status gate."""
+        ab = self.dc.allocation_blockage_cut(self.gold)
+        never = [r["request_id"] for r in self.gold["requests"] if r["request_id"] not in {o["request_id"] for o in self.gold["outcomes"]}]
+        self.assertEqual(len(never), 115)
+        self.assertEqual(sorted(ab["by_request"]), sorted(never), "every never-asked request lands in a bucket")
+        self.assertEqual(sum(b["count"] for b in ab["buckets"]), 115, "each in exactly one")
+        self.assertEqual([(b["bucket"], b["count"]) for b in ab["buckets"]], [
+            ("allocated, not yet asked", 31),
+            ("no path to this company in the network", 28),
+            ("status gate: Closed - no path", 18),
+            ("status gate: Intro sent", 14),
+            ("already introduced", 9),
+            ("company unresolved", 8),
+            ("capacity exhausted this cycle", 7),
+        ])
+        self.assertNotIn("blocked_reason", inspect.getsource(self.dc.allocation_blockage_cut), "computed from the allocation exception, not the remediation ranking")
+        # the classifier itself, by hand
+        current = {a["request_id"]: a for a in bg.latest_cycle(self.gold["allocation"])}
+        for rid in never:
+            g, a = self.gold["golden_requests"][rid], current.get(rid)
+            want = ("allocated, not yet asked" if a and a["allocated_to"].strip()
+                    else a["exception_reason"].split(":")[0] if a and a["exception_reason"].strip()
+                    else "status gate: " + g["status_as_filed"])
+            self.assertEqual(ab["by_request"][rid], want, rid)
+        # three slices over the 84 blocked, tooltips naming the prefixes they sum; nothing unmapped
+        self.assertEqual((ab["total"], ab["never"], ab["allocated"], ab["blocked"]), (200, 115, 31, 84))
+        self.assertEqual({k: s["count"] for k, s in ab["slices"].items()}, {"supply": 28, "process": 47, "closed": 9})
+        self.assertEqual([b["bucket"] for b in ab["slices"]["process"]["buckets"]],
+                         ["status gate: Closed - no path", "status gate: Intro sent", "company unresolved", "capacity exhausted this cycle"])
+        self.assertEqual([b["bucket"] for b in ab["slices"]["supply"]["buckets"]], [bg.NO_PATH])
+        self.assertEqual([b["bucket"] for b in ab["slices"]["closed"]["buckets"]], [bg.ALREADY_INTRODUCED])
+        self.assertEqual(ab["unmapped"], [])
+        self.assertAlmostEqual(ab["supply_share"], 28 / 84)
+        # the footnote: no path in supply_reach.csv, the 28 plus the 13 the status gate kept from the allocator
+        self.assertEqual(ab["no_path"], 41)
+        self.assertEqual([(b["bucket"], b["no_path"]) for b in ab["no_path_gated"]], [("status gate: Closed - no path", 5), ("status gate: Intro sent", 8)])
+        closed = next(b for b in ab["buckets"] if b["bucket"] == "status gate: Closed - no path")
+        self.assertEqual((closed["with_path"], closed["no_path"], closed["unresolved"]), (9, 5, 4), "9 closed with a path available, 9 correctly")
+        # an exception prefix build_golden.py could write that no slice claims is reported, never dropped
+        odd_id = next(rid for rid, b in ab["by_request"].items() if b == bg.NO_PATH)
+        gold = dict(self.gold, allocation=[dict(a, exception_reason="something new: detail") if a["request_id"] == odd_id and a["cycle"] == current[odd_id]["cycle"] else a
+                                            for a in self.gold["allocation"]])
+        odd = self.dc.allocation_blockage_cut(gold)
+        self.assertEqual([(b["bucket"], b["count"]) for b in odd["unmapped"]], [("something new", 1)])
+        self.assertEqual((odd["slices"]["supply"]["count"], sum(b["count"] for b in odd["buckets"])), (27, 115))
+
     def test_latency_medians_overall_and_by_month(self):
         lat = self.dc.latency_cut(self.gold, today=AS_OF)
         by_id = {r["request_id"]: r for r in self.gold["requests"]}
@@ -1037,6 +1086,25 @@ class BuiltPagesTest(unittest.TestCase):
         self.assertNotIn("exist only as a Submit on Live Priorities", raw, "Raw Sept reads the exports as filed")
         self.assertIn("as filed; capacity used is roster asks", raw)
         self.assertIn("counts this build's allocation as slots used", live)
+
+    def test_live_data_accounts_carries_the_allocation_blockage_donut(self):
+        live, raw = self.pages["livedata.html"], self.pages["halyardscoping.html"]
+        accounts = live.split('<section id="accounts">')[1].split("</section>")[0]
+        self.assertIn('id="allocation-blockage"', accounts, "drawn inside Accounts")
+        self.assertLess(accounts.index('id="demand"'), accounts.index("<h3>Blockage by Allocation Exception</h3>"))
+        self.assertLess(accounts.index('id="allocation-blockage"'), accounts.index("<h3>Per-company detail</h3>"))
+        self.assertIn("blocked\\u003cbr\\u003eof 200 requests on file", accounts, "the denominator on the chart")
+        self.assertIn('"values":[28,47,9]', accounts)
+        self.assertIn('"labels":["supply","process","correctly not asked"]', accounts)
+        self.assertIn("status gate: Closed - no path 18\\u003cbr\\u003estatus gate: Intro sent 14\\u003cbr\\u003ecompany unresolved 8\\u003cbr\\u003ecapacity exhausted this cycle 7", accounts, "the tooltip names the prefixes it sums")
+        caption = re.sub(r"<[^>]+>", "", accounts[accounts.index("<h3>Blockage by Allocation Exception</h3>"):])
+        self.assertIn("31 more are allocated this cycle and not yet asked; they carry a routed_to and are not blocked. 115 never reach a connector; 84 of those are blocked.", caption)
+        self.assertIn("Only 33% of the blockage is a missing relationship.", caption)
+        self.assertIn("Closed - no path 18 (9 with a path available, 9 without: 5 no path, 4 no resolvable company)", caption)
+        self.assertIn("41 never-asked requests (of 200 on file) name a company with no path in supply_reach.csv: the 28 above plus 13 the status gate excluded", caption)
+        self.assertIn("(5 in status gate: Closed - no path, 8 in status gate: Intro sent)", caption)
+        self.assertNotIn("Outside the wedges", caption, "nothing unmapped this build")
+        self.assertNotIn("allocation-blockage", raw, "Raw Sept reads the exports, not the allocation")
 
     def test_live_data_opens_on_the_headline_kpis(self):
         from dashboard import data_cuts

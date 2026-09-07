@@ -114,6 +114,7 @@ def load(source="dataset", completions=None):
         "golden_requests": {r["request_id"]: r for r in golden_requests},
         "golden_companies": {c["company_id"]: c for c in golden("golden_companies.csv")},
         "supply": golden("supply_reach.csv"),
+        "allocation": golden("golden_allocation.csv"),
     }
 
 
@@ -136,6 +137,87 @@ def funnel_cut(data, since=None):
         ("Meetings", sum(1 for _, o in asked if yes(o, "meeting_booked"))),
         ("Opportunities", sum(1 for _, o in asked if yes(o, "opportunity_created"))),
     ]
+
+
+# --------------------------------------------------------------------------- 0b. where the never-asked stopped
+# golden_requests.csv's blocked_reason ranks remediations (CRM record and account stage are checked before the
+# allocation result), so the Accounts donut buckets on the allocator's own exception_reason instead: the text
+# before the first ":" is the vocabulary Unrouted Exceptions on Live Priorities uses.
+ALLOCATED = "allocated, not yet asked"
+STATUS_GATE = "status gate: "  # + status_as_filed: no allocation row, the status kept the request from the allocator
+COMPANY_UNRESOLVED = "company unresolved"  # the exception_reason build_golden files when the ask names no resolvable company
+GATE_CLOSED, GATE_INTRO_SENT = STATUS_GATE + "Closed - no path", STATUS_GATE + "Intro sent"
+# slice -> (label, the buckets it sums)
+ALLOCATION_SLICES = {
+    "supply": ("supply", [bg.NO_PATH]),
+    "process": ("process", [GATE_CLOSED, GATE_INTRO_SENT, COMPANY_UNRESOLVED, bg.CAPACITY_EXHAUSTED]),
+    "closed": ("correctly not asked", [bg.ALREADY_INTRODUCED]),
+}
+
+
+def allocation_bucket(status_as_filed, a):
+    """Where a never-asked request stopped, first match wins: its current-cycle
+    allocation row names a connector (waiting for its ask), or an exception
+    (the prefix before the first ":"); with no row, the status it was filed
+    under kept it from the allocator."""
+    if a and a["allocated_to"].strip():
+        return ALLOCATED
+    if a and a["exception_reason"].strip():
+        return a["exception_reason"].split(":")[0].strip()
+    return STATUS_GATE + status_as_filed.strip()
+
+
+def allocation_blockage_cut(data):
+    """The never-asked requests (no row in the ask log) bucketed by what stopped
+    them, from golden_allocation.csv's current cycle, and the three slices over
+    the blocked ones (ALLOCATION_SLICES; a bucket in no slice is reported, never
+    dropped). Each bucket carries how many of its requests name a resolved
+    company with no path in supply_reach.csv: for the buckets outside the supply
+    slice that is the footnote, requests the status gate excluded before the
+    allocator could say "no path". Display only: reads the allocation, never
+    changes it."""
+    current = {a["request_id"].strip(): a for a in bg.latest_cycle(data["allocation"])}
+    reach = {s["company_id"].strip() for s in data["supply"] if s["company_id"].strip()}
+    never = [data["golden_requests"].get(r["request_id"].strip(), {"request_id": r["request_id"], "company_id": "", "status_as_filed": r["status"]})
+             for r in data["requests"] if r["request_id"].strip() not in data["outcome_by_request"]]
+    by_request, counts, with_path, no_path = {}, Counter(), Counter(), Counter()
+    for g in never:
+        rid = g["request_id"].strip()
+        bucket = by_request[rid] = allocation_bucket(g.get("status_as_filed", ""), current.get(rid))
+        counts[bucket] += 1
+        cid = g.get("company_id", "").strip()
+        if cid:
+            (with_path if cid in reach else no_path)[bucket] += 1
+    # unresolved: the request names no company the registry knows, so there is nothing to have a path to
+    buckets = [{"bucket": b, "count": n, "with_path": with_path[b], "no_path": no_path[b], "unresolved": n - with_path[b] - no_path[b]}
+               for b, n in counts.most_common()]
+    slice_of = {b: s for s, (_, bs) in ALLOCATION_SLICES.items() for b in bs}
+    slices = {s: {"label": label, "count": 0, "buckets": []} for s, (label, _) in ALLOCATION_SLICES.items()}
+    unmapped = []
+    for b in buckets:
+        if b["bucket"] == ALLOCATED:
+            continue
+        s = slice_of.get(b["bucket"])
+        if s is None:
+            unmapped.append(b)
+            continue
+        slices[s]["count"] += b["count"]
+        slices[s]["buckets"].append(b)
+    blocked = len(never) - counts[ALLOCATED]
+    gated = [b for b in buckets if b["no_path"] and b["bucket"] != ALLOCATED and slice_of.get(b["bucket"]) != "supply"]
+    return {
+        "total": len(data["requests"]),
+        "never": len(never),
+        "allocated": counts[ALLOCATED],
+        "blocked": blocked,
+        "buckets": buckets,
+        "by_request": by_request,
+        "slices": slices,
+        "unmapped": unmapped,
+        "supply_share": slices["supply"]["count"] / blocked if blocked else 0,
+        "no_path": sum(b["no_path"] for b in buckets if b["bucket"] != ALLOCATED),
+        "no_path_gated": gated,
+    }
 
 
 def ask_dates(o):
@@ -738,7 +820,8 @@ def cycle_cut(data):
     }
 
 
-CUTS = [("Funnel", funnel_cut), ("Yield", yield_cut), ("Backlog with a path", backlog_cut), ("Blockage", blockage_cut), ("Latency", latency_cut),
+CUTS = [("Funnel", funnel_cut), ("Yield", yield_cut), ("Backlog with a path", backlog_cut), ("Blockage", blockage_cut),
+        ("Blockage by allocation exception", allocation_blockage_cut), ("Latency", latency_cut),
         ("Scoped joins", join_summary_cut), ("Account demand", account_demand_cut),
         ("Top accounts by value", top_accounts_cut), ("Connectors", connector_cut),
         ("Target person provenance", target_person_cut), ("Routing time", routing_time_cut),
@@ -757,7 +840,7 @@ if __name__ == "__main__":
         for key, value in result.items():
             if isinstance(value, list) and value and isinstance(value[0], dict):
                 print(f"{key}: {len(value)} rows, first = { {k: v for k, v in list(value[0].items())[:6]} }")
-            elif isinstance(value, list) and len(value) > 12:
+            elif isinstance(value, (list, dict)) and len(value) > 12:
                 print(f"{key}: {len(value)} values")
             else:
                 print(f"{key}: {value}")
