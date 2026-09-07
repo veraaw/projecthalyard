@@ -152,10 +152,8 @@ class Writeback:
                 continue
             reqs, live = self.reqs(c), self.live(c)
             first = reqs[0]
-            blocked = [r for r in reqs if r["blocked_reason"] == "company has no CRM record"]
             evidence = (f"{plural(len(reqs), 'request')} from {plural(int(c['distinct_requesters']), 'rep')}"
                         f" since {first['request_date']} ({self.requesters(reqs)}); {len(live)} still live"
-                        + (f"; {len(blocked)} filed as blocked for no CRM record" if blocked else "")
                         + (f"; domain {c['domain']}" if c["domain"] else "; no domain on record")
                         + (f"; {plural(int(c['paths_available']), 'path')} into the company" if int(c["paths_available"] or 0) else ""))
             why = (f"{plural(len(live), 'live request')} worth {money(value(live))} have no account to log against" if live

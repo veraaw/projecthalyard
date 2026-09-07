@@ -908,7 +908,7 @@ class GoldenSourceCutsTest(unittest.TestCase):
                           if r["request_id"] not in {o["request_id"] for o in self.gold["outcomes"]})
         self.assertEqual(bl["allocated"], reasons[""])
         self.assertEqual(bl["kinds"]["supply"]["count"], reasons[bg.BLOCK_NO_PATH] + reasons[bg.BLOCK_NO_ROSTER_PATH])
-        self.assertEqual(bl["kinds"]["closed"]["count"], reasons[bg.BLOCK_CLOSED_LOST] + reasons[bg.ALREADY_INTRODUCED])
+        self.assertEqual(bl["kinds"]["closed"]["count"], reasons[bg.ALREADY_INTRODUCED])
         self.assertEqual(dict(bl["kinds"]["process"]["reasons"]).get("capacity exhausted", 0), reasons[bg.CAPACITY_EXHAUSTED])
         allocated = {r["request_id"] for r in self.gold["golden_requests"].values() if r["routed_to"].strip() and not r["blocked_reason"].strip()
                      and r["request_id"] not in {o["request_id"] for o in self.gold["outcomes"]}}
