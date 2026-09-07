@@ -421,17 +421,6 @@ def days(x):
     return "—" if x is None else (f"{x:.0f} d" if float(x).is_integer() else f"{x:.1f} d")
 
 
-def yield_strip(y):
-    """Yield under the Sankey: the deal value that reached a connector and the opportunity value that came back."""
-    return f"""<h3>Yield</h3>
-  <div class="kpis">
-    {kpi(usd(y["routed"]), "routed to a connector", f"deal value behind {y['asks']} asks, of {usd(y['requested'])} requested")}
-    {kpi(usd(y["routed_per_ask"]), "routed per ask", f"{usd(y['routed_per_intro'])} per intro")}
-    {kpi(usd(y["opp"]), "opportunity value created", f"{y['opps']} opportunities from {y['asks']} asks")}
-    {kpi(usd(y["opp_per_ask"]), "return per ask", f"{usd(y['opp_per_intro'])} per intro")}
-  </div>"""
-
-
 def backlog_box(b, population):
     top = ", ".join(f'{c["name"]} ({c["requests"]})' for c in b["companies"][:5])
     return finding(f'{b["never"]} of the {b["in_window"]} requests {population} never reach a connector.',
@@ -513,7 +502,7 @@ def blockage_view(bl, div_id, population):
 
 
 def blockage_panel(data, window_all):
-    """Remaining Unrouted, with its own Cumulative / Last 12 months toggle so it can be read against either funnel view."""
+    """Remaining Unrouted (Live Data only), with its own Cumulative / Last 12 months toggle so it can be read against either funnel view."""
     bl, bl_12m = data_cuts.blockage_cut(data), data_cuts.blockage_cut(data, since=ROLLING_SINCE)
     return f"""<div id="unrouted">
   <h3>Remaining Unrouted</h3>
@@ -601,9 +590,8 @@ def strategic_sections(data, cyc, live, in_flight=None):
   {sankey(stages, "sankey")}
   {backlog_box(data_cuts.backlog_cut(data), "on file")}
   </div>
-  {blockage_panel(data, window_all)}
+  {blockage_panel(data, window_all) if live else ""}
   <div class="fview" data-view="12m" hidden>
-  {yield_strip(data_cuts.yield_cut(data, since=ROLLING_SINCE))}
   <div class="grid2">
     <div>
       <h3>Stage table, last 12 months</h3>
@@ -618,7 +606,6 @@ def strategic_sections(data, cyc, live, in_flight=None):
   </div>
   </div>
   <div class="fview" data-view="all">
-  {yield_strip(data_cuts.yield_cut(data))}
   <div class="grid2">
     <div>
       <h3>Stage table</h3>

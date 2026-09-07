@@ -1190,10 +1190,14 @@ class BuiltPagesTest(unittest.TestCase):
             html = self.pages[name]
             ids = Counter(re.findall(r'\bid="([^"]+)"', html))
             self.assertEqual([k for k, v in ids.items() if v > 1], [], f"{name}: no id twice")
-            for div in ("sankey", "sankey-12m", "blockage", "blockage-12m", "demand", "demand-12m", "req-asks", "req-value",
+            live = name == "livedata.html"
+            for div in ("sankey", "sankey-12m", "demand", "demand-12m", "req-asks", "req-value",
                         "req-accounts", "req-rate", "req-urgency", "connector-return", "latency-chart", "cycles-chart"):
                 self.assertIn(f'id="{div}"', html, f"{name} draws {div}")
-            self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 3, f"{name}: funnel, Remaining Unrouted and Top 20 toggles")
+            for div in ("blockage", "blockage-12m"):
+                (self.assertIn if live else self.assertNotIn)(f'id="{div}"', html, f"{name}: Remaining Unrouted is Live Data only")
+            self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 3 if live else 2,
+                             f"{name}: funnel and Top 20 toggles" + (", plus Remaining Unrouted" if live else ""))
             self.assertEqual(html.count("querySelectorAll('.seg[data-scope]')"), 1, f"{name}: the toggle script once")
         raw, live = self.pages["halyardscoping.html"], self.pages["livedata.html"]
         self.assertIn("<code>golden/completions.csv</code> applied", live)
@@ -1238,7 +1242,7 @@ class BuiltPagesTest(unittest.TestCase):
             self.assertIn(text, strip)
         self.assertNotIn('class="kpis headline"', self.pages["halyardscoping.html"], "Raw Sept keeps its own top")
 
-    def test_backlog_box_donut_and_yield_sit_under_the_sankey(self):
+    def test_backlog_box_and_donut_sit_under_the_sankey_with_no_yield_strip(self):
         from dashboard import build_dashboard, data_cuts
         gold = data_cuts.load("golden")
         b, bl = data_cuts.backlog_cut(gold), data_cuts.blockage_cut(gold)
@@ -1246,18 +1250,27 @@ class BuiltPagesTest(unittest.TestCase):
         for name in ("halyardscoping.html", "livedata.html"):
             html = self.pages[name]
             funnel = html.split('<section id="funnel">')[1].split("</section>")[0]
-            # sankey + backlog box in each funnel view, then one Remaining Unrouted panel with its own toggle, then yield in each view
-            i = [funnel.index('id="sankey-12m"'), funnel.index('id="sankey"'), funnel.index('<div id="unrouted">'),
-                 funnel.index("<h3>Remaining Unrouted</h3>"), funnel.index('id="unrouted-toggle" data-scope="unrouted"'),
-                 funnel.index('id="blockage-12m"'), funnel.index('id="blockage"'), funnel.index("<h3>Yield</h3>"),
-                 funnel.index("<h3>Stage table, last 12 months</h3>"), funnel.index("<h3>Stage table</h3>")]
-            self.assertEqual(i, sorted(i), f"{name}: sankeys, then the unrouted panel, then yield and the stage tables")
             self.assertEqual(funnel.count("never reach a connector.</b>"), 2, f"{name}: a backlog box under each sankey")
-            self.assertEqual(funnel.count("<h3>Yield</h3>"), 2, f"{name}: yield in each funnel view")
-            self.assertEqual(funnel.count("<h3>Remaining Unrouted</h3>"), 1, f"{name}: one panel, toggled on its own")
+            self.assertNotIn("<h3>Yield</h3>", funnel, f"{name}: no yield strip")
+            for label in ("routed to a connector", "routed per ask"):
+                self.assertNotIn(f'<div class="l">{label}</div>', funnel, f"{name}: {label} left with the yield strip")
             self.assertNotIn("Why they never reach a connector", funnel)
             self.assertEqual(funnel.count('data-scope="funnel"'), 1)
-            panel = funnel.split('<div id="unrouted">')[1].split("<h3>Yield</h3>")[0]
+            self.assertIn(f"<b>{b['never']} of the {b['total']} requests on file never reach a connector.</b>", funnel)
+            self.assertIn(f"{b['with_path']} of them are for companies that already have a path in <code>supply_reach.csv</code>, "
+                          f"a backlog worth ${b['with_path_value'] / 1e6:.1f}M", funnel)
+            if name == "halyardscoping.html":
+                for gone in ('<div id="unrouted">', "<h3>Remaining Unrouted</h3>", 'id="blockage"', "of the blockage is a missing relationship."):
+                    self.assertNotIn(gone, funnel, f"{name}: Raw Sept has no Remaining Unrouted donut")
+                continue
+            # sankey + backlog box in each funnel view, then one Remaining Unrouted panel with its own toggle, then the stage tables
+            i = [funnel.index('id="sankey-12m"'), funnel.index('id="sankey"'), funnel.index('<div id="unrouted">'),
+                 funnel.index("<h3>Remaining Unrouted</h3>"), funnel.index('id="unrouted-toggle" data-scope="unrouted"'),
+                 funnel.index('id="blockage-12m"'), funnel.index('id="blockage"'),
+                 funnel.index("<h3>Stage table, last 12 months</h3>"), funnel.index("<h3>Stage table</h3>")]
+            self.assertEqual(i, sorted(i), f"{name}: sankeys, then the unrouted panel, then the stage tables")
+            self.assertEqual(funnel.count("<h3>Remaining Unrouted</h3>"), 1, f"{name}: one panel, toggled on its own")
+            panel = funnel.split('<div id="unrouted">')[1].split("<h3>Stage table, last 12 months</h3>")[0]
             self.assertIn('<button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button>', panel)
             self.assertIn('id="unrouted-window" data-all="', panel)
             self.assertIn(f"{bl['never']} of {bl['total']} requests on file never asked", panel)
@@ -1267,15 +1280,9 @@ class BuiltPagesTest(unittest.TestCase):
             self.assertIn("blocked\\u003cbr\\u003eof " + str(bl12["in_window"]) + " requests dated ", panel, "and on the last-12-months donut")
             self.assertIn('<div class="fview" data-view="12m" hidden>', panel)
             self.assertIn('<div class="fview" data-view="all">', panel)
-            whole = funnel
-            self.assertIn(f"<b>{b['never']} of the {b['total']} requests on file never reach a connector.</b>", whole)
-            self.assertIn(f"{b['with_path']} of them are for companies that already have a path in <code>supply_reach.csv</code>, "
-                          f"a backlog worth ${b['with_path_value'] / 1e6:.1f}M", whole)
-            self.assertIn(f"{bl['never']} of the {bl['total']} requests on file never reach a connector; {bl['blocked']} of those are blocked. The other {bl['allocated']} are allocated this cycle and not yet asked", whole)
-            self.assertIn(f"{bl12['never']} of the {bl12['in_window']} requests dated ", whole, f"{name}: the 12-month view states its own population")
-            self.assertIn(f"<b>Only {bl['supply_share']:.0%} of the blockage is a missing relationship.</b>", whole)
-            for label in ("routed to a connector", "routed per ask", "opportunity value created", "return per ask"):
-                self.assertEqual(funnel.count(f'<div class="l">{label}</div>'), 2, f"{name}: {label} in both views")
+            self.assertIn(f"{bl['never']} of the {bl['total']} requests on file never reach a connector; {bl['blocked']} of those are blocked. The other {bl['allocated']} are allocated this cycle and not yet asked", funnel)
+            self.assertIn(f"{bl12['never']} of the {bl12['in_window']} requests dated ", funnel, f"{name}: the 12-month view states its own population")
+            self.assertIn(f"<b>Only {bl['supply_share']:.0%} of the blockage is a missing relationship.</b>", funnel)
             self.assertIn("v.parentElement.closest(scopes) !== scope", html, f"{name}: the funnel toggle leaves the nested unrouted toggle alone")
 
     def test_connectors_ranked_by_return_per_ask_and_a_latency_section(self):
