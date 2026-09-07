@@ -45,9 +45,11 @@ from dashboard.sankey_funnel import build_figure
 from dashboard.trace_section import fragment as trace_fragment, sidebar as trace_sidebar
 from golden import build_golden as bg
 from golden.clock import as_of
-from paths import CURRENT, DOCS, PROFILE, ROUTING
+from paths import DATASET, DOCS, PROFILE, ROUTING
 
-DATA = str(CURRENT)
+# the Raw Sept tab's own sections (timing, Slack, flags, profile) read the September export itself;
+# the Live Data tab reads golden/current/ through data_cuts.load("golden")
+DATA = str(DATASET)
 
 
 def rows(name):
@@ -219,6 +221,10 @@ overview_table = ('<table class="fo"><thead><tr><th>Category</th><th>Funnel drop
 # ask log as the build applies it (intro_outcomes.csv + golden/completions.csv, see data_cuts.load)
 cuts = data_cuts.load()
 live_cuts = data_cuts.load("golden")
+assert cuts["dir"] == DATA, "the Raw Sept tab reads one directory throughout"
+_raw_months = sorted(r["request_date"].strip()[:7] for r in requests.values() if r["request_date"].strip())
+raw_span = (f"{datetime.strptime(_raw_months[0], '%Y-%m'):%b %Y} to {datetime.strptime(_raw_months[-1], '%Y-%m'):%b %Y}"
+            if _raw_months else "")
 offers_unlogged_value = data_cuts.dollars(cuts, sorted({rid for rid, _ in offers_unlogged}))
 joins = data_cuts.join_summary_cut(cuts)
 demand = data_cuts.account_demand_cut(cuts)
@@ -228,6 +234,8 @@ timing = data_cuts.routing_time_cut(cuts)
 slack = data_cuts.slack_cut(cuts)
 noise = data_cuts.flag_noise_cut(cuts)
 coverage = data_cuts.outcome_delta_cut(cuts)
+_asked_names = {o["connector_asked"].strip() for o in outcomes}
+on_roster_pct = pct(len(_asked_names) - len(connectors["off_roster"]), len(_asked_names), 1)
 
 joins_rows = [(link, f"{left:.1f}%", f"{right:.1f}%", note or "—")
               for link, left, right, note in sorted(joins["joins"], key=lambda j: min(j[1], j[2]))]
@@ -398,7 +406,7 @@ def in_flight_section(f):
             body += (f'<tr><td>{esc(r["label"])}' + (f'<br><span class="foot">{esc(r["note"])}</span>' if r["note"] else "")
                      + f'</td><td class="num"><b>{r["count"]}</b></td><td class="num">{pct(r["count"], f["open"])}</td>'
                      f'<td class="num">{esc(r["value_fmt"])}</td><td>{esc(r["next"])}</td><td>{where}</td></tr>')
-    body += f'<tr class="total"><th>All requests in flight</th><th class="num">{f["open"]}</th><th class="num">100%</th><th colspan="3"></th></tr>'
+    body += f'<tr class="total"><th>All requests in flight</th><th class="num">{f["open"]}</th><th class="num">100%</th><th class="num">{esc(f["value_fmt"])}</th><th colspan="2"></th></tr>'
     outside = " and ".join(f'{o["count"]} filed <code>{esc(o["status"])}</code>' for o in f["outside"])
     return f"""
 <section id="inflight">
@@ -412,7 +420,7 @@ def in_flight_section(f):
     {kpi(by_key["meeting"]["count"], "meeting booked", by_key["meeting"]["note"] or "no opportunity logged yet")}
   </div>
   <table class="inflight"><thead><tr><th>State</th><th>Requests</th><th>Of in flight</th><th>Value</th><th>What happens next</th><th>On Live Priorities</th></tr></thead><tbody>{body}</tbody></table>
-  <p class="foot">Value counts each company once (CRM ARR potential, else the deal value filed), as Live Priorities does. A nudge is owed on an ask the connector agreed to and has not delivered; a chase on one they never answered; either waits {f["quiet_days"]} days after a follow-up. An intro is live for {f["intro_live_days"]} days, or while its meeting has not stalled. Code: <code>dashboard/live_priorities.py</code> (<code>in_flight</code>).</p>
+  <p class="foot">Value counts each company once within a state (CRM ARR potential, else the deal value filed), as Live Priorities does; a company with requests in several states is priced in each, so the state rows add up to more than the total, which prices every company in flight once. A nudge is owed on an ask the connector agreed to and has not delivered; a chase on one they never answered; either waits {f["quiet_days"]} days after a follow-up. An intro is live for {f["intro_live_days"]} days, or while its meeting has not stalled. Code: <code>dashboard/live_priorities.py</code> (<code>in_flight</code>).</p>
 </section>
 """
 
@@ -921,7 +929,7 @@ def strategic_sections(data, cyc, live, in_flight=None):
     </div>
     <div>
       <h3>Reading it</h3>
-      {finding("A request not asked inside a week is never asked.", f"Every one of the {lat['asks']} asks on file went out within {lat['max_to_ask']} days of the request ({lat['asked_within_week']} of {lat['asks']} inside seven); the {lat['waiting_past_max']} of the {on_file} requests on file still unasked are all older than that and, on this record, will stay unasked unless someone picks them up; {allocated} of them are allocated this cycle.", warn=True)}
+      {finding("A request not asked inside a week is never asked.", f"Every one of the {lat['asks']} asks on file went out within {lat['max_to_ask']} days of the request ({lat['asked_within_week']} of {lat['asks']} inside seven); the {lat['waiting_past_max']} of the {on_file} requests on file still unasked are all older than that and, on this record, will stay unasked unless someone picks them up" + (f"; {allocated} of them are allocated this cycle." if live else " (the current cycle's allocation is on the Live Data tab)."), warn=True)}
       {trend}
       <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>latency_cut</code>). A month's medians cover the requests filed that month, whenever the ask, response or intro happened.</p>
     </div>
@@ -1496,7 +1504,7 @@ raw_page = f"""{head("Raw Sept Data Dashboard")}
 {tabs(RAW_HTML)}
 <header>
   <h1>Raw Sept Data Dashboard</h1>
-  <p>Scoping and verification of {len(requests)} warm-intro requests · Aug 2025 to Jul 2026 · Source: the September exports in <code>dataset/</code>, as filed · {built}</p>
+  <p>Scoping and verification of {len(requests)} warm-intro requests · {raw_span} · Source: the September exports in <code>dataset/</code>, as filed · {built}</p>
 </header>
 <div class="layout">
 {sidebar([("#flow", "Strategic data", "band"), ("#flow", "File Flow", ""), *STRATEGIC_NAV, ("#overview", "Funnel Overview", ""),
@@ -1505,7 +1513,7 @@ raw_page = f"""{head("Raw Sept Data Dashboard")}
           ("#quality", "Flags &amp; Coverage", ""), ("#verify", "CSV Profile", ""), ("#integrity", "Integrity Audit", "")])}
 <main>
 
-<p class="lede part-lede">Computed directly from the exports in <code>dataset/</code>: intro requests and outcomes, CRM accounts, connection lists, roster and Slack threads, as filed. The <a href="{LIVE_HTML}">Live Data Dashboard</a> tab shows the same charts from <code>golden/</code>, with the asks sent since September applied.</p>
+<p class="lede part-lede">Computed directly from the exports in <code>dataset/</code>: intro requests and outcomes, CRM accounts, connection lists, roster and Slack threads, as filed. Nothing accepted since reaches this tab: not an upload, not a Submit on Live Priorities, not this cycle's allocation; every $ is the company's September ARR potential or, without a CRM account, the deal value on its latest September request. The only derived input is <code>golden/</code>'s entity resolution (which company a request names, and which connectors can reach it), since the raw name strings do not join on their own. The <a href="{LIVE_HTML}">Live Data Dashboard</a> tab shows the same charts from <code>golden/</code>, with the asks sent since September applied.</p>
 
 <section id="flow">
   <h2>How the Files Connect</h2>
@@ -1597,8 +1605,8 @@ raw_page = f"""{head("Raw Sept Data Dashboard")}
   <div class="kpis">
     {kpi(len(joins["perfect"]), "joins clean in both directions", f"of {len(joins['joins'])} links measured")}
     {kpi(f"{joins['concerning'][0][1]:.0f}%", "worst link: target_person_raw -> connections", "no requested person exists in the network")}
-    {kpi("54.5%", "connector_asked on the roster", f"{len(connectors['off_roster'])} people asked who are not connectors")}
-    {kpi("42.5%", "requests with an outcome row", f"{coverage['missing']} requests have none")}
+    {kpi(on_roster_pct, "connector_asked on the roster", f"{len(connectors['off_roster'])} people asked who are not connectors")}
+    {kpi(pct(coverage['matched'], coverage['requests'], 1), "requests with an outcome row", f"{coverage['missing']} requests have none")}
   </div>
   <div class="grid2">
     <div>
@@ -1610,7 +1618,7 @@ raw_page = f"""{head("Raw Sept Data Dashboard")}
     <div>
       <h3>Joins that break the analysis</h3>
       <div class="finding warn"><b><code>target_person_raw</code> -> <code>connections_*.name</code>: 0% / 0%.</b>Not one of the {targets["distinct"]} named individuals appears anywhere in the network (see below). Person-level routing is impossible; only the company can be matched.</div>
-      <div class="finding warn"><b><code>connector_asked</code> -> <code>connector_roster.name</code>: 54.5%.</b>{sum(n for _, n in connectors["off_roster"])} asks went to {len(connectors["off_roster"])} people who are not connectors ({", ".join(n for n, _ in connectors["off_roster"])}), so capacity and focus-area rules never applied to them.</div>
+      <div class="finding warn"><b><code>connector_asked</code> -> <code>connector_roster.name</code>: {on_roster_pct}.</b>{sum(n for _, n in connectors["off_roster"])} asks went to {len(connectors["off_roster"])} people who are not connectors ({", ".join(n for n, _ in connectors["off_roster"])}), so capacity and focus-area rules never applied to them.</div>
       <div class="finding warn"><b><code>target_company_raw</code> -> <code>crm_accounts.account_name</code>: 71.2%, and only after normalization.</b>Exact match is 65.4%; the CRM side needs legal-suffix stripping to reach 84%. Every company cut below is therefore built on the resolved <code>golden/</code> company id instead of the raw string.</div>
       <div class="finding warn"><b><code>connections_*.company</code> -> <code>target_company_raw</code>: 58% / 55.8%.</b>Supply and demand barely overlap: 21 companies in the network are never requested and 23 requested companies have no contact at all.</div>
     </div>
@@ -1737,7 +1745,7 @@ live_page = f"""{head("Live Data Dashboard")}
 
 {headline_kpis(live_cuts)}
 
-<p class="lede part-lede">Computed from <code>golden/</code> (<code>golden_requests.csv</code>, <code>golden_companies.csv</code>, <code>supply_reach.csv</code>, <code>completions.csv</code>) after entity resolution, so companies are counted by identity rather than by how the name was typed. The ask log is <code>intro_outcomes.csv</code> with <code>golden/completions.csv</code> applied: a Submit on <a href="{PRIORITIES_HTML}">Live Priorities</a> lands in Supabase, the rebuild pulls it into <code>completions.csv</code>, and the ask counts here from that build on; requests added later, CRM changes and new <code>intro_outcomes.csv</code> rows flow in the same way, through <code>python3 golden/build_golden.py</code>. The <a href="{RAW_HTML}">Raw Sept Data Dashboard</a> has the same charts from the September exports alone.</p>
+<p class="lede part-lede">Computed from <code>golden/</code> (<code>golden_requests.csv</code>, <code>golden_companies.csv</code>, <code>supply_reach.csv</code>, <code>completions.csv</code>) after entity resolution, so companies are counted by identity rather than by how the name was typed. The ask log is <code>intro_outcomes.csv</code> with <code>golden/completions.csv</code> applied: a Submit on <a href="{PRIORITIES_HTML}">Live Priorities</a> lands in Supabase, the rebuild pulls it into <code>completions.csv</code>, and the ask counts here from that build on; requests added later, CRM changes and new <code>intro_outcomes.csv</code> rows flow in the same way, through <code>python3 golden/build_golden.py</code>. Counts are requests (one request, one row, at every funnel step it passed); every $ is one value per company (CRM ARR potential, else the deal value on its latest request), so a company asked for several times is priced once, and the $ here adds up to the Orientation strip on Live Priorities plus what it leaves off as closed. The <a href="{RAW_HTML}">Raw Sept Data Dashboard</a> has the same charts from the September exports alone.</p>
 
 {strategic_sections(live_cuts, connector_cycles(TODAY), live=True, in_flight=priorities_in_flight(TODAY))}
 
@@ -1757,7 +1765,7 @@ trace_page = f"""<!doctype html>
 {tabs(TRACE_HTML)}
 <header>
   <h1>Company Trace</h1>
-  <p>The full history of one company: what <code>analysis/trace.py</code> prints, for any of the 48 companies with a request · Sources: <code>dataset/</code>, <code>golden/</code> · {built}</p>
+  <p>The full history of one company: what <code>analysis/trace.py</code> prints, for any of the {len(data_cuts.requests_by_company(live_cuts))} companies with a request · Sources: <code>dataset/</code>, <code>golden/</code> · {built}</p>
 </header>
 <div class="layout">
 {sidebar(title='Companies <span class="foot" id="trace-count"></span>', body=trace_sidebar())}

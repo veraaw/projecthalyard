@@ -14,9 +14,9 @@ import unicodedata
 from collections import Counter
 from datetime import date
 
-from paths import CURRENT, PROFILE
+from paths import DATASET, PROFILE
 
-DATA_DIR = str(CURRENT)
+DATA_DIR = str(DATASET)
 OUT_PATH = str(PROFILE / "profile.md")
 
 DATE_RE = re.compile(r"^\s*(\d{4})-(\d{2})-(\d{2})\s*$")

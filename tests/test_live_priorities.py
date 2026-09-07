@@ -1196,6 +1196,83 @@ class GoldenSourceCutsTest(unittest.TestCase):
         self.assertEqual(self.dc.latency_cut({"requests": [], "outcomes": []}, today=AS_OF)["median_to_ask"], None, "no asks, no median")
 
 
+class TabPerimeterTest(unittest.TestCase):
+    """Each tab reads one population throughout. Raw Sept: the September export
+    in dataset/, before any upload, completion or allocation. Live Data:
+    golden/current/ (dataset/ with the accepted uploads applied) plus golden/,
+    the completions and the current cycle. Company $ on either tab is one value
+    per company, and Live Data's $ foots to the Orientation strip on Live Priorities."""
+
+    @classmethod
+    def setUpClass(cls):
+        from dashboard import data_cuts
+        from paths import CURRENT, DATASET
+        cls.dc, cls.DATASET, cls.CURRENT = data_cuts, DATASET, CURRENT
+        cls.raw = data_cuts.load()
+        cls.gold = data_cuts.load("golden", completions=[])
+
+    def test_each_tab_reads_one_directory(self):
+        self.assertEqual(self.raw["dir"], str(self.DATASET), "the Raw Sept tab reads the September export itself")
+        self.assertEqual(self.gold["dir"], str(self.CURRENT), "the Live Data tab reads dataset/ with the accepted uploads applied")
+        for mod in ("dashboard.build_dashboard", "dashboard.funnel_overview", "analysis.joins.join_rates",
+                    "analysis.profile.profile_csvs", "analysis.integrity.integrity_audit"):
+            src = (ROOT / (mod.replace(".", "/") + ".py")).read_text(encoding="utf-8")
+            self.assertRegex(src, re.compile(r"^DATA(?:_DIR)? = (?:str\()?DATASET\)?$", re.M), f"{mod} feeds the Raw Sept tab: it reads dataset/")
+            self.assertNotIn("CURRENT", src, f"{mod} feeds the Raw Sept tab only")
+
+    def test_raw_tab_has_no_allocation_and_no_completion(self):
+        self.assertEqual(self.raw["allocation"], [])
+        self.assertEqual(self.raw["completions"], [])
+        self.assertTrue(self.gold["allocation"], "the Live Data tab has the current cycle")
+        self.assertTrue(all(r["allocated"] == 0 and not r["current"] for r in self.dc.cycle_cut(self.raw)["rows"]))
+
+    def test_raw_tab_company_facts_are_the_september_export(self):
+        raw_ids = [r["request_id"] for r in self.raw["requests"]]
+        self.assertEqual(list(self.raw["golden_requests"]), raw_ids, "no request golden carried forward or ingested since")
+        raw_by_id = {r["request_id"]: r for r in self.raw["requests"]}
+        for rid, g in self.raw["golden_requests"].items():
+            self.assertEqual(g["value_usd"], bg.money(raw_by_id[rid]["deal_value_usd"]), rid)
+            self.assertEqual(g["status_as_filed"], raw_by_id[rid]["status"].strip(), rid)
+            self.assertEqual(g["company_id"], self.gold["golden_requests"][rid]["company_id"], f"{rid}: the resolution is shared")
+        arr = {a["account_id"]: int(a["arr_potential_usd"] or 0) for a in self.raw["crm"]}
+        for cid, c in self.raw["golden_companies"].items():
+            ids = [i for i in c["crm_account_ids"].split(bg.MULTI) if i]
+            self.assertTrue(all(i in arr for i in ids), cid)
+            self.assertEqual(c["value_usd"], str(max(arr[i] for i in ids)) if ids else "", cid)
+
+    def test_a_later_upload_moves_the_live_tab_only(self):
+        # a request re-filed at a new deal value, a CRM account re-priced, a request added: golden/current/ changes, dataset/ does not
+        rid = next(r["request_id"] for r in self.raw["requests"] if self.gold["golden_requests"][r["request_id"]]["value_usd"]
+                   and not self.gold["golden_companies"].get(self.gold["golden_requests"][r["request_id"]]["company_id"], {}).get("crm_account_ids"))
+        bumped = {rid: dict(self.gold["golden_requests"][rid], value_usd="999999999")}
+        sept = self.dc.september_requests(bumped, self.raw["requests"])
+        self.assertEqual(sept[rid]["value_usd"], self.raw["golden_requests"][rid]["value_usd"], "the Raw Sept tab keeps the export's deal value")
+        self.assertEqual(self.dc.september_requests({**bumped, "R999999": dict(bumped[rid], request_id="R999999")}, self.raw["requests"]).keys(), {rid},
+                         "a request added since is not on the Raw Sept tab")
+        cid, c = next((cid, c) for cid, c in self.gold["golden_companies"].items() if c["crm_account_ids"] and c["value_usd"])
+        repriced = {cid: dict(c, value_usd="1", crm_account_ids=c["crm_account_ids"] + bg.MULTI + "A_NEW")}
+        self.assertEqual(self.dc.september_companies(repriced, self.raw["crm"])[cid]["value_usd"], self.raw["golden_companies"][cid]["value_usd"])
+        self.assertEqual(self.dc.september_companies(repriced, self.raw["crm"])[cid]["crm_account_ids"], c["crm_account_ids"])
+
+    def test_live_data_dollars_foot_to_the_orientation_strip(self):
+        live = lp.Live(AS_OF)
+        S = live.stages()
+        every = self.dc.dollars(self.gold, self.dc.rids(self.gold["requests"]))
+        self.assertEqual(S["total"]["usd"] + S["excluded"]["usd"], every,
+                         "one $ per company over every request on file = the strip + the closed companies it leaves off")
+        self.assertEqual(S["total"]["count"] + S["excluded"]["count"],
+                         len(self.dc.requests_by_company(self.gold)) + sum(1 for r in self.gold["requests"] if not self.gold["golden_requests"][r["request_id"]]["company_id"]),
+                         "one cell per resolved company plus one per unresolved request")
+        self.assertNotEqual(S["total"]["count"], len(self.gold["requests"]), "the strip counts companies, the funnel counts requests")
+
+    def test_in_flight_total_prices_each_company_once(self):
+        f = lp.Live(AS_OF).in_flight()
+        rids = [rid for r in f["rows"] for rid in r["request_ids"]]
+        self.assertEqual(len(rids), f["open"])
+        self.assertEqual(f["value_usd"], self.dc.dollars(self.gold, rids))
+        self.assertLessEqual(f["value_usd"], sum(r["value_usd"] for r in f["rows"]), "a company in several states is priced in each row, once in the total")
+
+
 @unittest.skipUnless((ROOT / "docs" / "livedata.html").exists(), "run `python3 build.py dashboard` first")
 class BuiltPagesTest(unittest.TestCase):
     """What `python3 build.py dashboard` writes under docs/."""

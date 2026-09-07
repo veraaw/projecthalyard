@@ -10,9 +10,9 @@ import glob
 import os
 import re
 
-from paths import CURRENT
+from paths import DATASET
 
-DATA = str(CURRENT)
+DATA = str(DATASET)
 DOMAIN = re.compile(r"\b([a-z0-9-]+)\.(?:com|net|io|ai|co\.uk)\b", re.I)
 
 

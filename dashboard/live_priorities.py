@@ -600,8 +600,8 @@ class Live:
             "as_of": self.today.isoformat(),
             "stages": [{"stage": s, "count": count[s], "unresolved": unresolved[s], "usd": dollars[s], "usd_fmt": money(dollars[s])}
                        for s in STAGES],
-            "excluded": {"stage": "closed", "count": count["closed"], "unresolved": unresolved["closed"], "usd_fmt": money(dollars["closed"])},
-            "total": {"count": sum(count[s] for s in STAGES), "usd_fmt": money(sum(dollars[s] for s in STAGES)),
+            "excluded": {"stage": "closed", "count": count["closed"], "unresolved": unresolved["closed"], "usd": dollars["closed"], "usd_fmt": money(dollars["closed"])},
+            "total": {"count": sum(count[s] for s in STAGES), "usd": sum(dollars[s] for s in STAGES), "usd_fmt": money(sum(dollars[s] for s in STAGES)),
                       "companies": sum(count[s] - unresolved[s] for s in STAGES),
                       "unresolved": sum(unresolved[s] for s in STAGES),
                       "unresolved_usd_fmt": money(sum(unresolved_usd[s] for s in STAGES))},
@@ -1058,8 +1058,10 @@ class Live:
             "value_fmt": money(self.dollars_total(by_state[key])), "note": note(key, by_state[key]),
             "request_ids": sorted(r["request_id"] for r in by_state[key]),
         } for key, group, label, nxt, section in IN_FLIGHT_STATES if by_state[key] or key not in ("quiet", "other")]
+        every = [r for v in by_state.values() for r in v]
         return {
-            "open": sum(len(v) for v in by_state.values()), "rows": rows,
+            "open": len(every), "rows": rows,
+            "value_usd": self.dollars_total(every), "value_fmt": money(self.dollars_total(every)),
             "groups": [{"group": g, "count": sum(r["count"] for r in rows if r["group"] == g)}
                        for g in dict.fromkeys(g for _, g, *_ in IN_FLIGHT_STATES)],
             "outside": [{"status": s, "count": n} for s, n in sorted(outside.items())],
