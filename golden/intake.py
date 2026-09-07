@@ -64,6 +64,7 @@ import os
 import re
 import shutil
 import sys
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -685,7 +686,10 @@ def apply_table_rows(rows: list[dict], base: Path = DATASET, files: Path = FILES
 
 
 def pull(source: str | None, fetch=fetch_supabase_uploads) -> None:
-    """--pull supabase: the table into intake/. A table that cannot be read ends the build."""
+    """--pull supabase: the table into intake/. A table that cannot be read ends
+    the build, except one that does not exist yet (404: config/supabase_schema.sql
+    not run), which is a notice: nothing has been accepted through the browser
+    until the table is there, so the build has nothing to miss."""
     if not source:
         return
     if source != "supabase":
@@ -696,6 +700,13 @@ def pull(source: str | None, fetch=fetch_supabase_uploads) -> None:
         sys.exit("--pull supabase needs SUPABASE_URL and SUPABASE_SERVICE_KEY (environment or .env)")
     try:
         rows = fetch(url, key)
+    except urllib.error.HTTPError as e:
+        if e.code != 404:
+            sys.exit(f"could not read the Supabase {SUPABASE_TABLE} table: {e}\n"
+                     f"the build still works without it: python3 golden/intake.py --add FILE")
+        print(f"intake/uploads.csv    no Supabase {SUPABASE_TABLE} table yet (HTTP 404): run the {SUPABASE_TABLE} "
+              f"section of config/supabase_schema.sql for Accept to persist; {len(ledger())} on file", file=sys.stderr)
+        return
     except Exception as e:  # noqa: BLE001 - any failure to read the table is one message
         sys.exit(f"could not read the Supabase {SUPABASE_TABLE} table: {e}\n"
                  f"the build still works without it: python3 golden/intake.py --add FILE")
