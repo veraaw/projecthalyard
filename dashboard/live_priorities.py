@@ -68,28 +68,23 @@ PAGE = "livepriorities.html"
 BATCH_PAGE = "batchask.html"
 TRACE_PAGE = "companytrace.html"
 CONNECTOR_PAGE = "connector-{slug}.html"
-# the page reads top to bottom in five bands: (id, title, membership test, sections). Each band's
-# sections are (section id, nav label) as rendered by live_priorities.js boot(), in page order.
+# the page reads top to bottom in five bands: (id, title, sections). Each band's sections are
+# (section id, nav label) as rendered by live_priorities.js boot(), in page order.
 BANDS = [
     ("intake", "Intake: Preview a Routed Request Summary",
-     "Does it accept input the build doesn't have yet?",
      [("route", "Route a Request")]),
     ("orientation", "Orientation: Deal Value by Stage",
-     "Is it a single aggregate with no rows?",
      [("stages", "Deal Value by Stage")]),
     ("now", "Actionable Routing Steps",
-     "Does ticking it change what the queue proposes tomorrow?",
      [("top", "Top Priorities")]),
     ("cycle", "Current Cycle Overview",
-     "Does it describe a decision the allocator already made?",
      [("connectors", "This Cycle, by Connector"), ("introduced", "Already Introduced"),
       ("exceptions", "Unrouted Exceptions"), ("followups", "Follow-Ups Owed")]),
     ("other", "Other",
-     "Is it admin that fits none of the bands above?",
      [("crm", "CRM Updates")]),
 ]
 # every section in page order; drives the header nav
-SECTIONS = [s for _, _, _, sections in BANDS for s in sections]
+SECTIONS = [s for _, _, sections in BANDS for s in sections]
 THREADS_COMMAND = "python3 golden/build_golden.py --threads {file} && python3 build.py"
 # the heads-up to the account owner behind an allocation row's notify_owner (build_golden.NOTIFY_STAGES);
 # drafted here so it can be copied, never sent
@@ -1246,8 +1241,8 @@ class Live:
     def payload(self) -> dict:
         return {
             "as_of": self.today.isoformat(), "cycle": self.cycle, "trace_page": TRACE_PAGE, "batch_page": BATCH_PAGE,
-            "bands": [{"id": bid, "title": title, "test": test, "sections": [sid for sid, _ in sections]}
-                      for bid, title, test, sections in BANDS],
+            "bands": [{"id": bid, "title": title, "sections": [sid for sid, _ in sections]}
+                      for bid, title, sections in BANDS],
             "stages": self.stages(), "priorities": self.priorities(), "asks": self.asks(), "introduced": self.introduced(),
             "connectors": self.connectors(), "followups": self.followups(), "crm": self.crm(), "parser": self.parser(),
             "completions": self.completion_export(),

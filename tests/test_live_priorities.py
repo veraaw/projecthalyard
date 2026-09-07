@@ -682,7 +682,10 @@ class PayloadTest(unittest.TestCase):
         bands = lp.payload(AS_OF)["bands"]
         self.assertEqual([b["id"] for b in bands], ["intake", "orientation", "now", "cycle", "other"])
         self.assertEqual([s for b in bands for s in b["sections"]], [sid for sid, _ in lp.SECTIONS])
-        self.assertTrue(all(b["title"] and b["test"].endswith("?") for b in bands))
+        self.assertTrue(all(b["title"] for b in bands))
+        self.assertNotIn("test", bands[0], "no membership question under the band title")
+        js = (ROOT / "dashboard" / "live_priorities.js").read_text(encoding="utf-8")
+        self.assertNotIn("Band ${i + 1}", js, "band headers carry the title only, no Band N label")
 
 
 class FunnelWindowTest(unittest.TestCase):
