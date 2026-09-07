@@ -587,8 +587,8 @@ const LP = (function () {
     show();
   }
 
-  // when this site was last built, from docs/build_stamp.json (committed with
-  // the rest of docs/ whenever a rebuild changed something), and the last run of
+  // when this site was last built, from docs/build_stamp.json (deployed with
+  // the rest of docs/ on every scheduled rebuild), and the last run of
   // the scheduled rebuild from the public GitHub Actions API when the repo is
   // known — that run is what says the page is current even when nothing changed.
   // Stale = no successful run in 3 cycles (or, with no API, a build over a day

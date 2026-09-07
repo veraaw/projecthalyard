@@ -4,21 +4,19 @@ Counts are computed from golden/golden_requests.csv (one row per request; stage 
 asked_date / responded / intro_sent / meeting_booked / opportunity_usd).
 Dollar values are intentionally not shown: a request's deal_value_usd appears at every stage
 it survives, so summing per stage double-counts pipeline.
-Writes docs/sankey_funnel.html.
+build_dashboard.py inlines the figure into livedata.html.
 
     pip install plotly
-    python3 build.py sankey      # from the repo root
+    python3 -m dashboard.sankey_funnel      # print the stage counts, from the repo root
 """
 import csv
-import os
 
 import plotly.graph_objects as go
 
 from dashboard import theme
-from paths import DOCS, GOLDEN as GOLDEN_DIR
+from paths import GOLDEN as GOLDEN_DIR
 
 GOLDEN = str(GOLDEN_DIR / "golden_requests.csv")
-OUT = str(DOCS)
 
 
 def funnel_stages(since=None):
@@ -82,10 +80,5 @@ def build_figure(stages):
 
 
 if __name__ == "__main__":
-    stages = funnel_stages()
-    fig = build_figure(stages)
-    # fixed div_id: plotly's default is a fresh uuid per run, which would make
-    # every scheduled rebuild look like a change
-    fig.write_html(os.path.join(OUT, "sankey_funnel.html"), include_plotlyjs="cdn", div_id="sankey-funnel")
-    for name, c in stages:
+    for name, c in funnel_stages():
         print(f"{name:14} {c:4}")

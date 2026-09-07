@@ -1,23 +1,23 @@
-# Rebuild golden/, analysis/ and docs/ and publish them back to main.
+# Rebuild golden/, analysis/ and the site; commit the first two, publish the third.
 #
 # Every 15 minutes: pull the Supabase `completions` table into
 # golden/completions.csv (what the Live Priorities tab's Submit recorded),
-# rebuild, test, and commit — only when something actually changed. Also on
-# every push to main by anyone other than the bot (a merged PR usually carries a
-# docs/ built locally without the Supabase secrets, so the page would say "this
-# build cannot submit" until the next cron run), and by hand from the Actions tab.
+# rebuild, test, commit golden/ and analysis/ when they changed, and deploy
+# docs/ to GitHub Pages as a build artifact (Settings -> Pages -> Source:
+# "GitHub Actions"). docs/ is not committed: the only site that is ever
+# published is the one this job built with the Supabase secrets. Also runs on
+# every push to main by anyone other than the bot, and by hand from the Actions
+# tab.
 #
 # Secrets (Settings -> Secrets and variables -> Actions):
 #   SUPABASE_URL          https://<project>.supabase.co  (with or without /rest/v1)
 #   SUPABASE_ANON_KEY     the publishable key; goes into the built dashboard so the browser can insert
 #   SUPABASE_SERVICE_KEY  the secret key; read the table here, never leaves this job
 #
-# The bot's own commit touches golden/ and docs/, so the job skips itself when
-# that commit is the trigger (github.actor). An unchanged rebuild commits
-# nothing: docs/build_stamp.json changes on every run and is not counted when
-# deciding whether there is a diff (it goes in with the rest of docs/ when there
-# is one); the dashboard shows this workflow's last successful run for "is the
-# page current".
+# The bot's own commit touches golden/ and analysis/, so the job skips itself
+# when that commit is the trigger (github.actor). The site is deployed on every
+# run whether or not anything changed: docs/build_stamp.json is what the
+# dashboard shows for "is the page current".
 name: rebuild
 
 on:
@@ -29,6 +29,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: rebuild-main
@@ -39,6 +41,9 @@ jobs:
     if: github.actor != 'halyard-bot'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -63,8 +68,7 @@ jobs:
         run: python3 golden/build_golden.py --completions supabase
 
       # docs/ is regenerated before the tests run: several tests compare the
-      # built pages with what golden/ now says, so on the old pages they would
-      # fail every time a completion changed the queue. Nothing is committed
+      # built pages with what golden/ now says. Nothing is committed or deployed
       # until the tests pass; a malformed row in the table was set aside in
       # golden/completions_rejected.csv by the step above, never applied.
       - name: Rebuild analysis/ and docs/
@@ -73,17 +77,24 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: python3 build.py --skip-tests
 
-      - name: Tests (a failure here means nothing below is committed)
+      - name: Tests (a failure here means nothing below is committed or deployed)
         run: python3 -m unittest discover tests
 
-      - name: Commit only if something changed
+      - name: Commit golden/ and analysis/ only if something changed
         run: |
           git config user.name halyard-bot
           git config user.email halyard-bot@users.noreply.github.com
-          git add -A golden analysis docs
-          if git diff --staged --quiet -- . ':(exclude)docs/build_stamp.json'; then
+          git add -A golden analysis
+          if git diff --staged --quiet; then
             echo "nothing changed; not committing"
             exit 0
           fi
-          git diff --staged --quiet || git commit -m "rebuild: $(date -u +%Y-%m-%dT%H:%MZ) (${{ github.event_name }})"
+          git commit -m "rebuild: $(date -u +%Y-%m-%dT%H:%MZ) (${{ github.event_name }})"
           git push origin HEAD:main
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
