@@ -16,7 +16,8 @@ analysis/   one folder per question (profile, joins, routing, slack, integrity, 
 dashboard/  the static pages (build_dashboard.py, live_priorities.py/.js, batch_ask.py ...)
 docs/       build output, gitignored: the site (index.html + every tab), routing_flow.png and
             docs/build_stamp.json; the workflow uploads it as the GitHub Pages artifact
-config/     batch_ask_templates.json, supabase_schema.sql (the completions table)
+config/     batch_ask_templates.json, supabase_schema.sql (the completions table),
+            supabase_rebuild_trigger.sql (rebuild the site when a completion lands)
 tests/      python3 -m unittest discover tests (Node on PATH for the JS parity tests)
 ```
 
@@ -30,8 +31,10 @@ python3 build.py dashboard                            # one step
 ```
 
 `--as-of` (or `HALYARD_AS_OF`) freezes the build clock so every page and report says
-"as of" the same day. The scheduled workflow (`.github/workflows/rebuild.yml`) runs
-every 15 minutes: pulls the Supabase `completions` table into `golden/completions.csv`,
+"as of" the same day. The rebuild workflow (`.github/workflows/rebuild.yml`) runs on
+every Submit from the Live Priorities tab (a Postgres trigger on the `completions` table,
+`config/supabase_rebuild_trigger.sql`, fires a `repository_dispatch`) and every 15 minutes
+as a backstop: pulls the Supabase `completions` table into `golden/completions.csv`,
 rebuilds, tests, commits `golden/` and `analysis/` when they changed, and deploys `docs/` to
 GitHub Pages (repo Settings -> Pages -> Source: GitHub Actions). A row the build cannot
 apply is set aside in `golden/completions_rejected.csv` rather than stopping the run.

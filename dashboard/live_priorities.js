@@ -505,7 +505,7 @@ const LP = (function () {
   const actionLabel = { ask_sent: 'ask sent', nudged: 'nudged', chased: 'chased' };
   const describe = r => `${actionLabel[r.action] || r.action} ${esc(r.request_id || r.company_id)}${r.connector ? ` → ${esc(r.connector)}` : ''}`;
 
-  const submitBar = X => `<div class="submitbar" id="lp-submit" hidden><span id="lp-submit-n"></span><button id="lp-submit-go">Submit</button><button id="lp-submit-clear" class="secondary">Clear</button><span id="lp-submit-who"></span><span class="foot">${X.supabase_url ? `Records your ticks in the <code>${esc(X.table)}</code> table; the site rebuilds from it every 15 minutes and the ticked items leave the queue.` : '<b class="warn">This build cannot submit: no Supabase URL / anon key</b>'}</span></div>`;
+  const submitBar = X => `<div class="submitbar" id="lp-submit" hidden><span id="lp-submit-n"></span><button id="lp-submit-go">Submit</button><button id="lp-submit-clear" class="secondary">Clear</button><span id="lp-submit-who"></span><span class="foot">${X.supabase_url ? `Records your ticks in the <code>${esc(X.table)}</code> table; the site rebuilds from it within a few minutes and the ticked items leave the queue.` : '<b class="warn">This build cannot submit: no Supabase URL / anon key</b>'}</span></div>`;
 
   // capOf: roster connector → their card (used, capacity), for the picker's over-capacity note
   function wireCompletions(root, X, state, capOf = {}) {
@@ -580,7 +580,7 @@ const LP = (function () {
       state.ticks.clear(); store('lp-ticks', []); store('lp-submitted', Object.fromEntries(state.submitted));
       syncTicks(root, state);
       const already = got.already.length ? ` ${plural(got.already.length, 'row')} already recorded today (${got.already.map(describe).join('; ')}).` : '';
-      bar.dataset.msg = `<b>Recorded ${plural(got.recorded.length, 'row')}</b> as ${esc(who)}${got.recorded.length ? `: ${got.recorded.map(describe).join('; ')}` : ''}.${already} The site rebuilds from the table every 15 minutes; refresh after that and these leave the queue.`;
+      bar.dataset.msg = `<b>Recorded ${plural(got.recorded.length, 'row')}</b> as ${esc(who)}${got.recorded.length ? `: ${got.recorded.map(describe).join('; ')}` : ''}.${already} The site rebuilds from the table within a few minutes; refresh after that and these leave the queue.`;
       show();
     };
     syncTicks(root, state);
