@@ -136,16 +136,32 @@ def request_states(data):
     return rs.classify(data["requests"], data["outcome_by_request"], rs.current_allocation(data["allocation"]))
 
 
-def dollars(data, request_ids):
-    """The one $ per company (dashboard/company_value.py) across the requests: a
-    company named by several of them counts once, at its CRM ARR potential or
-    else its latest deal value; a request that resolved to no company at its own."""
+def requests_by_company(data):
+    """golden_requests.csv rows by company_id, what company_value prices a company from."""
     by_company = defaultdict(list)
     for g in data["golden_requests"].values():
         if g["company_id"]:
             by_company[g["company_id"]].append(g)
+    return by_company
+
+
+def company_dollars(data, cid):
+    """(usd, source) for one company, dashboard/company_value.py's rule: its CRM ARR
+    potential when it has an account with one, else the deal value on its latest
+    request that carries one."""
+    return cv.company_value(data["golden_companies"].get(cid, {}), requests_by_company(data).get(cid, []))
+
+
+def dollars(data, request_ids):
+    """The one $ per company (dashboard/company_value.py) across the requests: a
+    company named by several of them counts once, at its CRM ARR potential or
+    else its latest deal value; a request that resolved to no company at its own."""
     rows = [data["golden_requests"].get(rid.strip(), {"company_id": "", "value_usd": ""}) for rid in request_ids]
-    return cv.total(rows, data["golden_companies"], by_company)
+    return cv.total(rows, data["golden_companies"], requests_by_company(data))
+
+
+def rids(rows):
+    return [r["request_id"] for r in rows]
 
 
 def in_cycle(data):
@@ -250,30 +266,31 @@ def in_window(r, since):
 
 
 def yield_cut(data, since=None):
-    """What the asks returned: the deal value routed to a connector and the
-    value of the companies that came back as opportunities, each per ask and
-    per intro. The opportunity value is dollars(): one $ per company, so a
-    company with two opportunities logged counts once. `since` keeps requests
-    dated on or after it."""
+    """What the asks returned: the value of the companies routed to a connector
+    and of the ones that came back as opportunities, each per ask and per
+    intro. Every $ is dollars(): one per company, so a company asked twice or
+    with two opportunities logged counts once. `since` keeps requests dated on
+    or after it."""
     req = {r["request_id"].strip(): r for r in data["requests"] if in_window(r, since)}
     asked = [(req[o["request_id"].strip()], o) for o in data["outcomes"] if o["request_id"].strip() in req]
     asks, intros = len(asked), sum(1 for _, o in asked if yes(o, "intro_sent"))
-    routed = sum(money(r["deal_value_usd"]) for r, _ in asked)
+    routed = dollars(data, [o["request_id"] for _, o in asked])
     opp_rows = [o for _, o in asked if yes(o, "opportunity_created")]
-    opp = dollars(data, [o["request_id"] for o in opp_rows])
+    opp = dollars(data, rids(opp_rows))
     opp_companies = {data["golden_requests"].get(o["request_id"].strip(), {}).get("company_id", "") or o["request_id"] for o in opp_rows}
     return {
         "asks": asks, "intros": intros, "opps": len(opp_rows), "opp_companies": len(opp_companies),
         "routed": routed, "routed_per_ask": routed / asks if asks else 0, "routed_per_intro": routed / intros if intros else 0,
         "opp": opp, "opp_per_ask": opp / asks if asks else 0, "opp_per_intro": opp / intros if intros else 0,
-        "requested": sum(money(r["deal_value_usd"]) for r in req.values()),
+        "requested": dollars(data, list(req)),
     }
 
 
 def backlog_cut(data, since=None):
     """Requests that never reached a connector, split by whether the resolved
     company already has a path in golden/supply_reach.csv: those could be asked
-    today, and their deal value is what the backlog is worth."""
+    today, and their companies' value (dollars(): one $ per company) is what
+    the backlog is worth."""
     states = request_states(data)
     reach = defaultdict(set)
     for s in data["supply"]:
@@ -284,20 +301,15 @@ def backlog_cut(data, since=None):
     for r in never:
         cid = data["golden_requests"].get(r["request_id"].strip(), {}).get("company_id", "")
         (with_path if cid and cid in reach else without).append(r)
-    by_company = Counter()
-    value_by_company = Counter()
-    for r in with_path:
-        cid = data["golden_requests"][r["request_id"].strip()]["company_id"]
-        by_company[cid] += 1
-        value_by_company[cid] += money(r["deal_value_usd"])
+    by_company = Counter(data["golden_requests"][r["request_id"].strip()]["company_id"] for r in with_path)
     companies = [{"company_id": cid, "name": data["golden_companies"].get(cid, {}).get("company_name", "") or cid,
-                  "requests": n, "value": value_by_company[cid], "connectors": sorted(reach[cid])}
+                  "requests": n, "value": company_dollars(data, cid)[0], "connectors": sorted(reach[cid])}
                  for cid, n in by_company.most_common()]
     return {
         "total": len(data["requests"]), "in_window": len(windowed),
-        "never": len(never), "never_value": sum(money(r["deal_value_usd"]) for r in never),
-        "with_path": len(with_path), "with_path_value": sum(money(r["deal_value_usd"]) for r in with_path),
-        "without_path": len(without), "without_path_value": sum(money(r["deal_value_usd"]) for r in without),
+        "never": len(never), "never_value": dollars(data, rids(never)),
+        "with_path": len(with_path), "with_path_value": dollars(data, rids(with_path)),
+        "without_path": len(without), "without_path_value": dollars(data, rids(without)),
         "companies": companies,
     }
 
@@ -416,8 +428,10 @@ def company_key(g):
 
 def company_rows(data, since=None):
     """One row per resolved company plus one per unresolvable bucket:
-    demand, routing and outcome counts. `since` (YYYY-MM-DD) keeps only
-    requests dated on or after it, the same rolling window as the funnel."""
+    demand, routing and outcome counts, and the company's one $ (company_dollars:
+    CRM ARR potential, else the deal value on its latest request that carries
+    one). `since` (YYYY-MM-DD) keeps only requests dated on or after it, the
+    same rolling window as the funnel."""
     by_company = {}
     for r in data["requests"]:
         g = data["golden_requests"][r["request_id"]]
@@ -434,13 +448,11 @@ def company_rows(data, since=None):
             "in_crm": bool(gc.get("crm_account_ids")),
             "owner": gc.get("owner", ""),
             "stage": gc.get("stage", ""),
-            "crm_value": money(gc.get("value_usd", 0)) if gc.get("crm_account_ids") else 0.0,
-            "deal_value": 0.0, "requests": 0, "routed": 0, "requesters": set(), "connectors": set(),
+            "requests": 0, "routed": 0, "requesters": set(), "connectors": set(),
             "responded": 0, "intros": 0, "meetings": 0, "opps": 0, "paths": int(gc.get("paths_available") or 0),
         })
         b["requests"] += 1
         b["requesters"].add(r["requested_by"].strip())
-        b["deal_value"] = max(b["deal_value"], money(r["deal_value_usd"]))
         o = data["outcome_by_request"].get(r["request_id"])
         if o:
             b["routed"] += 1
@@ -450,8 +462,8 @@ def company_rows(data, since=None):
             b["meetings"] += yes(o, "meeting_booked")
             b["opps"] += yes(o, "opportunity_created")
     for b in by_company.values():
-        b["value"] = b["crm_value"] or b["deal_value"]
-        b["value_source"] = "CRM" if b["crm_value"] else "deal"
+        value, source = company_dollars(data, b["company_id"]) if b["company_id"] else (0, "none")
+        b["value"], b["value_source"] = float(value), "CRM" if source == "crm" else "deal"
     return list(by_company.values())
 
 
@@ -483,7 +495,10 @@ def top_accounts_cut(data, n=20):
 
 # --------------------------------------------------------------------------- 4. connectors
 def connector_cut(data):
-    """Per-roster-connector funnel, capacity, focus-area hit rate and roster note."""
+    """Per-roster-connector funnel, capacity, focus-area hit rate and roster note.
+    `value` is the companies routed to the connector and `opp_value` the ones
+    that came back as opportunities, each dollars(): one $ per company, so a
+    connector asked twice about a company carries it once."""
     focus = {r["name"].strip(): {f.strip() for f in r["focus_areas"].split(";") if f.strip()} for r in data["roster"]}
     industry_of = {cid: c["industry"] for cid, c in data["golden_companies"].items()}
     stats = {}
@@ -492,9 +507,8 @@ def connector_cut(data):
             "name": r["name"].strip(), "role": r["role"], "type": r["type"], "notes": r["notes"],
             "focus_areas": r["focus_areas"], "capacity": int(r["stated_monthly_capacity"] or 0),
             "asked": 0, "responded": 0, "intros": 0, "meetings": 0, "opps": 0,
-            "value": 0.0, "opp_value": 0.0, "in_focus": 0, "in_focus_intros": 0, "off_focus_intros": 0,
+            "in_focus": 0, "in_focus_intros": 0, "off_focus_intros": 0, "asked_rids": [], "opp_rids": [],
         }
-    request_by_id = {r["request_id"]: r for r in data["requests"]}
     off_roster = Counter()
     for o in data["outcomes"]:
         name = o["connector_asked"].strip()
@@ -507,15 +521,19 @@ def connector_cut(data):
         s["intros"] += yes(o, "intro_sent")
         s["meetings"] += yes(o, "meeting_booked")
         s["opps"] += yes(o, "opportunity_created")
-        s["value"] += money(request_by_id.get(o["request_id"], {}).get("deal_value_usd", 0))
-        s["opp_value"] += money(o["opportunity_value_usd"])
+        s["asked_rids"].append(o["request_id"])
+        if yes(o, "opportunity_created"):
+            s["opp_rids"].append(o["request_id"])
         cid = data["golden_requests"].get(o["request_id"], {}).get("company_id", "")
         if industry_of.get(cid, "") in focus[name]:
             s["in_focus"] += 1
             s["in_focus_intros"] += yes(o, "intro_sent")
         else:
             s["off_focus_intros"] += yes(o, "intro_sent")
+    opp_value = float(dollars(data, [rid for s in stats.values() for rid in s["opp_rids"]]))
     for s in stats.values():
+        s["value"] = float(dollars(data, s.pop("asked_rids")))
+        s["opp_value"] = float(dollars(data, s.pop("opp_rids")))
         s["opp_per_ask"] = s["opp_value"] / s["asked"] if s["asked"] else 0.0
         s["opp_per_intro"] = s["opp_value"] / s["intros"] if s["intros"] else 0.0
     rows = sorted(stats.values(), key=lambda s: -s["asked"])
@@ -523,7 +541,7 @@ def connector_cut(data):
     in_focus = sum(s["in_focus"] for s in rows)
     return {"connectors": rows, "off_roster": off_roster.most_common(),
             "by_return": sorted((s for s in rows if s["asked"]), key=lambda s: (-s["opp_per_ask"], -s["opp_value"], -s["intros"], s["name"])),
-            "asked": asked, "in_focus": in_focus,
+            "asked": asked, "in_focus": in_focus, "opp_value": opp_value,
             "in_focus_intro_rate": sum(s["in_focus_intros"] for s in rows) / in_focus if in_focus else 0,
             "off_focus_intro_rate": sum(s["off_focus_intros"] for s in rows) / (asked - in_focus) if asked > in_focus else 0,
             "months": len({r["request_date"][:7] for r in data["requests"]})}
@@ -677,7 +695,7 @@ def outcome_delta_cut(data):
     return {"requests": len(data["requests"]), "outcomes": len(data["outcomes"]),
             "matched": len(matched), "missing": len(missing), "by_status": by_status.most_common(),
             "should_exist": len(should_exist),
-            "should_exist_value": sum(money(r["deal_value_usd"]) for r in should_exist),
+            "should_exist_value": dollars(data, rids(should_exist)),
             "offered_in_slack": offered,
             "orphan_outcomes": len([o for o in data["outcomes"]
                                     if o["request_id"].strip() not in {r["request_id"] for r in data["requests"]}])}
@@ -685,10 +703,11 @@ def outcome_delta_cut(data):
 
 # --------------------------------------------------------------------------- 10. requesters
 def requester_cut(data):
-    """Per requester (the SDR and the AEs): asks filed, distinct accounts asked for and
-    the CRM value of the ones with an account, intros landed, and how often the ask
-    was declared Critical or High. Companies come from golden/ so a repeat ask for
-    the same account counts one account and its CRM value once."""
+    """Per requester (the SDR and the AEs): asks filed, distinct accounts asked for,
+    how many have a CRM account and what the accounts are worth, intros landed, and
+    how often the ask was declared Critical or High. Companies come from golden/ so
+    a repeat ask for the same account counts one account and its one $ once
+    (company_dollars: CRM ARR potential, else latest deal value)."""
     by = {}
     for r in data["requests"]:
         name = r["requested_by"].strip()
@@ -696,16 +715,16 @@ def requester_cut(data):
         b = by.setdefault(name, {
             "name": name, "role": role, "kind": "SDR" if "SDR" in role.upper() else "AE",
             "requests": 0, "routed": 0, "intros": 0, "unresolved": 0,
-            "companies": set(), "crm_values": {}, "urgency": Counter(),
+            "companies": set(), "crm_companies": set(), "values": {}, "urgency": Counter(),
         })
         b["requests"] += 1
         b["urgency"][r["urgency"].strip().title()] += 1
         cid = data["golden_requests"][r["request_id"]]["company_id"]
         if cid:
             b["companies"].add(cid)
-            gc = data["golden_companies"][cid]
-            if gc["crm_account_ids"]:
-                b["crm_values"][cid] = money(gc["value_usd"])
+            b["values"][cid] = float(company_dollars(data, cid)[0])
+            if data["golden_companies"][cid]["crm_account_ids"]:
+                b["crm_companies"].add(cid)
         else:
             b["unresolved"] += 1
         o = data["outcome_by_request"].get(r["request_id"])
@@ -714,8 +733,8 @@ def requester_cut(data):
             b["intros"] += yes(o, "intro_sent")
     for b in by.values():
         b["accounts"] = len(b["companies"])
-        b["crm_accounts"] = len(b["crm_values"])
-        b["crm_value"] = sum(b["crm_values"].values())
+        b["crm_accounts"] = len(b["crm_companies"])
+        b["value"] = sum(b["values"].values())
         b["intro_rate"] = b["intros"] / b["requests"]
         b["critical"] = b["urgency"]["Critical"]
         b["critical_high"] = b["urgency"]["Critical"] + b["urgency"]["High"]
@@ -723,14 +742,14 @@ def requester_cut(data):
         b["critical_high_share"] = b["critical_high"] / b["requests"]
     rows = sorted(by.values(), key=lambda b: (-b["requests"], b["name"]))
     n = sum(b["requests"] for b in rows)
-    crm_values = {cid: v for b in rows for cid, v in b["crm_values"].items()}
+    values = {cid: v for b in rows for cid, v in b["values"].items()}
     return {"requesters": rows, "requests": n,
             "intros": sum(b["intros"] for b in rows),
             "intro_rate": sum(b["intros"] for b in rows) / n if n else 0.0,
             "critical_share": sum(b["critical"] for b in rows) / n if n else 0.0,
             "critical_high_share": sum(b["critical_high"] for b in rows) / n if n else 0.0,
             "accounts": len({c for b in rows for c in b["companies"]}),
-            "crm_accounts": len(crm_values), "crm_value": sum(crm_values.values()),
+            "crm_accounts": len({c for b in rows for c in b["crm_companies"]}), "value": sum(values.values()),
             "shared_accounts": sum(1 for c in Counter(c for b in rows for c in b["companies"]).values() if c > 1)}
 
 

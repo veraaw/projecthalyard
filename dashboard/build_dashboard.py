@@ -104,7 +104,6 @@ canned_total = sum(n for _, n in canned)
 
 offers = [(rid, m) for rid, m in replies if bg.OFFER_RE.search(m["text"])]
 offers_unlogged = [(rid, m) for rid, m in offers if m["user"].strip() not in asked_by.get(rid, set())]
-offers_unlogged_value = sum(float(requests[rid]["deal_value_usd"] or 0) for rid, _ in offers_unlogged)
 
 ADD_RE = re.compile(r"adding (.+?) who might know", re.I)
 adds = [(rid, ADD_RE.search(m["text"]).group(1).strip()) for rid, m in replies if ADD_RE.search(m["text"])]
@@ -220,6 +219,7 @@ overview_table = ('<table class="fo"><thead><tr><th>Category</th><th>Funnel drop
 # ask log as the build applies it (intro_outcomes.csv + golden/completions.csv, see data_cuts.load)
 cuts = data_cuts.load()
 live_cuts = data_cuts.load("golden")
+offers_unlogged_value = data_cuts.dollars(cuts, sorted({rid for rid, _ in offers_unlogged}))
 joins = data_cuts.join_summary_cut(cuts)
 demand = data_cuts.account_demand_cut(cuts)
 connectors = data_cuts.connector_cut(cuts)
@@ -424,8 +424,8 @@ def days(x):
 def backlog_box(b, population):
     top = ", ".join(f'{c["name"]} ({c["requests"]})' for c in b["companies"][:5])
     return finding(f'{b["never"]} of the {b["in_window"]} requests {population} never reach a connector.',
-                   f'{b["with_path"]} of them are for companies that already have a path in <code>supply_reach.csv</code>, a backlog worth {usd(b["with_path_value"])} '
-                   f'that could be asked today; the other {b["without_path"]} ({usd(b["without_path_value"])}) have no path on file. '
+                   f'{b["with_path"]} of them are for {len(b["companies"])} companies that already have a path in <code>supply_reach.csv</code>, a backlog worth {usd(b["with_path_value"])} '
+                   f'(one $ per company) that could be asked today; the other {b["without_path"]} ({usd(b["without_path_value"])}) have no path on file. '
                    + (f'Most-requested with a path: {top}.' if top else ''), warn=True)
 
 
@@ -541,7 +541,7 @@ def headline_kpis(data):
     {kpi(usd(y["opp_per_ask"]), "return per ask", f"{usd(y['opp_per_intro'])} per intro")}
     {kpi(days(lat["median_to_intro"]), "median ask to intro", f"{days(lat['median_to_ask'])} request to ask")}
     {kpi(days(lat["median_to_resp"]), "median ask to first response", f"over {lat['asks']} asks")}
-    {kpi(usd(b["with_path_value"]), "reachable but never asked", f"{b['with_path']} of {b['total']} requests on file, with a path in supply_reach.csv")}
+    {kpi(usd(b["with_path_value"]), "reachable but never asked", f"{b['with_path']} of {b['total']} requests on file, at {len(b['companies'])} companies with a path in supply_reach.csv, each counted once")}
   </div>"""
 
 
@@ -666,7 +666,7 @@ def strategic_sections(data, cyc, live, in_flight=None):
   <p class="foot">Paths in network = distinct ways to reach the company in <code>golden/supply_reach.csv</code>.</p>
   {demand_table}
   <h3>Top 20 accounts by value</h3>
-  <p class="lede">Value is the CRM <code>arr_potential_usd</code> where the company has a CRM account, otherwise the largest <code>deal_value_usd</code> filed on a request. Internal touchpoints are split into roster connectors employed internally versus advisors and investors.</p>
+  <p class="lede">Value is the company's one $, the rule every $ on these pages follows: the CRM <code>arr_potential_usd</code> where the company has a CRM account, otherwise the <code>deal_value_usd</code> on its latest request that carries one. Internal touchpoints are split into roster connectors employed internally versus advisors and investors.</p>
   {top_table}
 </section>
 {SEG_SCRIPT}
@@ -682,10 +682,10 @@ def strategic_sections(data, cyc, live, in_flight=None):
               hovertemplate="%{y} requests<br>%{customdata} routed to a connector<extra></extra>")],
         "req-asks", "requests")
     req_value_div = requester_chart(req_rows,
-        [dict(y=[b["crm_value"] for b in req_rows], marker_color=theme.ACCENT, text=[usd(b["crm_value"]) for b in req_rows],
-              textposition="outside", customdata=[b["crm_accounts"] for b in req_rows],
-              hovertemplate="$%{y:,.0f} ARR potential<br>across %{customdata} CRM accounts<extra></extra>")],
-        "req-value", "CRM ARR potential", tickformat="$~s")
+        [dict(y=[b["value"] for b in req_rows], marker_color=theme.ACCENT, text=[usd(b["value"]) for b in req_rows],
+              textposition="outside", customdata=[[b["accounts"], b["crm_accounts"]] for b in req_rows],
+              hovertemplate="$%{y:,.0f} across %{customdata[0]} companies<br>%{customdata[1]} of them at CRM ARR potential<extra></extra>")],
+        "req-value", "value, one $ per company", tickformat="$~s")
     req_accounts_div = requester_chart(req_rows,
         [dict(y=[b["crm_accounts"] for b in req_rows], name="With a CRM account", marker_color=theme.ACCENT,
               hovertemplate="%{y} accounts in the CRM<extra></extra>"),
@@ -709,9 +709,9 @@ def strategic_sections(data, cyc, live, in_flight=None):
               hovertemplate="Critical or High on %{customdata[0]} of %{customdata[1]} requests<extra></extra>")],
         "req-urgency", "share of own requests", tickformat=".0%")
     requester_table = table(["Requester", "Role", "Asks", "Routed", "Intros", "Intro rate", "Accounts", "In CRM",
-                             "CRM ARR potential", "Critical", "Critical + High"],
+                             "Value", "Critical", "Critical + High"],
                             [(b["name"], b["role"], b["requests"], b["routed"], b["intros"], f'{b["intro_rate"]:.0%}',
-                              b["accounts"], b["crm_accounts"], usd(b["crm_value"]),
+                              b["accounts"], b["crm_accounts"], usd(b["value"]),
                               f'{b["critical"]} ({b["critical_share"]:.0%})', f'{b["critical_high"]} ({b["critical_high_share"]:.0%})')
                              for b in req_rows])
     req_top = req_rows[0]
@@ -719,13 +719,13 @@ def strategic_sections(data, cyc, live, in_flight=None):
     req_worst_rate = min(req_rows, key=lambda b: b["intro_rate"])
     req_most_critical = max(req_rows, key=lambda b: b["critical_share"])
     req_least_critical = min(req_rows, key=lambda b: b["critical_share"])
-    req_most_value = max(req_rows, key=lambda b: b["crm_value"])
+    req_most_value = max(req_rows, key=lambda b: b["value"])
     req_unresolved = sum(b["unresolved"] for b in req_rows)
     req_title = "The SDR and the Seven AEs" if not live and (n_sdr, n_ae) == (1, 7) else f"{n_sdr} SDR{'s' if n_sdr != 1 else ''} and {n_ae} AE{'s' if n_ae != 1 else ''}"
     requesters_html = f"""
 <section id="requesters">
   <h2>Requesters: {req_title}</h2>
-  <p class="lede">Every request on file grouped by <code>requested_by</code>, in order of asks. Accounts are the distinct companies behind a requester's asks after entity resolution, so asking twice for the same company counts one account, and its CRM <code>arr_potential_usd</code> counts once. Intro rate is intros sent over every request filed, routed or not. Urgency is what the requester declared in <code>urgency</code>.</p>
+  <p class="lede">Every request on file grouped by <code>requested_by</code>, in order of asks. Accounts are the distinct companies behind a requester's asks after entity resolution, so asking twice for the same company counts one account and its one $ once (CRM <code>arr_potential_usd</code> where it has an account, else the <code>deal_value_usd</code> on its latest request). Intro rate is intros sent over every request filed, routed or not. Urgency is what the requester declared in <code>urgency</code>.</p>
   <div class="kpis">
     {kpi(len(req_rows), "requesters", f"{n_sdr} SDR · {n_ae} AEs")}
     {kpi(f"{req_top['requests']}", f"asks from {req_top['name']}", f"{pct(req_top['requests'], requesters['requests'])} of the {requesters['requests']} requests on file, the most of anyone")}
@@ -738,9 +738,9 @@ def strategic_sections(data, cyc, live, in_flight=None):
       {req_asks_div}
     </div>
     <div>
-      <h3>CRM value per requester</h3>
+      <h3>Value per requester</h3>
       {req_value_div}
-      <p class="foot">Sum of <code>arr_potential_usd</code> over the distinct CRM accounts each requester asked for; companies with no CRM record contribute nothing.</p>
+      <p class="foot">One $ per distinct company each requester asked for: CRM <code>arr_potential_usd</code> where it has an account, otherwise its latest <code>deal_value_usd</code>; a company with neither contributes nothing.</p>
     </div>
   </div>
   <div class="grid2">
@@ -761,7 +761,7 @@ def strategic_sections(data, cyc, live, in_flight=None):
     <div>
       <h3>Reading it</h3>
       {finding("Who files the asks.", f"{req_top['name']} ({req_top['kind']}) files the most at {req_top['requests']}, {req_rows[-1]['name']} the fewest at {req_rows[-1]['requests']}; {req_rows[0]['requests'] - req_rows[-1]['requests']} requests separate the top from the bottom of {len(req_rows)} people, over the {n_req} requests on file.")}
-      {finding("Where the CRM value sits.", f"{req_most_value['name']} carries the most at {usd(req_most_value['crm_value'])} across {req_most_value['crm_accounts']} accounts. The bars overlap: {requesters['shared_accounts']} of the {requesters['accounts']} companies requested were asked for by more than one person, so the same account's ARR appears under each of them; de-duplicated, {usd(requesters['crm_value'])} sits behind the {requesters['crm_accounts']} companies with a CRM account. {req_unresolved} of the {n_req} requests on file resolve to no company and count toward asks only.")}
+      {finding("Where the value sits.", f"{req_most_value['name']} carries the most at {usd(req_most_value['value'])} across {req_most_value['accounts']} companies ({req_most_value['crm_accounts']} in the CRM). The bars overlap: {requesters['shared_accounts']} of the {requesters['accounts']} companies requested were asked for by more than one person, so the same company's $ appears under each of them; de-duplicated, {usd(requesters['value'])} sits behind the {requesters['accounts']} companies ({requesters['crm_accounts']} with a CRM account). {req_unresolved} of the {n_req} requests on file resolve to no company and count toward asks only.")}
       {finding(f"Intro rate ranges from {req_worst_rate['intro_rate']:.0%} to {req_best_rate['intro_rate']:.0%}.", f"{req_best_rate['name']} lands {req_best_rate['intros']} intros from their {req_best_rate['requests']} requests of the {n_req} on file; {req_worst_rate['name']} lands {req_worst_rate['intros']} from their {req_worst_rate['requests']}. The whole floor averages {requesters['intro_rate']:.0%}.", warn=True)}
       {finding("Critical means different things to different people.", f"{req_most_critical['name']} marks {req_most_critical['critical_share']:.0%} of their asks Critical, {req_least_critical['name']} {req_least_critical['critical_share']:.0%}. Add High and {requesters['critical_high_share']:.0%} of all requests are in the top two tiers, so urgency barely separates one ask from the next.", warn=True)}
     </div>
@@ -818,7 +818,7 @@ def strategic_sections(data, cyc, live, in_flight=None):
   </div>
   {connector_table}
   <h3>Ranked by return per ask</h3>
-  <p class="lede">Opportunity value logged against a connector's asks, divided by the asks; the roster as a whole returns {usd(sum(c["opp_value"] for c in cs) / cx["asked"] if cx["asked"] else 0)} per ask.</p>
+  <p class="lede">The value of the companies a connector's asks turned into opportunities (one $ per company, CRM ARR potential else latest deal value), divided by the asks; the roster as a whole returns {usd(cx["opp_value"] / cx["asked"] if cx["asked"] else 0)} per ask.</p>
   <div class="grid2">
     <div>{return_chart(cx["by_return"], "connector-return")}</div>
     <div>{return_table}</div>
@@ -1551,7 +1551,7 @@ raw_page = f"""{head("Raw Sept Data Dashboard")}
   <div class="kpis">
     {kpi(f"{canned_total/len(replies):.0%}", "of replies are canned", f"{len(masked)} distinct texts after name masking")}
     {kpi(len(offers), "genuine offers to help", f"across {len({r for r, _ in offers})} threads")}
-    {kpi(f"{len(offers_unlogged)} / {len(offers)}", "offers never logged as asked", usd(offers_unlogged_value) + " of deal value")}
+    {kpi(f"{len(offers_unlogged)} / {len(offers)}", "offers never logged as asked", usd(offers_unlogged_value) + " of company value, one $ per company")}
     {kpi(f"{adds_followed} / {len(adds)}", '"adding X who might know" followed up', "named person later asked")}
     {kpi(len(no_reply), "threads with zero replies", f"{len(no_reply_asked)} asked anyway")}
     {kpi(f"{statistics.median(first_reply_h):.0f} h", "median time to first reply", f"mean {statistics.mean(first_reply_h):.0f} h · max {max(first_reply_h):.0f} h")}
