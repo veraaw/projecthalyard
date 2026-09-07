@@ -39,7 +39,8 @@ from dashboard import data_cuts, theme
 from dashboard.funnel_overview import dropoff_rows, ratios
 from dashboard.live_priorities import (BANDS as PRIORITIES_BANDS, BATCH_PAGE as BATCH_HTML, BUILD_STAMP,
                                        PAGE as PRIORITIES_HTML, batch_fragment, connector_fragments,
-                                       cycles as connector_cycles, fragment as priorities_fragment)
+                                       cycles as connector_cycles, fragment as priorities_fragment,
+                                       in_flight as priorities_in_flight)
 from dashboard.sankey_funnel import build_figure
 from dashboard.trace_section import fragment as trace_fragment, sidebar as trace_sidebar
 from golden import build_golden as bg
@@ -190,13 +191,14 @@ def funnel_table(stg):
                  [(name, c, pct(c, n[0]), pct(c, n[i - 1]) if i else "—") for i, (name, c) in enumerate(stg)])
 
 
-def funnel_kpis(n):
+def funnel_kpis(n, population):
+    """`population` names what n[0] counts: "on file" or "dated <since> or later"."""
     return f"""<div class="kpis">
-    {kpi(n[0], "requests")}
-    {kpi(n[1], "asked", f"{pct(n[1], n[0])} of requests")}
+    {kpi(n[0], "requests", population)}
+    {kpi(n[1], "asked", f"{pct(n[1], n[0])} of the {n[0]} requests {population}")}
     {kpi(n[3], "intros sent", f"{pct(n[3], n[1])} of asks")}
     {kpi(n[4], "meetings", f"{pct(n[4], n[3])} of intros")}
-    {kpi(n[5], "opportunities", f"{pct(n[5], n[0], 1)} of requests end-to-end")}
+    {kpi(n[5], "opportunities", f"{pct(n[5], n[0], 1)} of the {n[0]} requests {population}, end-to-end")}
   </div>"""
 
 overview = dropoff_rows()
@@ -377,67 +379,60 @@ SEG_SCRIPT = """<script>
 
 STRATEGIC_NAV = [("#funnel", "Funnel", ""), ("#accounts", "Accounts", ""), ("#requesters", "Requesters", ""),
                  ("#connectors", "Connectors", ""), ("#latency", "Latency", ""), ("#cycles", "Intros by Cycle", "")]
+LIVE_NAV = STRATEGIC_NAV[:1] + [("#inflight", "Requests in Flight", "")] + STRATEGIC_NAV[1:]
+
+
+def in_flight_section(f):
+    """Every open request in one state, the counts Live Priorities shows in its own sections."""
+    section_label = {sid: label for _, _, sections in PRIORITIES_BANDS for sid, label in sections}
+    by_key = {r["key"]: r for r in f["rows"]}
+    waiting = sum(r["count"] for r in f["rows"] if r["group"] == "Asked, waiting on the connector")
+    on_file = f["open"] + sum(o["count"] for o in f["outside"])
+    body = ""
+    for g in f["groups"]:
+        body += f'<tr class="group"><th colspan="6">{esc(g["group"])} <span class="foot">{g["count"]} of the {f["open"]} in flight</span></th></tr>'
+        for r in f["rows"]:
+            if r["group"] != g["group"]:
+                continue
+            where = (f'<a href="{PRIORITIES_HTML}#{r["section"]}">{esc(section_label[r["section"]])}</a>' if r["section"] else "—")
+            body += (f'<tr><td>{esc(r["label"])}' + (f'<br><span class="foot">{esc(r["note"])}</span>' if r["note"] else "")
+                     + f'</td><td class="num"><b>{r["count"]}</b></td><td class="num">{pct(r["count"], f["open"])}</td>'
+                     f'<td class="num">{esc(r["value_fmt"])}</td><td>{esc(r["next"])}</td><td>{where}</td></tr>')
+    body += f'<tr class="total"><th>All requests in flight</th><th class="num">{f["open"]}</th><th class="num">100%</th><th colspan="3"></th></tr>'
+    outside = " and ".join(f'{o["count"]} filed <code>{esc(o["status"])}</code>' for o in f["outside"])
+    return f"""
+<section id="inflight">
+  <h2>Requests in Flight</h2>
+  <p class="lede">Every request filed Open, Routed or Stalled in <code>golden/golden_requests.csv</code>, plus every request the allocator has this cycle whatever its filed status (a <code>Closed - no path</code> or <code>Intro sent</code> that nobody ever asked), each in exactly one state as of the build. The counts are the ones the <a href="{PRIORITIES_HTML}">Live Priorities</a> tab shows section by section: the queue and its exceptions from <code>golden/golden_allocation.csv</code>, the nudges and chases from the ask log, the parked requests from the live intros. Not in flight, asked and finished: {outside}.</p>
+  <div class="kpis">
+    {kpi(f["open"], "requests in flight", f"of {on_file} requests on file, in {len(f['rows'])} states")}
+    {kpi(by_key["queued"]["count"], "queued this cycle", f"{by_key['no_slot']['count']} more routed with no slot")}
+    {kpi(waiting, "waiting on a connector", f"{by_key['nudge']['count']} nudges and {by_key['chase']['count']} chases owed")}
+    {kpi(by_key["parked"]["count"] + by_key["introduced"]["count"], "on a live intro", f"{by_key['parked']['count']} parked behind one, {by_key['introduced']['count']} introduced")}
+    {kpi(by_key["meeting"]["count"], "meeting booked", by_key["meeting"]["note"] or "no opportunity logged yet")}
+  </div>
+  <table class="inflight"><thead><tr><th>State</th><th>Requests</th><th>Of in flight</th><th>Value</th><th>What happens next</th><th>On Live Priorities</th></tr></thead><tbody>{body}</tbody></table>
+  <p class="foot">Value counts each company once (CRM ARR potential, else the deal value filed), as Live Priorities does. A nudge is owed on an ask the connector agreed to and has not delivered; a chase on one they never answered; either waits {f["quiet_days"]} days after a follow-up. An intro is live for {f["intro_live_days"]} days, or while its meeting has not stalled. Code: <code>dashboard/live_priorities.py</code> (<code>in_flight</code>).</p>
+</section>
+"""
 
 
 def days(x):
     return "—" if x is None else (f"{x:.0f} d" if float(x).is_integer() else f"{x:.1f} d")
 
 
-def yield_strip(y):
-    """Yield under the Sankey: the deal value that reached a connector and the opportunity value that came back."""
-    return f"""<h3>Yield</h3>
-  <div class="kpis">
-    {kpi(usd(y["routed"]), "routed to a connector", f"deal value behind {y['asks']} asks, of {usd(y['requested'])} requested")}
-    {kpi(usd(y["routed_per_ask"]), "routed per ask", f"{usd(y['routed_per_intro'])} per intro")}
-    {kpi(usd(y["opp"]), "opportunity value created", f"{y['opps']} opportunities from {y['asks']} asks")}
-    {kpi(usd(y["opp_per_ask"]), "return per ask", f"{usd(y['opp_per_intro'])} per intro")}
-  </div>"""
-
-
-def backlog_box(b):
+def backlog_box(b, population):
     top = ", ".join(f'{c["name"]} ({c["requests"]})' for c in b["companies"][:5])
-    return finding(f'{b["never"]} requests never reach a connector.',
+    return finding(f'{b["never"]} of the {b["in_window"]} requests {population} never reach a connector.',
                    f'{b["with_path"]} of them are for companies that already have a path in <code>supply_reach.csv</code>, a backlog worth {usd(b["with_path_value"])} '
                    f'that could be asked today; the other {b["without_path"]} ({usd(b["without_path_value"])}) have no path on file. '
                    + (f'Most-requested with a path: {top}.' if top else ''), warn=True)
 
 
-def blockage_donut(bl, div_id):
-    """Three slices for the blocked requests: supply, process, correctly not asked."""
-    kinds = [bl["kinds"]["supply"], bl["kinds"]["process"], bl["kinds"]["closed"]]
-    fig = go.Figure(go.Pie(
-        labels=[k["label"] for k in kinds], values=[k["count"] for k in kinds], hole=.62, sort=False, direction="clockwise",
-        marker=dict(colors=[theme.WARN, theme.ACCENT, theme.NEUTRAL_DARK], line=dict(color=theme.SURFACE, width=2)),
-        text=[f'{k["count"]}' for k in kinds], textinfo="text", textposition="inside", textfont=dict(size=14, color="#fff"),
-        hovertemplate="%{label}: %{value} of " + str(bl["blocked"]) + " (%{percent})<extra></extra>"))
-    fig.update_layout(height=300, autosize=True, margin=dict(l=10, r=10, t=10, b=10), showlegend=True, **theme.PLOTLY_LAYOUT)
-    fig.update_layout(legend=dict(orientation="v", x=1, y=.5, xanchor="left"))
-    fig.add_annotation(text=f'<b>{bl["blocked"]}</b><br><span style="font-size:11px">blocked</span>', x=.5, y=.5, showarrow=False,
-                       font=dict(size=22, color=theme.INK))
-    return plot(fig, div_id)
-
-
-def blockage_view(bl, div_id):
-    """The donut with its reading: who is waiting on a connector and why the rest are blocked."""
-    def reasons(kind):
-        k = bl["kinds"][kind]
-        return ", ".join(f"{r} {n}" for r, n in k["reasons"]) or "none"
-    other = f' Unclassified: {", ".join(f"{r} {n}" for r, n in bl["other"])}.' if bl["other"] else ""
-    return f"""<div class="grid2">
-    <div>{blockage_donut(bl, div_id)}</div>
-    <div>
-      <p class="lede">Of the {bl["never"]} never asked, {bl["allocated"]} are allocated this cycle and not yet asked; {bl["blocked"]} are blocked.</p>
-      {finding(f'Only {bl["supply_share"]:.0%} of the blockage is a missing relationship.',
-               f'Supply {bl["kinds"]["supply"]["count"]}: {reasons("supply")}. Process {bl["kinds"]["process"]["count"]}: {reasons("process")}. '
-               f'Correctly not asked {bl["kinds"]["closed"]["count"]}: {reasons("closed")}.{other}', warn=True)}
-      <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>blockage_cut</code>), from <code>blocked_reason</code> in <code>golden/golden_requests.csv</code>.</p>
-    </div>
-  </div>"""
-
-
-def allocation_donut(ab, div_id):
-    """Three slices over the blocked never-asked requests, bucketed on the allocator's exception_reason;
-    each slice's tooltip lists the exact prefixes it sums."""
+def blockage_donut(ab, div_id, population):
+    """Three slices over the blocked never-asked requests, bucketed on the request's state (the allocator's
+    exception_reason, or the status gate); each slice's tooltip lists the exact states it sums.
+    `population` names the requests the count is of: "on file" or "dated <since> or later"."""
     slices = [ab["slices"][k] for k in ("supply", "process", "closed")]
     sums = ["<br>".join(f'{b["bucket"]} {b["count"]}' for b in s["buckets"]) or "nothing this cycle" for s in slices]
     fig = go.Figure(go.Pie(
@@ -448,12 +443,12 @@ def allocation_donut(ab, div_id):
         hovertemplate="<b>%{label}</b>: %{value} of " + str(ab["blocked"]) + " blocked (%{percent})<br>sums exception_reason:<br>%{customdata}<extra></extra>"))
     fig.update_layout(height=320, autosize=True, margin=dict(l=10, r=10, t=10, b=10), showlegend=True, **theme.PLOTLY_LAYOUT)
     fig.update_layout(legend=dict(orientation="v", x=1, y=.5, xanchor="left"))
-    fig.add_annotation(text=f'<b>{ab["blocked"]}</b><br><span style="font-size:11px">blocked<br>of {ab["total"]} requests on file</span>',
+    fig.add_annotation(text=f'<b>{ab["blocked"]}</b><br><span style="font-size:11px">blocked<br>of {ab["in_window"]} requests {population}</span>',
                        x=.5, y=.5, showarrow=False, font=dict(size=22, color=theme.INK))
     return plot(fig, div_id)
 
 
-def allocation_bucket_text(b):
+def bucket_text(b):
     """A bucket with its count and, where the same bucket holds requests both with and without a
     path on file, that split."""
     without = b["no_path"] + b["unresolved"]
@@ -463,23 +458,49 @@ def allocation_bucket_text(b):
     return f'{b["bucket"]} {b["count"]} ({b["with_path"]} with a path available, {without} without: {", ".join(parts)})'
 
 
-def allocation_blockage_panel(ab, div_id):
-    """The Accounts donut with its caption: what is stated rather than drawn."""
+def blockage_caption(ab, population):
+    """What the donut states rather than draws: the split, every state in each slice, any state no slice
+    claims, and the no-path footnote. `population` as for blockage_donut."""
     def slice_text(kind):
         s = ab["slices"][kind]
-        return f'{s["label"].capitalize()} {s["count"]}: ' + ("; ".join(allocation_bucket_text(b) for b in s["buckets"]) or "none this cycle") + "."
+        return f'{s["label"].capitalize()} {s["count"]}: ' + ("; ".join(bucket_text(b) for b in s["buckets"]) or "none") + "."
     gated = sum(b["no_path"] for b in ab["no_path_gated"])
     gated_text = ", ".join(f'{b["no_path"]} in {b["bucket"]}' for b in ab["no_path_gated"])
-    unmapped = (finding("Outside the wedges.", "Buckets no slice claims: " + "; ".join(allocation_bucket_text(b) for b in ab["unmapped"]) + ".", warn=True)
+    unmapped = (finding("Outside the wedges.", "States no slice claims: " + "; ".join(bucket_text(b) for b in ab["unmapped"]) + ".", warn=True)
                 if ab["unmapped"] else "")
-    return f"""<h3>Blockage by Allocation Exception</h3>
-  <p class="lede">The never-asked requests bucketed by what actually stopped them: the current cycle's <code>exception_reason</code> in <code>golden/golden_allocation.csv</code> (the text before the first colon), or, for a request the allocator never saw, the status it was filed under. <code>blocked_reason</code> is not used here: it ranks what would unblock a request, not why the system stopped.</p>
-  {allocation_donut(ab, div_id)}
-  <p class="lede">{ab["allocated"]} more are allocated this cycle and not yet asked; they carry a <code>routed_to</code> and are not blocked. {ab["never"]} never reach a connector; {ab["blocked"]} of those are blocked.</p>
+    return f"""<p class="lede">{ab["never"]} of the {ab["in_window"]} requests {population} never reach a connector; {ab["blocked"]} of those are blocked. The other {ab["allocated"]} are allocated this cycle and not yet asked; they carry a <code>routed_to</code> and are not blocked.</p>
   {finding(f'Only {ab["supply_share"]:.0%} of the blockage is a missing relationship.', f'{slice_text("supply")} {slice_text("process")} {slice_text("closed")}', warn=True)}
   {unmapped}
-  <p class="foot">{ab["no_path"]} never-asked requests (of {ab["total"]} on file) name a company with no path in <code>supply_reach.csv</code>: the {ab["slices"]["supply"]["count"]} above plus {gated} held before their paths were evaluated{f" ({gated_text})" if gated_text else ""}. That figure overlaps the slices, so it is a footnote, not a wedge.</p>
-  <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>allocation_blockage_cut</code>). Slice tooltips list the exception prefixes they sum: the same vocabulary as Unrouted Exceptions on Live Priorities.</p>"""
+  <p class="foot">{ab["no_path"]} never-asked requests (of the {ab["in_window"]} {population}) name a company with no path in <code>supply_reach.csv</code>: the {ab["slices"]["supply"]["count"]} above plus {gated} held before their paths were evaluated{f" ({gated_text})" if gated_text else ""}. That figure overlaps the slices, so it is a footnote, not a wedge.</p>"""
+
+
+STATE_SOURCE = ('Each request has one state (<code>dashboard/request_state.py</code>, the classifier Live Priorities groups by too): '
+                'in the ask log it is <i>asked</i>; otherwise its row in the current cycle of <code>golden/golden_allocation.csv</code> '
+                'names a connector (<i>allocated, not yet asked</i>) or an <code>exception_reason</code> (its text before the first colon); '
+                'with no row, <i>status gate:</i> a status the allocator does not know (every status on file reaches it; '
+                'a request filed Intro sent with no intro logged is the <i>intro claimed, none logged</i> repair queue). '
+                '<code>blocked_reason</code> is not an input: '
+                'it ranks what would unblock a request, not why the system stopped.')
+
+
+def allocation_blockage_panel(ab, div_id):
+    """The Accounts donut with its caption, over every request on file."""
+    return f"""<h3>Blockage by Allocation Exception</h3>
+  <p class="lede">{STATE_SOURCE}</p>
+  {blockage_donut(ab, div_id, "on file")}
+  {blockage_caption(ab, "on file")}
+  <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>blockage_cut</code>). Slice tooltips list the states they sum: the same vocabulary as Unrouted Exceptions on Live Priorities.</p>"""
+
+
+def blockage_view(bl, div_id, population):
+    """The Remaining Unrouted donut with its reading, for one window of the funnel."""
+    return f"""<div class="grid2">
+    <div>{blockage_donut(bl, div_id, population)}</div>
+    <div>
+      {blockage_caption(bl, population)}
+      <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>blockage_cut</code>). {STATE_SOURCE}</p>
+    </div>
+  </div>"""
 
 
 def blockage_panel(data, window_all):
@@ -488,9 +509,9 @@ def blockage_panel(data, window_all):
     return f"""<div id="unrouted">
   <h3>Remaining Unrouted</h3>
   <div class="seg" id="unrouted-toggle" data-scope="unrouted" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
-  <span class="foot" id="unrouted-window" data-all="{window_all}: {bl['never']} never asked" data-12m="Requests dated {ROLLING_SINCE} or later: {bl_12m['never']} of the {bl['never']} never asked">{window_all}: {bl['never']} never asked</span>
-  <div class="fview" data-view="12m" hidden>{blockage_view(bl_12m, "blockage-12m")}</div>
-  <div class="fview" data-view="all">{blockage_view(bl, "blockage")}</div>
+  <span class="foot" id="unrouted-window" data-all="{window_all}: {bl['never']} of {bl['total']} requests on file never asked" data-12m="Requests dated {ROLLING_SINCE} or later: {bl_12m['never']} of the {bl_12m['in_window']} in the window never asked ({bl['never']} of {bl['total']} on file)">{window_all}: {bl['never']} of {bl['total']} requests on file never asked</span>
+  <div class="fview" data-view="12m" hidden>{blockage_view(bl_12m, "blockage-12m", f"dated {ROLLING_SINCE} or later")}</div>
+  <div class="fview" data-view="all">{blockage_view(bl, "blockage", "on file")}</div>
   </div>"""
 
 
@@ -526,11 +547,11 @@ def headline_kpis(data):
     {kpi(usd(y["opp_per_ask"]), "return per ask", f"{usd(y['opp_per_intro'])} per intro")}
     {kpi(days(lat["median_to_intro"]), "median ask to intro", f"{days(lat['median_to_ask'])} request to ask")}
     {kpi(days(lat["median_to_resp"]), "median ask to first response", f"over {lat['asks']} asks")}
-    {kpi(usd(b["with_path_value"]), "reachable but never asked", f"{b['with_path']} requests with a path in supply_reach.csv")}
+    {kpi(usd(b["with_path_value"]), "reachable but never asked", f"{b['with_path']} of {b['total']} requests on file, with a path in supply_reach.csv")}
   </div>"""
 
 
-def strategic_sections(data, cyc, live):
+def strategic_sections(data, cyc, live, in_flight=None):
     """The five sections the two data dashboards share (funnel, accounts, requesters, connectors,
     intros by cycle), rendered from one data_cuts.load() result and one cycles dict. `live` picks
     the wording and the source lines: the Live Data tab reads golden/ with the ask log as the
@@ -562,18 +583,17 @@ def strategic_sections(data, cyc, live):
   <div class="seg" id="funnel-toggle" data-scope="funnel" role="tablist"><button class="on" data-view="all" role="tab">Cumulative</button><button data-view="12m" role="tab">Last 12 months</button></div>
   <span class="foot" id="funnel-window" data-all="{window_all}" data-12m="Requests dated {ROLLING_SINCE} or later ({counts_12m[0]} of {counts[0]}), rolling from the build date">{window_all}</span>
   <div class="fview" data-view="12m" hidden>
-  {funnel_kpis(counts_12m)}
+  {funnel_kpis(counts_12m, f"dated {ROLLING_SINCE} or later")}
   {sankey(stages_12m, "sankey-12m")}
-  {backlog_box(data_cuts.backlog_cut(data, since=ROLLING_SINCE))}
+  {backlog_box(data_cuts.backlog_cut(data, since=ROLLING_SINCE), f"dated {ROLLING_SINCE} or later")}
   </div>
   <div class="fview" data-view="all">
-  {funnel_kpis(counts)}
+  {funnel_kpis(counts, "on file")}
   {sankey(stages, "sankey")}
-  {backlog_box(data_cuts.backlog_cut(data))}
+  {backlog_box(data_cuts.backlog_cut(data), "on file")}
   </div>
   {blockage_panel(data, window_all)}
   <div class="fview" data-view="12m" hidden>
-  {yield_strip(data_cuts.yield_cut(data, since=ROLLING_SINCE))}
   <div class="grid2">
     <div>
       <h3>Stage table, last 12 months</h3>
@@ -581,14 +601,13 @@ def strategic_sections(data, cyc, live):
     </div>
     <div>
       <h3>Reading it</h3>
-      {finding("The biggest leak is still before anyone is asked.", f"{counts_12m[0]-counts_12m[1]} of {counts_12m[0]} requests ({pct(counts_12m[0]-counts_12m[1], counts_12m[0])}) never reach a connector.", warn=True)}
+      {finding("The biggest leak is still before anyone is asked.", f"{counts_12m[0]-counts_12m[1]} of the {counts_12m[0]} requests dated {ROLLING_SINCE} or later ({pct(counts_12m[0]-counts_12m[1], counts_12m[0])}) never reach a connector.", warn=True)}
       {finding("Once asked.", f"{pct(counts_12m[2], counts_12m[1])} respond, {pct(counts_12m[3], counts_12m[2])} of responders send the intro, {pct(counts_12m[4], counts_12m[3])} of intros book a meeting, {pct(counts_12m[5], counts_12m[4])} of meetings create an opportunity.")}
       <p class="foot">Same stages and source as the cumulative view, restricted to <code>request_date &gt;= {ROLLING_SINCE}</code>; the window moves every time the page is rebuilt.</p>
     </div>
   </div>
   </div>
   <div class="fview" data-view="all">
-  {yield_strip(data_cuts.yield_cut(data))}
   <div class="grid2">
     <div>
       <h3>Stage table</h3>
@@ -596,7 +615,7 @@ def strategic_sections(data, cyc, live):
     </div>
     <div>
       <h3>Reading it</h3>
-      {finding("The biggest leak is before anyone is asked.", f"{counts[0]-counts[1]} of {counts[0]} requests ({pct(counts[0]-counts[1], counts[0])}) never reach a connector, a larger drop than every downstream stage combined.", warn=True)}
+      {finding("The biggest leak is before anyone is asked.", f"{counts[0]-counts[1]} of the {counts[0]} requests on file ({pct(counts[0]-counts[1], counts[0])}) never reach a connector, a larger drop than every downstream stage combined.", warn=True)}
       {finding("Once asked, the funnel is healthy-ish.", f"{pct(counts[2], counts[1])} respond, {pct(counts[3], counts[2])} of responders send the intro, {pct(counts[4], counts[3])} of intros book a meeting, {pct(counts[5], counts[4])} of meetings create an opportunity.")}
       {finding("Status and outcomes disagree.", f"{len(mismatch)} of the {counts[5]} opportunity requests still show status Open/Stalled/Routed in {status_file}" + (f" ({', '.join(mismatch)})." if mismatch else "."))}
       <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>funnel_cut</code>), drawn by <code>dashboard/sankey_funnel.py</code>.</p>
@@ -604,7 +623,7 @@ def strategic_sections(data, cyc, live):
   </div>
   </div>
 </section>
-"""
+""" + (in_flight_section(in_flight) if in_flight else "")
 
     # accounts
     demand = data_cuts.account_demand_cut(data)
@@ -628,11 +647,11 @@ def strategic_sections(data, cyc, live):
     accounts = f"""
 <section id="accounts">
   <h2>Account-Level Demand</h2>
-  <p class="lede">Asks per company after entity resolution ({len(demand["companies"])} distinct companies behind {n_req - unresolvable_asks} of {n_req} requests, by <code>company_id</code> from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked. The {unresolvable_asks} asks that resolve to no company are grouped by why rather than by the name written.{" Industry, owner and ARR are the CRM's, as <code>golden/golden_companies.csv</code> carries them after the last rebuild." if live else ""}</p>
+  <p class="lede">Asks per company after entity resolution ({len(demand["companies"])} distinct companies behind {n_req - unresolvable_asks} of the {n_req} requests on file, by <code>company_id</code> from <code>golden/golden_requests.csv</code>), split by whether a connector was ever asked. The {unresolvable_asks} asks that resolve to no company are grouped by why rather than by the name written.{" Industry, owner and ARR are the CRM's, as <code>golden/golden_companies.csv</code> carries them after the last rebuild." if live else ""}</p>
   <div class="kpis">
     {kpi(len(demand["companies"]), "distinct companies requested", f"{demand['repeat_share']:.0%} of asks are for a repeat company")}
     {kpi(demand["singletons"], "companies asked exactly once", f"{len(demand['companies']) - demand['singletons']} asked more than once")}
-    {kpi(most["requests"], f"asks for {most['name']}", "the most-requested company")}
+    {kpi(most["requests"], f"asks for {most['name']}", f"the most-requested company, of {n_req} requests on file")}
     {kpi(sum(1 for b in demand["companies"] if b["routed"] == 0), "companies never routed once", "nobody was asked for any of their requests")}
   </div>
   <div class="grid2">
@@ -647,10 +666,10 @@ def strategic_sections(data, cyc, live):
       <h3>Reading it</h3>
       {finding("Demand is concentrated and repetitive.", f"{demand['repeat_share']:.0%} of all asks are for a company that was already requested at least once. The same {len(demand['companies']) - demand['singletons']} companies come back again and again, which is what the duplicate-checking in Slack is reacting to.", warn=True)}
       {finding("Some companies are asked repeatedly and never routed.", f"{', '.join(never_routed)} each have multiple asks and zero connector rows.", warn=True) if never_routed else finding("Every company in the top 20 has been routed at least once.", "No repeat company is still waiting for its first ask.")}
-      {finding("Unresolvable asks cluster too.", f"{unresolvable_asks} requests resolve to no company at all: " + "; ".join(f'{b["requests"]} {b["name"].strip("()")}' for b in demand["unresolvable"]) + ". They sit at the bottom of the detail table and are excluded from the company counts above.")}
+      {finding("Unresolvable asks cluster too.", f"{unresolvable_asks} of the {n_req} requests on file resolve to no company at all: " + "; ".join(f'{b["requests"]} {b["name"].strip("()")}' for b in demand["unresolvable"]) + ". They sit at the bottom of the detail table and are excluded from the company counts above.")}
     </div>
   </div>
-  {allocation_blockage_panel(data_cuts.allocation_blockage_cut(data), "allocation-blockage") if live else ""}
+  {allocation_blockage_panel(data_cuts.blockage_cut(data), "allocation-blockage") if live else ""}
   <h3>Per-company detail</h3>
   <p class="foot">Paths in network = distinct ways to reach the company in <code>golden/supply_reach.csv</code>.</p>
   {demand_table}
@@ -717,8 +736,8 @@ def strategic_sections(data, cyc, live):
   <p class="lede">Every request on file grouped by <code>requested_by</code>, in order of asks. Accounts are the distinct companies behind a requester's asks after entity resolution, so asking twice for the same company counts one account, and its CRM <code>arr_potential_usd</code> counts once. Intro rate is intros sent over every request filed, routed or not. Urgency is what the requester declared in <code>urgency</code>.</p>
   <div class="kpis">
     {kpi(len(req_rows), "requesters", f"{n_sdr} SDR · {n_ae} AEs")}
-    {kpi(f"{req_top['requests']}", f"asks from {req_top['name']}", f"{pct(req_top['requests'], requesters['requests'])} of {requesters['requests']} requests, the most of anyone")}
-    {kpi(f"{requesters['intro_rate']:.0%}", "intro rate across every requester", f"{requesters['intros']} intros / {requesters['requests']} requests · {req_best_rate['intro_rate']:.0%} ({req_best_rate['name']}) to {req_worst_rate['intro_rate']:.0%} ({req_worst_rate['name']})")}
+    {kpi(f"{req_top['requests']}", f"asks from {req_top['name']}", f"{pct(req_top['requests'], requesters['requests'])} of the {requesters['requests']} requests on file, the most of anyone")}
+    {kpi(f"{requesters['intro_rate']:.0%}", "intro rate across every requester", f"{requesters['intros']} intros / {requesters['requests']} requests on file · {req_best_rate['intro_rate']:.0%} ({req_best_rate['name']}) to {req_worst_rate['intro_rate']:.0%} ({req_worst_rate['name']})")}
     {kpi(f"{requesters['critical_share']:.0%}", "of requests declared Critical", f"{requesters['critical_high_share']:.0%} Critical or High")}
   </div>
   <div class="grid2">
@@ -749,9 +768,9 @@ def strategic_sections(data, cyc, live):
     </div>
     <div>
       <h3>Reading it</h3>
-      {finding("Who files the asks.", f"{req_top['name']} ({req_top['kind']}) files the most at {req_top['requests']}, {req_rows[-1]['name']} the fewest at {req_rows[-1]['requests']}; {req_rows[0]['requests'] - req_rows[-1]['requests']} requests separate the top from the bottom of {len(req_rows)} people.")}
-      {finding("Where the CRM value sits.", f"{req_most_value['name']} carries the most at {usd(req_most_value['crm_value'])} across {req_most_value['crm_accounts']} accounts. The bars overlap: {requesters['shared_accounts']} of the {requesters['accounts']} companies requested were asked for by more than one person, so the same account's ARR appears under each of them; de-duplicated, {usd(requesters['crm_value'])} sits behind the {requesters['crm_accounts']} companies with a CRM account. {req_unresolved} requests resolve to no company and count toward asks only.")}
-      {finding(f"Intro rate ranges from {req_worst_rate['intro_rate']:.0%} to {req_best_rate['intro_rate']:.0%}.", f"{req_best_rate['name']} lands {req_best_rate['intros']} intros from {req_best_rate['requests']} requests; {req_worst_rate['name']} lands {req_worst_rate['intros']} from {req_worst_rate['requests']}. The whole floor averages {requesters['intro_rate']:.0%}.", warn=True)}
+      {finding("Who files the asks.", f"{req_top['name']} ({req_top['kind']}) files the most at {req_top['requests']}, {req_rows[-1]['name']} the fewest at {req_rows[-1]['requests']}; {req_rows[0]['requests'] - req_rows[-1]['requests']} requests separate the top from the bottom of {len(req_rows)} people, over the {n_req} requests on file.")}
+      {finding("Where the CRM value sits.", f"{req_most_value['name']} carries the most at {usd(req_most_value['crm_value'])} across {req_most_value['crm_accounts']} accounts. The bars overlap: {requesters['shared_accounts']} of the {requesters['accounts']} companies requested were asked for by more than one person, so the same account's ARR appears under each of them; de-duplicated, {usd(requesters['crm_value'])} sits behind the {requesters['crm_accounts']} companies with a CRM account. {req_unresolved} of the {n_req} requests on file resolve to no company and count toward asks only.")}
+      {finding(f"Intro rate ranges from {req_worst_rate['intro_rate']:.0%} to {req_best_rate['intro_rate']:.0%}.", f"{req_best_rate['name']} lands {req_best_rate['intros']} intros from their {req_best_rate['requests']} requests of the {n_req} on file; {req_worst_rate['name']} lands {req_worst_rate['intros']} from their {req_worst_rate['requests']}. The whole floor averages {requesters['intro_rate']:.0%}.", warn=True)}
       {finding("Critical means different things to different people.", f"{req_most_critical['name']} marks {req_most_critical['critical_share']:.0%} of their asks Critical, {req_least_critical['name']} {req_least_critical['critical_share']:.0%}. Add High and {requesters['critical_high_share']:.0%} of all requests are in the top two tiers, so urgency barely separates one ask from the next.", warn=True)}
     </div>
   </div>
@@ -880,7 +899,8 @@ def strategic_sections(data, cyc, live):
 """
     # latency
     lat = data_cuts.latency_cut(data)
-    allocated = data_cuts.blockage_cut(data)["allocated"]
+    unrouted = data_cuts.blockage_cut(data)
+    allocated, on_file = unrouted["allocated"], unrouted["total"]
     lat_rows = [(m["month"], m["requests"], m["asked"], days(m["to_ask"]), days(m["to_resp"]), days(m["to_intro"])) for m in lat["monthly"]]
     lat_table = table(["Month requested", "Requests", "Asked", "Request to ask", "Ask to response", "Ask to intro"], lat_rows)
     with_data = [m for m in lat["monthly"] if m["to_ask"] is not None]
@@ -899,7 +919,7 @@ def strategic_sections(data, cyc, live):
     {kpi(days(lat["median_to_ask"]), "median request to ask", f"over {lat['asks']} asks")}
     {kpi(days(lat["median_to_resp"]), "median ask to first response")}
     {kpi(days(lat["median_to_intro"]), "median ask to intro")}
-    {kpi(f"{lat['max_to_ask']} d", "longest a request waited before it was asked", f"{lat['waiting_past_max']} unasked requests are already older than that")}
+    {kpi(f"{lat['max_to_ask']} d", "longest a request waited before it was asked", f"{lat['waiting_past_max']} of {on_file} requests on file are unasked and already older than that")}
   </div>
   {latency_chart(lat["monthly"], "latency-chart")}
   <div class="grid2">
@@ -909,7 +929,7 @@ def strategic_sections(data, cyc, live):
     </div>
     <div>
       <h3>Reading it</h3>
-      {finding("A request not asked inside a week is never asked.", f"Every one of the {lat['asks']} asks on file went out within {lat['max_to_ask']} days of the request ({lat['asked_within_week']} of {lat['asks']} inside seven); the {lat['waiting_past_max']} requests still unasked are all older than that and, on this record, will stay unasked unless someone picks them up; {allocated} of them are allocated this cycle.", warn=True)}
+      {finding("A request not asked inside a week is never asked.", f"Every one of the {lat['asks']} asks on file went out within {lat['max_to_ask']} days of the request ({lat['asked_within_week']} of {lat['asks']} inside seven); the {lat['waiting_past_max']} of the {on_file} requests on file still unasked are all older than that and, on this record, will stay unasked unless someone picks them up; {allocated} of them are allocated this cycle.", warn=True)}
       {trend}
       <p class="foot">Code: <code>dashboard/data_cuts.py</code> (<code>latency_cut</code>). A month's medians cover the requests filed that month, whenever the ask, response or intro happened.</p>
     </div>
@@ -1019,6 +1039,10 @@ td:nth-child(n+2):not(:last-child).num,th.num{{text-align:right}}
 .fo tr.ratio td{{color:var(--mute);border-bottom:none;padding-top:10px}}
 .fo tr.ratio td.num{{color:var(--ink);font-weight:600}}
 table.cycles td.num,table.cycles th.num{{text-align:right;white-space:nowrap}}
+table.inflight td.num,table.inflight th.num{{text-align:right;white-space:nowrap}}
+table.inflight tr.group th{{color:var(--ink);font-weight:600;font-size:13px;padding-top:18px;border-bottom-color:var(--line)}}
+table.inflight tr.group th .foot{{font-weight:400;margin-left:6px}}
+table.inflight tr.total th{{color:var(--ink);font-weight:600;font-size:14px;border-top:1px solid var(--ink);border-bottom:none}}
 table.cycles td.date{{font-family:var(--mono);font-size:12.5px;white-space:nowrap}}
 table.cycles tr.now td{{background:{theme.rgba(theme.BATON, 0.08)};font-weight:500}}
 table.cycles tr.now td .foot{{font-weight:400}}
@@ -1706,14 +1730,14 @@ live_page = f"""{head("Live Data Dashboard")}
   <p>Funnel, accounts, requesters and connectors: {len(live_cuts["requests"])} requests after entity resolution, with every ask sent since · Source: <code>golden/</code>, rebuilt from <code>dataset/</code> and Supabase by the rebuild workflow · {built}</p>
 </header>
 <div class="layout">
-{sidebar(STRATEGIC_NAV)}
+{sidebar(LIVE_NAV)}
 <main>
 
 {headline_kpis(live_cuts)}
 
 <p class="lede part-lede">Computed from <code>golden/</code> (<code>golden_requests.csv</code>, <code>golden_companies.csv</code>, <code>supply_reach.csv</code>, <code>completions.csv</code>) after entity resolution, so companies are counted by identity rather than by how the name was typed. The ask log is <code>intro_outcomes.csv</code> with <code>golden/completions.csv</code> applied: a Submit on <a href="{PRIORITIES_HTML}">Live Priorities</a> lands in Supabase, the rebuild pulls it into <code>completions.csv</code>, and the ask counts here from that build on; requests added later, CRM changes and new <code>intro_outcomes.csv</code> rows flow in the same way, through <code>python3 golden/build_golden.py</code>. The <a href="{RAW_HTML}">Raw Sept Data Dashboard</a> has the same charts from the September exports alone.</p>
 
-{strategic_sections(live_cuts, connector_cycles(TODAY), live=True)}
+{strategic_sections(live_cuts, connector_cycles(TODAY), live=True, in_flight=priorities_in_flight(TODAY))}
 
 <p class="foot">Regenerate with <code>python3 build.py dashboard</code>; <code>python3 golden/build_golden.py --completions supabase</code> first to pick up asks sent since the last build. Everything on this tab is computed from <code>golden/</code> at build time. The <a href="{TRACE_HTML}">Company Trace</a> tab has the full history of any one company.</p>
 </main>
