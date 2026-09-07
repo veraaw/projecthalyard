@@ -47,6 +47,7 @@ from os.path import commonprefix
 from analysis.crm import writeback as wb
 from analysis.trace import all_traces
 from dashboard import batch_ask
+from dashboard import request_state as rs
 from golden import build_golden as bg
 from golden import intake
 from golden import parse as gp
@@ -111,6 +112,10 @@ IN_FLIGHT_STATES = [
     ("meeting", "Introduced", "Meeting booked", "the rep logs the opportunity", "stages"),
     ("other", "Not yet asked", "Open, nothing on file", "", ""),
 ]
+# why a request is in the ranked queue, in the order the Top Priorities header lists them
+CONSIDERED_BY = [("allocated", "allocated a slot this cycle"), ("no_slot", "routed, no slot this cycle"),
+                 ("held", "held on an unresolved ask"), ("asked", "asked already, no slot for the retry"),
+                 ("other", "ranked on a best path")]
 THREADS_COMMAND = "python3 golden/build_golden.py --threads {file} && python3 build.py"
 # the heads-up to the account owner behind an allocation row's notify_owner (build_golden.NOTIFY_STAGES);
 # drafted here so it can be copied, never sent
@@ -210,10 +215,12 @@ class Live:
         self.supply = bg.read_csv(GOLDEN / "supply_reach.csv")
         self.history = bg.read_allocation(GOLDEN / "golden_allocation.csv")
         self.allocation = bg.latest_cycle(self.history)
-        self.alloc_by_rid = {a["request_id"]: a for a in self.allocation}
+        self.alloc_by_rid = rs.current_allocation(self.history)
         self.completions = bg.load_completions()
         self.outcomes = bg.with_completions(bg.read_csv(CURRENT / "intro_outcomes.csv"), self.completions)
         self.outcome_by_rid = {o["request_id"]: o for o in self.outcomes}
+        # one state per request, the classifier Live Data's cuts use (dashboard/request_state.py)
+        self.states = rs.classify(self.requests, self.outcome_by_rid, self.alloc_by_rid)
         self.raw = {r["request_id"]: r for r in bg.read_csv(CURRENT / "intro_requests.csv")}
         self.accounts = {a["account_id"]: a for a in bg.read_csv(CURRENT / "crm_accounts.csv")}
         self.roster = bg.load_roster()
@@ -714,8 +721,35 @@ class Live:
         rows = self.ranked()
         rest = rows[TOP_N:]
         return {"top": rows[:TOP_N], "rest": rest, "considered": len(rows), "formula": self.formula(),
+                "considered_by": self.considered_by(rows),
                 "rest_value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in rest])),
                 "rest_no_slot": sum(1 for r in rest if not r["allocated"])}
+
+    def considered_by(self, rows: list[dict]) -> list[dict]:
+        """The ranked queue split by why each request is in it: allocated a slot this
+        cycle, routed but out of slots, or held on an unresolved ask (the allocator's
+        exception, still ranked on its best path). Each split says how many of its
+        requests are a retry after a fizzled intro; a retry is allocated like any
+        first ask, but one left without a slot stays in the request_state it already
+        has (asked) rather than counting as routed-but-out-of-slots twice."""
+        def why(r: dict) -> str:
+            if r["allocated"]:
+                return "allocated"
+            state = self.states[r["request_id"]]
+            if state == bg.CAPACITY_EXHAUSTED:
+                return "no_slot"
+            if state == bg.UNRESOLVED_ASK:
+                return "held"
+            if state == rs.ASKED:
+                return "asked"
+            return "other"
+        groups = defaultdict(list)
+        for r in rows:
+            groups[why(r)].append(r)
+        return [{"key": key, "label": label, "count": len(groups[key]),
+                 "retries": sum(1 for r in groups[key] if r["retry"]),
+                 "request_ids": sorted(r["request_id"] for r in groups[key])}
+                for key, label in CONSIDERED_BY if groups[key]]
 
     # -- 3. current asks ------------------------------------------------------
     def batch_companies(self, rows: list[dict]) -> list[dict]:
@@ -805,14 +839,19 @@ class Live:
         for a in self.allocation:
             if a["allocated_to"] and a["company_id"]:
                 routed_at[a["company_id"]].append({"request_id": a["request_id"], "connector": a["allocated_to"]})
+        # the allocator's exceptions, grouped by the request's state: the classified table filtered to the
+        # states an exception_reason names (asked, allocated and status-gated requests are not here)
         exceptions: dict[str, list[dict]] = defaultdict(list)
         no_slot = 0
         for a in self.allocation:
-            if a["exception_reason"].startswith(bg.CAPACITY_EXHAUSTED):
+            state = self.states[a["request_id"]]
+            if state in (rs.ASKED, rs.ALLOCATED) or state.startswith(rs.STATUS_GATE):
+                continue
+            if state == bg.CAPACITY_EXHAUSTED:
                 no_slot += 1
-            elif a["exception_reason"]:
-                reason, _, detail = a["exception_reason"].partition(": ")
-                exceptions[reason].append({
+            else:
+                detail = a["exception_reason"].partition(": ")[2]
+                exceptions[state].append({
                     "request_id": a["request_id"], **self.company_ref(a["company_id"], a["company_name"]),
                     "detail": detail,
                     "routed_here": sorted(routed_at.get(a["company_id"], []), key=lambda r: r["request_id"]),
@@ -830,7 +869,8 @@ class Live:
                              for b in out for c in b["companies"]),
                             key=lambda c: (-c["value_usd"], c["company_name"]))
         return {
-            "cycle": self.cycle, "allocated": sum(b["size"] for b in out), "batches": out,
+            "cycle": self.cycle, "on_file": len(self.requests), "cycle_size": len(self.alloc_by_rid),
+            "allocated": sum(b["size"] for b in out), "batches": out,
             "all": everything, "notify_count": sum(len(c["notify"]) for c in everything), "value_fmt": money(self.dollars_total([self.by_rid[a["request_id"]] for b in batches.values() for a in b])),
             "exceptions": [{"reason": k, "count": len(v), "value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in v])),
                             "rows": v} for k, v in sorted(exceptions.items(), key=lambda kv: -len(kv[1]))],
@@ -905,11 +945,12 @@ class Live:
         the re-ask. One followed up in the last NUDGE_QUIET_DAYS (nudged_on, from
         completions.csv) is `quiet`: listed, not actionable, until the period ends.
         `blocking` lists the live requests at the company this ask left with no
-        askable path (the allocator's unresolved-ask exceptions). Actionable rows
-        first, oldest ask first; the quiet ones last."""
+        askable path (the requests in the unresolved-ask state, as the exceptions
+        section lists them). Actionable rows first, oldest ask first; the quiet
+        ones last."""
         blocked = defaultdict(list)
         for a in self.allocation:
-            if a["exception_reason"].startswith(bg.UNRESOLVED_ASK):
+            if self.states[a["request_id"]] == bg.UNRESOLVED_ASK:
                 blocked[a["company_id"]].append(a["request_id"])
         rows = []
         for o in self.outcomes:
@@ -978,20 +1019,20 @@ class Live:
                 outside[r["status_as_filed"]] += 1
                 continue
             rid = r["request_id"]
-            o, a = self.outcome_by_rid.get(rid), self.alloc_by_rid.get(rid)
+            o, a, state = self.outcome_by_rid.get(rid), self.alloc_by_rid.get(rid), self.states[rid]
             if rid in sitting:
                 s = "quiet" if sitting[rid]["quiet"] else sitting[rid]["action"]
             elif a and a["allocated_to"]:
                 s = "queued"
-            elif a and a["exception_reason"].startswith(bg.CAPACITY_EXHAUSTED):
+            elif state == bg.CAPACITY_EXHAUSTED:
                 s = "no_slot"
             elif a and a["exception_reason"].startswith(bg.ALREADY_INTRODUCED):
                 s = "parked"
-            elif a and a["exception_reason"].startswith(bg.NO_PATH):
+            elif state == bg.NO_PATH:
                 s = "no_path"
-            elif a and a["exception_reason"].startswith(bg.UNRESOLVED_ASK):
+            elif state == bg.UNRESOLVED_ASK:
                 s = "held"
-            elif a:
+            elif a and state != rs.ASKED:
                 s = "unresolved"
             elif (o and o["meeting_booked"] == "Y") or r["meeting_booked"] == "Y":
                 s = "meeting"
@@ -1114,6 +1155,7 @@ class Live:
         pages = {c["connector"]: c["page"] for c in self.connector_pages()}
         return {
             "as_of": self.today.isoformat(), "cycle": self.cycle, "trace_page": TRACE_PAGE,
+            "cycle_size": len(self.alloc_by_rid),
             "messages": [{**m, "page": pages.get(m["connector"], ""),
                           "requests": [{**q, **self.company_ref(q["company_id"], q["company_name"]), "value_fmt": money(self.dollars(q["company_id"], q["value_usd"]))}
                                        for q in m["requests"]]} for m in messages],
@@ -1143,7 +1185,7 @@ class Live:
             mine = [dict(r, rank_here=i) for i, r in enumerate((r for r in self.ranked() if r["connector"] == name), 1)]
             out.append({
                 **self.connector_card(name),
-                "top": mine[:TOP_N], "rest": mine[TOP_N:], "ranked_count": len(mine),
+                "top": mine[:TOP_N], "rest": mine[TOP_N:], "ranked_count": len(mine), "cycle_size": len(self.alloc_by_rid),
                 "ranked_value_fmt": money(self.dollars_total([self.by_rid[r["request_id"]] for r in mine])),
                 "no_slot": sum(1 for r in mine if not r["allocated"]),
                 "strongest_elsewhere": self.strongest_elsewhere(name),
@@ -1371,6 +1413,8 @@ class Live:
     def payload(self) -> dict:
         return {
             "as_of": self.today.isoformat(), "cycle": self.cycle, "trace_page": TRACE_PAGE, "batch_page": BATCH_PAGE,
+            # the two populations every request count on the page is stated against
+            "on_file": len(self.requests), "cycle_size": len(self.alloc_by_rid),
             "bands": [{"id": bid, "title": title, "sections": [sid for sid, _ in sections]}
                       for bid, title, sections in BANDS],
             "stages": self.stages(), "priorities": self.priorities(), "asks": self.asks(), "introduced": self.introduced(),
