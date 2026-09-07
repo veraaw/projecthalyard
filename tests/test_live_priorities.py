@@ -233,6 +233,9 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(A["repair_days"], bg.REPAIR_DAYS)
         ranked = {r["request_id"] for r in L.ranked()}
         self.assertTrue(all(a["request_id"] in ranked for a in no_slot), "every no-slot request is on the ranked list")
+        parked = {a["request_id"] for a in alloc
+                  if a["exception_reason"].startswith((bg.ALREADY_INTRODUCED, bg.INTRO_CLAIMED_NOT_LOGGED))}
+        self.assertTrue(parked and not parked & ranked, "nothing parked on a live intro or in the repair queue is offered as an ask")
         # the requests the allocator took back from Closed - no path / Intro sent say so on every
         # row they land on; the repair queue is the one place a claim is held rather than reopened
         reopened = {a["request_id"]: bg.reopened(a) for a in alloc if a["status_as_filed"] in bg.REOPEN_STATUSES}

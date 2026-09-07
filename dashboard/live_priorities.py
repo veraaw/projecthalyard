@@ -592,7 +592,9 @@ class Live:
     def ranked(self) -> list[dict]:
         """Every live not-yet-asked request (golden_allocation.csv) with a connector
         to act on, scored expected value = request priority x connector score and
-        sorted best first. Computed once; priorities() and connector_pages() slice it."""
+        sorted best first. Requests parked on a live intro or in the repair queue
+        are not askable and stay off the list. Computed once; priorities() and
+        connector_pages() slice it."""
         if self._ranked is not None:
             return self._ranked
         allocated = [a for a in self.allocation if a["allocated_to"]]
@@ -607,7 +609,7 @@ class Live:
         rows = []
         for a in self.allocation:
             cid = a["company_id"]
-            if not cid or a["exception_reason"].startswith(bg.ALREADY_INTRODUCED):
+            if not cid or a["exception_reason"].startswith((bg.ALREADY_INTRODUCED, bg.INTRO_CLAIMED_NOT_LOGGED)):
                 continue
             if a["allocated_to"]:
                 connector, p = a["allocated_to"], self.path_for(a)
