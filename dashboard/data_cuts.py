@@ -23,11 +23,14 @@ from dashboard import company_value as cv
 from dashboard import request_state as rs
 from golden import build_golden as bg
 from golden.clock import as_of
-from paths import CURRENT, GOLDEN as GOLDEN_DIR, JOINS
+from paths import CURRENT, DATASET, GOLDEN as GOLDEN_DIR, JOINS
 
-DATA = str(CURRENT)
 GOLDEN = str(GOLDEN_DIR)
-SOURCES = ("dataset", "golden")
+# where each source reads the export files: the Raw Sept tab from the September
+# export itself, the Live Data tab from dataset/ with the accepted uploads applied
+SOURCE_DIRS = {"dataset": str(DATASET), "golden": str(CURRENT)}
+SOURCES = tuple(SOURCE_DIRS)
+DATA = SOURCE_DIRS["golden"]
 
 DUP_CHECK = re.compile(r"same as|already (?:lose|lost|ask|asked|have)|did we not already|didn'?t we|last month|duplicate", re.I)
 
@@ -37,8 +40,8 @@ def _rows(path):
         return list(csv.DictReader(f))
 
 
-def dataset(name):
-    return _rows(os.path.join(DATA, name))
+def dataset(name, base=DATA):
+    return _rows(os.path.join(base, name))
 
 
 def golden(name):
@@ -81,51 +84,96 @@ RAW_SHAPE = ("request_id", "requested_by", "requester_role", "request_date", "ra
              "target_title_raw", "deal_value_usd", "urgency", "path_found_flag", "status")
 
 
+def september_requests(golden_requests, raw_requests):
+    """golden_requests.csv cut down to the September export: only the requests
+    intro_requests.csv has, each carrying the export's own deal value, date and
+    status, so a later upload that changes a request (or a request golden
+    carried forward after the export dropped it) never reaches the Raw Sept tab.
+    Only the resolution (company_id, resolved_by, company_as_written) is golden's,
+    since a raw name string does not join to anything on its own."""
+    out = {}
+    for r in raw_requests:
+        g = golden_requests.get(r["request_id"])
+        if g is None:
+            continue
+        out[r["request_id"]] = dict(g, value_usd=bg.money(r["deal_value_usd"]), request_date=r["request_date"].strip(),
+                                    status_as_filed=r["status"].strip(), requested_by=r["requested_by"].strip())
+    return out
+
+
+def september_companies(golden_companies, crm):
+    """golden_companies.csv priced from the September crm_accounts.csv: the
+    company's one $ is the largest arr_potential_usd among its accounts as the
+    export filed them (build_golden's rule), and only accounts the export has
+    count as its CRM record, so a CRM upload accepted later moves the Live Data
+    tab and not this one."""
+    arr = {a["account_id"].strip(): int(bg.money(a["arr_potential_usd"]) or 0) for a in crm}
+    out = {}
+    for cid, c in golden_companies.items():
+        ids = [i for i in c["crm_account_ids"].split(bg.MULTI) if i in arr]
+        out[cid] = dict(c, crm_account_ids=bg.MULTI.join(ids), value_usd=str(max(arr[i] for i in ids)) if ids else "")
+    return out
+
+
 def load(source="dataset", completions=None):
     """Everything the cuts need, joined on request_id / company_id.
 
-    source="dataset": requests and the ask log as the September exports state
-    them. source="golden": every request golden_requests.csv holds (the raw
-    export's rows, plus requests carried forward after the export dropped them
-    or ingested from Slack threads with `build_golden.py --threads`), and the
-    ask log with golden/completions.csv applied, so an ask sent from Live
-    Priorities counts from the moment the rebuild pulls it from Supabase and a
-    re-ask after a fizzled intro is `reasked_date`. Either way the company
-    behind a request is its golden company_id, and the CRM facts (industry,
-    owner, ARR) are golden_companies.csv's, rebuilt from crm_accounts.csv on
-    every run. `completions` stands in for golden/completions.csv (tests)."""
+    source="dataset" (the Raw Sept tab): every export file from dataset/, the
+    September export itself, with requests and the ask log as it states them,
+    no completion, no allocation, and each company priced from the export's
+    crm_accounts.csv (september_requests / september_companies). An upload
+    accepted since, a Submit on Live Priorities or this cycle's allocation
+    never reaches it. source="golden" (the Live Data tab): every export file
+    from golden/current/ (dataset/ with the accepted uploads applied), every
+    request golden_requests.csv holds (the export's rows, plus requests carried
+    forward after the export dropped them or ingested from Slack threads with
+    `build_golden.py --threads`), the ask log with golden/completions.csv
+    applied, so an ask sent from Live Priorities counts from the moment the
+    rebuild pulls it from Supabase and a re-ask after a fizzled intro is
+    `reasked_date`, the CRM facts (industry, owner, ARR) as golden_companies.csv
+    carries them after the last rebuild, and the current cycle's allocation.
+    Either way the company behind a request is its golden company_id.
+    `completions` stands in for golden/completions.csv (tests)."""
     if source not in SOURCES:
         raise ValueError(f"source must be one of {SOURCES}, not {source!r}")
-    raw_requests = dataset("intro_requests.csv")
-    golden_requests = golden("golden_requests.csv")
+    base = SOURCE_DIRS[source]
+    raw_requests = dataset("intro_requests.csv", base)
+    golden_requests = {r["request_id"]: r for r in golden("golden_requests.csv")}
+    golden_companies = {c["company_id"]: c for c in golden("golden_companies.csv")}
+    crm = dataset("crm_accounts.csv", base)
     if source == "golden":
         raw_by_id = {r["request_id"]: r for r in raw_requests}
         roles = {r["requested_by"].strip(): r["requester_role"] for r in raw_requests if r["requester_role"].strip()}
         extra = [c for c in (raw_requests[0] if raw_requests else {}) if c not in RAW_SHAPE]
-        requests = [as_filed(g, raw_by_id.get(g["request_id"], {}), roles, extra) for g in golden_requests]
+        requests = [as_filed(g, raw_by_id.get(g["request_id"], {}), roles, extra) for g in golden_requests.values()]
         completions = bg.load_completions() if completions is None else completions
-        outcomes = bg.with_completions(dataset("intro_outcomes.csv"), completions)
+        outcomes = bg.with_completions(dataset("intro_outcomes.csv", base), completions)
+        allocation = bg.read_allocation(GOLDEN_DIR / "golden_allocation.csv")
     else:
         requests = raw_requests
         completions = []
-        outcomes = dataset("intro_outcomes.csv")
-    with open(os.path.join(DATA, "slack_threads.jsonl"), encoding="utf-8") as f:
+        outcomes = dataset("intro_outcomes.csv", base)
+        golden_requests = september_requests(golden_requests, raw_requests)
+        golden_companies = september_companies(golden_companies, crm)
+        allocation = []
+    with open(os.path.join(base, "slack_threads.jsonl"), encoding="utf-8") as f:
         threads = [json.loads(line) for line in f if line.strip()]
     return {
         "source": source,
+        "dir": base,
         "requests": requests,
         "outcomes": outcomes,
         "outcome_by_request": {o["request_id"].strip(): o for o in outcomes},
         "completions": completions,
-        "crm": dataset("crm_accounts.csv"),
-        "roster": dataset("connector_roster.csv"),
-        "investors": dataset("investor_network.csv"),
-        "connections": [r for p in sorted(glob.glob(os.path.join(DATA, "connections_*.csv"))) for r in _rows(p)],
+        "crm": crm,
+        "roster": dataset("connector_roster.csv", base),
+        "investors": dataset("investor_network.csv", base),
+        "connections": [r for p in sorted(glob.glob(os.path.join(base, "connections_*.csv"))) for r in _rows(p)],
         "threads": threads,
-        "golden_requests": {r["request_id"]: r for r in golden_requests},
-        "golden_companies": {c["company_id"]: c for c in golden("golden_companies.csv")},
+        "golden_requests": golden_requests,
+        "golden_companies": golden_companies,
         "supply": golden("supply_reach.csv"),
-        "allocation": bg.read_allocation(GOLDEN_DIR / "golden_allocation.csv"),
+        "allocation": allocation,
     }
 
 
