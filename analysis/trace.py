@@ -290,6 +290,20 @@ class Trace:
         r = self.d.roster.get(connector)
         return fit(r, self.c["industry"]) if r else 0.7
 
+    def industry_fallback(self) -> dict | None:
+        """The first roster connector whose stated focus covers this company.
+
+        This is a sourcing suggestion only when no reach is on file; it does not
+        become a path or change the allocator's routing order.
+        """
+        if self.paths or not self.c["industry"]:
+            return None
+        for connector, roster_row in self.d.roster.items():
+            if self.c["industry"] in roster_row["focus"]:
+                return {"connector": connector, "industry": self.c["industry"],
+                        "role": roster_row["role"], "type": roster_row["type"]}
+        return None
+
     def rate_of(self, connector: str) -> float:
         return self.d.rates.get(connector, PRIOR_RATE)
 
@@ -583,7 +597,10 @@ class Trace:
     # -- section 3 --------------------------------------------------------------
     def reach(self) -> list[str]:
         if not self.paths:
-            return ["nobody in the network reaches this company"]
+            fallback = self.industry_fallback()
+            return (["nobody in the network reaches this company",
+                     f"suggested roster fallback: {fallback['connector']} covers {fallback['industry']}"]
+                    if fallback else ["nobody in the network reaches this company"])
         note = (f"; {INVESTOR_NETWORK} rows rank below every roster path and take a {round((1 - NETWORK_HAIRCUT) * 100)}% haircut on route score"
                 if any(p["reach_type"] == INVESTOR_NETWORK for p in self.paths) else "")
         out = [f"in the allocator's order: the tiers below, then route score = strength x focus fit x delivery rate within each{note}"]
@@ -762,6 +779,7 @@ class Trace:
             },
             "disagreements": [d[2:] for d in self.disagreements()],
             "route": self.current_route(),
+            "industry_fallback": self.industry_fallback(),
             "reach": [{"route_score": round(self.route_score(p), 3), "strength": float(p["strength"]),
                        "fit": round(self.fit_of(p["connector"]), 2), "rate": round(self.rate_of(p["connector"]), 3),
                        "connector": p["connector"], "connector_type": p["connector_type"],
