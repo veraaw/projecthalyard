@@ -34,10 +34,10 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Elena Duvall at capacity 3/3, outside focus (Logistics), not asked again here: Elena Duvall agreed on 2025-08-24 (R1197), no intro - nudge -> R1024 to Marcus Aldridge; R1041 unrouted (capacity exhausted)
 
-## 4. Chronology (25 events, 4 requests, newest first, as of 2026-09-06)
+## 4. Chronology (25 events, 4 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1197 said yes 378 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Elena Duvall         R1197 said yes 379 days ago and never forwarded
 ++ 2025-08-24  intro_outcomes.csv   Elena Duvall         R1197 replied (10 days after the ask)
    2025-08-14  intro_outcomes.csv   Elena Duvall         R1197 asked
    2025-08-10  slack_threads.jsonl  Nadia Okonkwo        R1197 slack: "adding Rafael Salcedo who might know"
@@ -65,5 +65,5 @@ why not #1: Elena Duvall at capacity 3/3, outside focus (Logistics), not asked a
    2025-12-02  slack_threads.jsonl  Hana Nakashima       R1041 slack: "trying to reach SVP Digital at Apex Logistics — anyone have a path?"
    2025-12-02  intro_requests.csv   Hana Nakashima       R1041 raised by Hana Nakashima (AE, Healthcare): wants SVP Digital, $750,000, Medium urgency, filed "Open"
 
-!! 2026-04-03  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1001  [156 days ago, nothing since]
+!! 2026-04-03  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1001  [157 days ago, nothing since]
 ```

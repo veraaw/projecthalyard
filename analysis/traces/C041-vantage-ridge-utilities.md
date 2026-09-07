@@ -33,7 +33,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Ravi Underhill-Halloran investor network, roster asked first -> R1001 to Marcus Aldridge
 
-## 4. Chronology (9 events, 2 requests, newest first, as of 2026-09-06)
+## 4. Chronology (9 events, 2 requests, newest first, as of 2026-09-07)
 
 ```
    2026-04-16  slack_threads.jsonl  Nadia Okonkwo        R1001 slack: "no idea sorry"
@@ -46,7 +46,7 @@ why not #1: Ravi Underhill-Halloran investor network, roster asked first -> R100
    2026-01-29  slack_threads.jsonl  Imani Mkhize         R1111 slack: "who do we know at Vantage Ridge Utilities? Chief Operating Officer would be ideal but I'll take anyone senior"
 !! 2026-01-29  intro_requests.csv   Imani Mkhize         R1111 raised by Imani Mkhize (Enterprise AE, West): wants Chief Operating Officer, $1,200,000, Medium urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
 
-!! 2026-03-19  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1007  [171 days ago, nothing since]
+!! 2026-03-19  crm_accounts.csv     Rafael Salcedo       last CRM touch on A1007  [172 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

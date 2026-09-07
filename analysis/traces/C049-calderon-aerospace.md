@@ -30,12 +30,12 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
-| 0.144 | 0.452 | Priya Raghunathan (Investor) | direct | Camille Fairweather — VP Engineering | connections_raghunathan.csv: Camille Fairweather, VP Engineering at Calderon Aerospace, connected 2026-08-05 | Priya Raghunathan asked on 2026-02-15 (R1068), no reply for 203 days - askable, ranked last |
+| 0.144 | 0.452 | Priya Raghunathan (Investor) | direct | Camille Fairweather — VP Engineering | connections_raghunathan.csv: Camille Fairweather, VP Engineering at Calderon Aerospace, connected 2026-08-05 | Priya Raghunathan asked on 2026-02-15 (R1068), no reply for 204 days - askable, ranked last |
 
-## 4. Chronology (11 events, 2 requests, newest first, as of 2026-09-06)
+## 4. Chronology (11 events, 2 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1068 never replied (asked 2026-02-15, 203 days ago)
+<- 2026-09-07  intro_outcomes.csv   Priya Raghunathan    R1068 never replied (asked 2026-02-15, 204 days ago)
    2026-02-15  intro_outcomes.csv   Priya Raghunathan    R1068 asked
    2026-02-14  slack_threads.jsonl  Rafael Salcedo       R1068 slack: "long shot — Calderon Aerospace. Emeka Ingleby-Brenneman (Chief Digital Officer). Anyone?"
 !! 2026-02-14  intro_requests.csv   Rafael Salcedo       R1068 raised by Rafael Salcedo (AE, Transport & Logistics): wants Chief Digital Officer, $150,000, Medium urgency, filed "Closed - no path"  [4 paths in supply_reach.csv]

@@ -33,10 +33,10 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 |---|---|---|---|---|---|---|
 | 0.000 | 0.600 | Elena Duvall (Advisor) | direct | Sunniva Oldfield — Chief Operating Officer | connections_duvall.csv: Sunniva Oldfield, Chief Operating Officer at Glasspoint Health, connected 2027-08-22 | Elena Duvall agreed on 2026-03-07 (R1025), no intro - nudge |
 
-## 4. Chronology (9 events, 1 request, newest first, as of 2026-09-06)
+## 4. Chronology (9 events, 1 request, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1025 said yes 183 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Elena Duvall         R1025 said yes 184 days ago and never forwarded
 ++ 2026-03-07  intro_outcomes.csv   Elena Duvall         R1025 replied (7 days after the ask)
    2026-02-28  intro_outcomes.csv   Elena Duvall         R1025 asked
    2026-02-28  slack_threads.jsonl  Curtis Hartigan      R1025 slack: "adding Bertrand Vandermolen who might know"

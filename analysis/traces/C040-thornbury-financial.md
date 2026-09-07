@@ -18,7 +18,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (14 events, 3 requests, newest first, as of 2026-09-06)
+## 4. Chronology (14 events, 3 requests, newest first, as of 2026-09-07)
 
 ```
    2025-09-18  slack_threads.jsonl  Yusuf Petrossian     R1105 slack: "bumping this"
@@ -37,5 +37,5 @@ nobody in the network reaches this company
    2025-08-06  slack_threads.jsonl  Hana Nakashima       R1164 slack: "looking for a path to Marisol Glückstein-Havercamp — email domain is thornburyfinancial.com, that's all I have"
 !! 2025-08-06  intro_requests.csv   Hana Nakashima       R1164 raised by Hana Nakashima (AE, Healthcare): wants Director of Software Engineering, $150,000, Low urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
 
-!! 2026-02-12  crm_accounts.csv     Sloane Fairweather   last CRM touch on A1015  [206 days ago, nothing since]
+!! 2026-02-12  crm_accounts.csv     Sloane Fairweather   last CRM touch on A1015  [207 days ago, nothing since]
 ```

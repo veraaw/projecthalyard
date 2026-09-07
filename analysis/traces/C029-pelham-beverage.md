@@ -27,7 +27,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: parked on live intro (R1176, Imani Mkhize, 2026-04-19, meeting booked): R1047, R1200
 
-## 4. Chronology (17 events, 3 requests, newest first, as of 2026-09-06)
+## 4. Chronology (17 events, 3 requests, newest first, as of 2026-09-07)
 
 ```
 ++ 2026-04-19  intro_outcomes.csv   Imani Mkhize         R1176 opportunity created, $400,000
@@ -49,5 +49,5 @@ why not #1: parked on live intro (R1176, Imani Mkhize, 2026-04-19, meeting booke
    2025-08-17  slack_threads.jsonl  Rafael Salcedo       R1047 slack: "Calderon Aerospace introduced us to Kestrel Airlines, but the account I actually need is Pelham Beverage (Director of Software Engineering)."
    2025-08-17  intro_requests.csv   Rafael Salcedo       R1047 raised by Rafael Salcedo (AE, Transport & Logistics): wants Director of Software Engineering, $250,000, High urgency, filed "Stalled"
 
-!! 2026-01-20  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1043  [229 days ago, nothing since]
+!! 2026-01-20  crm_accounts.csv     Yusuf Petrossian     last CRM touch on A1043  [230 days ago, nothing since]
 ```

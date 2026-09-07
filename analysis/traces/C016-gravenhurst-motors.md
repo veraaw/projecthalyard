@@ -44,10 +44,10 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
-| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Head of Platform | slack_threads.jsonl R1115 2026-02-20 Priya Raghunathan: "their Head of Platform reports to someone I've known for a decade, leave it with me" | Priya Raghunathan asked on 2026-01-02 (R1058), no reply for 247 days - askable, ranked last |
-| 0.147 | 0.720 | Priya Raghunathan (Investor) | investor | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Gravenhurst Motors, board_seat=False | Priya Raghunathan asked on 2026-01-02 (R1058), no reply for 247 days - askable, ranked last |
-| 0.058 | 0.285 | Priya Raghunathan (Investor) | direct | Priya Fairweather — Head of Platform Engineering | connections_raghunathan.csv: Priya Fairweather, Head of Platform Engineering at Gravenhurst Motors, connected 2016-11-20 | Priya Raghunathan asked on 2026-01-02 (R1058), no reply for 247 days - askable, ranked last |
-| 0.038 | 0.187 | Priya Raghunathan (Investor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_raghunathan.csv: connection of Priya Raghunathan since 2016-11-20 | Priya Raghunathan asked on 2026-01-02 (R1058), no reply for 247 days - askable, ranked last |
+| 0.164 | 0.800 | Priya Raghunathan (Investor) | offer | Head of Platform | slack_threads.jsonl R1115 2026-02-20 Priya Raghunathan: "their Head of Platform reports to someone I've known for a decade, leave it with me" | Priya Raghunathan asked on 2026-01-02 (R1058), no reply for 248 days - askable, ranked last |
+| 0.147 | 0.720 | Priya Raghunathan (Investor) | investor | CEO / exec team — Redtree Capital portfolio company | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Gravenhurst Motors, board_seat=False | Priya Raghunathan asked on 2026-01-02 (R1058), no reply for 248 days - askable, ranked last |
+| 0.058 | 0.285 | Priya Raghunathan (Investor) | direct | Priya Fairweather — Head of Platform Engineering | connections_raghunathan.csv: Priya Fairweather, Head of Platform Engineering at Gravenhurst Motors, connected 2016-11-20 | Priya Raghunathan asked on 2026-01-02 (R1058), no reply for 248 days - askable, ranked last |
+| 0.038 | 0.187 | Priya Raghunathan (Investor) | alumni | Priya Fairweather — ex-Gravenhurst Motors (2014-2019), now Head of Platform Engineering at Gravenhurst Motors | investor_network.csv: Priya Fairweather prior_employer=Gravenhurst Motors (2014-2019); connections_raghunathan.csv: connection of Priya Raghunathan since 2016-11-20 | Priya Raghunathan asked on 2026-01-02 (R1058), no reply for 248 days - askable, ranked last |
 
 **not asked again here - an unresolved ask (nudge or chase) owns it** (1 path)
 
@@ -57,10 +57,10 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting booked): R1143, R1158, R1185
 
-## 4. Chronology (56 events, 9 requests, newest first, as of 2026-09-06)
+## 4. Chronology (56 events, 9 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Hana Nakashima       R1108 said yes 318 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Hana Nakashima       R1108 said yes 319 days ago and never forwarded
 ++ 2025-10-23  intro_outcomes.csv   Hana Nakashima       R1108 replied (12 days after the ask)
    2025-10-13  slack_threads.jsonl  Curtis Hartigan      R1108 slack: "bumping this"
    2025-10-11  intro_outcomes.csv   Hana Nakashima       R1108 asked
@@ -70,7 +70,7 @@ why not #1: parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting bo
    2025-10-09  slack_threads.jsonl  Yusuf Petrossian     R1108 slack: "any connections into Gravenhurst Motors? we're up against a renewal window and I need an intro to VP Engineering"
    2025-10-09  intro_requests.csv   Yusuf Petrossian     R1108 raised by Yusuf Petrossian (SDR Lead): wants VP Engineering, $250,000, Critical urgency, filed "Stalled"
 
-<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1058 never replied (asked 2026-01-02, 247 days ago)
+<- 2026-09-07  intro_outcomes.csv   Priya Raghunathan    R1058 never replied (asked 2026-01-02, 248 days ago)
    2026-01-03  slack_threads.jsonl  Hana Nakashima       R1058 slack: "adding Curtis Hartigan who might know"
    2026-01-02  intro_outcomes.csv   Priya Raghunathan    R1058 asked
    2026-01-02  slack_threads.jsonl  Rafael Salcedo       R1058 slack: "what's the deal size here?"
@@ -124,7 +124,7 @@ why not #1: parked on live intro (R1122, Curtis Hartigan, 2026-08-10, meeting bo
    2025-10-30  slack_threads.jsonl  Rafael Salcedo       R1158 slack: "any connections into Gravenhurst Motors? we're up against a renewal window and I need an intro to Head of Platform Engineering"
    2025-10-30  intro_requests.csv   Rafael Salcedo       R1158 raised by Rafael Salcedo (AE, Transport & Logistics): wants Head of Platform Engineering, $750,000, Critical urgency, filed "Open"
 
-!! 2026-01-07  crm_accounts.csv     Sloane Fairweather   last CRM touch on A1041  [242 days ago, nothing since]
+!! 2026-01-07  crm_accounts.csv     Sloane Fairweather   last CRM touch on A1041  [243 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

@@ -43,22 +43,22 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: Priya Raghunathan at capacity 3/3 (holds R1055) -> R1075 to Amara Brenneman-Fairweather
 
-## 4. Chronology (48 events, 9 requests, newest first, as of 2026-09-06)
+## 4. Chronology (48 events, 9 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1199 never replied (asked 2025-12-09, 271 days ago)
+<- 2026-09-07  intro_outcomes.csv   Elena Duvall         R1199 never replied (asked 2025-12-09, 272 days ago)
    2025-12-09  intro_outcomes.csv   Elena Duvall         R1199 asked
    2025-12-09  slack_threads.jsonl  Sloane Fairweather   R1199 slack: "what's the deal size here?"
    2025-12-09  slack_threads.jsonl  Curtis Hartigan      R1199 slack: "any connections into Vireo Systems? we're up against a renewal window and I need an intro to Chief Digital Officer"
    2025-12-09  intro_requests.csv   Curtis Hartigan      R1199 raised by Curtis Hartigan (AE, Financial Services): wants Chief Digital Officer, $750,000, High urgency, filed "Open"
 
-<- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1166 said yes 289 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Elena Duvall         R1166 said yes 290 days ago and never forwarded
 ++ 2025-11-21  intro_outcomes.csv   Elena Duvall         R1166 replied (8 days after the ask)
    2025-11-13  intro_outcomes.csv   Elena Duvall         R1166 asked
    2025-11-08  slack_threads.jsonl  Rafael Salcedo       R1166 slack: "need help getting to Vireo Systems. Gideon Achterberg-Thackeray is the Chief Operating Officer there, cold outbound is going nowhere"
 !! 2025-11-08  intro_requests.csv   Rafael Salcedo       R1166 raised by Rafael Salcedo (AE, Transport & Logistics): wants Chief Operating Officer, $750,000, High urgency, filed "Closed - no path"  [4 paths in supply_reach.csv]
 
-<- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1155 never replied (asked 2026-07-01, 67 days ago)
+<- 2026-09-07  intro_outcomes.csv   Elena Duvall         R1155 never replied (asked 2026-07-01, 68 days ago)
    2026-07-01  intro_outcomes.csv   Elena Duvall         R1155 asked
    2026-07-01  slack_threads.jsonl  Yusuf Petrossian     R1155 slack: "what's the deal size here?"
    2026-06-30  slack_threads.jsonl  Yusuf Petrossian     R1155 slack: "is this the same as the one from last month?"
@@ -66,7 +66,7 @@ why not #1: Priya Raghunathan at capacity 3/3 (holds R1055) -> R1075 to Amara Br
    2026-06-28  slack_threads.jsonl  Hana Nakashima       R1155 slack: "long shot — Vireo Systems. Niall Jarrold-Norrington (VP Engineering). Anyone?"
 !! 2026-06-28  intro_requests.csv   Hana Nakashima       R1155 raised by Hana Nakashima (AE, Healthcare): wants VP Engineering, $1,200,000, Low urgency, filed "Intro sent"  [no intro in intro_outcomes.csv; same title as R1075, 123 days earlier]
 
-<- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1131 never replied (asked 2026-06-25, 73 days ago)
+<- 2026-09-07  intro_outcomes.csv   Elena Duvall         R1131 never replied (asked 2026-06-25, 74 days ago)
    2026-06-25  intro_outcomes.csv   Elena Duvall         R1131 asked
    2026-06-24  slack_threads.jsonl  Bertrand Vandermolen R1131 slack: "wrong channel? this feels like a partner ask"
    2026-06-24  slack_threads.jsonl  Nadia Okonkwo        R1131 slack: "no idea sorry"
@@ -74,7 +74,7 @@ why not #1: Priya Raghunathan at capacity 3/3 (holds R1055) -> R1075 to Amara Br
    2026-06-20  slack_threads.jsonl  Rafael Salcedo       R1131 slack: "trying to reach Chief Data Officer at Vireo Systems. I know we sell into Volney Industrial Systems and Larchmont Aerospace — could either of those relationships get us there?"
    2026-06-20  intro_requests.csv   Rafael Salcedo       R1131 raised by Rafael Salcedo (AE, Transport & Logistics): wants Chief Data Officer, $1,200,000, Low urgency, filed "Stalled"
 
-<- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1107 said yes 296 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Elena Duvall         R1107 said yes 297 days ago and never forwarded
 ++ 2025-11-14  intro_outcomes.csv   Elena Duvall         R1107 replied (5 days after the ask)
    2025-11-09  intro_outcomes.csv   Elena Duvall         R1107 asked
    2025-11-07  slack_threads.jsonl  Yusuf Petrossian     R1107 slack: "no idea sorry"
@@ -83,7 +83,7 @@ why not #1: Priya Raghunathan at capacity 3/3 (holds R1055) -> R1075 to Amara Br
    2025-11-05  slack_threads.jsonl  Nadia Okonkwo        R1107 slack: "long shot — Vireo Systems. Ilse Vandermolen-Grimsby (Head of Developer Productivity). Anyone?"
 !! 2025-11-05  intro_requests.csv   Nadia Okonkwo        R1107 raised by Nadia Okonkwo (AE, Industrials): wants Head of Developer Productivity, $750,000, High urgency, filed "Intro sent"  [no intro in intro_outcomes.csv]
 
-<- 2026-09-06  intro_outcomes.csv   Elena Duvall         R1060 never replied (asked 2025-08-19, 383 days ago)
+<- 2026-09-07  intro_outcomes.csv   Elena Duvall         R1060 never replied (asked 2025-08-19, 384 days ago)
    2025-08-19  intro_outcomes.csv   Elena Duvall         R1060 asked
    2025-08-15  slack_threads.jsonl  Nadia Okonkwo        R1060 slack: "does anyone know anyone at Vireo Systems? looking for VP Enterprise Architecture, ideally warm"
    2025-08-15  intro_requests.csv   Nadia Okonkwo        R1060 raised by Nadia Okonkwo (AE, Industrials): wants VP Enterprise Architecture, $80,000, Medium urgency, filed "Open"

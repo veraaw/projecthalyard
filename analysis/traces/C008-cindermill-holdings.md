@@ -34,16 +34,16 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 | route score | strength | connector | reach | contact | evidence | unresolved ask |
 |---|---|---|---|---|---|---|
-| 0.049 | 0.426 | Owen Trask (Investor) | direct | Leandro Brenneman — Director of Software Engineering | connections_trask.csv: Leandro Brenneman, Director of Software Engineering at Cindermill Mining, connected 2023-10-26 | Owen Trask asked on 2026-06-26 (R1015), no reply for 72 days - askable, ranked last |
-| 0.038 | 0.330 | Owen Trask (Investor) | direct | Bertrand Glückstein — Chief Data Officer | connections_trask.csv: Bertrand Glückstein, Chief Data Officer at Cindermill Mining, connected 2015-05-17 | Owen Trask asked on 2026-06-26 (R1015), no reply for 72 days - askable, ranked last |
-| 0.021 | 0.187 | Owen Trask (Investor) | alumni | Bertrand Glückstein — ex-Cindermill Mining (2011-2016), now Chief Data Officer at Cindermill Mining | investor_network.csv: Bertrand Glückstein prior_employer=Cindermill Mining (2011-2016); connections_trask.csv: connection of Owen Trask since 2015-05-17 | Owen Trask asked on 2026-06-26 (R1015), no reply for 72 days - askable, ranked last |
+| 0.049 | 0.426 | Owen Trask (Investor) | direct | Leandro Brenneman — Director of Software Engineering | connections_trask.csv: Leandro Brenneman, Director of Software Engineering at Cindermill Mining, connected 2023-10-26 | Owen Trask asked on 2026-06-26 (R1015), no reply for 73 days - askable, ranked last |
+| 0.038 | 0.330 | Owen Trask (Investor) | direct | Bertrand Glückstein — Chief Data Officer | connections_trask.csv: Bertrand Glückstein, Chief Data Officer at Cindermill Mining, connected 2015-05-17 | Owen Trask asked on 2026-06-26 (R1015), no reply for 73 days - askable, ranked last |
+| 0.021 | 0.187 | Owen Trask (Investor) | alumni | Bertrand Glückstein — ex-Cindermill Mining (2011-2016), now Chief Data Officer at Cindermill Mining | investor_network.csv: Bertrand Glückstein prior_employer=Cindermill Mining (2011-2016); connections_trask.csv: connection of Owen Trask since 2015-05-17 | Owen Trask asked on 2026-06-26 (R1015), no reply for 73 days - askable, ranked last |
 
 why not #1: Camille Merriweather-Balogun investor network, roster asked first -> R1059 to Tomás Beckett; R1144, R1184 to Elena Duvall
 
-## 4. Chronology (17 events, 4 requests, newest first, as of 2026-09-06)
+## 4. Chronology (17 events, 4 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Owen Trask           R1015 never replied (asked 2026-06-26, 72 days ago)
+<- 2026-09-07  intro_outcomes.csv   Owen Trask           R1015 never replied (asked 2026-06-26, 73 days ago)
    2026-06-27  slack_threads.jsonl  Imani Mkhize         R1015 slack: "did we not already lose this one?"
    2026-06-27  slack_threads.jsonl  Yusuf Petrossian     R1015 slack: "I think their procurement is frozen until Q1"
    2026-06-26  intro_outcomes.csv   Owen Trask           R1015 asked
@@ -63,7 +63,7 @@ why not #1: Camille Merriweather-Balogun investor network, roster asked first ->
    2025-08-17  slack_threads.jsonl  Curtis Hartigan      R1144 slack: "long shot — Cindermill Mining. Amara Højgaard-Egerton (VP Engineering). Anyone?"
    2025-08-17  intro_requests.csv   Curtis Hartigan      R1144 raised by Curtis Hartigan (AE, Financial Services): wants VP Engineering, $400,000, Critical urgency, filed "Open"
 
-!! 2025-07-10  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1025  [423 days ago, nothing since]
+!! 2025-07-10  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1025  [424 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

@@ -39,7 +39,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 
 why not #1: parked on live intro (R1163, Elena Duvall, 2026-04-02, meeting booked): R1028, R1170
 
-## 4. Chronology (24 events, 4 requests, newest first, as of 2026-09-06)
+## 4. Chronology (24 events, 4 requests, newest first, as of 2026-09-07)
 
 ```
    2026-07-18  slack_threads.jsonl  Yusuf Petrossian     R1028 slack: "Duncastle Hotels introduced us to Calderon Aerospace, but the account I actually need is Osric Networks (Chief Digital Officer)."
@@ -69,7 +69,7 @@ why not #1: parked on live intro (R1163, Elena Duvall, 2026-04-02, meeting booke
    2025-09-10  slack_threads.jsonl  Hana Nakashima       R1170 slack: "any connections into Osric Networks? we're up against a renewal window and I need an intro to SVP Digital"
    2025-09-10  intro_requests.csv   Hana Nakashima       R1170 raised by Hana Nakashima (AE, Healthcare): wants SVP Digital, $1,200,000, High urgency, filed "Open"
 
-!! 2026-04-19  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1044  [140 days ago, nothing since]
+!! 2026-04-19  crm_accounts.csv     Nadia Okonkwo        last CRM touch on A1044  [141 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

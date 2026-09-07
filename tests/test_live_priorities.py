@@ -511,6 +511,12 @@ class PayloadTest(unittest.TestCase):
         self.assertIn("mirror(state, batchTicks(x, x.connector))", js, "the Aggregate tab is done-state only")
         introduced = js.split("sec.introduced = ")[1].split("sec.exceptions = ")[0]
         self.assertNotIn("Tick(", introduced, "nothing to tick under Already Introduced")
+        self.assertIn("mirror(state, batchTicks(r, r.connectors.join(', ')))", introduced,
+                      "a retry row is done-state only: its asks are ticked under the connector or Top Priorities")
+        # every retry is allocated this cycle, so its ask_sent keys exist on a batch row already
+        batched = {rid for c in self.P["connectors"] for x in c["companies"] for rid in x["request_ids"]}
+        for r in self.P["introduced"]["retries"]:
+            self.assertTrue(set(r["request_ids"]) <= batched, r["company_id"])
 
     def test_crm_exports_are_importer_shaped(self):
         C = self.P["crm"]

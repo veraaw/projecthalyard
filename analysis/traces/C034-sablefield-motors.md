@@ -14,7 +14,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (19 events, 5 requests, newest first, as of 2026-09-06)
+## 4. Chronology (19 events, 5 requests, newest first, as of 2026-09-07)
 
 ```
    2026-05-21  slack_threads.jsonl  Nadia Okonkwo        R1036 slack: "bumping this"
@@ -40,5 +40,5 @@ nobody in the network reaches this company
    2025-09-30  slack_threads.jsonl  Curtis Hartigan      R1081 slack: "who do we know at Sablefield Motors? SVP Digital would be ideal but I'll take anyone senior"
    2025-09-30  intro_requests.csv   Curtis Hartigan      R1081 raised by Curtis Hartigan (AE, Financial Services): wants SVP Digital, $80,000, Low urgency, filed "Open"
 
-!! 2026-02-14  crm_accounts.csv     Hana Nakashima       last CRM touch on A1005  [204 days ago, nothing since]
+!! 2026-02-14  crm_accounts.csv     Hana Nakashima       last CRM touch on A1005  [205 days ago, nothing since]
 ```

@@ -35,16 +35,16 @@ in the allocator's order: the tiers below, then route score = strength x focus f
 |---|---|---|---|---|---|---|
 | 0.184 | 0.900 | Priya Raghunathan (Investor) | investor (board seat) | CEO / exec team — Redtree Capital board seat | investor_network.csv: Priya Raghunathan (Partner, Redtree Capital), portfolio_company=Duncastle Hotels, board_seat=True | Priya Raghunathan agreed on 2025-08-17 (R1082), no intro - nudge |
 
-## 4. Chronology (27 events, 5 requests, newest first, as of 2026-09-06)
+## 4. Chronology (27 events, 5 requests, newest first, as of 2026-09-07)
 
 ```
-<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1120 never replied (asked 2025-10-30, 311 days ago)
+<- 2026-09-07  intro_outcomes.csv   Priya Raghunathan    R1120 never replied (asked 2025-10-30, 312 days ago)
    2025-11-01  slack_threads.jsonl  Sloane Fairweather   R1120 slack: "did we not already lose this one?"
    2025-10-30  intro_outcomes.csv   Priya Raghunathan    R1120 asked
    2025-10-28  slack_threads.jsonl  Yusuf Petrossian     R1120 slack: "asking again: Duncastle Hotels. Chief Information Officer. Happy to draft the forward myself if someone can vouch."
 !! 2025-10-28  intro_requests.csv   Yusuf Petrossian     R1120 raised by Yusuf Petrossian (SDR Lead): wants Chief Information Officer, $80,000, High urgency, filed "Stalled"  [same title as R1082, 87 days earlier]
 
-<- 2026-09-06  intro_outcomes.csv   Priya Raghunathan    R1082 said yes 385 days ago and never forwarded
+<- 2026-09-07  intro_outcomes.csv   Priya Raghunathan    R1082 said yes 386 days ago and never forwarded
 ++ 2025-08-17  intro_outcomes.csv   Priya Raghunathan    R1082 replied (12 days after the ask)
    2025-08-05  intro_outcomes.csv   Priya Raghunathan    R1082 asked
    2025-08-04  slack_threads.jsonl  Rafael Salcedo       R1082 slack: "bumping this"
@@ -69,7 +69,7 @@ in the allocator's order: the tiers below, then route score = strength x focus f
    2025-09-11  slack_threads.jsonl  Hana Nakashima       R1032 slack: "who do we know at Duncastle Hotels? VP Enterprise Architecture would be ideal but I'll take anyone senior"
 !! 2025-09-11  intro_requests.csv   Hana Nakashima       R1032 raised by Hana Nakashima (AE, Healthcare): wants VP Enterprise Architecture, $80,000, Critical urgency, filed "Closed - no path"  [5 paths in supply_reach.csv]
 
-!! 2025-12-07  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1029  [273 days ago, nothing since]
+!! 2025-12-07  crm_accounts.csv     Bertrand Vandermolen last CRM touch on A1029  [274 days ago, nothing since]
 ```
 
 ## 5. Additional Investor and Operator Network

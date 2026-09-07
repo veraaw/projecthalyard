@@ -17,7 +17,7 @@
 
 nobody in the network reaches this company
 
-## 4. Chronology (11 events, 3 requests, newest first, as of 2026-09-06)
+## 4. Chronology (11 events, 3 requests, newest first, as of 2026-09-07)
 
 ```
    2026-07-24  slack_threads.jsonl  Curtis Hartigan      R1151 slack: "is this the same as the one from last month?"
