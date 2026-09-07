@@ -60,3 +60,46 @@ create policy "dashboard can record a completion"
   on public.completions for insert to anon with check (true);
 -- no select / update / delete policy for anon: the browser cannot read the table back.
 -- The build reads it with the service role key, which bypasses RLS.
+
+
+-- The table "Intake: Add More Live Data" Accept writes to. One row per accepted
+-- upload: the file as dropped (content), which dataset/ file it updates
+-- (target), and the summary the person accepted. upload_id is built by the
+-- browser as <target stem>-<FNV-1a 64 of the content>, so accepting the same
+-- file twice hits the primary key and lands nothing new. The build pulls the
+-- table into intake/ (python3 golden/build_golden.py --intake supabase, or
+-- golden/intake.py --pull supabase): the file goes to intake/files/, the row to
+-- intake/uploads.csv, and golden/current/ is rebuilt as dataset/ + every
+-- accepted upload in order. dataset/ itself is never written. A row the build
+-- cannot apply (unknown target, no key column, malformed CSV / JSON) is set
+-- aside in intake/rejected.csv with the reason, never applied.
+
+create table if not exists public.intake_uploads (
+  upload_id    text primary key,
+  received_at  timestamptz not null default now(),
+  received_by  text not null check (received_by <> ''),
+  target       text not null check (target ~ '^[a-z0-9_\-]+\.(csv|jsonl)$'),  -- intro_requests.csv, connections_trask.csv, slack_threads.jsonl, ...
+  filename     text,                        -- the name of the file as dropped, for a human reading the table
+  content      text not null check (content <> ''),  -- the file, verbatim (UTF-8; CSV or Slack JSON / JSONL)
+  rows         integer,                     -- the summary shown when it was accepted: rows in the upload,
+  new_rows     integer,                     -- keys not on file,
+  changed_rows integer,                     -- rows on file with a value overridden,
+  new_columns  text,                        -- columns the file lacked, ';'-joined
+  note         text
+);
+
+alter table public.intake_uploads enable row level security;
+
+-- the dashboard (anon / publishable key): insert only; the browser cannot read uploads back
+grant insert on public.intake_uploads to anon;
+create policy "dashboard can accept an upload"
+  on public.intake_uploads for insert to anon with check (true);
+
+-- rebuild the site the moment an upload is accepted (same function as completions;
+-- config/supabase_rebuild_trigger.sql must have been run first)
+drop trigger if exists intake_uploads_request_site_rebuild on public.intake_uploads;
+create trigger intake_uploads_request_site_rebuild
+  after insert on public.intake_uploads
+  referencing new table as inserted
+  for each statement
+  execute function public.request_site_rebuild();

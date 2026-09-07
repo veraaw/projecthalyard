@@ -20,9 +20,9 @@ from collections import Counter, defaultdict
 from datetime import date, timedelta
 
 from golden import build_golden as bg
-from paths import DATASET, GOLDEN as GOLDEN_DIR, JOINS
+from paths import CURRENT, GOLDEN as GOLDEN_DIR, JOINS
 
-DATA = str(DATASET)
+DATA = str(CURRENT)
 GOLDEN = str(GOLDEN_DIR)
 SOURCES = ("dataset", "golden")
 

@@ -4,9 +4,10 @@
     data = payload()           # every section as plain dicts/lists: the browser only renders this
     html = fragment()          # <div> with the JSON payload embedded + dashboard/live_priorities.js
 
-Everything on the tab is computed here, from golden/ and dataset/, and written
-into one JSON payload; the JavaScript renders it and never derives a number.
-Two things the page does with user input. The intake preview: the parser
+Everything on the tab is computed here, from golden/ (including golden/current/,
+dataset/ with the accepted uploads applied), and written into one JSON payload;
+the JavaScript renders it and never derives a number. Three things the page
+does with user input. The intake preview: the parser
 rules (golden/parse.py cues, golden/build_golden.py OFFER_RE, and the
 golden/resolver.py lookup tables) are exported into the payload and applied
 verbatim by the browser, so a pasted message or a dropped .jsonl previews
@@ -19,7 +20,13 @@ URL and key come from SUPABASE_URL / SUPABASE_ANON_KEY at build time, never
 from this file). The scheduled rebuild (.github/workflows/rebuild.yml) pulls
 the table into golden/completions.csv, a fact source of the build, and the
 ticked items leave the queue. docs/build_stamp.json says when that last
-happened; the page shows it.
+happened; the page shows it. And "Intake: Add More Live Data": a CSV of any
+dataset/ file, or a Slack export, dropped on the page is diffed in the browser
+against the file as it stands (the payload carries every file of
+golden/current/) with golden/intake.py's merge rules ported to JavaScript; the
+summary (new rows, new columns, every value it would override) is shown, and
+Accept posts the file to the Supabase `intake_uploads` table. The rebuild pulls
+it into intake/ and every reader sees the new data. dataset/ is never written.
 
     python3 -m dashboard.live_priorities     # prints the payload summary
 """
@@ -41,11 +48,12 @@ from analysis.crm import writeback as wb
 from analysis.trace import all_traces
 from dashboard import batch_ask
 from golden import build_golden as bg
+from golden import intake
 from golden import parse as gp
 from golden import resolver as gr
 from golden.clock import as_of
 from golden.resolve_cli import load_resolver
-from paths import DASHBOARD, DATASET, DOCS, GOLDEN, ROOT
+from paths import CURRENT, DASHBOARD, DOCS, GOLDEN, ROOT
 
 # ---------------------------------------------------------------------------
 # constants the ranking uses; every one is shown on the tab
@@ -73,6 +81,8 @@ CONNECTOR_PAGE = "connector-{slug}.html"
 BANDS = [
     ("intake", "Intake: Preview a Routed Request Summary",
      [("route", "Route a Request")]),
+    ("upload", "Intake: Add More Live Data",
+     [("upload", "Add Live Data")]),
     ("orientation", "Orientation: Deal Value by Stage",
      [("stages", "Deal Value by Stage")]),
     ("now", "Actionable Routing Steps",
@@ -186,10 +196,10 @@ class Live:
         self.allocation = bg.latest_cycle(self.history)
         self.alloc_by_rid = {a["request_id"]: a for a in self.allocation}
         self.completions = bg.load_completions()
-        self.outcomes = bg.with_completions(bg.read_csv(DATASET / "intro_outcomes.csv"), self.completions)
+        self.outcomes = bg.with_completions(bg.read_csv(CURRENT / "intro_outcomes.csv"), self.completions)
         self.outcome_by_rid = {o["request_id"]: o for o in self.outcomes}
-        self.raw = {r["request_id"]: r for r in bg.read_csv(DATASET / "intro_requests.csv")}
-        self.accounts = {a["account_id"]: a for a in bg.read_csv(DATASET / "crm_accounts.csv")}
+        self.raw = {r["request_id"]: r for r in bg.read_csv(CURRENT / "intro_requests.csv")}
+        self.accounts = {a["account_id"]: a for a in bg.read_csv(CURRENT / "crm_accounts.csv")}
         self.roster = bg.load_roster()
         self.threads = bg.load_threads()
         self.rates = bg.delivery_rates(self.roster, self.outcomes, self.threads)
@@ -230,7 +240,7 @@ class Live:
         lands. Keyed 'network:<strict name>', each with the spellings seen and its
         paths as supply_reach.csv rows, so the front page can show the routing a
         request about the company would get today."""
-        funds = [inv["fund"] for inv in bg.read_csv(DATASET / "investor_network.csv")]
+        funds = [inv["fund"] for inv in bg.read_csv(CURRENT / "investor_network.csv")]
         on_file = bg.Registry(list(self.accounts.values()), funds)
         for c in self.companies.values():
             for n in [c["company_name"], *bar(c["also_known_as"])]:
@@ -1102,6 +1112,42 @@ class Live:
             "path": bg.COMPLETIONS_OUT.relative_to(bg.ROOT).as_posix(),
         }
 
+    # -- 9c. what Accept writes ---------------------------------------------------
+    def intake_export(self) -> dict:
+        """Everything the browser needs to preview and accept an upload: every
+        file as it stands in golden/current/ (columns + rows, so the diff is
+        computed against the data the build read), the key per file, the ledger
+        of uploads already accepted, and the Supabase endpoint. Only the anon
+        key goes in; the service key never does."""
+        bg.load_env()
+        url = os.environ.get("SUPABASE_URL", "").strip()
+        files = {}
+        for name in intake.existing_targets():
+            src = CURRENT / name
+            if not src.exists():
+                continue
+            if intake.format_of(name) == "jsonl":
+                files[name] = {"format": "jsonl", "keys": ["request_id"], "threads": intake.read_threads(src)}
+            else:
+                cols, rows = intake.read_csv_file(src)
+                files[name] = {"format": "csv", "keys": intake.schema_of(name)["keys"], "columns": cols,
+                               "rows": [[r.get(c, "") for c in cols] for r in rows]}
+        rows = intake.ledger()
+        return {
+            "supabase_url": bg.supabase_rest(url) if url else "",
+            "anon_key": os.environ.get("SUPABASE_ANON_KEY", "").strip(),
+            "table": intake.SUPABASE_TABLE,
+            "files": files,
+            "schemas": [{"pattern": p, "keys": s["keys"], "family": bool(s.get("family")), "format": intake.format_of(p)}
+                        for p, s in intake.SCHEMAS.items()],
+            "ledger": [{k: r.get(k, "") for k in intake.LEDGER_COLUMNS} for r in rows],
+            "ids": sorted(r["upload_id"] for r in rows),
+            "rejected": [{k: r.get(k, "") for k in intake.REJECTED_COLUMNS} for r in intake._read(intake.REJECTED)],
+            "command": intake.COMMAND,
+            "path": intake.LEDGER.relative_to(intake.ROOT).as_posix(),
+            "current": CURRENT.relative_to(ROOT).as_posix(),
+        }
+
     # -- 10. upload preview rules ----------------------------------------------
     def known_regex(self, res: gr.Resolver | None = None) -> re.Pattern:
         """What the build's registry scans a message for: every CRM and fund spelling,
@@ -1245,7 +1291,7 @@ class Live:
                       for bid, title, sections in BANDS],
             "stages": self.stages(), "priorities": self.priorities(), "asks": self.asks(), "introduced": self.introduced(),
             "connectors": self.connectors(), "followups": self.followups(), "crm": self.crm(), "parser": self.parser(),
-            "completions": self.completion_export(),
+            "completions": self.completion_export(), "intake": self.intake_export(),
             "connector_pages": [{"connector": c["connector"], "page": c["page"], "on_roster": c["on_roster"]}
                                 for c in self.connector_pages()],
         }

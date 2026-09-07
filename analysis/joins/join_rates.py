@@ -10,9 +10,9 @@ import os
 import re
 from collections import Counter
 
-from paths import DATASET, JOINS
+from paths import CURRENT, JOINS
 
-DATA = str(DATASET)
+DATA = str(CURRENT)
 OUT = str(JOINS / "join_rates.md")
 TOP_N = 20
 

@@ -48,7 +48,7 @@ from golden.build_golden import (ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, HOLD_LA
                                  stage_of, unresolved_asks, with_completions)
 from golden.clock import as_of  # noqa: E402
 from golden.resolver import normalize, normalize_strict  # noqa: E402
-from paths import ANALYSIS, DATASET, GOLDEN  # noqa: E402
+from paths import ANALYSIS, CURRENT, GOLDEN  # noqa: E402
 
 TRACES = ANALYSIS / "traces"
 STALE_TOUCH_DAYS = 90
@@ -152,14 +152,14 @@ class Data:
     @classmethod
     def load(cls) -> Data:
         outcomes: dict[str, list[dict]] = defaultdict(list)
-        logged = read_csv(DATASET / SOURCES["outcomes"])
+        logged = read_csv(CURRENT / SOURCES["outcomes"])
         for o in logged:
             outcomes[o["request_id"]].append(o)
         allocation = latest_cycle(read_csv(GOLDEN / "golden_allocation.csv"))
         roster = load_roster()
         as_read = with_completions(logged, load_completions())
         threads = {}
-        with open(DATASET / SOURCES["slack"], encoding="utf-8") as fh:
+        with open(CURRENT / SOURCES["slack"], encoding="utf-8") as fh:
             for line in fh:
                 if line.strip():
                     t = json.loads(line)
@@ -167,10 +167,10 @@ class Data:
         return cls(
             companies=read_csv(GOLDEN / "golden_companies.csv"),
             requests=read_csv(GOLDEN / "golden_requests.csv"),
-            filed={r["request_id"]: r for r in read_csv(DATASET / SOURCES["requests"])},
+            filed={r["request_id"]: r for r in read_csv(CURRENT / SOURCES["requests"])},
             outcomes=outcomes,
             threads=threads,
-            accounts={a["account_id"]: a for a in read_csv(DATASET / SOURCES["crm"])},
+            accounts={a["account_id"]: a for a in read_csv(CURRENT / SOURCES["crm"])},
             supply=read_csv(GOLDEN / "supply_reach.csv"),
             allocation=allocation,
             roster=roster,

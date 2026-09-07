@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from golden.resolver import Resolver  # noqa: E402
 
-DATASET = ROOT / "dataset"
+CURRENT = ROOT / "golden" / "current"  # dataset/ with the accepted uploads applied (golden/intake.py)
 
 
 def read_csv(path: Path) -> list[dict]:
@@ -26,8 +26,8 @@ def read_csv(path: Path) -> list[dict]:
 
 
 def load_resolver() -> Resolver:
-    funds = [r["fund"] for r in read_csv(DATASET / "investor_network.csv")]
-    return Resolver(read_csv(DATASET / "crm_accounts.csv"), funds)
+    funds = [r["fund"] for r in read_csv(CURRENT / "investor_network.csv")]
+    return Resolver(read_csv(CURRENT / "crm_accounts.csv"), funds)
 
 
 COLUMNS = ["company_string", "company_id", "company_name", "method", "confidence", "needs_review", "candidates"]

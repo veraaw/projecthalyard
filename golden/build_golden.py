@@ -1,6 +1,16 @@
-"""Build the golden datasets from the raw exports in dataset/.
+"""Build the golden datasets from the raw exports in dataset/, with the accepted
+uploads in intake/ applied.
 
     python3 golden/build_golden.py [--as-of YYYY-MM-DD] [--threads FILE.jsonl]
+
+The build reads golden/current/, not dataset/: golden/intake.py writes it at
+the start of every run as dataset/ plus the uploads accepted from the Live
+Priorities tab ("Intake: Add More Live Data"), applied in the order accepted.
+A file no upload touches is a byte-for-byte copy of the export; dataset/ itself
+is never written. --intake supabase pulls the `intake_uploads` table into
+intake/ first, the way --completions supabase does for ticks. A Slack thread
+that arrives this way and names a request_id not in intro_requests.csv becomes
+a request exactly as --threads would make it.
 
 --threads ingests a Slack export (one {request_id, messages:[{ts,user,text}...]}
 per line) alongside dataset/slack_threads.jsonl: a thread whose request_id is
@@ -171,7 +181,9 @@ from typing import NamedTuple
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+from golden import intake  # noqa: E402
 from golden.clock import as_of  # noqa: E402
+from golden.intake import CURRENT, ENV_FILE, load_env, supabase_rest  # noqa: E402, F401
 from golden.parse import extract as extract_target  # noqa: E402
 from golden.resolver import Resolver, domain_stem, names_regex, normalize, normalize_strict  # noqa: E402
 
@@ -485,33 +497,6 @@ def quarantine_completions(rows: list[dict], path: Path = REJECTED_OUT) -> tuple
 
 SUPABASE_TABLE = "completions"
 SUPABASE_PAGE = 1000
-ENV_FILE = ROOT / ".env"
-
-
-def load_env(path: Path = ENV_FILE) -> dict[str, str]:
-    """The variables in .env (gitignored; KEY=value lines, # comments), also
-    placed in os.environ where not already set, so SUPABASE_* work the same
-    locally and under Actions secrets."""
-    found: dict[str, str] = {}
-    if not path.exists():
-        return found
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        key, value = key.strip().removeprefix("export ").strip(), value.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
-            value = value[1:-1]
-        found[key] = value
-        os.environ.setdefault(key, value)
-    return found
-
-
-def supabase_rest(url: str) -> str:
-    """The REST root for a project URL given with or without /rest/v1."""
-    base = url.strip().rstrip("/")
-    return base if base.endswith("/rest/v1") else base + "/rest/v1"
 
 
 def fetch_supabase_completions(url: str, key: str, opener=None) -> list[dict]:
@@ -822,7 +807,7 @@ class Registry:
 # ---------------------------------------------------------------------------
 def load_roster() -> dict[str, dict]:
     roster = {}
-    for r in read_csv(DATASET / "connector_roster.csv"):
+    for r in read_csv(CURRENT / "connector_roster.csv"):
         r["focus"] = {x.strip() for x in r["focus_areas"].split(";") if x.strip()}
         r["hard_decline"] = "decline anything outside" in r["notes"].lower()
         roster[r["name"]] = r
@@ -1052,7 +1037,7 @@ def fit(connector: dict, industry: str) -> float:
 
 def network_people(roster: dict) -> set[str]:
     """Everyone in investor_network.csv who is not on the roster."""
-    return {inv["person"].strip() for inv in read_csv(DATASET / "investor_network.csv")} - set(roster)
+    return {inv["person"].strip() for inv in read_csv(CURRENT / "investor_network.csv")} - set(roster)
 
 
 def connector_type(roster: dict, network: set[str], name: str) -> str:
@@ -1068,10 +1053,10 @@ def network_company_names(roster: dict) -> list[str]:
     prior_employer); one entry per spelling, in file order."""
     names: dict[str, None] = {}
     for r in roster.values():
-        for c in read_csv(DATASET / r["connections_file"]):
+        for c in read_csv(CURRENT / r["connections_file"]):
             if c["company"].strip():
                 names.setdefault(c["company"].strip())
-    for inv in read_csv(DATASET / "investor_network.csv"):
+    for inv in read_csv(CURRENT / "investor_network.csv"):
         for col in NETWORK_SOURCES:
             if inv[col].strip():
                 names.setdefault(inv[col].strip())
@@ -1095,7 +1080,7 @@ def network_reach(roster: dict, today: date) -> list[dict]:
 
     # direct: first-degree connections of a roster connector
     for name, r in roster.items():
-        for c in read_csv(DATASET / r["connections_file"]):
+        for c in read_csv(CURRENT / r["connections_file"]):
             person_to_connectors[c["name"]].append((name, c))
             s = PATH_BASE["direct"] * (0.55 + 0.45 * seniority(c["title"])) * freshness(c["connected_on"], today)
             path(name, c["company"], "direct", c["name"], c["title"], c["connected_on"], s,
@@ -1105,7 +1090,7 @@ def network_reach(roster: dict, today: date) -> list[dict]:
     # investor_network: the same for a person off the roster (the haircut is applied in
     # path_score, not here, so strength reads the same as a roster investor's);
     # alumni: a connection's prior employer
-    for inv in read_csv(DATASET / "investor_network.csv"):
+    for inv in read_csv(CURRENT / "investor_network.csv"):
         person = inv["person"].strip()
         if inv["portfolio_company"]:
             seat = inv["board_seat"].lower() == "true"
@@ -1250,10 +1235,10 @@ def build_network_orbit(reg: Registry, roster: dict) -> list[dict]:
     known_to: dict[str, set[str]] = defaultdict(set)  # person -> connector surnames whose export lists them
     for name, r in roster.items():
         surname = name.split()[-1]
-        for c in read_csv(DATASET / r["connections_file"]):
+        for c in read_csv(CURRENT / r["connections_file"]):
             known_to[c["name"]].add(surname)
     rows = []
-    for inv in read_csv(DATASET / "investor_network.csv"):
+    for inv in read_csv(CURRENT / "investor_network.csv"):
         person = inv["person"].strip()
         for source in NETWORK_SOURCES:
             if not inv[source]:
@@ -1287,10 +1272,11 @@ def build_network_orbit(reg: Registry, roster: dict) -> list[dict]:
 # demand side
 # ---------------------------------------------------------------------------
 def load_threads(extra: Path | None = None) -> dict[str, dict]:
-    """request_id -> thread facts from dataset/slack_threads.jsonl, plus the
-    threads in `extra` (--threads), which are marked ingested=True."""
+    """request_id -> thread facts from slack_threads.jsonl as it stands (the
+    export plus accepted uploads), plus the threads in `extra` (--threads),
+    which are marked ingested=True."""
     out = {}
-    for path, ingested in ((DATASET / "slack_threads.jsonl", False), (extra, True)):
+    for path, ingested in ((CURRENT / "slack_threads.jsonl", False), (extra, True)):
         if path is None:
             continue
         with open(path, encoding="utf-8") as f:
@@ -1571,7 +1557,7 @@ def resolve_requests(reg: Registry, filed: list[dict], ingest: dict[str, dict] |
     is re-resolved from the facts on every run, filed or not; the raw row, when
     still present, contributes the email domain parsed from raw_ask and the
     current target_title."""
-    raw = {rq["request_id"]: rq for rq in read_csv(DATASET / "intro_requests.csv")}
+    raw = {rq["request_id"]: rq for rq in read_csv(CURRENT / "intro_requests.csv")}
     out = {}
     for r in filed:
         rid = r["request_id"]
@@ -1848,7 +1834,7 @@ def build_companies(reg: Registry, supply: list[dict], requests: list[dict], tod
     supply_by = defaultdict(list)
     for s in supply:
         supply_by[s["company_id"]].append(s)
-    outcomes = {o["request_id"]: o for o in (read_csv(DATASET / "intro_outcomes.csv") if outcomes is None else outcomes)}
+    outcomes = {o["request_id"]: o for o in (read_csv(CURRENT / "intro_outcomes.csv") if outcomes is None else outcomes)}
 
     rows = []
     for c in reg.companies():
@@ -1966,8 +1952,13 @@ def main() -> None:
     ap.add_argument("--threads", type=Path, help="a Slack export (.jsonl) to ingest alongside dataset/slack_threads.jsonl")
     ap.add_argument("--completions", choices=["supabase"], help="pull the Supabase completions table into golden/completions.csv first")
     ap.add_argument("--apply", type=Path, metavar="FILE", help="merge a CSV of completions into golden/completions.csv first")
+    ap.add_argument("--intake", choices=["supabase"], help="pull the Supabase intake_uploads table into intake/ first")
     args = ap.parse_args()
     pull_completions(args.completions, args.apply)
+    intake.pull(args.intake)
+    applied = intake.materialize()
+    if applied:
+        print("golden/current/       " + ", ".join(f"{t} +{n} upload{'s' if n != 1 else ''}" for t, n in sorted(applied.items())))
     today = parse_date(args.as_of) or as_of()
     cycle = today.strftime("%Y-%m")
     # the build clock: the as-of date, at the wall-clock time the run started
@@ -1978,15 +1969,17 @@ def main() -> None:
     # the existing golden files before any supply-side source is read.
     filed = read_csv(REQUESTS_OUT) if REQUESTS_OUT.exists() else []
     roster = load_roster()
-    reg = Registry(read_csv(DATASET / "crm_accounts.csv"),
-                   [inv["fund"] for inv in read_csv(DATASET / "investor_network.csv")],
+    reg = Registry(read_csv(CURRENT / "crm_accounts.csv"),
+                   [inv["fund"] for inv in read_csv(CURRENT / "investor_network.csv")],
                    network_company_names(roster))
     threads = load_threads(args.threads)
-    resolved = resolve_requests(reg, filed, {rid: th for rid, th in threads.items() if th["ingested"]})
+    # every thread is offered for ingestion; resolve_requests takes only the ones
+    # whose request_id is neither filed nor in intro_requests.csv
+    resolved = resolve_requests(reg, filed, threads)
     reg.assign_ids()
 
     completions = load_completions()
-    outcomes = with_completions(read_csv(DATASET / "intro_outcomes.csv"), completions)
+    outcomes = with_completions(read_csv(CURRENT / "intro_outcomes.csv"), completions)
     rates = delivery_rates(roster, outcomes, threads)
     history = read_allocation()
     signals = history_signals(history, outcomes, today)

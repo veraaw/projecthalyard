@@ -213,6 +213,220 @@ const LP = (function () {
     return { threads, errors };
   }
 
+  // ------------------------------------------------ golden/intake.py, ported
+  // "Intake: Add More Live Data". A dropped CSV or Slack export is diffed here against the
+  // file as the last build read it (U.files, from golden/current/) with the same rules
+  // golden/intake.py applies when the rebuild pulls the accepted upload from the
+  // intake_uploads table; tests/lp_parity.js runs these under node against the Python.
+  const THREAD_FIELDS = ['request_id', 'messages'], MESSAGE_FIELDS = ['ts', 'user', 'text'];
+  const encodeUtf8 = s => typeof TextEncoder !== 'undefined' ? new TextEncoder().encode(s) : Buffer.from(s, 'utf8');
+  // FNV-1a 64: the half of upload_id both sides compute; the same bytes accepted twice are one upload
+  function fnv1a(text) {
+    let h = 0xCBF29CE484222325n;
+    for (const b of encodeUtf8(text.replace(/^\uFEFF/, ''))) h = ((h ^ BigInt(b)) * 0x100000001B3n) & 0xFFFFFFFFFFFFFFFFn;
+    return h.toString(16).padStart(16, '0');
+  }
+  const uploadId = (target, content) => `${target.replace(/\.[^.]+$/, '')}-${fnv1a(content)}`;
+  const formatOf = target => target.endsWith('.jsonl') ? 'jsonl' : 'csv';
+  // the SCHEMAS entry a file name falls under (U.schemas: pattern, keys, family)
+  function schemaOf(target, schemas) {
+    for (const s of schemas) if (s.pattern === target) return s;
+    for (const s of schemas) if (s.family && new RegExp('^' + s.pattern.replace('.', '\\.').replace('*', '[a-z0-9_\\-]+') + '$').test(target)) return s;
+    return null;
+  }
+  // csv.reader: quoted fields, doubled quotes, either line ending, a BOM. Throws on no header,
+  // a blank or repeated column name, or a row wider than the header
+  function parseCsv(text) {
+    text = text.replace(/^\uFEFF/, '');
+    const rows = [];
+    let row = [], cell = '', q = false, i = 0;
+    while (i < text.length) {
+      const c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+        else cell += c;
+      } else if (c === '"') q = true;
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\r' || c === '\n') {
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        row.push(cell); rows.push(row); row = []; cell = '';
+      } else cell += c;
+      i++;
+    }
+    if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+    while (rows.length && !rows[rows.length - 1].some(c => c.trim())) rows.pop();
+    if (!rows.length || !rows[0].some(c => c.trim())) throw new Error('no header row');
+    const columns = rows[0].map(c => c.trim());
+    if (new Set(columns).size !== columns.length || columns.includes('')) throw new Error('header has a blank or repeated column name');
+    const out = [];
+    rows.slice(1).forEach((r, j) => {
+      if (!r.some(c => c.trim())) return;
+      if (r.length > columns.length) throw new Error(`line ${j + 2}: ${r.length} cells, header has ${columns.length}`);
+      out.push(Object.fromEntries(columns.map((c, k) => [c, k < r.length ? r[k] : ''])));
+    });
+    return { columns, rows: out };
+  }
+  // the threads in a Slack upload: JSONL, a JSON array, {"threads": [...]} or one thread object
+  function parseThreads(text) {
+    text = text.replace(/^\uFEFF/, '').trim();
+    if (!text) throw new Error('empty file');
+    let whole, threads = [];
+    try { whole = JSON.parse(text); } catch (e) { whole = undefined; }
+    if (Array.isArray(whole)) threads = whole;
+    else if (whole && typeof whole === 'object' && Array.isArray(whole.threads) && !has(whole, 'request_id')) threads = whole.threads;
+    else if (whole && typeof whole === 'object') threads = [whole];
+    else if (whole === undefined) {
+      text.split(/\r\n|\r|\n/).forEach((line, i) => {
+        if (!line.trim()) return;
+        try { threads.push(JSON.parse(line)); } catch (e) { throw new Error(`line ${i + 1}: ${e.message}`); }
+      });
+    }
+    if (!Array.isArray(threads) || !threads.length) throw new Error('no threads');
+    const isObj = x => x && typeof x === 'object' && !Array.isArray(x);
+    threads.forEach((t, i) => {
+      if (!isObj(t) || typeof t.request_id !== 'string' || !t.request_id.trim()) throw new Error(`thread ${i + 1}: needs a request_id`);
+      if (!Array.isArray(t.messages) || !t.messages.length) throw new Error(`thread ${i + 1} (${t.request_id}): needs a non-empty messages list`);
+      t.messages.forEach((m, j) => {
+        if (!isObj(m) || MESSAGE_FIELDS.some(k => typeof m[k] !== 'string')) throw new Error(`thread ${i + 1} (${t.request_id}) message ${j + 1}: needs ts, user and text`);
+      });
+    });
+    return threads;
+  }
+  const rowKey = (r, keys) => keys.map(k => (r[k] || '').trim());
+  // apply a CSV upload to the rows on file: a key not on file is a new row; on file, every non-empty
+  // cell that differs overrides (listed); new columns are added after the existing ones
+  function mergeCsv(baseCols, baseRows, upCols, upRows, keys) {
+    const missing = keys.filter(k => !upCols.includes(k));
+    if (missing.length) throw new Error(`no ${missing.join(', ')} column`);
+    const columns = [...baseCols, ...upCols.filter(c => !baseCols.includes(c))];
+    const newColumns = columns.slice(baseCols.length);
+    const rows = baseRows.map(r => Object.fromEntries(columns.map(c => [c, has(r, c) ? r[c] : ''])));
+    const index = new Map(rows.map(r => [rowKey(r, keys).join('\u0000'), r]));
+    const newRows = [], changes = [], seen = new Set(), fresh = new Set();
+    let dup = 0, unchanged = 0;
+    upRows.forEach((u, i) => {
+      const k = rowKey(u, keys), kk = k.join('\u0000');
+      if (k.some(x => !x)) throw new Error(`line ${i + 2}: empty ${keys[k.indexOf('')]}`);
+      if (seen.has(kk)) dup++;
+      seen.add(kk);
+      let r = index.get(kk);
+      if (!r) {
+        r = Object.fromEntries(columns.map(c => [c, has(u, c) ? u[c] : '']));
+        rows.push(r); index.set(kk, r); newRows.push(r); fresh.add(r);
+        return;
+      }
+      let touched = false;
+      for (const c of upCols) {
+        const v = has(u, c) ? u[c] : '';
+        if (!v.trim() || r[c] === v) continue;
+        changes.push({ key: k.join(' / '), column: c, from: r[c], to: v });
+        r[c] = v; touched = true;
+      }
+      if (!touched && !fresh.has(r)) unchanged++;
+    });
+    const summary = { format: 'csv', rows: upRows.length, new_rows: newRows.length, changed_rows: new Set(changes.map(c => c.key)).size,
+                      changes, new_columns: newColumns, unchanged_rows: unchanged, duplicate_keys: dup, columns, keys, sample: newRows.slice(0, 20) };
+    return { columns, rows, summary };
+  }
+  const messageSig = m => MESSAGE_FIELDS.map(k => has(m, k) ? m[k] : '').join('\u0000');
+  // apply a Slack upload to the threads on file: a new request_id is a new thread; one on file gets
+  // the messages it lacks appended and any other non-empty field that differs overridden (listed)
+  function mergeThreads(base, up) {
+    const threads = base.map(t => JSON.parse(JSON.stringify(t)));
+    const by = new Map(threads.map(t => [t.request_id, t]));
+    const baseFields = new Set(base.flatMap(t => Object.keys(t)));
+    const fresh = [], changes = [], seen = new Set(), newFields = [];
+    let extended = 0, messages = 0, unchanged = 0, dup = 0;
+    for (const u of up) {
+      const rid = u.request_id.trim();
+      if (seen.has(rid)) dup++;
+      seen.add(rid);
+      for (const k of Object.keys(u)) if (!baseFields.has(k) && !newFields.includes(k)) newFields.push(k);
+      let t = by.get(rid);
+      if (!t) {
+        t = { ...u, request_id: rid };
+        threads.push(t); by.set(rid, t); fresh.push(t);
+        continue;
+      }
+      const have = new Set(t.messages.map(messageSig));
+      const more = u.messages.filter(m => !have.has(messageSig(m)));
+      t.messages.push(...more);
+      let touched = more.length > 0;
+      if (more.length) { extended++; messages += more.length; }
+      for (const [k, v] of Object.entries(u)) {
+        if (THREAD_FIELDS.includes(k) || v === '' || v == null || JSON.stringify(t[k]) === JSON.stringify(v)) continue;
+        changes.push({ key: rid, column: k, from: t[k] == null ? '' : String(t[k]), to: String(v) });
+        t[k] = v; touched = true;
+      }
+      if (!touched) unchanged++;
+    }
+    const summary = { format: 'jsonl', rows: up.length, new_rows: fresh.length, changed_rows: new Set(changes.map(c => c.key)).size,
+                      changes, new_columns: newFields, unchanged_rows: unchanged, duplicate_keys: dup, extended_threads: extended, new_messages: messages, keys: ['request_id'],
+                      sample: fresh.slice(0, 20).map(t => ({ request_id: t.request_id, channel: String(t.channel ?? ''), posted: t.messages[0].ts.slice(0, 10), user: t.messages[0].user, text: t.messages[0].text, replies: t.messages.length - 1 })) };
+    return { threads, summary };
+  }
+  // which file an upload updates: [target, why]; '' when nothing fits or two fit equally. `columns` is
+  // null for a JSON upload; `files` is target -> its columns as on file (U.files' columns)
+  function guessTarget(filename, columns, files, schemas) {
+    const name = filename.replace(/^.*[\\/]/, '').toLowerCase();
+    if (columns === null) return ['slack_threads.jsonl', 'Slack threads'];
+    const have = new Set(columns), names = Object.keys(files);
+    const fits = t => { const s = schemaOf(t, schemas); return !!s && s.keys.every(k => have.has(k)); };
+    if (has(files, name) && fits(name)) return [name, 'same file name'];
+    const family = schemas.find(s => s.family);
+    const connCols = new Set(family.keys);
+    for (const t of names) if (schemaOf(t, schemas) === family) for (const c of files[t]) connCols.add(c);
+    const conn = family.keys.every(k => have.has(k)) ? [...connCols].filter(c => have.has(c)).length : -1;
+    const scored = names.filter(t => schemaOf(t, schemas) !== family && formatOf(t) === 'csv' && fits(t))
+      .map(t => [files[t].filter(c => have.has(c)).length, t]).sort((a, b) => b[0] - a[0] || (a[1] < b[1] ? 1 : -1));
+    const best = scored.length ? scored[0] : [-1, ''];
+    if (best[0] > conn && (scored.length === 1 || scored[1][0] < best[0])) return [best[1], `${best[0]} of ${files[best[1]].length} columns match`];
+    if (conn >= 0 && conn >= best[0]) {
+      const stem = name.replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+      const m = /^connections?_(.+)$/.exec(stem);
+      if (m) { const t = `connections_${m[1]}.csv`; return [t, has(files, t) ? 'same file name' : 'connections columns; a new file, named from the upload']; }
+      if (['connections', 'connection', ''].includes(stem)) return ['', 'connections columns: pick whose (connections_<surname>.csv)'];
+      return [`connections_${stem}.csv`, 'connections columns; a new file, named from the upload'];
+    }
+    if (best[0] >= 0) return ['', `could be ${scored.filter(([n]) => n === best[0]).map(([, t]) => t).join(' or ')}: pick one`];
+    return ['', 'no file on record has these columns'];
+  }
+  // what accepting `text` as `target` would change, against U.files; throws when it cannot be applied
+  function previewUpload(U, target, text) {
+    const f = U.files[target], schema = schemaOf(target, U.schemas);
+    if (!schema) throw new Error(`${target} is not a file the build reads`);
+    let summary;
+    if (formatOf(target) === 'jsonl') summary = mergeThreads(f ? f.threads : [], parseThreads(text)).summary;
+    else {
+      const up = parseCsv(text);
+      const base = f ? f.rows.map(r => Object.fromEntries(f.columns.map((c, i) => [c, r[i]]))) : [];
+      summary = mergeCsv(f ? f.columns : [], base, up.columns, up.rows, schema.keys).summary;
+    }
+    summary.target = target; summary.new_file = !f;
+    return summary;
+  }
+  // the row Accept posts to the intake_uploads table (golden/intake.py apply_table_rows reads it back)
+  const uploadRow = (target, filename, text, summary, who, at, note = '') => ({
+    upload_id: uploadId(target, text), received_at: at, received_by: who, target, filename, content: text.replace(/^\uFEFF/, ''),
+    rows: summary.rows, new_rows: summary.new_rows, changed_rows: summary.changed_rows, new_columns: summary.new_columns.join(';'), note,
+  });
+  async function postUpload(U, row, doFetch = (u, o) => fetch(u, o)) {
+    if (!U.supabase_url || !U.anon_key) throw new Error('this build has no Supabase URL / anon key (SUPABASE_URL and SUPABASE_ANON_KEY were not set when the site was built)');
+    let res;
+    try {
+      res = await doFetch(`${U.supabase_url}/${U.table}`, {
+        method: 'POST',
+        headers: { apikey: U.anon_key, Authorization: `Bearer ${U.anon_key}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify(row),
+      });
+    } catch (e) { throw new Error(`could not reach ${U.supabase_url} (${e.message})`); }
+    if (res.ok) return { recorded: true, already: false };
+    if (res.status === 409) return { recorded: false, already: true };
+    let detail = '';
+    try { const j = await res.json(); detail = j.message || j.error_description || j.error || ''; } catch (e) { /* no body */ }
+    throw new Error(`Supabase answered HTTP ${res.status}${detail ? `: ${detail}` : ''} for ${row.upload_id}`);
+  }
+
   // a target the canonical resolver does not know: a company on file with no CRM
   // account (P.known_no_crm -> its company_id), else one only the network reaches
   // (P.known_network -> its 'network:...' key in P.companies), else nothing
@@ -505,18 +719,19 @@ const LP = (function () {
   const actionLabel = { ask_sent: 'ask sent', nudged: 'nudged', chased: 'chased' };
   const describe = r => `${actionLabel[r.action] || r.action} ${esc(r.request_id || r.company_id)}${r.connector ? ` → ${esc(r.connector)}` : ''}`;
 
+  // asked once per browser; after that the name is shown next to Submit / Accept, with a link to change it
+  const askWho = () => {
+    const who = (window.prompt('Who are you? (goes in completed_by / received_by, remembered in this browser)', load('lp-who', '') || '') || '').trim();
+    if (who) store('lp-who', who);
+    return who;
+  };
+
   const submitBar = X => `<div class="submitbar" id="lp-submit" hidden><span id="lp-submit-n"></span><button id="lp-submit-go">Submit</button><button id="lp-submit-clear" class="secondary">Clear</button><span id="lp-submit-who"></span><span class="foot">${X.supabase_url ? `Records your ticks in the <code>${esc(X.table)}</code> table; the site rebuilds from it within a few minutes and the ticked items leave the queue.` : '<b class="warn">This build cannot submit: no Supabase URL / anon key</b>'}</span></div>`;
 
   // capOf: roster connector → their card (used, capacity), for the picker's over-capacity note
   function wireCompletions(root, X, state, capOf = {}) {
     const bar = root.querySelector('#lp-submit'), n = root.querySelector('#lp-submit-n'), go = root.querySelector('#lp-submit-go');
     const whoEl = root.querySelector('#lp-submit-who');
-    // asked once per browser; after that the name is shown next to Submit, with a link to change it
-    const askWho = () => {
-      const who = (window.prompt('Who are you? (goes in completed_by, remembered in this browser)', load('lp-who', '') || '') || '').trim();
-      if (who) store('lp-who', who);
-      return who;
-    };
     const show = () => {
       const k = state.ticks.size, who = load('lp-who', '');
       bar.hidden = !k && !bar.dataset.msg;
@@ -771,14 +986,18 @@ const LP = (function () {
       <div class="drop" id="lp-drop"><input type="file" id="lp-file" accept=".jsonl,.json,.txt"><span>Or drop a .jsonl of threads here, or click to choose</span></div>
       <div id="lp-preview"></div></section>`;
 
-    // ---- band 2 · orientation: one strip, no rows — a masthead, not a section
+    // ---- band 2 · intake: more live data. A fresh CSV of any dataset/ file, or a Slack export,
+    // diffed here against the file as the build last read it; Accept files it (uploadSection)
+    sec.upload = `<section id="upload">${uploadSection(D.intake || { files: {}, schemas: [], ledger: [], ids: [], rejected: [] })}</section>`;
+
+    // ---- band 3 · orientation: one strip, no rows — a masthead, not a section
     const S = D.stages;
     sec.stages = `<section id="stages" class="masthead">
       <div class="strip">${S.stages.map(s => `<div class="cell"><div class="v">${esc(s.usd_fmt)}</div><div class="n">${s.count === s.unresolved ? plural(s.count, 'unresolved request') : plural(s.count - s.unresolved, 'company') + (s.unresolved ? `<span class="foot"> · ${s.unresolved} unresolved</span>` : '')}</div><div class="l">${esc(s.stage)}</div></div>`).join('')}</div>
       <details class="note"><summary>${plural(S.total.companies, 'company')}${S.total.unresolved ? ` + ${plural(S.total.unresolved, 'unresolved request')}` : ''}, ${esc(S.total.usd_fmt)} · point in time, as of ${esc(S.as_of)}. Each company counted once, at its furthest stage, at one $ value · How it is counted</summary>
       <p class="foot">One $ per company: CRM ARR potential where the company has an account (${S.value_source.crm}), else the deal value on its latest request (${S.value_source.deal})${S.value_source.none ? `, ${S.value_source.none} with neither` : ''}, never the sum of its requests. A company sits at the furthest stage any of its requests reached: once a meeting is booked, fresh asks on it do not move it back. ${S.total.unresolved ? `${plural(S.total.unresolved, 'request')} that resolved to no company (${esc(S.total.unresolved_usd_fmt)}) cannot be tied to an account or to each other, so each stands alone at its own deal value. ` : ''}${plural(S.excluded.count - S.excluded.unresolved, 'company')} whose every request is filed <i>Closed - no path</i>${S.excluded.unresolved ? `, and ${plural(S.excluded.unresolved, 'unresolved request')} filed the same,` : ''} (${esc(S.excluded.usd_fmt)}) are not on the strip. "needs data" = no company or no deal value on any request; "to be routed" = live with nobody assigned; "routed" = a connector is assigned or allocated this cycle but not yet asked; "asked" = in <code>intro_outcomes.csv</code> with no intro; "introduced" = intro logged or filed; "meeting booked" = the intro landed a meeting.</p></details></section>`;
 
-    // ---- band 3 · actionable now: ticking a row changes what the queue proposes tomorrow — spends a connector slot
+    // ---- band 4 · actionable now: ticking a row changes what the queue proposes tomorrow — spends a connector slot
     const T = D.priorities;
     sec.top = `<section id="top"><h2>Top ${T.top.length} Priorities <span class="foot">Do these next: sorted by expected value across ${T.considered} live requests with a connector to act on · each spends a connector slot</span></h2>`
       + priorityTable(T.top, X, state, 'rank', true)
@@ -787,7 +1006,7 @@ const LP = (function () {
       + `<p class="foot">Per connector: ${D.connector_pages.map(c => `<a href="${esc(c.page)}">${esc(c.connector)}</a>`).join(' · ')}. Each tab opens on their own top 5, with the longer list below.</p>`
       + formulaNote(T.formula) + `</section>`;
 
-    // ---- band 4 · current cycle: decisions the allocator already made — read-only
+    // ---- band 5 · current cycle: decisions the allocator already made — read-only
     // one tab per connector with a stake in the cycle (the roster, then the off-roster batch
     // holders): what they are carrying, the drafted message, their batch grouped by company; the
     // Aggregate tab is every batch's companies, biggest first
@@ -865,7 +1084,7 @@ const LP = (function () {
         t => `<p class="foot">${t.note}</p>` + sittingTable(t.rows, Fu.quiet_days, X, state, !!t.all))
       + `</details></section>`;
 
-    // ---- band 5 · other: admin that fits none of the bands above
+    // ---- band 6 · other: admin that fits none of the bands above
     const C = D.crm;
     sec.crm = `<section id="crm">${fold(`CRM Updates <span class="foot">${C.groups.map(g => `${g.count} ${esc(g.group)}`).join(' · ')}</span>`)}
       <div class="dl"><button id="lp-dl-import">Download ${esc(C.import.filename)}</button><span>${plural(C.import.count, 'account')} to create, importer-shaped columns only (<code>${C.import.columns.map(esc).join(', ')}</code>). It can be uploaded straight into the CRM.</span></div>
@@ -878,7 +1097,7 @@ const LP = (function () {
     }
     sec.crm += `</details></section>`;
 
-    // ---- assemble: five titled bands
+    // ---- assemble: six titled bands
     let out = `<p class="stamp" id="lp-stamp">As of <b>${esc(D.as_of)}</b></p>`;
     D.bands.forEach(b => {
       out += `<div class="band" id="band-${esc(b.id)}"><div class="band-h"><span class="t">${esc(b.title)}</span></div>`
@@ -911,6 +1130,120 @@ const LP = (function () {
     root.querySelector('#lp-route-go').onclick = go;
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) go(); });
     root.querySelectorAll('#route .presets button').forEach(b => b.onclick = () => { ta.value = P.route_presets[+b.dataset.i].text; go(); });
+    drop.addEventListener('click', e => { if (e.target !== file) file.click(); });
+    file.addEventListener('change', () => handle(file.files[0]));
+    ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+    drop.addEventListener('drop', e => handle(e.dataTransfer.files[0]));
+    wireUpload(root, D.intake || { files: {}, schemas: [], ledger: [], ids: [], rejected: [] });
+  }
+
+  // ------------------------------------------------ Intake: Add More Live Data
+  const UPLOAD_TYPES = '.csv,.json,.jsonl,.txt';
+  function uploadSection(U) {
+    const names = Object.keys(U.files).sort();
+    const led = U.ledger.slice().reverse(), rej = U.rejected || [];
+    const ledgerRows = led.length ? `<table><thead><tr><th>Received</th><th>By</th><th>File</th><th>Applied to</th><th class="num">Rows</th><th class="num">New</th><th class="num">Updated</th><th>New columns</th><th>Note</th></tr></thead><tbody>`
+      + led.map(r => `<tr><td class="date">${esc(utc(r.received_at))}</td><td>${esc(r.received_by)}</td><td><code>${esc(r.filename || r.upload_id)}</code><br><span class="foot">${esc(r.upload_id)}</span></td><td><code>${esc(r.target)}</code></td><td class="num">${esc(r.rows)}</td><td class="num">${esc(r.new_rows)}</td><td class="num">${esc(r.changed_rows)}</td><td class="foot">${esc((r.new_columns || '').split(';').filter(Boolean).join(', ') || '—')}</td><td class="foot">${esc(r.note)}</td></tr>`).join('')
+      + `</tbody></table>` : `<p class="empty">Nothing accepted yet: every file is the September export as filed</p>`;
+    const rejected = rej.length ? `<h3>Set aside by the build <span class="foot">${plural(rej.length, 'upload')} that could not be applied · <code>intake/rejected.csv</code></span></h3><table><thead><tr><th>Received</th><th>By</th><th>File</th><th>Applied to</th><th>Problem</th></tr></thead><tbody>`
+      + rej.map(r => `<tr><td class="date">${esc(utc(r.received_at))}</td><td>${esc(r.received_by)}</td><td><code>${esc(r.filename || r.upload_id)}</code></td><td><code>${esc(r.target)}</code></td><td class="warn">${esc(r.problem)}</td></tr>`).join('') + `</tbody></table>` : '';
+    return `<h2>Add Live Data <span class="foot">Drop a fresh CSV of any file in <code>dataset/</code>, or a Slack export (<code>.json</code> / <code>.jsonl</code>); see what it adds and what it overrides; Accept to file it</span></h2>
+      <p class="lede">Net-new rows or a fuller version of a file on record, either way: the upload is diffed here, in the browser, against the file as the last build read it (${names.length ? names.map(n => `<code>${esc(n)}</code>`).join(', ') : 'nothing on file'}). Rows are matched on the file's key (<code>request_id</code>, <code>account_id</code>, <code>name</code>, …): a key not on file is a new row; one on file is an update, and every value it would override is listed below before anything happens. Columns the file lacks are added. Nothing is written until you click Accept, and <code>dataset/</code> is never written: accepted files go to <code>${esc(U.path || 'intake/')}</code>, the next rebuild layers them on, and every tab reads the result.</p>
+      <div class="drop" id="lp-up-drop"><input type="file" id="lp-up-file" accept="${UPLOAD_TYPES}"><span>Drop a .csv, .json or .jsonl here, or click to choose</span></div>
+      <div id="lp-up-preview"></div>
+      <details class="fold" id="lp-up-ledger"><summary><h3>Accepted so far <span class="foot">${plural(U.ledger.length, 'upload')} applied on top of the export${U.ledger.length ? `, newest first · <code>${esc(U.path)}</code>` : ''}</span></h3></summary>${ledgerRows}${rejected}</details>`;
+  }
+
+  // the KPI strip + override list + sample rows for one upload, as previewUpload summarised it
+  function renderUploadSummary(s, filename, targets, target, why, U, pending) {
+    const sel = `<select id="lp-up-target" aria-label="the file this upload updates">${targets.map(t => `<option value="${esc(t)}" ${t === target ? 'selected' : ''}>${esc(t)}${U.files[t] ? '' : ' (new file)'}</option>`).join('')}</select>`;
+    let out = `<div class="upload-head"><b>${esc(filename)}</b> → applies to ${sel} <span class="foot">${esc(why)}</span></div>`;
+    if (s.error) return out + `<div class="finding warn"><b>Cannot be applied</b>${esc(s.error)}</div>`;
+    const cells = s.changes.length;
+    out += `<div class="kpis"><div class="kpi"><div class="v">${s.rows}</div><div class="l">${s.format === 'jsonl' ? 'threads' : 'rows'} in the upload</div><div class="s">${s.duplicate_keys ? `<b class="warn">${plural(s.duplicate_keys, 'key')} repeated within the file: the last row wins</b>` : `each ${esc(s.keys.join(' + '))} once`}</div></div>
+      <div class="kpi"><div class="v">${s.new_rows}</div><div class="l">new ${s.format === 'jsonl' ? 'threads' : 'rows'}</div><div class="s">${s.new_file ? 'a new file: every row is new' : 'keys not on file, appended'}</div></div>
+      ${s.format === 'jsonl' ? `<div class="kpi"><div class="v">${s.extended_threads}</div><div class="l">threads extended</div><div class="s">${plural(s.new_messages, 'new message')} appended to threads on file</div></div>` : ''}
+      <div class="kpi ${cells ? 'warn' : ''}"><div class="v">${s.changed_rows}</div><div class="l">${s.format === 'jsonl' ? 'threads' : 'rows'} with values overridden</div><div class="s">${cells ? `${plural(cells, 'value')} on file replaced, listed below` : 'nothing on file changes'}</div></div>
+      <div class="kpi"><div class="v">${s.unchanged_rows}</div><div class="l">unchanged</div><div class="s">on file already, nothing new in them</div></div>
+      <div class="kpi ${s.new_columns.length ? 'warn' : ''}"><div class="v">${s.new_columns.length}</div><div class="l">new columns</div><div class="s">${s.new_columns.length ? esc(s.new_columns.join(', ')) + ' · added after the existing ones, blank on rows that lack them' : 'the header matches the file'}</div></div></div>`;
+    if (pending) out += `<div class="finding"><b>Already accepted</b>This exact file is ${pending === 'file' ? 'already applied in the build' : 'accepted and waiting for the next rebuild'}; accepting it again changes nothing.</div>`;
+    const SHOW = 200;
+    if (cells) out += `<h3>Values the upload would override <span class="foot">${plural(cells, 'cell')} on ${plural(s.changed_rows, s.format === 'jsonl' ? 'thread' : 'row')}${cells > SHOW ? ` · the first ${SHOW}` : ''} · an empty cell in the upload never overrides</span></h3>
+      <table class="changes"><thead><tr><th>${esc(s.keys.join(' / '))}</th><th>Column</th><th>On file</th><th>Upload</th></tr></thead><tbody>${s.changes.slice(0, SHOW).map(c => `<tr><td class="rid">${esc(c.key)}</td><td><code>${esc(c.column)}</code></td><td class="from">${esc(c.from) || '<i>empty</i>'}</td><td class="to">${esc(c.to)}</td></tr>`).join('')}</tbody></table>`;
+    if (s.sample.length) {
+      const cols = s.format === 'jsonl' ? ['request_id', 'channel', 'posted', 'user', 'text', 'replies'] : s.columns.filter(c => s.sample.some(r => (r[c] || '').trim()));
+      out += `<h3>New ${s.format === 'jsonl' ? 'threads' : 'rows'} <span class="foot">${s.new_rows > s.sample.length ? `the first ${s.sample.length} of ${s.new_rows}` : plural(s.new_rows, 'row')}${s.format === 'jsonl' ? ' · a request_id not in intro_requests.csv becomes a request when the build runs' : ''}</span></h3>
+        <table class="sample"><thead><tr>${cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.sample.map(r => `<tr>${cols.map(c => `<td>${esc(r[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    }
+    return out;
+  }
+
+  function wireUpload(root, U) {
+    const drop = root.querySelector('#lp-up-drop'), file = root.querySelector('#lp-up-file'), box = root.querySelector('#lp-up-preview');
+    if (!drop) return;
+    const onFile = new Set(U.ids || []);
+    // accepted from this browser, not yet rebuilt into the site; dropped once the build has the id
+    const pending = new Map(Object.entries(load('lp-uploads', {})).filter(([id]) => !onFile.has(id)));
+    store('lp-uploads', Object.fromEntries(pending));
+    let cur = null;  // { filename, text, columns|null, target, why, summary }
+    const targetsFor = (columns, guess) => {
+      const names = Object.keys(U.files).filter(n => columns === null ? formatOf(n) === 'jsonl' : formatOf(n) === 'csv').sort();
+      if (guess && !names.includes(guess)) names.push(guess);
+      return names;
+    };
+    const render = () => {
+      const id = uploadId(cur.target, cur.text);
+      const state = onFile.has(id) ? 'file' : pending.has(id) ? 'pending' : '';
+      let s;
+      try { s = previewUpload(U, cur.target, cur.text); } catch (e) { s = { error: e.message }; }
+      cur.summary = s;
+      const ok = !s.error, canPost = !!(U.supabase_url && U.anon_key);
+      const foot = !ok ? '' : canPost
+        ? `Files it in the <code>${esc(U.table)}</code> table as <code>${esc(id)}</code>; the site rebuilds from it within a few minutes and every tab reads the new data. <code>dataset/</code> stays as it is.`
+        : `<b class="warn">This build cannot post: no Supabase URL / anon key.</b> Accept downloads the file as <code>${esc(id)}.${formatOf(cur.target)}</code>; from the repo root:<br><code>${esc(U.command.replace('{file}', `${id}.${formatOf(cur.target)}`).replace('{target}', cur.target).replace('{who}', load('lp-who', '') || 'me'))}</code>`;
+      box.innerHTML = renderUploadSummary(s, cur.filename, targetsFor(cur.columns, cur.target), cur.target, cur.why, U, state)
+        + `<div class="dl" id="lp-up-actions"><button id="lp-up-accept" ${ok ? '' : 'disabled'}>Accept</button><button id="lp-up-discard" class="secondary">Discard</button><span>${ok ? foot : 'Fix the file, or pick another target above, and drop it again.'}</span></div>`;
+      box.querySelector('#lp-up-target').onchange = e => { cur.target = e.target.value; cur.why = 'chosen'; render(); };
+      box.querySelector('#lp-up-discard').onclick = () => { cur = null; box.innerHTML = ''; file.value = ''; };
+      box.querySelector('#lp-up-accept').onclick = accept;
+    };
+    const accept = async () => {
+      if (!cur || cur.summary.error) return;
+      const who = load('lp-who', '') || askWho();
+      if (!who) return;
+      const at = new Date().toISOString(), row = uploadRow(cur.target, cur.filename, cur.text, cur.summary, who, at);
+      const actions = box.querySelector('#lp-up-actions'), note = actions.querySelector('span'), go = actions.querySelector('#lp-up-accept');
+      if (!(U.supabase_url && U.anon_key)) {
+        download(`${row.upload_id}.${formatOf(cur.target)}`, row.content);
+        note.innerHTML = `<b>Downloaded ${esc(row.upload_id)}.${formatOf(cur.target)}</b>. Nothing is filed until it is added from the repo root:<br><code>${esc(U.command.replace('{file}', `${row.upload_id}.${formatOf(cur.target)}`).replace('{target}', cur.target).replace('{who}', who))}</code>`;
+        return;
+      }
+      go.disabled = true; note.innerHTML = 'Filing…';
+      let got;
+      try { got = await postUpload(U, row); } catch (e) {
+        go.disabled = false; actions.classList.add('failed');
+        note.innerHTML = `<b class="warn">Not filed.</b> ${esc(e.message)}. Try Accept again, or if Supabase is down, download the file and add it by hand: <a href="#" id="lp-up-dl">download</a>.`;
+        note.querySelector('#lp-up-dl').onclick = ev => { ev.preventDefault(); download(`${row.upload_id}.${formatOf(cur.target)}`, row.content); };
+        return;
+      }
+      pending.set(row.upload_id, { target: row.target, filename: row.filename, at }); store('lp-uploads', Object.fromEntries(pending));
+      actions.classList.remove('failed');
+      note.innerHTML = got.already ? `<b>Already filed</b> as <code>${esc(row.upload_id)}</code>: this exact file was accepted before; nothing new was written.`
+        : `<b>Accepted</b> as ${esc(who)}: <code>${esc(row.upload_id)}</code> → <code>${esc(row.target)}</code>, ${plural(row.new_rows, 'new row')}, ${plural(row.changed_rows, 'row')} updated${cur.summary.new_columns.length ? `, ${plural(cur.summary.new_columns.length, 'new column')}` : ''}. The site rebuilds from the table within a few minutes; refresh after that and every tab reads it.`;
+    };
+    const take = (text, filename) => {
+      let columns = null;
+      if (!/\.jsonl?$/i.test(filename) && !text.replace(/^\uFEFF/, '').trim().startsWith('{') && !text.replace(/^\uFEFF/, '').trim().startsWith('[')) {
+        try { columns = parseCsv(text).columns; } catch (e) { columns = []; }
+      }
+      const [target, why] = guessTarget(filename, columns, Object.fromEntries(Object.entries(U.files).map(([n, f]) => [n, f.columns || []])), U.schemas);
+      const names = targetsFor(columns, target);
+      cur = { filename, text, columns, target: target || names[0] || '', why: target ? why : `${why}; pick the file it updates` };
+      if (!cur.target) { box.innerHTML = `<div class="finding warn"><b>Cannot be applied</b>${esc(why)}</div>`; return; }
+      render();
+    };
+    const handle = f => { if (f) f.text().then(text => take(text, f.name)); };
     drop.addEventListener('click', e => { if (e.target !== file) file.click(); });
     file.addEventListener('change', () => handle(file.files[0]));
     ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
@@ -995,6 +1328,7 @@ const LP = (function () {
     if (open && pv.rows.length) toggle(0);
   }
 
-  return { boot, bootConnector, bootBatch, extract, makeResolver, previewThreads, parseJsonl, route, normStrict, toCsv, completionRows, completionId, tickKey, postCompletions };
+  return { boot, bootConnector, bootBatch, extract, makeResolver, previewThreads, parseJsonl, route, normStrict, toCsv, completionRows, completionId, tickKey, postCompletions,
+           fnv1a, uploadId, schemaOf, parseCsv, parseThreads, mergeCsv, mergeThreads, guessTarget, previewUpload, uploadRow, postUpload };
 })();
 if (typeof module !== 'undefined') module.exports = LP;

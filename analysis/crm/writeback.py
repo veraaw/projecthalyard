@@ -44,7 +44,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
 from golden.build_golden import MULTI, OPEN_STATUSES, parse_date, read_csv, write_csv  # noqa: E402
 from golden.clock import as_of  # noqa: E402
-from paths import CRM, DATASET, GOLDEN  # noqa: E402
+from paths import CRM, CURRENT, GOLDEN  # noqa: E402
 
 IMPORT_OUT = CRM / "crm_import.csv"
 REVIEW_OUT = CRM / "crm_review.csv"
@@ -114,7 +114,7 @@ class Writeback:
     def __init__(self, today: date):
         self.today = today
         self.companies = [c for c in read_csv(GOLDEN / "golden_companies.csv") if int(c["total_requests"] or 0)]
-        self.accounts = {a["account_id"]: a for a in read_csv(DATASET / "crm_accounts.csv")}
+        self.accounts = {a["account_id"]: a for a in read_csv(CURRENT / "crm_accounts.csv")}
         by_company: dict[str, list[dict]] = {}
         for r in read_csv(GOLDEN / "golden_requests.csv"):
             if r["company_id"]:
