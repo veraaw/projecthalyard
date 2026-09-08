@@ -63,7 +63,9 @@ class HarrowgateTest(unittest.TestCase):
 
     def test_company_trace_requests_kpi_lists_urgency_by_request(self):
         from dashboard.trace_section import fragment
-        self.assertIn("request-criticality", fragment())
+        markup = fragment()
+        self.assertIn("request-criticality", markup)
+        self.assertIn('title="${esc(journey(h.request_rows))}"', markup)
 
     def test_routing_furthest_and_latest_differ(self):
         """Two intros landed, but the latest request (R1057, Stalled) is still with the connector asked."""

@@ -100,7 +100,7 @@ def fragment() -> str:
       for (const q of rows) {{ const k = q.requested_by || 'unattributed'; if (!by.has(k)) by.set(k, []); by.get(k).push(q); }}
       return [...by].map(([who, qs]) => `${{who}}: ${{qs.map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}}`).join(', ')}}`).join('\\n');
     }};
-    const requestKpi = `<div class="kpi"><div class="v">${{esc(h.requests)}}</div><div class="l">requests</div><div class="s request-criticality">${{h.request_rows.map(q => `<span>${{esc(q.request_id)}} · ${{esc(q.urgency || 'Unspecified')}}</span>`).join('')}}</div></div>`;
+    const requestKpi = `<div class="kpi" title="${{esc(journey(h.request_rows))}}"><div class="v">${{esc(h.requests)}}</div><div class="l">requests</div><div class="s request-criticality">${{h.request_rows.map(q => `<span>${{esc(q.request_id)}} · ${{esc(q.urgency || 'Unspecified')}}</span>`).join('')}}</div></div>`;
     let out = `<h2 class="co">${{esc(t.company_name)}} <span class="foot">${{esc(t.company_id)}}${{h.crm_account_ids ? ' · ' + esc(h.crm_account_ids) : ''}}${{h.domain ? ' · ' + esc(h.domain) : ''}}</span></h2>`;
     out += `<p class="aka">${{h.also_known_as.length ? 'Also goes by ' + h.also_known_as.map(esc).join(' · ') : 'No other spellings on file'}}${{h.duplicate_accounts && h.duplicate_accounts !== 'no' ? ' · Duplicate accounts: ' + esc(h.duplicate_accounts) : ''}}</p>`;
     const rt = h.routing, cr = t.route, top = cr.top;
