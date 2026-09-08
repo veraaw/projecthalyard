@@ -1379,7 +1379,7 @@ class BuiltPagesTest(unittest.TestCase):
     def test_raw_sept_carries_the_live_charts_after_file_flow_and_joins_below_the_divider(self):
         html = self.pages["halyardscoping.html"]
         order = self.sections("halyardscoping.html")
-        self.assertEqual(order[:9], ["flow", "urgency", *self.STRATEGIC, "overview"], "Urgency Overview and the shared charts follow File Flow")
+        self.assertEqual(order[:9], ["flow", *self.STRATEGIC[:2], "urgency", *self.STRATEGIC[2:], "overview"], "Urgency follows Accounts before the remaining shared charts")
         self.assertEqual(order[order.index("integrity-divider"):],
                          ["integrity-divider", "joins", "targets", "quality", "verify", "integrity"],
                          "the divider sits right above Joins; Joins is above CSV Profile")
@@ -1389,7 +1389,7 @@ class BuiltPagesTest(unittest.TestCase):
         # the sidebar walks the page in order, with the two bands
         side = html.split('<nav class="toc"')[1].split("</nav>")[0]
         self.assertEqual(re.findall(r'href="#([^"]+)"', side),
-                         ["flow", "flow", "urgency", *self.STRATEGIC, "overview", "timing", "scoping", "integrity-divider",
+                         ["flow", "flow", *self.STRATEGIC[:2], "urgency", *self.STRATEGIC[2:], "overview", "timing", "scoping", "integrity-divider",
                           "joins", "targets", "quality", "verify", "integrity"])
         self.assertEqual(re.findall(r'<a class="band" href="#[^"]+">([^<]+)<', side), ["Strategic data", "Data integrity"])
         self.assertEqual(self.sections("livedata.html"), [self.STRATEGIC[0], "unrouted", "inflight", *self.STRATEGIC[1:]],
@@ -1429,7 +1429,7 @@ class BuiltPagesTest(unittest.TestCase):
                         "req-accounts", "req-rate", "req-urgency", "connector-return", "latency-chart", "cycles-chart"):
                 self.assertIn(f'id="{div}"', html, f"{name} draws {div}")
             for div in ("urgency-top", "urgency-total"):
-                (self.assertNotIn if live else self.assertIn)(f'id="{div}"', html, f"{name}: Urgency Overview belongs to Raw Sept")
+                (self.assertNotIn if live else self.assertIn)(f'id="{div}"', html, f"{name}: Urgency belongs to Raw Sept")
             for div in ("blockage", "blockage-12m"):
                 (self.assertIn if live else self.assertNotIn)(f'id="{div}"', html, f"{name}: Remaining Unrouted is Live Data only")
             self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 3 if live else 2,

@@ -442,7 +442,7 @@ def urgency_section(data):
                     for r in urgency["top"]])
     return f"""
 <section id="urgency">
-  <h2>Urgency Overview</h2>
+  <h2>Urgency</h2>
   <p class="lede">The {min(urgency['limit'], urgency['total'])} highest-priority requests from September, ordered by the urgency declared on each request, then its filed deal value and date. The CRM stage is the resolved company’s latest status in the September CRM export; an unresolved or non-CRM company is labelled <i>No CRM record</i>.</p>
   <div class="kpis">
     {kpi(urgency['total'], "requests on file", "each request keeps its own declared urgency")}
@@ -631,7 +631,7 @@ def headline_kpis(data):
   </div>"""
 
 
-def strategic_sections(data, cyc, live, in_flight=None):
+def strategic_sections(data, cyc, live, in_flight=None, after_accounts=""):
     """The five sections the two data dashboards share (funnel, accounts, requesters, connectors,
     intros by cycle), rendered from one data_cuts.load() result and one cycles dict. `live` picks
     the wording and the source lines: the Live Data tab reads golden/ with the ask log as the
@@ -1014,7 +1014,7 @@ def strategic_sections(data, cyc, live, in_flight=None):
   </div>
 </section>
 """
-    return funnel + accounts + requesters_html + connectors_html + latency_html + cycles_html
+    return funnel + accounts + after_accounts + requesters_html + connectors_html + latency_html + cycles_html
 
 
 dup_table = table(["Reply text", "Occurrences"], [(text, n) for text, n in slack["dup_phrases"]])
@@ -1585,7 +1585,7 @@ raw_page = f"""{head("Raw Sept Data Dashboard")}
   <p>Scoping and verification of {len(requests)} warm-intro requests · {raw_span} · Source: the September exports in <code>dataset/</code>, as filed · {built}</p>
 </header>
 <div class="layout">
-{sidebar([("#flow", "Strategic data", "band"), ("#flow", "File Flow", ""), ("#urgency", "Urgency Overview", ""), *STRATEGIC_NAV, ("#overview", "Funnel Overview", ""),
+{sidebar([("#flow", "Strategic data", "band"), ("#flow", "File Flow", ""), *STRATEGIC_NAV[:2], ("#urgency", "Urgency", ""), *STRATEGIC_NAV[2:], ("#overview", "Funnel Overview", ""),
           ("#timing", "Timing", ""), ("#scoping", "Slack Threads", ""),
           ("#integrity-divider", "Data integrity", "band"), ("#joins", "Joins", ""), ("#targets", "Target People", ""),
           ("#quality", "Flags &amp; Coverage", ""), ("#verify", "CSV Profile", ""), ("#integrity", "Integrity Audit", "")])}
@@ -1599,8 +1599,7 @@ raw_page = f"""{head("Raw Sept Data Dashboard")}
   <img src="routing_flow.png" alt="Intro-request routing flow across the CSV files" style="display:block;max-width:720px;width:100%;margin:0 auto">
   <p class="foot">Source: <code>analysis/routing/routing_flow.mmd</code>; narrative in <code>analysis/routing/routing_flow.md</code>.</p>
 </section>
-{urgency_section(cuts)}
-{strategic_sections(cuts, data_cuts.cycle_cut(cuts), live=False)}
+{strategic_sections(cuts, data_cuts.cycle_cut(cuts), live=False, after_accounts=urgency_section(cuts))}
 <section id="overview">
   <h2>Funnel Overview</h2>
   <p class="lede">Every request drops out at the first stage it fails, so the eight buckets partition all {ov_n} requests. Unrouted requests split on whether the target company appears in <code>dataset/connections_*.csv</code>; a target counts as identifiable when a company can be recovered from <code>target_company_raw</code>, the company names in <code>raw_ask</code>, or an email domain in <code>raw_ask</code>.</p>
