@@ -750,6 +750,55 @@ def outcome_delta_cut(data):
 
 
 # --------------------------------------------------------------------------- 10. requesters
+URGENCY_ORDER = ("Critical", "High", "Medium", "Low", "Unspecified")
+URGENCY_RANK = {label: rank for rank, label in enumerate(URGENCY_ORDER)}
+
+
+def urgency_label(value):
+    """The dashboard's stable display/category name for a filed urgency value."""
+    label = (value or "").strip().title()
+    return label if label in URGENCY_RANK else "Unspecified"
+
+
+def urgency_cut(data, limit=20):
+    """Raw request priority, plus the resolved company's CRM stage where one exists.
+
+    `urgency` remains a request-level fact -- a company with several requests can
+    appear several times.  The rows are ordered by the declared urgency first,
+    then the value on that request and its filed date, so the detail chart is a
+    useful queue rather than a list in CSV order.
+    """
+    crm_by_id = {a["account_id"].strip(): a for a in data["crm"]}
+    rows = []
+    for r in data["requests"]:
+        rid = r["request_id"].strip()
+        golden_row = data["golden_requests"].get(rid, {})
+        cid = golden_row.get("company_id", "")
+        company = data["golden_companies"].get(cid, {}) if cid else {}
+        crm_accounts = [crm_by_id[aid] for aid in company.get("crm_account_ids", "").split(bg.MULTI)
+                        if aid in crm_by_id]
+        # The resolver's survivor rule: avoid an A9 duplicate when a normal CRM
+        # account exists, then use the stable account id as the tie-breaker.
+        latest_crm = min(crm_accounts, key=lambda a: (a["account_id"].startswith("A9"), a["account_id"])) if crm_accounts else None
+        urgency = urgency_label(r.get("urgency", ""))
+        rows.append({
+            "request_id": rid,
+            "company_name": company.get("company_name", "") or r.get("target_company_raw", "").strip() or "(unresolved)",
+            "target_title": r.get("target_title_raw", "").strip(),
+            "urgency": urgency,
+            "urgency_rank": URGENCY_RANK[urgency],
+            "value": money(r.get("deal_value_usd", "")),
+            "filed": r.get("request_date", "").strip(),
+            "crm_stage": latest_crm["stage"].strip() if latest_crm and latest_crm["stage"].strip() else "No CRM record",
+        })
+    rows.sort(key=lambda r: (r["urgency_rank"], -r["value"], r["filed"] or "9999-99-99", r["request_id"]))
+    counts = Counter(r["urgency"] for r in rows)
+    categories = [{"urgency": label, "count": counts[label]}
+                  for label in URGENCY_ORDER if counts[label]]
+    return {"rows": rows, "top": rows[:limit], "categories": categories,
+            "total": len(rows), "limit": limit}
+
+
 def requester_cut(data):
     """Per requester (the SDR and the AEs): asks filed, distinct accounts asked for,
     how many have a CRM account and what the accounts are worth, intros landed, and

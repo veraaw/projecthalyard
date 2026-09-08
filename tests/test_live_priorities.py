@@ -853,6 +853,33 @@ class RequesterCutTest(unittest.TestCase):
                            "a company with no CRM account still counts at its deal value")
 
 
+class UrgencyCutTest(unittest.TestCase):
+    """Raw September's urgency overview keeps request-level urgency and CRM stage together."""
+    @classmethod
+    def setUpClass(cls):
+        from dashboard import data_cuts
+        cls.dc = data_cuts
+        cls.raw = data_cuts.load()
+        cls.cut = data_cuts.urgency_cut(cls.raw)
+
+    def test_every_raw_request_has_one_ordered_urgency_row(self):
+        rows = self.cut["rows"]
+        self.assertEqual(len(rows), len(self.raw["requests"]))
+        self.assertEqual({r["request_id"] for r in rows}, {r["request_id"] for r in self.raw["requests"]})
+        self.assertEqual(sum(r["count"] for r in self.cut["categories"]), len(rows))
+        self.assertEqual([r["urgency"] for r in self.cut["categories"]],
+                         [u for u in self.dc.URGENCY_ORDER if any(r["urgency"] == u for r in rows)])
+        self.assertEqual(rows, sorted(rows, key=lambda r: (r["urgency_rank"], -r["value"], r["filed"] or "9999-99-99", r["request_id"])))
+        self.assertEqual(self.cut["top"], rows[:self.cut["limit"]])
+
+    def test_urgency_and_crm_stage_are_the_september_values(self):
+        by_id = {r["request_id"]: r for r in self.raw["requests"]}
+        for row in self.cut["rows"]:
+            raw = by_id[row["request_id"]]
+            self.assertEqual(row["urgency"], self.dc.urgency_label(raw["urgency"]))
+            self.assertIn(row["crm_stage"], {a["stage"] for a in self.raw["crm"]} | {"No CRM record"})
+
+
 class GoldenSourceCutsTest(unittest.TestCase):
     """data_cuts.load("golden"): what the Live Data tab is computed from. The same cuts
     as the Raw Sept tab, over golden_requests.csv and the ask log with completions applied."""
@@ -1352,7 +1379,7 @@ class BuiltPagesTest(unittest.TestCase):
     def test_raw_sept_carries_the_live_charts_after_file_flow_and_joins_below_the_divider(self):
         html = self.pages["halyardscoping.html"]
         order = self.sections("halyardscoping.html")
-        self.assertEqual(order[:8], ["flow", *self.STRATEGIC, "overview"], "the Live Data charts follow File Flow")
+        self.assertEqual(order[:9], ["flow", "urgency", *self.STRATEGIC, "overview"], "Urgency Overview and the shared charts follow File Flow")
         self.assertEqual(order[order.index("integrity-divider"):],
                          ["integrity-divider", "joins", "targets", "quality", "verify", "integrity"],
                          "the divider sits right above Joins; Joins is above CSV Profile")
@@ -1362,7 +1389,7 @@ class BuiltPagesTest(unittest.TestCase):
         # the sidebar walks the page in order, with the two bands
         side = html.split('<nav class="toc"')[1].split("</nav>")[0]
         self.assertEqual(re.findall(r'href="#([^"]+)"', side),
-                         ["flow", "flow", *self.STRATEGIC, "overview", "timing", "scoping", "integrity-divider",
+                         ["flow", "flow", "urgency", *self.STRATEGIC, "overview", "timing", "scoping", "integrity-divider",
                           "joins", "targets", "quality", "verify", "integrity"])
         self.assertEqual(re.findall(r'<a class="band" href="#[^"]+">([^<]+)<', side), ["Strategic data", "Data integrity"])
         self.assertEqual(self.sections("livedata.html"), [self.STRATEGIC[0], "unrouted", "inflight", *self.STRATEGIC[1:]],
@@ -1401,6 +1428,8 @@ class BuiltPagesTest(unittest.TestCase):
             for div in ("sankey", "sankey-12m", "demand", "demand-12m", "req-asks", "req-value",
                         "req-accounts", "req-rate", "req-urgency", "connector-return", "latency-chart", "cycles-chart"):
                 self.assertIn(f'id="{div}"', html, f"{name} draws {div}")
+            for div in ("urgency-top", "urgency-total"):
+                (self.assertNotIn if live else self.assertIn)(f'id="{div}"', html, f"{name}: Urgency Overview belongs to Raw Sept")
             for div in ("blockage", "blockage-12m"):
                 (self.assertIn if live else self.assertNotIn)(f'id="{div}"', html, f"{name}: Remaining Unrouted is Live Data only")
             self.assertEqual(html.count('data-view="all" role="tab">Cumulative<'), 3 if live else 2,

@@ -469,6 +469,7 @@ class Trace:
             rows.append({
                 "request_id": r["request_id"], "date": r["request_date"], "requested_by": r["requested_by"],
                 "target_title": r["target_title"], "status": r["status_as_filed"], "stage": self.stage_of(r),
+                "urgency": r["urgency_declared"].strip() or "Unspecified",
                 "routed_to": r["routed_to"] or a.get("allocated_to", ""), "routed_on": r["routed_on"],
                 "asked_date": o.get("asked_date") or r["asked_date"], "response_date": o.get("response_date", ""),
                 "intro_date": o.get("intro_date", ""), "meeting_booked": (o.get("meeting_booked") or r["meeting_booked"]) == "Y",
