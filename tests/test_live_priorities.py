@@ -1139,10 +1139,11 @@ class GoldenSourceCutsTest(unittest.TestCase):
         expected_slices = {key: sum(counts[bucket] for bucket in buckets)
                            for key, (_, buckets) in rs.SLICES.items()}
         self.assertEqual({k: s["count"] for k, s in ab["slices"].items()}, expected_slices)
-        self.assertEqual([b["bucket"] for b in ab["slices"]["process"]["buckets"]],
-                         [bg.INTRO_CLAIMED_NOT_LOGGED, "company unresolved", "capacity exhausted this cycle", bg.UNRESOLVED_ASK])
-        self.assertEqual([b["bucket"] for b in ab["slices"]["supply"]["buckets"]], [bg.NO_PATH])
-        self.assertEqual([b["bucket"] for b in ab["slices"]["closed"]["buckets"]], [bg.ALREADY_INTRODUCED])
+        for key, (_, members) in rs.SLICES.items():
+            shown = [b["bucket"] for b in ab["slices"][key]["buckets"]]
+            self.assertEqual(sorted(shown), sorted(m for m in members if counts[m]), f"{key}: its non-empty buckets")
+            self.assertEqual([b["count"] for b in ab["slices"][key]["buckets"]],
+                             sorted((counts[m] for m in shown), reverse=True), f"{key}: largest bucket first")
         self.assertEqual(ab["unmapped"], [])
         self.assertAlmostEqual(ab["supply_share"], expected_slices["supply"] / ab["blocked"])
         # the footnote: no path in supply_reach.csv, including any Intro sent claims the repair queue
