@@ -256,6 +256,47 @@ def demand_chart(dm, div_id):
     return plot(fig, div_id)
 
 
+def urgency_top_chart(urgency, div_id):
+    """The most urgent requests, with CRM stage printed beside each bar."""
+    rows_ = urgency["top"][::-1]
+    colors = {"Critical": theme.WARN, "High": theme.BATON, "Medium": theme.ACCENT,
+              "Low": theme.NEUTRAL_DARK, "Unspecified": theme.NEUTRAL}
+    fig = go.Figure()
+    fig.add_bar(
+        y=[f'{r["request_id"]} · {r["company_name"]}' for r in rows_],
+        x=[r["value"] for r in rows_],
+        orientation="h",
+        marker_color=[colors[r["urgency"]] for r in rows_],
+        text=[r["crm_stage"] for r in rows_], textposition="outside", cliponaxis=False,
+        customdata=[[r["urgency"], r["crm_stage"], r["target_title"] or "—", r["filed"]] for r in rows_],
+        hovertemplate=("<b>%{y}</b><br>%{customdata[0]} urgency<br>CRM stage: %{customdata[1]}"
+                       "<br>Target: %{customdata[2]}<br>Filed: %{customdata[3]}"
+                       "<br>Filed deal value: $%{x:,.0f}<extra></extra>"),
+    )
+    fig.update_layout(height=max(430, 34 * len(rows_) + 100), autosize=True,
+                      margin=dict(l=10, r=110, t=10, b=30), showlegend=False, **theme.PLOTLY_LAYOUT)
+    fig.update_layout(xaxis=dict(title="filed deal value", tickformat="$~s", rangemode="tozero", fixedrange=True),
+                      yaxis=dict(automargin=True, fixedrange=True))
+    return plot(fig, div_id)
+
+
+def urgency_total_chart(urgency, div_id):
+    """One bar per filed urgency category, in its priority order."""
+    rows_ = urgency["categories"]
+    colors = {"Critical": theme.WARN, "High": theme.BATON, "Medium": theme.ACCENT,
+              "Low": theme.NEUTRAL_DARK, "Unspecified": theme.NEUTRAL}
+    fig = go.Figure()
+    fig.add_bar(x=[r["urgency"] for r in rows_], y=[r["count"] for r in rows_],
+                marker_color=[colors[r["urgency"]] for r in rows_],
+                text=[r["count"] for r in rows_], textposition="outside",
+                hovertemplate="%{y} requests declared %{x}<extra></extra>")
+    fig.update_layout(height=360, autosize=True, margin=dict(l=10, r=10, t=20, b=40),
+                      showlegend=False, **theme.PLOTLY_LAYOUT)
+    fig.update_layout(yaxis=dict(title="requests", rangemode="tozero", fixedrange=True),
+                      xaxis=dict(fixedrange=True))
+    return plot(fig, div_id)
+
+
 target_table = table(["Looked up in", "Distinct target people found"],
                      [(label, n) for label, n in targets["hits"]])
 
@@ -388,6 +429,43 @@ SEG_SCRIPT = """<script>
 STRATEGIC_NAV = [("#funnel", "Funnel", ""), ("#accounts", "Accounts", ""), ("#requesters", "Requesters", ""),
                  ("#connectors", "Connectors", ""), ("#latency", "Latency", ""), ("#cycles", "Intros by Cycle", "")]
 LIVE_NAV = STRATEGIC_NAV[:1] + [("#unrouted", "Remaining Unrouted", ""), ("#inflight", "Requests in Flight", "")] + STRATEGIC_NAV[1:]
+
+
+def urgency_section(data):
+    """Raw September's request-level urgency view; Live Data deliberately omits it."""
+    urgency = data_cuts.urgency_cut(data)
+    critical = next((r["count"] for r in urgency["categories"] if r["urgency"] == "Critical"), 0)
+    high = next((r["count"] for r in urgency["categories"] if r["urgency"] == "High"), 0)
+    detail = table(["Request", "Company", "Target", "Urgency", "Latest CRM stage", "Filed value", "Filed"],
+                   [(r["request_id"], r["company_name"], r["target_title"] or "—", r["urgency"],
+                     r["crm_stage"], usd(r["value"]), r["filed"])
+                    for r in urgency["top"]])
+    return f"""
+<section id="urgency">
+  <h2>Urgency</h2>
+  <p class="lede">The {min(urgency['limit'], urgency['total'])} highest-priority requests from September, ordered by the urgency declared on each request, then its filed deal value and date. The CRM stage is the resolved company’s latest status in the September CRM export; an unresolved or non-CRM company is labelled <i>No CRM record</i>.</p>
+  <div class="kpis">
+    {kpi(urgency['total'], "requests on file", "each request keeps its own declared urgency")}
+    {kpi(critical, "declared Critical", f"{critical / urgency['total']:.0%} of requests" if urgency['total'] else "no requests")}
+    {kpi(critical + high, "Critical or High", f"{(critical + high) / urgency['total']:.0%} of requests" if urgency['total'] else "no requests")}
+    {kpi(len([r for r in urgency['top'] if r['crm_stage'] == 'No CRM record']), "top requests without CRM status", "company unresolved or no CRM account")}
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Top requests by urgency</h3>
+      <p class="foot">Bar length is the deal value filed on that request; the text at right is the latest CRM stage.</p>
+      {urgency_top_chart(urgency, "urgency-top")}
+    </div>
+    <div>
+      <h3>Total requests by urgency</h3>
+      <p class="foot">Counts include every September request, including requests with no resolved company.</p>
+      {urgency_total_chart(urgency, "urgency-total")}
+    </div>
+  </div>
+  <h3>Top-request detail</h3>
+  {detail}
+</section>
+"""
 
 
 def in_flight_section(f):
@@ -553,7 +631,7 @@ def headline_kpis(data):
   </div>"""
 
 
-def strategic_sections(data, cyc, live, in_flight=None):
+def strategic_sections(data, cyc, live, in_flight=None, after_accounts=""):
     """The five sections the two data dashboards share (funnel, accounts, requesters, connectors,
     intros by cycle), rendered from one data_cuts.load() result and one cycles dict. `live` picks
     the wording and the source lines: the Live Data tab reads golden/ with the ask log as the
@@ -936,7 +1014,7 @@ def strategic_sections(data, cyc, live, in_flight=None):
   </div>
 </section>
 """
-    return funnel + accounts + requesters_html + connectors_html + latency_html + cycles_html
+    return funnel + accounts + after_accounts + requesters_html + connectors_html + latency_html + cycles_html
 
 
 dup_table = table(["Reply text", "Occurrences"], [(text, n) for text, n in slack["dup_phrases"]])
@@ -1507,7 +1585,7 @@ raw_page = f"""{head("Raw Sept Data Dashboard")}
   <p>Scoping and verification of {len(requests)} warm-intro requests · {raw_span} · Source: the September exports in <code>dataset/</code>, as filed · {built}</p>
 </header>
 <div class="layout">
-{sidebar([("#flow", "Strategic data", "band"), ("#flow", "File Flow", ""), *STRATEGIC_NAV, ("#overview", "Funnel Overview", ""),
+{sidebar([("#flow", "Strategic data", "band"), ("#flow", "File Flow", ""), *STRATEGIC_NAV[:2], ("#urgency", "Urgency", ""), *STRATEGIC_NAV[2:], ("#overview", "Funnel Overview", ""),
           ("#timing", "Timing", ""), ("#scoping", "Slack Threads", ""),
           ("#integrity-divider", "Data integrity", "band"), ("#joins", "Joins", ""), ("#targets", "Target People", ""),
           ("#quality", "Flags &amp; Coverage", ""), ("#verify", "CSV Profile", ""), ("#integrity", "Integrity Audit", "")])}
@@ -1521,7 +1599,7 @@ raw_page = f"""{head("Raw Sept Data Dashboard")}
   <img src="routing_flow.png" alt="Intro-request routing flow across the CSV files" style="display:block;max-width:720px;width:100%;margin:0 auto">
   <p class="foot">Source: <code>analysis/routing/routing_flow.mmd</code>; narrative in <code>analysis/routing/routing_flow.md</code>.</p>
 </section>
-{strategic_sections(cuts, data_cuts.cycle_cut(cuts), live=False)}
+{strategic_sections(cuts, data_cuts.cycle_cut(cuts), live=False, after_accounts=urgency_section(cuts))}
 <section id="overview">
   <h2>Funnel Overview</h2>
   <p class="lede">Every request drops out at the first stage it fails, so the eight buckets partition all {ov_n} requests. Unrouted requests split on whether the target company appears in <code>dataset/connections_*.csv</code>; a target counts as identifiable when a company can be recovered from <code>target_company_raw</code>, the company names in <code>raw_ask</code>, or an email domain in <code>raw_ask</code>.</p>

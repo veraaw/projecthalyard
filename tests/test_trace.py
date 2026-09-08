@@ -51,6 +51,8 @@ class HarrowgateTest(unittest.TestCase):
         self.assertEqual(Counter(q["stage"] for q in rows), Counter(h["routing"]["counts"]), "the routed / closed hovers list exactly the counted requests")
         for q in rows:
             self.assertRegex(q["date"], r"^\d{4}-\d{2}-\d{2}")
+            self.assertEqual(q["urgency"], next(r["urgency_declared"] for r in self.trace.requests
+                                                 if r["request_id"] == q["request_id"]) or "Unspecified")
             if q["stage"] == "routed":
                 self.assertTrue(q["routed_to"], q["request_id"])
         self.assertTrue(any(q["intro_date"] for q in rows), "an intro on file shows its date along the way")
@@ -58,6 +60,12 @@ class HarrowgateTest(unittest.TestCase):
         self.assertEqual(v["value_usd"], money(self.company["value_usd"]), "the company's one $, as on Live Priorities")
         self.assertEqual(v["source"], "CRM ARR potential")
         self.assertEqual([q["request_id"] for q in v["by_request"]], [q["request_id"] for q in rows], "the $ hover is per request, same order")
+
+    def test_company_trace_requests_kpi_lists_urgency_by_request(self):
+        from dashboard.trace_section import fragment
+        markup = fragment()
+        self.assertIn("request-criticality", markup)
+        self.assertIn('title="${esc(journey(h.request_rows))}"', markup)
 
     def test_routing_furthest_and_latest_differ(self):
         """Two intros landed, but the latest request (R1057, Stalled) is still with the connector asked."""

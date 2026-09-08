@@ -29,6 +29,8 @@ def fragment() -> str:
 <style>
 #trace h2.co{{font-size:26px;margin:0 0 2px}}
 #trace .kpis{{grid-template-columns:repeat(4,1fr)}}
+#trace .request-criticality{{font-size:11px;line-height:1.45}}
+#trace .request-criticality span{{display:block}}
 #trace .aka{{color:var(--mute);font-size:14px;margin:0 0 10px}}
 #trace table td.mark{{font-family:var(--mono);font-weight:600;width:28px;white-space:nowrap}}
 #trace tr.missed td.mark,#trace tr.missed td.what{{color:var(--warn)}}
@@ -98,6 +100,7 @@ def fragment() -> str:
       for (const q of rows) {{ const k = q.requested_by || 'unattributed'; if (!by.has(k)) by.set(k, []); by.get(k).push(q); }}
       return [...by].map(([who, qs]) => `${{who}}: ${{qs.map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}}`).join(', ')}}`).join('\\n');
     }};
+    const requestKpi = `<div class="kpi" title="${{esc(journey(h.request_rows))}}"><div class="v">${{esc(h.requests)}}</div><div class="l">requests</div><div class="s request-criticality">${{h.request_rows.map(q => `<span>${{esc(q.request_id)}} · ${{esc(q.urgency || 'Unspecified')}}</span>`).join('')}}</div></div>`;
     let out = `<h2 class="co">${{esc(t.company_name)}} <span class="foot">${{esc(t.company_id)}}${{h.crm_account_ids ? ' · ' + esc(h.crm_account_ids) : ''}}${{h.domain ? ' · ' + esc(h.domain) : ''}}</span></h2>`;
     out += `<p class="aka">${{h.also_known_as.length ? 'Also goes by ' + h.also_known_as.map(esc).join(' · ') : 'No other spellings on file'}}${{h.duplicate_accounts && h.duplicate_accounts !== 'no' ? ' · Duplicate accounts: ' + esc(h.duplicate_accounts) : ''}}</p>`;
     const rt = h.routing, cr = t.route, top = cr.top;
@@ -112,7 +115,7 @@ def fragment() -> str:
       ...(cr.live.length ? [...byWho].map(([who, rows]) => `${{who}}: ${{rows.map(a => `${{a.request_id}} (${{a.retry || 'first ask'}})`).join(', ')}}`) : ['no live request this cycle']),
       '', `Awaiting the ask in the log (${{rt.counts.routed || 0}}): routed, nobody asked yet`,
       journey(h.request_rows.filter(q => q.stage === 'routed')) || 'no request sits at routed'].join('\\n');
-    out += `<div class="kpis">${{kpi(cap(rt.furthest), 'routing stage', [rt.booked ? `intro ${{rt.booked.intro_date || 'undated'}} · ${{rt.booked.request_id}} · ${{rt.booked.connector}}` : '', rt.latest && rt.latest !== rt.furthest ? 'Latest ask: ' + rt.latest : ''].filter(Boolean).join(' · '))}}${{kpi(h.stage || '?', 'CRM stage', h.industry)}}${{kpi(h.owner || 'None', 'CRM owner')}}${{kpi(h.value.value_usd, 'deal value', h.value.source, h.value.by_request.filter(q => q.value_usd).map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}}: ${{q.value_usd}}`).join('\\n') || 'no request carries a deal value')}}${{kpi(h.requests, 'requests', '', h.request_rows.map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}} · ${{q.requested_by || 'unattributed'}} · ${{q.stage}} (filed "${{q.status}}")`).join('\\n'))}}${{kpi(h.people, 'people asking', '', people(h.request_rows))}}${{kpi(sent.length, 'routed this cycle', cycleSub, cycleHover)}}${{kpi(h.titles.length, 'different titles wanted', h.titles.join(' · '))}}</div>`;
+    out += `<div class="kpis">${{kpi(cap(rt.furthest), 'routing stage', [rt.booked ? `intro ${{rt.booked.intro_date || 'undated'}} · ${{rt.booked.request_id}} · ${{rt.booked.connector}}` : '', rt.latest && rt.latest !== rt.furthest ? 'Latest ask: ' + rt.latest : ''].filter(Boolean).join(' · '))}}${{kpi(h.stage || '?', 'CRM stage', h.industry)}}${{kpi(h.owner || 'None', 'CRM owner')}}${{kpi(h.value.value_usd, 'deal value', h.value.source, h.value.by_request.filter(q => q.value_usd).map(q => `${{q.request_id}} ${{q.date}} ${{q.target_title || '?'}}: ${{q.value_usd}}`).join('\\n') || 'no request carries a deal value')}}${{requestKpi}}${{kpi(h.people, 'people asking', '', people(h.request_rows))}}${{kpi(sent.length, 'routed this cycle', cycleSub, cycleHover)}}${{kpi(h.titles.length, 'different titles wanted', h.titles.join(' · '))}}</div>`;
 
     if (t.disagreements.length) {{
       out += `<h3>2. Where the Files Disagree</h3>` + t.disagreements.map(d => `<div class="finding warn">${{esc(d)}}</div>`).join('');
