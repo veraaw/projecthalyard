@@ -199,7 +199,7 @@ class RebuildTest(ScratchRootTest):
 
     def test_conclusions_are_recomputed_when_crm_catches_up(self):
         write_csv(self.requests, self.baseline + [LIVE_ROUTE])
-        self.build()
+        self.build(CYCLE_1)
         before = self.by_id()
         vireo_ids = {r["request_id"] for r in before.values() if r["company_as_written"] == "Vireo Systems"}
         self.assertIn("R9001", vireo_ids)
@@ -209,7 +209,7 @@ class RebuildTest(ScratchRootTest):
         self.assertTrue(all("no CRM account" in before[rid]["needs_review"] for rid in vireo_ids))
 
         write_csv(self.crm, read_csv(self.crm) + [NEW_CRM_ACCOUNT])
-        out = self.build()
+        out = self.build(CYCLE_1)
 
         after = self.by_id()
         self.assertEqual({after[rid]["company_id"] for rid in vireo_ids}, old_company_id,
