@@ -215,6 +215,35 @@ const LP = (function () {
     return { threads, errors };
   }
 
+  // a CSV in the shape of intro_requests.csv, one thread per row: the raw ask is the first message,
+  // posted by requested_by on request_date; the columns the thread would lack (deal value, urgency,
+  // title, the company as the requester wrote it) ride along on t.request
+  const REQUEST_COLUMNS = ['request_id', 'raw_ask'], THREAD_COLUMNS = ['request_id', 'raw_ask', 'request_date', 'requested_by'];
+  // the deal value column carries its currency as a suffix (deal_value_<ccy>); the row keeps it as deal_value + currency
+  const DEAL_COLUMN = /^deal_value_([a-z]{3})$/i;
+  function requestsToThreads(text) {
+    const threads = [], errors = [];
+    let parsed;
+    try { parsed = parseCsv(text); } catch (e) { return { threads, errors: [e.message] }; }
+    const missing = REQUEST_COLUMNS.filter(c => !parsed.columns.includes(c));
+    if (missing.length) return { threads, errors: [`not in the shape of intro_requests.csv: no ${missing.join(', ')} column`] };
+    const seen = new Set();
+    parsed.rows.forEach((r, i) => {
+      const rid = (r.request_id || '').trim(), ask = (r.raw_ask || '').trim();
+      if (!rid) { errors.push(`line ${i + 2}: no request_id`); return; }
+      if (seen.has(rid)) { errors.push(`line ${i + 2}: ${rid} repeated in the file, first row kept`); return; }
+      if (!ask && !(r.target_company_raw || '').trim()) { errors.push(`line ${i + 2}: ${rid} has no raw_ask and no target_company_raw`); return; }
+      seen.add(rid);
+      const request = Object.fromEntries(parsed.columns.filter(c => !THREAD_COLUMNS.includes(c)).map(c => [c, (r[c] || '').trim()]));
+      const dealCol = parsed.columns.find(c => DEAL_COLUMN.test(c));
+      if (dealCol) { request.deal_value = request[dealCol]; request.currency = DEAL_COLUMN.exec(dealCol)[1].toUpperCase(); delete request[dealCol]; }
+      threads.push({ request_id: rid, messages: [{ ts: (r.request_date || '').trim(), user: (r.requested_by || '').trim(), text: ask }], request });
+    });
+    return { threads, errors };
+  }
+  // a pasted or dropped file is a CSV of requests when it says so, or when its first line is a header naming request_id
+  const looksLikeRequestsCsv = (text, filename) => /\.csv$/i.test(filename || '') || (!text.startsWith('{') && /^[^\n{]*\brequest_id\b[^\n]*,/.test(text.replace(/^\uFEFF/, '')));
+
   // ------------------------------------------------ golden/intake.py, ported
   // "Intake: Add More Live Data". A dropped CSV or Slack export is diffed here against the
   // file as the last build read it (U.files, from golden/current/) with the same rules
@@ -455,26 +484,39 @@ const LP = (function () {
     return { cid: key, network: !!key };
   }
 
-  function previewThreads(jsonlText, P) {
+  // the company column of a request row, when the ask itself names no target: read as if it were the whole message
+  const companyHint = t => t.request && t.request.target_company_raw ? t.request.target_company_raw : '';
+  const targetOf = (text, hint, P, resolver) => {
+    const ex = extract(text, P, resolver);
+    if (ex.target || !hint) return { ...ex, from_hint: false };
+    const hx = extract(hint, P, resolver);
+    return hx.target ? { ...hx, from_hint: true } : { ...ex, from_hint: false };
+  };
+
+  // `input` is .jsonl text, or the { threads, errors } of parseJsonl / requestsToThreads
+  function previewThreads(input, P) {
     const resolver = makeResolver(P.resolver);
     const offerRe = new RegExp(P.offer.source, P.offer.flags);
-    const { threads, errors } = parseJsonl(jsonlText);
+    const { threads, errors } = typeof input === 'string' ? parseJsonl(input) : input;
     const rows = threads.map(t => {
-      const first = t.messages[0], replies = t.messages.slice(1);
+      const first = t.messages[0], replies = t.messages.slice(1), req = t.request || null;
       const offers = replies.filter(m => offerRe.test(m.text || '')).map(m => ({ who: m.user, text: m.text, date: (m.ts || '').slice(0, 10) }));
       const human = [];
       const row = { request_id: t.request_id, posted: (first.ts || '').slice(0, 10), requested_by: first.user || '', raw_ask: first.text || '',
                     company_as_written: '', company_id: '', network: '', company_name: '', resolved_by: '', href: '', offers, offer_by: '', offer_text: '',
-                    route_to: '', path: '', expected_value: '', needs_human: '', flags: human, filed: false, mentions: [], cands: [], priority: null };
+                    route_to: '', path: '', expected_value: '', needs_human: '', flags: human, filed: false, mentions: [], cands: [], priority: null,
+                    target_company_raw: req ? req.target_company_raw || '' : '', target_title: req ? req.target_title_raw || '' : '',
+                    deal_value: req ? req.deal_value || '' : '', currency: req ? req.currency || '' : '', urgency: req ? req.urgency || '' : '' };
       const filed = get(P.filed, t.request_id, null);
       if (filed) {
         Object.assign(row, { filed: true, company_id: filed.company_id, company_name: filed.company_name, href: filed.href,
                              resolved_by: `already filed (${filed.status}); filed facts are kept, only new offers land` });
         if (filed.asked) human.push('already asked, so an offer in the thread changes nothing');
       } else {
-        const ex = extract(first.text || '', P, resolver);
+        const ex = targetOf(first.text || '', companyHint(t), P, resolver);
         row.mentions = ex.mentions;
         const tg = ex.target;
+        const via = ex.from_hint ? ', from the target_company_raw column' : '';
         if (!tg) {
           const bare = ex.mentions.filter(m => m.cue === P.known_cue).length;
           row.resolved_by = bare > 1 ? `${bare} companies named, nothing says which is wanted` : 'no company named in the ask';
@@ -484,7 +526,7 @@ const LP = (function () {
           row.company_as_written = tg.text;
           const r = tg.resolution;
           if (r.entity_id && r.kind === 'company') {
-            Object.assign(row, { company_id: r.entity_id, resolved_by: `${r.method} (${r.confidence.toFixed(2)})` });
+            Object.assign(row, { company_id: r.entity_id, resolved_by: `${r.method} (${r.confidence.toFixed(2)})${via}` });
           } else if (r.entity_id && r.kind === 'fund') {
             row.resolved_by = `${r.method}: names the fund ${r.name} rather than a customer`;
             human.push(`"${tg.text}" is an investor fund, so the build would file a new company under that name`);
@@ -501,7 +543,11 @@ const LP = (function () {
         const C = get(P.companies, row.company_id || row.network || '', null);
         if (C) { row.company_name = C.company_name; row.href = C.href; if (C.stage === 'Closed Lost') human.push('CRM account is Closed Lost, reopen it or close the request'); }
         else if (row.company_as_written) row.company_name = row.company_as_written;
-        human.push('thread carries no deal value, urgency or target title, add them to the request file');
+        if (!req) human.push('thread carries no deal value, urgency or target title, add them to the request file');
+        else {
+          const lacks = [['deal_value', 'deal value'], ['urgency', 'urgency'], ['target_title_raw', 'target title']].filter(([c]) => !req[c]).map(([, l]) => l);
+          if (lacks.length) human.push(`row carries no ${lacks.join(', ')}, fill it in before filing`);
+        }
       }
       // who it would route to: the best existing path vs any offer in the thread, scored as the build scores them
       // (path strength x focus fit x delivery rate); expected value then multiplies by the request priority
@@ -560,13 +606,14 @@ const LP = (function () {
   // What the router would do with one pasted message: apply the cues, take the
   // highest positive score, look the key up, rank the company's exported paths.
   // Nothing here is a rule; every number and every path comes from the payload.
-  function route(text, P) {
+  // `hint` is the target_company_raw of a request row, read when the message itself names no target
+  function route(text, P, hint = '') {
     text = (text || '').trim();
     const resolver = makeResolver(P.resolver);
-    const ex = extract(text, P, resolver);
+    const ex = targetOf(text, hint, P, resolver);
     const tm = new RegExp(P.title.source, P.title.flags).exec(text);
     const tg = ex.target;
-    const out = { text, title: tm ? tm.groups.t : '', mentions: ex.mentions, target: null, company: null, crm: false,
+    const out = { text, title: tm ? tm.groups.t : '', mentions: ex.mentions, target: null, company: null, crm: false, from_hint: ex.from_hint,
                   others: [], candidates: [], paths: [], top: null, priority: null, status: '', note: '' };
     const bare = ex.mentions.filter(m => m.cue === P.known_cue).length;
     const lost = m => {
@@ -622,6 +669,7 @@ const LP = (function () {
       : `No path on the roster: nobody in the network reaches ${C.company_name}. It would be an exception this cycle unless someone offers.`;
     if (out.top && out.top.hold === 'last') out.note = `${out.top.connector} never answered an earlier ask here; every other path is held, so they are asked again.`;
     if (C.network) out.note = `${C.company_name} is not on file: no CRM account, never requested. The network reaches it${C.path_count ? ` (${plural(C.path_count, 'path')})` : ''}; filing this request creates the company and the next rebuild routes it as ranked below. Create the CRM account (see CRM Updates).${out.note ? ' ' + out.note : ''}`;
+    if (ex.from_hint) out.note = `The ask names no target; “${tg.text}” is read from the target_company_raw column.${out.note ? ' ' + out.note : ''}`;
     return out;
   }
 
@@ -997,11 +1045,11 @@ const LP = (function () {
     // ---- band 1 · intake: input the build does not have yet. One box: a pasted message is one
     // thread, a dropped or pasted .jsonl is many; either way one row per thread, each opening
     // on what the router would do with it
-    sec.route = `<section id="route"><h2>Route a Live Request <span class="foot">Paste a Slack message, or drop a <code>.jsonl</code> export, and see what the router would do with it</span></h2>
-      <p class="lede">Runs the build's own rules in the browser: names the company, spots any offer, ranks the paths and picks who to ask. One row per thread; click it for the arithmetic. Nothing is saved: export the preview to file it.</p>
+    sec.route = `<section id="route"><h2>Route a Live Request <span class="foot">Paste a Slack message, drop a <code>.jsonl</code> export, or drop a <code>.csv</code> in the shape of <code>intro_requests.csv</code>, and see what the router would do with it</span></h2>
+      <p class="lede">Runs the build's own rules in the browser: names the company, spots any offer, ranks the paths and picks who to ask. One row per thread or request; click it for the arithmetic. Nothing is saved: export the preview to file it.</p>
       <div class="presets">Try a real shape:${P.route_presets.map((p, i) => `<button class="secondary" data-i="${i}">${esc(p.label)}</button>`).join('')}</div>
-      <div class="ask"><textarea id="lp-route-text" rows="5" placeholder="Who do we know at … — or paste .jsonl lines, one {request_id, messages:[{ts,user,text}…]} per line" aria-label="Slack message or .jsonl"></textarea><button id="lp-route-go">Route it</button></div>
-      <div class="drop" id="lp-drop"><input type="file" id="lp-file" accept=".jsonl,.json,.txt"><span>Or drop a .jsonl of threads here, or click to choose</span></div>
+      <div class="ask"><textarea id="lp-route-text" rows="5" placeholder="Who do we know at … — or paste .jsonl lines, one {request_id, messages:[{ts,user,text}…]} per line — or CSV rows with the intro_requests.csv header" aria-label="Slack message, .jsonl or .csv"></textarea><button id="lp-route-go">Route it</button></div>
+      <div class="drop" id="lp-drop"><input type="file" id="lp-file" accept=".jsonl,.json,.txt,.csv"><span>Or drop a .jsonl of threads or a .csv of requests (new request IDs, the <code>intro_requests.csv</code> columns) here, or click to choose</span></div>
       <div id="lp-preview"></div></section>`;
 
     // ---- band 2 · intake: more live data. A fresh CSV of any dataset/ file, or a Slack export,
@@ -1138,14 +1186,15 @@ const LP = (function () {
     root.querySelector('#lp-dl-import').onclick = () => download(C.import.filename, C.import.csv);
     root.querySelector('#lp-dl-review').onclick = () => download(C.review.filename, C.review.csv);
 
-    // one intake: pasted text that is .jsonl is many threads, anything else is one thread; a dropped file is read the same way
+    // one intake: pasted text that is .jsonl is many threads, a CSV with the intro_requests.csv header is many
+    // requests, anything else is one thread; a dropped file is read the same way
     const ta = root.querySelector('#lp-route-text'), drop = root.querySelector('#lp-drop'), file = root.querySelector('#lp-file'), prev = root.querySelector('#lp-preview');
     const intake = (text, filename) => {
       text = (text || '').trim();
       if (!text) { prev.innerHTML = ''; return; }
-      const jsonl = text.startsWith('{');
-      const threads = jsonl ? text : JSON.stringify({ request_id: 'pasted', messages: [{ ts: new Date().toISOString(), user: '', text }] });
-      renderPreview(previewThreads(threads, P), filename || '', P, prev, !jsonl);
+      const csv = looksLikeRequestsCsv(text, filename), jsonl = !csv && text.startsWith('{');
+      const threads = csv ? requestsToThreads(text) : jsonl ? text : JSON.stringify({ request_id: 'pasted', messages: [{ ts: new Date().toISOString(), user: '', text }] });
+      renderPreview(previewThreads(threads, P), filename || '', P, prev, !jsonl && !csv, csv);
     };
     const go = () => intake(ta.value, '');
     const handle = f => { if (f) f.text().then(text => { ta.value = ''; intake(text, f.name); }); };
@@ -1348,10 +1397,14 @@ const LP = (function () {
 
   // one row per thread; a row opens on what the router would do with its first message (renderRoute),
   // rendered on click. `open` opens the first row at once: a single pasted message
-  function renderPreview(pv, filename, P, el, open) {
+  // `csv` = the rows came from a CSV of requests rather than threads: request rows carry a title, urgency and
+  // deal value, and are filed under Add Live Data as intro_requests.csv rather than with the threads command
+  function renderPreview(pv, filename, P, el, open, csv = false) {
     const flagged = pv.rows.filter(r => r.flags.length).length, offers = pv.rows.filter(r => r.offers.length).length;
-    const name = (filename || 'threads.jsonl').replace(/\.[^.]+$/, '');
-    let out = `<div class="kpis"><div class="kpi"><div class="v">${pv.count}</div><div class="l">threads</div><div class="s">${pv.rows.filter(r => r.filed).length} already filed</div></div>
+    const name = (filename || (csv ? 'requests.csv' : 'threads.jsonl')).replace(/\.[^.]+$/, '');
+    const money = r => !r.deal_value ? '' : isNaN(+r.deal_value) ? r.deal_value : (+r.deal_value).toLocaleString('en-US', r.currency ? { style: 'currency', currency: r.currency, maximumFractionDigits: 0 } : {});
+    const reqFoot = r => csv ? `<br><span class="foot">${[r.target_title, r.urgency, money(r)].filter(Boolean).map(esc).join(' · ') || 'no title, urgency or deal value'}</span>` : '';
+    let out = `<div class="kpis"><div class="kpi"><div class="v">${pv.count}</div><div class="l">${csv ? 'requests' : 'threads'}</div><div class="s">${pv.rows.filter(r => r.filed).length} already filed</div></div>
       <div class="kpi"><div class="v">${pv.rows.filter(r => r.company_id).length}</div><div class="l">resolved to a company</div><div class="s">${pv.rows.filter(r => !r.filed && !r.company_id).length} not</div></div>
       <div class="kpi"><div class="v">${offers}</div><div class="l">with an offer in the replies</div></div>
       <div class="kpi ${flagged ? 'warn' : ''}"><div class="v">${flagged}</div><div class="l">need a human</div></div></div>`;
@@ -1370,22 +1423,24 @@ const LP = (function () {
     };
     const named = (r, who) => `<b class="c" title="${esc(workings(r, who))}">${esc(who)}</b>`;
     if (pv.errors.length) out += `<div class="finding warn"><b>${plural(pv.errors.length, 'line')} skipped</b>${pv.errors.slice(0, 5).map(esc).join('<br>')}</div>`;
-    out += `<div class="dl"><button id="lp-dl-preview">Export preview CSV</button><span>Nothing has been written. To apply it for real, from the repo root:<br><code>${esc(P.command.replace('{file}', filename || 'threads.jsonl'))}</code></span></div>`;
+    out += `<div class="dl"><button id="lp-dl-preview">Export preview CSV</button><span>Nothing has been written. To apply it for real, ${csv
+      ? `drop the same file under <a href="#upload">Add Live Data</a> as <code>intro_requests.csv</code> and Accept it: new request IDs are appended, the next rebuild routes them.`
+      : `from the repo root:<br><code>${esc(P.command.replace('{file}', filename || 'threads.jsonl'))}</code>`}</span></div>`;
     out += `<table class="preview"><thead><tr><th>Request</th><th>Posted · by</th><th>Resolved company</th><th>Offer in replies</th><th>Would route to<br><span class="fm">Hover a name for the arithmetic</span></th><th>Needs a human<br><span class="fm">Click the row for the ranked paths</span></th></tr></thead><tbody>`
-      + pv.rows.map((r, i) => `<tr class="pick ${r.flags.length ? 'flag' : ''}" data-i="${i}"><td class="rid">${esc(r.request_id)}${r.filed ? '<br><span class="foot">filed</span>' : ''}</td><td class="date">${esc(r.posted)}<br><span class="foot">${esc(r.requested_by)}</span></td><td>${r.company_id ? `${co(r)} <span class="foot">${esc(r.company_id)}</span>` : `<i>${esc(r.company_name || 'None')}</i>`}<br><span class="foot">${esc(r.company_as_written ? `"${r.company_as_written}" · ` : '')}${esc(r.resolved_by)}</span></td><td>${r.offers.length ? r.offers.map(o => `${named(r, o.who)} <span class="foot">${esc(o.date)}</span><br><q>${esc(o.text)}</q>`).join('<br>') : '<span class="foot">None</span>'}</td><td>${r.route_to ? `${named(r, r.route_to)}<br><span class="foot">${esc(cap1(r.path))} · expected value ${esc(r.expected_value)}</span>` : `<span class="foot">${esc(cap1(r.path) || 'None')}</span>`}</td><td class="foot">${r.flags.length ? r.flags.map(f => esc(cap1(f))).join('<br>') : 'Nothing'}</td></tr><tr class="detail" data-i="${i}" hidden><td colspan="6"></td></tr>`).join('')
+      + pv.rows.map((r, i) => `<tr class="pick ${r.flags.length ? 'flag' : ''}" data-i="${i}"><td class="rid">${esc(r.request_id)}${r.filed ? '<br><span class="foot">filed</span>' : ''}${reqFoot(r)}</td><td class="date">${esc(r.posted)}<br><span class="foot">${esc(r.requested_by)}</span></td><td>${r.company_id ? `${co(r)} <span class="foot">${esc(r.company_id)}</span>` : `<i>${esc(r.company_name || 'None')}</i>`}<br><span class="foot">${esc(r.company_as_written ? `"${r.company_as_written}" · ` : '')}${esc(r.resolved_by)}</span></td><td>${r.offers.length ? r.offers.map(o => `${named(r, o.who)} <span class="foot">${esc(o.date)}</span><br><q>${esc(o.text)}</q>`).join('<br>') : '<span class="foot">None</span>'}</td><td>${r.route_to ? `${named(r, r.route_to)}<br><span class="foot">${esc(cap1(r.path))} · expected value ${esc(r.expected_value)}</span>` : `<span class="foot">${esc(cap1(r.path) || 'None')}</span>`}</td><td class="foot">${r.flags.length ? r.flags.map(f => esc(cap1(f))).join('<br>') : 'Nothing'}</td></tr><tr class="detail" data-i="${i}" hidden><td colspan="6"></td></tr>`).join('')
       + `</tbody></table>`;
     el.innerHTML = out;
     el.querySelector('#lp-dl-preview').onclick = () => download(`${name}_preview.csv`, toCsv(P.preview_columns, pv.rows));
     const toggle = i => {
       const d = el.querySelector(`tr.detail[data-i="${i}"]`), td = d.firstElementChild;
-      if (!td.innerHTML) td.innerHTML = renderRoute(route(pv.rows[i].raw_ask, P), P);
+      if (!td.innerHTML) td.innerHTML = renderRoute(route(pv.rows[i].raw_ask, P, pv.rows[i].target_company_raw), P);
       d.hidden = !d.hidden;
     };
     el.querySelectorAll('tr.pick').forEach(tr => tr.onclick = e => { if (!e.target.closest('a')) toggle(+tr.dataset.i); });
     if (open && pv.rows.length) toggle(0);
   }
 
-  return { boot, bootConnector, bootBatch, extract, makeResolver, previewThreads, parseJsonl, route, normStrict, toCsv, completionRows, completionId, tickKey, postCompletions,
+  return { boot, bootConnector, bootBatch, extract, makeResolver, previewThreads, parseJsonl, requestsToThreads, looksLikeRequestsCsv, route, normStrict, toCsv, completionRows, completionId, tickKey, postCompletions,
            fnv1a, uploadId, revertId, revertRow, activeUploads, schemaOf, parseCsv, parseThreads, mergeCsv, mergeThreads, guessTarget, previewUpload, uploadRow, postUpload };
 })();
 if (typeof module !== 'undefined') module.exports = LP;
