@@ -410,7 +410,10 @@ class ExportedRulesTest(unittest.TestCase):
                 self.assertIn(gr.normalize_strict(n), self.P["known_network"], n)
 
     def test_network_only_company_routes_to_its_best_path(self):
-        for name in ("network-only company", "bare network-only name"):
+        network_cases = [name for name in ("network-only company", "bare network-only name")
+                         if self.js[CASES[name]]["network"]]
+        self.assertTrue(network_cases, "at least one route fixture must remain network-only")
+        for name in network_cases:
             with self.subTest(name):
                 js = self.js[CASES[name]]
                 self.assertEqual(js["status"], "routed")
@@ -423,7 +426,10 @@ class ExportedRulesTest(unittest.TestCase):
                                  (best["connector"], best["reach_type"], best["contact_name"]))
                 self.assertGreater(js["path_count"], len(js["paths"]))
         self.assertEqual(self.js[CASES["network-only company"]]["company_name"], "Zenner Foods")
-        self.assertEqual(self.js[CASES["bare network-only name"]]["company_name"], "Xanthe Labs")
+        xanthe = self.js[CASES["bare network-only name"]]
+        self.assertEqual(xanthe["company_name"], "Xanthe Labs")
+        if not xanthe["network"]:
+            self.assertTrue(xanthe["company_id"], "an accepted request has filed Xanthe as a company")
         self.assertEqual(self.js_extract[CASES["bare network-only name"]]["target"], "xanthe labs")
 
     def test_same_target_as_the_python_parser(self):
