@@ -1,0 +1,6 @@
+request_id,requested_by,requester_role,request_date,raw_ask,target_company_raw,target_person_raw,target_title_raw,deal_value_usd,urgency,path_found_flag,status
+R1201,Nadia Vandermolen,"AE, Transport & Logistics",2026-08-11,"does anyone know anyone at Falkirk Shipping? looking for Head of Developer Productivity, ideally warm",Falkirk Shipping,,Head of Developer Productivity,400000,High,,Stalled
+R1202,Curtis Okonkwo,"AE, Financial Services",2026-08-26,any connections into Ferrowick Insurance? we're up against a renewal window and I need an intro to Chief Digital Officer,Ferrowick Insurance,,Chief Digital Officer,1200000,Critical,Unknown,Open
+R1203,Sloane Nakashima,Strategic AE,2026-08-28,who do we know at Vespermill Analytics? VP Engineering would be ideal but I'll take anyone senior,Vespermill Analytics,,VP Engineering,250000,Medium,No path found,Open
+R1204,Rafael Petrossian,"Enterprise AE, West",2026-09-01,long shot — Xanthe Labs. Sabine Norrington-Ashdown (Chief Technology Officer). Anyone?,Xanthe Labs,Sabine Norrington-Ashdown,Chief Technology Officer,750000,High,,Open
+R1205,Imani Fairweather,"AE, EMEA",2026-09-03,trying to reach Chief Operating Officer at Quintrell Advisory — anyone have a path?,Quintrell Advisory,,Chief Operating Officer,150000,Low,Unknown,Open
