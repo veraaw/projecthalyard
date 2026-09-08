@@ -10,7 +10,7 @@ clicking a company swaps the rendered trace in place. Opens on the most-requeste
 """
 import json
 
-from analysis.trace import BYPASS_LABEL, all_traces
+from analysis.trace import all_traces
 from golden.build_golden import INVESTOR_NETWORK, NETWORK_HAIRCUT, NO_PATH, UNRESOLVED_ASK
 
 MARK_LABEL = {"<-": "missed", "++": "worked", "**": "offer", "!!": "warning", "  ": ""}
@@ -45,8 +45,6 @@ def fragment() -> str:
 #trace .empty{{color:var(--mute);font-style:italic}}
 #trace .bar.raw{{background:var(--mute);opacity:.55}}
 #trace td.score,#trace td.raw{{white-space:nowrap;font-variant-numeric:tabular-nums}}
-#trace tr.bypass td{{color:var(--mute);font-size:13px;border-top:none;padding-top:0}}
-#trace tr.bypass b{{color:var(--ink);font-weight:600}}
 #trace tr.held td{{color:var(--mute)}} #trace tr.held .bar{{opacity:.35}}
 #trace tr.tier td{{font-size:12px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--mute);background:var(--bg);padding:12px 0 4px;border-bottom:none}}
 #trace tr.tier td .foot{{font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px}}
@@ -144,8 +142,7 @@ def fragment() -> str:
       const tierRow = (label, n) => `<tr class="tier"><td colspan="7">${{esc(label)}}<span class="foot">${{plural(n, 'path')}}</span></td></tr>`;
       out += `<table><thead><tr><th>Route score</th><th>Strength</th><th>Connector</th><th>Reach</th><th>Contact</th><th>Evidence</th><th>Unresolved ask</th></tr></thead><tbody>` +
         t.reach.map((p, i) => (i === 0 || p.tier !== t.reach[i - 1].tier ? tierRow(p.tier, t.reach.filter(q => q.tier === p.tier).length) : '')
-          + `<tr${{p.askable ? '' : ' class="held"'}}><td class="score"><span class="bar" style="width:${{Math.round(90 * p.route_score / maxScore)}}px"></span>${{p.route_score.toFixed(3)}}</td><td class="raw" title="fit ${{p.fit}} × delivery rate ${{p.rate}}"><span class="bar raw" style="width:${{Math.round(90 * p.strength / maxRaw)}}px"></span>${{p.strength.toFixed(3)}}</td><td>${{esc(p.connector)}} <span class="foot">${{esc(p.connector_type)}}</span></td><td>${{esc(p.reach_type)}}</td><td>${{esc([p.contact_name, p.contact_title].filter(Boolean).join(', ') || '?')}}</td><td class="foot">${{esc(p.evidence)}}</td><td class="hold">${{p.unresolved_ask ? esc(p.unresolved_ask) + (p.askable ? ' · ranked last' : ' · not asked again here') : ''}}</td></tr>`
-          + (p.bypass ? `<tr class="bypass"><td colspan="7"><b>{BYPASS_LABEL[:1].upper() + BYPASS_LABEL[1:]}:</b> ${{esc(p.bypass)}}</td></tr>` : '')).join('') +
+          + `<tr${{p.askable ? '' : ' class="held"'}}><td class="score"><span class="bar" style="width:${{Math.round(90 * p.route_score / maxScore)}}px"></span>${{p.route_score.toFixed(3)}}</td><td class="raw" title="fit ${{p.fit}} × delivery rate ${{p.rate}}"><span class="bar raw" style="width:${{Math.round(90 * p.strength / maxRaw)}}px"></span>${{p.strength.toFixed(3)}}</td><td>${{esc(p.connector)}} <span class="foot">${{esc(p.connector_type)}}</span></td><td>${{esc(p.reach_type)}}</td><td>${{esc([p.contact_name, p.contact_title].filter(Boolean).join(', ') || '?')}}</td><td class="foot">${{esc(p.evidence)}}</td><td class="hold">${{p.unresolved_ask ? esc(p.unresolved_ask) + (p.askable ? ' · ranked last' : ' · not asked again here') : ''}}</td></tr>`).join('') +
         `</tbody></table>`;
     }}
 
