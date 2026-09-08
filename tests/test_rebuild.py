@@ -162,7 +162,9 @@ class RebuildTest(ScratchRootTest):
 
         rows = self.by_id()
         self.assertEqual(len(rows), len(self.baseline) + 1)
-        self.assertIn("2 not in dataset/intro_requests.csv and carried forward", out)
+        dataset_ids = {r["request_id"] for r in read_csv(self.export)}
+        expected_carried = sum(r["request_id"] not in dataset_ids for r in self.baseline + [LIVE_ROUTE])
+        self.assertIn(f"{expected_carried} not in dataset/intro_requests.csv and carried forward", out)
         self.assertIn(DROPPED_FROM_EXPORT, rows, "a request dropped from a refreshed export must survive")
         self.assertEqual(rows[DROPPED_FROM_EXPORT], {r["request_id"]: r for r in self.baseline}[DROPPED_FROM_EXPORT])
         live = rows["R9001"]
