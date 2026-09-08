@@ -1349,6 +1349,8 @@ class Live:
                 # who is sitting on an unresolved ask here, path or no path: the preview
                 # skips them (or ranks them last) whether they have a path or offer in a thread
                 "holds": self.holds(cid),
+                # who on the roster covers the industry: the name to give when there is no path
+                "sector_cover": self.sector_cover(cid),
                 "best": {"connector": best["connector"], "reach_type": best["reach_type"], "contact": best["contact"],
                          "score": best["score"], "label": best["label"], "strength": best["strength"], "fit": best["fit"],
                          "rate": best["rate"], "capacity_left": best["capacity_left"], "hold": best["hold"]} if best else None,
@@ -1363,7 +1365,7 @@ class Live:
                 "company_id": "", "company_name": net["name"], "href": "", "network": True, "names": net["names"],
                 "industry": "", "stage": "", "crm": False, "owner": "", "arr_fmt": "",
                 "paths": paths[:NETWORK_PATHS_SHOWN], "path_count": len(paths), "priority": self.route_priority(key),
-                "holds": {},
+                "holds": {}, "sector_cover": {"industry": "", "connectors": [], "note": "industry unknown"},
                 "best": {"connector": best["connector"], "reach_type": best["reach_type"], "contact": best["contact"],
                          "score": best["score"], "label": best["label"], "strength": best["strength"], "fit": best["fit"],
                          "rate": best["rate"], "capacity_left": best["capacity_left"], "hold": ""} if best else None,
@@ -1408,7 +1410,7 @@ class Live:
                                "rate": round(self.rate(n), 3)} for n in askable},
             "command": THREADS_COMMAND,
             "preview_columns": ["request_id", "posted", "requested_by", "company_as_written", "company_id", "company_name",
-                                "resolved_by", "offer_by", "offer_text", "route_to", "path", "expected_value", "needs_human", "raw_ask"],
+                                "resolved_by", "offer_by", "offer_text", "route_to", "path", "by_industry", "expected_value", "needs_human", "raw_ask"],
         }
 
     # -- everything ---------------------------------------------------------------
