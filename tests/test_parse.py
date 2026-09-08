@@ -313,8 +313,10 @@ class ExportedRulesTest(unittest.TestCase):
 
     def test_title_fit_is_exported_and_applied_as_the_build_does(self):
         T = self.P["title_fit"]
-        self.assertEqual((T["seniority"], T["default"], T["floor"], T["after_roster"]),
-                         (bg.SENIORITY, bg.DEFAULT_SENIORITY, bg.TITLE_FIT_FLOOR, bg.INVESTOR_NETWORK))
+        self.assertEqual((T["seniority"], T["default"], T["floor"], T["match"], T["after_roster"]),
+                         (bg.SENIORITY, bg.DEFAULT_SENIORITY, bg.TITLE_FIT_FLOOR, bg.TITLE_MATCH_BONUS, bg.INVESTOR_NETWORK))
+        self.assertEqual(bg.title_fit("Chief Operating Officer", " chief operating officer "), bg.TITLE_MATCH_BONUS)
+        self.assertGreater(bg.TITLE_MATCH_BONUS, 1.0)
         self.assertEqual(bg.title_fit("", "Chief Operating Officer"), 1.0)
         self.assertEqual(bg.title_fit("Program Manager", ""), 1.0)
         self.assertEqual(bg.title_fit("Chief Technology Officer", "Program Manager"), 1.0)

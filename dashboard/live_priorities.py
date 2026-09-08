@@ -701,7 +701,7 @@ class Live:
             "reps_waiting": "distinct requesters with a live request on the same company",
             "path_strength": "supply_reach.csv strength of the path used",
             "focus_fit": "1.0 in the connector's focus areas, 0.45 outside, 0 if they decline outside, 0.7 when the industry or the connector is unknown",
-            "title_fit": f"1.0 when the contact is at or above the seniority of the title asked for (or either title is blank), else 1 - the seniority gap, no lower than {bg.TITLE_FIT_FLOOR}",
+            "title_fit": f"{bg.TITLE_MATCH_BONUS} when the contact holds the very title asked for, 1.0 when at or above its seniority (or either title is blank), else 1 - the seniority gap, no lower than {bg.TITLE_FIT_FLOOR}",
             "delivery_rate": f"(intros + {bg.PRIOR_RATE} × {bg.PRIOR_WEIGHT:g}) / (asks + {bg.PRIOR_WEIGHT:g}): intros / asks shrunk toward the {round(100 * bg.PRIOR_RATE)}% network average, "
                              f"which is all a connector never asked has (supply_reach.csv delivery_rate)",
             "capacity_left": "share of stated monthly capacity still unspent when the allocator reached this request; 0 when the cycle's slots were gone",
@@ -1388,7 +1388,7 @@ class Live:
             # title fit is per request (the title asked for against each path's contact), so the browser
             # applies it to the company's paths with build_golden's seniority table
             "title_fit": {"seniority": bg.SENIORITY, "default": bg.DEFAULT_SENIORITY, "floor": bg.TITLE_FIT_FLOOR,
-                          "after_roster": bg.INVESTOR_NETWORK},
+                          "match": bg.TITLE_MATCH_BONUS, "after_roster": bg.INVESTOR_NETWORK},
             "resolver": {
                 "entities": ents, "strict": dict(strict), "loose": dict(loose),
                 "stem": {gr.domain_stem(e.domain): e.entity_id for e in res.entities if e.domain},

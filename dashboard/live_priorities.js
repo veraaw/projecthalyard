@@ -493,12 +493,14 @@ const LP = (function () {
     return hx.target ? { ...hx, from_hint: true } : { ...ex, from_hint: false };
   };
 
-  // build_golden.title_fit: the path's contact against the title asked for, by seniority; 1.0 with nothing to compare
+  // build_golden.title_fit: the path's contact against the title asked for, by seniority; 1.0 with nothing
+  // to compare, the match bonus when the contact holds that very title
   const titleFit = (P, contact, wanted) => {
-    const T = P.title_fit;
-    if (!T || !(contact || '').trim() || !(wanted || '').trim()) return 1;
-    const sen = t => get(T.seniority, t.trim().toLowerCase(), T.default);
-    return Math.max(T.floor, 1 - Math.max(0, sen(wanted) - sen(contact)));
+    const T = P.title_fit, c = (contact || '').trim().toLowerCase(), w = (wanted || '').trim().toLowerCase();
+    if (!T || !c || !w) return 1;
+    if (c === w) return T.match;
+    const sen = t => get(T.seniority, t, T.default);
+    return Math.max(T.floor, 1 - Math.max(0, sen(w) - sen(c)));
   };
   // the company's exported paths re-scored for one request's title and put back in the allocator's order:
   // askable before held, roster before our wider network, then by score. Blank title leaves them as exported.

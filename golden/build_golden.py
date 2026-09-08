@@ -303,6 +303,7 @@ INVESTOR_NETWORK = "investor_network"
 NETWORK_TYPE = "investor network"  # connector_type of such a person (roster people carry their roster type)
 NETWORK_HAIRCUT = 0.90  # route_score multiplier for investor_network paths
 TITLE_FIT_FLOOR = 0.60  # lowest title fit: the contact is far junior to the title asked for
+TITLE_MATCH_BONUS = 1.10  # title fit when the contact holds the very title asked for
 # reach types that outlast the request they were observed on; offers are request-scoped
 DURABLE_REACH = {"direct", "investor", "alumni", INVESTOR_NETWORK}
 # notify_owner: an allocated request on an account this far along, made by someone other
@@ -349,12 +350,16 @@ def seniority(title: str) -> float:
 def title_fit(contact_title: str, target_title: str) -> float:
     """How well the contact on a path matches the title asked for, by seniority:
     1.0 when the contact is at or above the wanted title (or either title is
-    blank, so there is nothing to compare), else 1 - the seniority gap, floored
-    at TITLE_FIT_FLOOR. A Program Manager (0.35) as the way to a COO (1.00) is
-    the floor; a VP (0.85) is 0.85."""
-    if not (contact_title or "").strip() or not (target_title or "").strip():
+    blank, so there is nothing to compare), TITLE_MATCH_BONUS when the contact
+    holds the very title asked for, else 1 - the seniority gap, floored at
+    TITLE_FIT_FLOOR. A Program Manager (0.35) as the way to a COO (1.00) is the
+    floor; a VP (0.85) is 0.85; the COO herself is 1.10."""
+    c, t = (contact_title or "").strip().lower(), (target_title or "").strip().lower()
+    if not c or not t:
         return 1.0
-    return max(TITLE_FIT_FLOOR, 1.0 - max(0.0, seniority(target_title) - seniority(contact_title)))
+    if c == t:
+        return TITLE_MATCH_BONUS
+    return max(TITLE_FIT_FLOOR, 1.0 - max(0.0, seniority(t) - seniority(c)))
 
 
 def freshness(connected_on: str, today: date) -> float:
