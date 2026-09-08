@@ -304,6 +304,7 @@ NETWORK_TYPE = "investor network"  # connector_type of such a person (roster peo
 NETWORK_HAIRCUT = 0.90  # route_score multiplier for investor_network paths
 TITLE_FIT_FLOOR = 0.60  # lowest title fit: the contact is far junior to the title asked for
 TITLE_MATCH_BONUS = 1.10  # title fit when the contact holds the very title asked for
+OFF_FOCUS_FIT = 0.45  # credit for an out-of-focus route when it remains eligible
 # reach types that outlast the request they were observed on; offers are request-scoped
 DURABLE_REACH = {"direct", "investor", "alumni", INVESTOR_NETWORK}
 # notify_owner: an allocated request on an account this far along, made by someone other
@@ -1098,7 +1099,21 @@ def fit(connector: dict, industry: str) -> float:
         return 1.0
     if connector["hard_decline"]:
         return 0.0
-    return 0.45
+    return OFF_FOCUS_FIT
+
+
+def path_fit(p: dict, roster: dict, industry: str) -> float:
+    """Focus fit for one route, including a floor for a direct relationship.
+
+    A connector who normally declines work outside their sector stays blocked on
+    indirect routes.  Their direct relationship at the company is still useful
+    evidence of access, so it receives the normal off-focus factor instead.
+    """
+    connector = roster.get(p["connector"])
+    score = fit(connector, industry) if connector else 0.7
+    if score == 0.0 and p["reach_type"] == "direct":
+        return OFF_FOCUS_FIT
+    return score
 
 
 def network_people(roster: dict) -> set[str]:
@@ -1388,8 +1403,7 @@ def path_score(p: dict, roster: dict, rates: dict, industry: str, title: str = "
     an investor_network path (our circle, not our roster) then takes NETWORK_HAIRCUT.
     `title` is the title the request asks for; blank (a company with no request in
     hand) leaves title fit at 1.0."""
-    r = roster.get(p["connector"])
-    f = fit(r, industry) if r else 0.7
+    f = path_fit(p, roster, industry)
     score = float(p["strength"]) * f * rates.get(p["connector"], PRIOR_RATE) * title_fit(p["contact_title"], title)
     return score * NETWORK_HAIRCUT if p["reach_type"] == INVESTOR_NETWORK else score
 

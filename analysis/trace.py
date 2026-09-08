@@ -44,7 +44,7 @@ sys.path.insert(0, str(ROOT))
 from golden.build_golden import (ALREADY_INTRODUCED, CAPACITY_EXHAUSTED, HOLD_LAST, INTRO_CLAIMED_NOT_LOGGED,  # noqa: E402
                                  INVESTOR_NETWORK, NETWORK_HAIRCUT, NETWORK_OUT, NO_PATH, OFFER_RE, OPEN_STATUSES, PRIOR_RATE, REACHABLE_AS_CONNECTOR, STAGES,
                                  STALE_ASK, UNRESOLVED_ASK, best_route, capacity, delivery_rates, fit, hold_paths, hold_reason,
-                                 intro_of, latest_cycle, load_completions, load_roster, load_threads, path_rank, path_score,
+                                 intro_of, latest_cycle, load_completions, load_roster, load_threads, path_fit, path_rank, path_score,
                                  stage_of, unresolved_asks, with_completions)
 from golden.clock import as_of  # noqa: E402
 from golden.resolver import normalize, normalize_strict  # noqa: E402
@@ -289,6 +289,9 @@ class Trace:
     def fit_of(self, connector: str) -> float:
         r = self.d.roster.get(connector)
         return fit(r, self.c["industry"]) if r else 0.7
+
+    def path_fit_of(self, p: dict) -> float:
+        return path_fit(p, self.d.roster, self.c["industry"])
 
     def industry_fallback(self) -> dict | None:
         """The first roster connector whose stated focus covers this company.
@@ -782,7 +785,7 @@ class Trace:
             "route": self.current_route(),
             "industry_fallback": self.industry_fallback(),
             "reach": [{"route_score": round(self.route_score(p), 3), "strength": float(p["strength"]),
-                       "fit": round(self.fit_of(p["connector"]), 2), "rate": round(self.rate_of(p["connector"]), 3),
+                       "fit": round(self.path_fit_of(p), 2), "rate": round(self.rate_of(p["connector"]), 3),
                        "connector": p["connector"], "connector_type": p["connector_type"],
                        "reach_type": p["reach_type"] + (" (board seat)" if p["board_seat"] == "yes" else ""),
                        "contact_name": p["contact_name"], "contact_title": p["contact_title"], "evidence": p["evidence"],

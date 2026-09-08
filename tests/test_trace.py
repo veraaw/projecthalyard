@@ -67,6 +67,14 @@ class HarrowgateTest(unittest.TestCase):
         self.assertIn("request-criticality", markup)
         self.assertIn('title="${esc(journey(h.request_rows))}"', markup)
 
+    def test_direct_path_gets_off_focus_floor_even_when_connector_declines_indirect_ones(self):
+        trace = Trace(self.data, find_company(self.data, "Gravenhurst Motors"), AS_OF)
+        direct = next(p for p in trace.paths if p["connector"] == "Elena Duvall" and p["reach_type"] == "direct")
+        alumni = next(p for p in trace.paths if p["connector"] == "Elena Duvall" and p["reach_type"] == "alumni")
+        self.assertEqual(trace.fit_of("Elena Duvall"), 0.0, "Automotive remains outside Elena's stated focus")
+        self.assertEqual((trace.path_fit_of(direct), trace.path_fit_of(alumni)), (bg.OFF_FOCUS_FIT, 0.0))
+        self.assertAlmostEqual(trace.route_score(direct), 0.332 * bg.OFF_FOCUS_FIT * 0.36, places=6)
+
     def test_routing_furthest_and_latest_differ(self):
         """Two intros landed, but the latest request (R1057, Stalled) is still with the connector asked."""
         rt = self.trace.as_dict()["header"]["routing"]

@@ -296,6 +296,9 @@ class Live:
         r = self.roster.get(connector)
         return bg.fit(r, industry) if r else 0.7
 
+    def path_fit(self, path: dict, industry: str) -> float:
+        return bg.path_fit(path, self.roster, industry)
+
     def rate(self, connector: str) -> float:
         return self.rates.get(connector, bg.PRIOR_RATE)
 
@@ -335,7 +338,7 @@ class Live:
         for p in askable + [p for p in ordered if p["connector"] in out_of_play]:
             n = p["connector"]
             hold = self.hold_of(n, cid)
-            fit, rate = self.fit(n, ind), self.rate(n)
+            fit, rate = self.path_fit(p, ind), self.rate(n)
             r = self.roster.get(n)
             when = (p["observed_date"] or "")[:7]
             if p["reach_type"] == "offer":
@@ -358,6 +361,8 @@ class Live:
                 focus = "in their focus area"
             elif fit <= 0.0:
                 focus = "outside their focus, and they decline anything outside"
+            elif self.fit(n, ind) <= 0.0 and p["reach_type"] == "direct":
+                focus = "outside their focus; direct relationship floor applied"
             else:
                 focus = "outside their focus area"
             cap = bg.capacity(self.roster, n)
@@ -656,7 +661,7 @@ class Live:
                 "age": 1 + min(days, AGE_CAP_DAYS) / AGE_CAP_DAYS,
                 "reps_waiting": len(reps),
                 "path_strength": float(p["strength"]),
-                "focus_fit": self.fit(connector, self.industry(cid)),
+                "focus_fit": self.path_fit(p, self.industry(cid)),
                 "delivery_rate": self.rate(connector),
                 "title_fit": bg.title_fit(p["contact_title"], a["target_title"]),
                 "capacity_left": capacity_left,
@@ -700,7 +705,7 @@ class Live:
             "age": f"1 + min(days since request, {AGE_CAP_DAYS}) / {AGE_CAP_DAYS}",
             "reps_waiting": "distinct requesters with a live request on the same company",
             "path_strength": "supply_reach.csv strength of the path used",
-            "focus_fit": "1.0 in the connector's focus areas, 0.45 outside, 0 if they decline outside, 0.7 when the industry or the connector is unknown",
+            "focus_fit": "1.0 in the connector's focus areas; 0.45 outside, including a direct relationship when the connector otherwise declines outside work; 0 for that connector's indirect off-focus paths; 0.7 when the industry or the connector is unknown",
             "title_fit": f"{bg.TITLE_MATCH_BONUS} when the contact holds the very title asked for, 1.0 when at or above its seniority (or either title is blank), else 1 - the seniority gap, no lower than {bg.TITLE_FIT_FLOOR}",
             "delivery_rate": f"(intros + {bg.PRIOR_RATE} × {bg.PRIOR_WEIGHT:g}) / (asks + {bg.PRIOR_WEIGHT:g}): intros / asks shrunk toward the {round(100 * bg.PRIOR_RATE)}% network average, "
                              f"which is all a connector never asked has (supply_reach.csv delivery_rate)",
@@ -760,7 +765,7 @@ class Live:
             p = self.path_for(a)
             industry = self.industry(cid)
             why = [f"best-scoring path with a slot left this cycle: {a['path_type']} via {p['contact_name'] or p['contact_title'] or connector}"
-                   f" (strength {float(p['strength']):.2f} × fit {self.fit(connector, industry):.2f} × rate {self.rate(connector):.2f} = {a['route_score']})"]
+                   f" (strength {float(p['strength']):.2f} × fit {self.path_fit(p, industry):.2f} × rate {self.rate(connector):.2f} = {a['route_score']})"]
             if p["in_focus_area"] == "yes":
                 why.append(f"{industry} is in {connector.split()[0]}'s focus areas")
             elif p["in_focus_area"] == "no":
@@ -1133,11 +1138,11 @@ class Live:
             top = max(paths, key=lambda p: float(p["strength"]))
             if top["connector"] != name or any(a["allocated_to"] == name for a in rows):
                 continue
-            fit = self.fit(name, self.industry(cid))
+            fit = self.path_fit(top, self.industry(cid))
             out.append({
                 **self.company_ref(cid, top["company_name"]), "reach_type": top["reach_type"],
                 "strength": round(float(top["strength"]), 3), "route_score": round(float(top["strength"]) * fit * self.rate(name), 3),
-                "outside_focus": fit <= 0, "industry": self.industry(cid), "used": used, "capacity": cap,
+                "outside_focus": self.fit(name, self.industry(cid)) <= 0, "industry": self.industry(cid), "used": used, "capacity": cap,
                 "requests": sorted(a["request_id"] for a in rows),
                 "routed_to": sorted({a["allocated_to"] for a in rows if a["allocated_to"]}),
                 "unrouted": sum(1 for a in rows if not a["allocated_to"]),
