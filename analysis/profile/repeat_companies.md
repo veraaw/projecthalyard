@@ -1,8 +1,8 @@
 # Repeat target companies in `dataset/intro_requests.csv`
 
-185 of 205 requests resolve (via `golden/golden_requests.csv`) to 53 companies; **39** companies appear in 2+ requests (171 requests). The other 20 requests name a person but no identifiable company (R1011, R1012, R1020, R1044, R1046, R1051, R1056, R1079, R1085, R1087, R1088, R1095, R1096, R1106, R1110, R1112, R1119, R1126, R1145, R1181) and are excluded.
+180 of 200 requests resolve (via `golden/golden_requests.csv`) to 48 companies; **39** companies appear in 2+ requests (171 requests). The other 20 requests name a person but no identifiable company (R1011, R1012, R1020, R1044, R1046, R1051, R1056, R1079, R1085, R1087, R1088, R1095, R1096, R1106, R1110, R1112, R1119, R1126, R1145, R1181) and are excluded.
 
-Only 47 of 205 requests name a `target_person_raw`; the other 158 give a title only. "Target" below therefore means the named person when there is one, otherwise the title. The strict named-person view (blank counts as its own value) is shown second.
+Only 46 of 200 requests name a `target_person_raw`; the other 154 give a title only. "Target" below therefore means the named person when there is one, otherwise the title. The strict named-person view (blank counts as its own value) is shown second.
 
 ## Same person or different people?
 

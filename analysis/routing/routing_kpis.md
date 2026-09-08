@@ -1,12 +1,12 @@
 # Routing KPIs
 
-Source: `dataset/` — 200 Slack threads, 205 intro requests, 85 outcome rows. Regenerate with `python3 build.py routing`; this file is append-only as KPIs are added.
+Source: `dataset/` — 200 Slack threads, 200 intro requests, 85 outcome rows. Regenerate with `python3 build.py routing`; this file is append-only as KPIs are added.
 
 ## Median lag: Slack request -> connector ask
 
 `intro_outcomes.asked_date` is date-only and every thread opens on its request's `request_date`, so the lag is a whole number of calendar days from the Slack request to the ask being logged. Only requests that were asked at all are in scope.
 
-- Asks measured: **85** (of 85 outcome rows, 205 requests)
+- Asks measured: **85** (of 85 outcome rows, 200 requests)
 - **Median: 3 days**
 - Mean 3.0 d, p25 2 d, p75 4 d, min 0 d, max 6 d
 - Asked the same day: 11 (13%); nothing is asked later than 6 days, so the lag is bounded rather than long-tailed
@@ -57,7 +57,7 @@ A concrete offer is a reply matching `happy to intro`, `leave it with me`, `I'll
 
 ## Requests with an outcome row, and where the ask came from
 
-- Requests with at least one outcome row: **85 / 205 (41.5%)**
+- Requests with at least one outcome row: **85 / 200 (42.5%)**
 - Of those, the connector asked had offered on the thread: **11 (12.9%)**
 - Of those, the connector asked did **not** come from a Slack offer: **74 (87.1%)**
 
