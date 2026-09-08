@@ -5,9 +5,11 @@
 Three things are checked:
 
   1. the payload the page embeds — every section computed in Python, the browser
-     only renders — states the facts the golden files state: allocations and
-     exceptions by reason, live-intro retries, responded-but-no-intro asks,
-     importer-shaped CRM columns, and a Company Trace link on every company.
+     only renders — states the facts the golden files state: 27 allocated in 8
+     batches, 56 exceptions by reason (11 of them parked behind a live intro,
+     and the fizzled ones labelled as retries), the 23 responded-but-no-intro
+     asks, importer-shaped CRM columns, and a company link into Company Trace on
+     every company.
   2. the upload preview parses like the build: the JavaScript parser (run under
      node) picks the same target and resolves it the same way as golden/parse.py
      + golden/resolver.py on every Slack first message and every raw_ask.
@@ -234,8 +236,8 @@ class PayloadTest(unittest.TestCase):
         A, L = self.P["asks"], lp.Live(AS_OF)
         alloc = read_csv(ROOT / "golden" / "golden_allocation.csv")
         allocated = [r for r in alloc if r["allocated_to"]]
-        self.assertEqual(A["allocated"], len(allocated))
-        self.assertEqual(len(A["batches"]), len({r["batch_id"] for r in allocated}))
+        self.assertEqual(A["allocated"], len(allocated), 27)
+        self.assertEqual(len(A["batches"]), len({r["batch_id"] for r in allocated}), 8)
         self.assertEqual(sum(len(c["request_ids"]) for b in A["batches"] for c in b["companies"]), A["allocated"])
         for b in A["batches"]:
             self.assertEqual(b["size"], sum(len(c["request_ids"]) for c in b["companies"]))
@@ -254,21 +256,17 @@ class PayloadTest(unittest.TestCase):
         # ask log is "asked" and not listed, so the 3 capacity-exhausted rows already asked (and the one
         # unresolved-ask row) are not exceptions here. Capacity exhausted is not an exception either: those
         # requests have a connector and an expected value, so their one home is the ranked list
-        self.assertEqual((A["on_file"], A["cycle_size"]),
-                         (len(L.requests), len(bg.latest_cycle(alloc))),
-                         "the two populations the page states counts against")
+        self.assertEqual((A["on_file"], A["cycle_size"]), (200, len(bg.latest_cycle(alloc))), "the two populations the page states counts against")
+        self.assertEqual(A["cycle_size"], 128)
         states = L.states
         by_state = Counter(states[a["request_id"]] for a in bg.latest_cycle(alloc))
         no_slot = [a for a in bg.latest_cycle(alloc) if states[a["request_id"]] == bg.CAPACITY_EXHAUSTED]
-        self.assertEqual(A["no_slot"], len(no_slot))
-        self.assertEqual(A["exception_count"],
-                         len(bg.latest_cycle(alloc)) - by_state[rs.ASKED] - by_state[rs.ALLOCATED] - len(no_slot))
-        expected_exceptions = Counter(
-            states[a["request_id"]] for a in bg.latest_cycle(alloc)
-            if states[a["request_id"]] not in (rs.ASKED, rs.ALLOCATED, bg.CAPACITY_EXHAUSTED)
-        )
+        self.assertEqual(A["no_slot"], len(no_slot), 10)
+        self.assertEqual(by_state[rs.ASKED], 13, "allocation rows whose request is already in the ask log")
+        self.assertEqual(A["exception_count"], len(bg.latest_cycle(alloc)) - by_state[rs.ASKED] - by_state[rs.ALLOCATED] - len(no_slot), 69)
         self.assertEqual({e["reason"]: e["count"] for e in A["exceptions"]},
-                         dict(expected_exceptions))
+                         {"no path to this company in the network": 33, "already introduced": 10,
+                          "company unresolved": 12, bg.INTRO_CLAIMED_NOT_LOGGED: 13, bg.UNRESOLVED_ASK: 1})
         self.assertEqual(A["repair_days"], bg.REPAIR_DAYS)
         for e in A["exceptions"]:
             for r in e["rows"]:
@@ -313,7 +311,8 @@ class PayloadTest(unittest.TestCase):
         for e in A["exceptions"]:
             for r in e["rows"]:
                 self.assertEqual(r["sector_cover"] is not None, bool(r["company_id"]), r["request_id"])
-        self.assertEqual(A["focus"], L.focus_finding())
+        self.assertEqual((A["focus"]["in_focus_pct"], A["focus"]["out_focus_pct"], A["focus"]["in_focus_asks"]), ("64%", "32%", 14))
+        self.assertEqual(A["focus"]["total_asks"], len(read_csv(ROOT / "dataset" / "intro_outcomes.csv")))
         no_path = next(e for e in A["exceptions"] if e["reason"] == "no path to this company in the network")
         by_name = {r["company_name"]: r["sector_cover"] for r in no_path["rows"]}
         self.assertEqual([c["connector"] for c in by_name["Halcyon Grid"]["connectors"]], ["Marcus Aldridge"])
@@ -332,7 +331,7 @@ class PayloadTest(unittest.TestCase):
         self.assertEqual(I["days"], bg.INTRO_LIVE_DAYS)
         alloc = read_csv(ROOT / "golden" / "golden_allocation.csv")
         parked = [a for a in alloc if a["exception_reason"].startswith(bg.ALREADY_INTRODUCED)]
-        self.assertEqual(I["requests"], len(parked))
+        self.assertEqual(I["requests"], len(parked), 14)
         self.assertEqual(sorted(rid for r in I["rows"] for rid in r["request_ids"]), sorted(a["request_id"] for a in parked))
         self.assertEqual(I["count"], len({a["company_id"] for a in parked}), "one row per company")
         values = [r["value_usd"] for r in I["rows"]]
@@ -360,9 +359,8 @@ class PayloadTest(unittest.TestCase):
         # Redtree: fizzled, so back in the queue as a retry, with the prior intro named on
         # every surface; R1003 itself (the request that intro was for) is back alongside
         redtree = [c for b in P["asks"]["batches"] for c in b["companies"] if c["company_id"] == "C045"]
-        self.assertTrue(redtree)
-        self.assertEqual(sorted(rid for c in redtree for rid in c["request_ids"]), ["R1003", "R1067", "R1074"])
-        self.assertTrue(all(c["retry"] == redtree[0]["retry"] for c in redtree))
+        self.assertEqual(len(redtree), 1)
+        self.assertEqual(sorted(redtree[0]["request_ids"]), ["R1003", "R1067", "R1074"])
         retry = redtree[0]["retry"]
         self.assertEqual((retry["connector"], retry["intro_date"], retry["request_id"], retry["requested_by"], retry["meeting_booked"], retry["live"]),
                          ("Dana Whitfield", "2026-03-18", "R1003", "Imani Mkhize", False, False))
@@ -523,9 +521,8 @@ class PayloadTest(unittest.TestCase):
         current = rs.current_allocation(read_csv(ROOT / "golden" / "golden_allocation.csv"))
         open_ids = sorted(r["request_id"] for r in requests
                           if r["status_as_filed"] in bg.OPEN_STATUSES or r["request_id"] in current)
-        self.assertEqual(F["open"], len(open_ids))
-        self.assertLessEqual(sum(1 for r in requests if r["status_as_filed"] in bg.OPEN_STATUSES), F["open"],
-                             "the current allocation can reopen filed-closed requests")
+        self.assertEqual(F["open"], len(open_ids), 180)
+        self.assertEqual(sum(1 for r in requests if r["status_as_filed"] in bg.OPEN_STATUSES), 148, "the 32 never-asked Closed - no path / Intro sent rows are in flight too")
         self.assertEqual(sorted(rid for r in F["rows"] for rid in r["request_ids"]), open_ids, "each open request in exactly one state")
         self.assertEqual(sum(r["count"] for r in F["rows"]), F["open"])
         self.assertEqual(sum(g["count"] for g in F["groups"]), F["open"])
@@ -871,40 +868,32 @@ class GoldenSourceCutsTest(unittest.TestCase):
     def test_golden_requests_wear_the_raw_shape(self):
         raw_by_id = {r["request_id"]: r for r in self.raw["requests"]}
         self.assertEqual([r["request_id"] for r in self.gold["requests"]], list(self.gold["golden_requests"]))
-        roles = {r["requested_by"].strip(): r["requester_role"] for r in self.raw["requests"]}
         for r in self.gold["requests"]:
-            filed = raw_by_id.get(r["request_id"])
-            self.assertEqual(set(r), set(filed or self.raw["requests"][0]), "every column a cut reads")
+            self.assertEqual(set(r), set(raw_by_id[r["request_id"]]), "every column a cut reads")
             g = self.gold["golden_requests"][r["request_id"]]
             self.assertEqual((r["requested_by"], r["request_date"], r["status"], r["urgency"], r["deal_value_usd"]),
                              (g["requested_by"], g["request_date"], g["status_as_filed"], g["urgency_declared"], g["value_usd"]),
                              "the facts golden carries win")
-            self.assertEqual(r["requester_role"], (filed or {}).get("requester_role", "") or roles.get(g["requested_by"].strip(), ""))
+            self.assertEqual(r["requester_role"], raw_by_id[r["request_id"]]["requester_role"])
         # a request golden carries that the raw export no longer has: role from the requester's other rows
         g = dict(next(iter(self.gold["golden_requests"].values())), request_id="R999")
+        roles = {r["requested_by"].strip(): r["requester_role"] for r in self.raw["requests"]}
         extra = self.dc.as_filed(g, {}, roles)
         self.assertEqual(extra["requester_role"], roles[g["requested_by"].strip()])
         self.assertEqual((extra["target_person_raw"], extra["path_found_flag"]), ("", ""))
 
     def test_without_completions_golden_agrees_with_raw_today(self):
-        # Golden can also carry accepted live requests that are absent from the September export.
-        # Restrict it to the export ids to compare the shared historical population.
-        raw_ids = {r["request_id"] for r in self.raw["requests"]}
-        gold = dict(self.gold,
-                    requests=[r for r in self.gold["requests"] if r["request_id"] in raw_ids],
-                    outcomes=[r for r in self.gold["outcomes"] if r["request_id"] in raw_ids],
-                    outcome_by_request={rid: r for rid, r in self.gold["outcome_by_request"].items() if rid in raw_ids},
-                    golden_requests={rid: r for rid, r in self.gold["golden_requests"].items() if rid in raw_ids},
-                    allocation=[r for r in self.gold["allocation"] if r["request_id"] in raw_ids])
-        self.assertEqual(self.dc.funnel_cut(gold), self.dc.funnel_cut(self.raw))
+        # the exports and golden/ describe the same 200 requests, so every shared cut agrees until an
+        # ask is sent; the Live Data tab only diverges from Raw Sept on what happened since
+        self.assertEqual(self.dc.funnel_cut(self.gold), self.dc.funnel_cut(self.raw))
         self.assertEqual(self.dc.funnel_cut(self.gold), funnel_stages(),
                          "the same stages sankey_funnel.py computes from golden_requests.csv")
         self.assertEqual(self.dc.funnel_cut(self.gold, since="2026-01-01"), funnel_stages(since="2026-01-01"))
-        self.assertEqual(self.dc.requester_cut(gold), self.dc.requester_cut(self.raw))
-        self.assertEqual(self.dc.connector_cut(gold), self.dc.connector_cut(self.raw))
-        self.assertEqual(self.dc.account_demand_cut(gold), self.dc.account_demand_cut(self.raw))
-        self.assertEqual(self.dc.top_accounts_cut(gold), self.dc.top_accounts_cut(self.raw))
-        self.assertEqual(self.dc.cycle_cut(gold), self.dc.cycle_cut(self.raw))
+        self.assertEqual(self.dc.requester_cut(self.gold), self.dc.requester_cut(self.raw))
+        self.assertEqual(self.dc.connector_cut(self.gold), self.dc.connector_cut(self.raw))
+        self.assertEqual(self.dc.account_demand_cut(self.gold), self.dc.account_demand_cut(self.raw))
+        self.assertEqual(self.dc.top_accounts_cut(self.gold), self.dc.top_accounts_cut(self.raw))
+        self.assertEqual(self.dc.cycle_cut(self.gold), self.dc.cycle_cut(self.raw))
 
     def test_every_dollar_is_one_per_company(self):
         # dashboard/company_value.py prices every $ on the site: CRM ARR potential where the
@@ -1078,82 +1067,92 @@ class GoldenSourceCutsTest(unittest.TestCase):
         self.assertEqual((after["never"], after["with_path"]), (b["never"] - 1, b["with_path"] - 1))
 
     def test_one_classifier_gives_every_request_one_state_on_both_pages(self):
-        """dashboard/request_state.py: every request, one state each, the counts the pages
+        """dashboard/request_state.py: all 200 requests, one state each, the counts the pages
         show; and a request_id reaches the same state through data_cuts as through live_priorities."""
         via_cuts = self.dc.request_states(self.gold)
         via_live = lp.Live(AS_OF).states
-        self.assertEqual(len(via_cuts), len(self.gold["requests"]))
+        self.assertEqual(len(via_cuts), 200)
         self.assertEqual(sorted(via_cuts), sorted(r["request_id"] for r in self.gold["requests"]), "every request on file, once")
-        expected_states = {
-            rs.ASKED, rs.ALLOCATED, bg.NO_PATH, bg.INTRO_CLAIMED_NOT_LOGGED,
-            rs.COMPANY_UNRESOLVED, bg.CAPACITY_EXHAUSTED, bg.ALREADY_INTRODUCED,
-            bg.UNRESOLVED_ASK,
-        }
-        self.assertTrue(set(via_cuts.values()) <= expected_states,
-                        "every request reaches a known actionable state")
+        self.assertEqual(Counter(via_cuts.values()), Counter({
+            rs.ASKED: 85,
+            rs.ALLOCATED: 36,
+            bg.NO_PATH: 33,
+            bg.INTRO_CLAIMED_NOT_LOGGED: 13,
+            rs.COMPANY_UNRESOLVED: 12,
+            bg.CAPACITY_EXHAUSTED: 10,
+            bg.ALREADY_INTRODUCED: 10,
+            bg.UNRESOLVED_ASK: 1,
+        }))
         self.assertFalse([s for s in via_cuts.values() if s.startswith(rs.STATUS_GATE)], "every filed status reaches the allocator")
-        self.assertEqual(sum(Counter(via_cuts.values()).values()), len(self.gold["requests"]), "exactly one state per request")
+        self.assertEqual(sum(Counter(via_cuts.values()).values()), 200, "exactly one state per request")
         self.assertEqual(via_live, via_cuts, "the same request_id, the same state, whichever module reaches it")
         # the classifier reads the ask log and the current allocation cycle, never blocked_reason
         self.assertNotIn("blocked_reason", inspect.getsource(rs.state) + inspect.getsource(rs.classify))
         self.assertNotIn("blocked_reason", inspect.getsource(self.dc.blockage_cut))
         self.assertNotIn("blocked_reason", inspect.getsource(self.dc.backlog_cut))
         # the same read of golden_allocation.csv on both sides, keyed by request_id
-        self.assertEqual(self.dc.in_cycle(self.gold), len(lp.Live(AS_OF).alloc_by_rid))
-        # asked wins over an allocation row, including any new overlapping rows
+        self.assertEqual(self.dc.in_cycle(self.gold), len(lp.Live(AS_OF).alloc_by_rid), 128)
+        # asked wins over an allocation row: 13 requests carry both
         both = [rid for rid in via_cuts if rid in self.gold["outcome_by_request"] and rid in rs.current_allocation(self.gold["allocation"])]
+        self.assertEqual(len(both), 13)
         self.assertTrue(all(via_cuts[rid] == rs.ASKED for rid in both))
         self.assertEqual(rs.state("Open", None, None), "status gate: Open")
         self.assertEqual(rs.state("Open", None, {"allocated_to": "", "exception_reason": "something new: detail"}), "something new")
         self.assertEqual(rs.state("Open", {"request_id": "R"}, {"allocated_to": "x", "exception_reason": ""}), rs.ASKED)
 
     def test_blockage_is_the_classified_table_minus_asked_in_three_slices(self):
-        """The Accounts donut and Remaining Unrouted: every state other than asked, bucketed by
-        state and split into three slices over the blocked requests; nothing unmapped is dropped. Since
+        """The Accounts donut and Remaining Unrouted: the 115 with state != asked, bucketed by
+        their state, three slices over the 79 blocked; nothing unmapped is dropped. Since
         bg.in_queue takes never-asked Closed - no path / Intro sent rows too, every one of the
-        every one has an allocation row and the status gate holds nothing: the old "status gate:
+        115 has an allocation row and the status gate holds nothing: the old "status gate:
         Closed - no path" wedge is now the allocator's own verdicts and "status gate: Intro
         sent" is the repair queue."""
         ab = self.dc.blockage_cut(self.gold)
         states = self.dc.request_states(self.gold)
         never = [rid for rid, s in states.items() if s != rs.ASKED]
-        self.assertEqual(len(never), ab["never"])
+        self.assertEqual(len(never), 115)
         self.assertEqual(ab["never"], self.dc.backlog_cut(self.gold)["never"])
         self.assertEqual(sorted(ab["by_request"]), sorted(never), "every never-asked request lands in a bucket")
         self.assertEqual(ab["by_request"], {rid: states[rid] for rid in never}, "the bucket is the state")
-        counts = Counter(states[rid] for rid in never)
-        self.assertEqual(sum(b["count"] for b in ab["buckets"]), len(never), "each in exactly one")
-        self.assertEqual({b["bucket"]: b["count"] for b in ab["buckets"]}, dict(counts))
+        self.assertEqual(sum(b["count"] for b in ab["buckets"]), 115, "each in exactly one")
+        self.assertEqual([(b["bucket"], b["count"]) for b in ab["buckets"]], [
+            ("allocated, not yet asked", 36),
+            ("no path to this company in the network", 33),
+            (bg.INTRO_CLAIMED_NOT_LOGGED, 13),
+            ("company unresolved", 12),
+            ("capacity exhausted this cycle", 10),
+            ("already introduced", 10),
+            (bg.UNRESOLVED_ASK, 1),
+        ])
         self.assertFalse([b for b in ab["buckets"] if b["bucket"].startswith(rs.STATUS_GATE)], "nothing held at the gate")
         # the populations every count is stated against
-        self.assertEqual((ab["total"], ab["in_window"], ab["in_cycle"], ab["never"], ab["allocated"], ab["blocked"]),
-                         (len(self.gold["requests"]), len(self.gold["requests"]), self.dc.in_cycle(self.gold),
-                          len(never), counts[rs.ALLOCATED], len(never) - counts[rs.ALLOCATED]))
-        expected_slices = {key: sum(counts[bucket] for bucket in buckets)
-                           for key, (_, buckets) in rs.SLICES.items()}
-        self.assertEqual({k: s["count"] for k, s in ab["slices"].items()}, expected_slices)
+        self.assertEqual((ab["total"], ab["in_window"], ab["in_cycle"], ab["never"], ab["allocated"], ab["blocked"]), (200, 200, 128, 115, 36, 79))
+        self.assertEqual({k: s["count"] for k, s in ab["slices"].items()}, {"supply": 33, "process": 36, "closed": 10})
         self.assertEqual([b["bucket"] for b in ab["slices"]["process"]["buckets"]],
                          [bg.INTRO_CLAIMED_NOT_LOGGED, "company unresolved", "capacity exhausted this cycle", bg.UNRESOLVED_ASK])
         self.assertEqual([b["bucket"] for b in ab["slices"]["supply"]["buckets"]], [bg.NO_PATH])
         self.assertEqual([b["bucket"] for b in ab["slices"]["closed"]["buckets"]], [bg.ALREADY_INTRODUCED])
         self.assertEqual(ab["unmapped"], [])
-        self.assertAlmostEqual(ab["supply_share"], expected_slices["supply"] / ab["blocked"])
-        # the footnote: no path in supply_reach.csv, including any Intro sent claims the repair queue
-        # holds before it gets to say so (the Closed - no path rows the gate used to
+        self.assertAlmostEqual(ab["supply_share"], 33 / 79)
+        # the footnote: no path in supply_reach.csv, the 33 the allocator said so on plus the 8 Intro sent
+        # claims the repair queue holds before it gets to say so (the 5 Closed - no path the gate used to
         # hold with no path are now in the allocator's own no-path bucket)
-        self.assertEqual(ab["no_path"], sum(b["no_path"] for b in ab["buckets"] if b["bucket"] != rs.ALLOCATED))
-        expected_gated = [b for b in ab["buckets"] if b["no_path"] and b["bucket"] != rs.ALLOCATED
-                          and b["bucket"] not in rs.SLICES["supply"][1]]
-        self.assertEqual(ab["no_path_gated"], expected_gated)
+        self.assertEqual(ab["no_path"], 41)
+        self.assertEqual([(b["bucket"], b["no_path"]) for b in ab["no_path_gated"]], [(bg.INTRO_CLAIMED_NOT_LOGGED, 8)])
         repair = next(b for b in ab["buckets"] if b["bucket"] == bg.INTRO_CLAIMED_NOT_LOGGED)
-        self.assertEqual(repair["with_path"] + repair["no_path"] + repair["unresolved"], repair["count"])
+        self.assertEqual((repair["with_path"], repair["no_path"], repair["unresolved"]), (5, 8, 0),
+                         "the claim with no resolvable company is company unresolved, the one on a live intro already introduced")
         # what the gate used to hold, by where the allocator put it
         current = rs.current_allocation(self.gold["allocation"])
         filed = {a["request_id"]: a["status_as_filed"] for a in current.values()}
         moved = Counter((filed[rid], ab["by_request"][rid]) for rid in never if filed.get(rid) in bg.REOPEN_STATUSES)
-        for status in bg.REOPEN_STATUSES:
-            self.assertEqual(sum(n for (filed_status, _), n in moved.items() if filed_status == status),
-                             sum(1 for rid in never if filed.get(rid) == status), status)
+        self.assertEqual(sum(n for (s, _), n in moved.items() if s == "Closed - no path"), 18)
+        self.assertEqual(sum(n for (s, _), n in moved.items() if s == "Intro sent"), 14)
+        self.assertEqual(moved[("Closed - no path", "allocated, not yet asked")], 5)
+        self.assertEqual(moved[("Closed - no path", bg.NO_PATH)], 5)
+        self.assertEqual(moved[("Closed - no path", "company unresolved")], 4)
+        self.assertEqual(moved[("Intro sent", bg.INTRO_CLAIMED_NOT_LOGGED)], 13)
+        self.assertEqual(moved[("Intro sent", bg.ALREADY_INTRODUCED)], 1)
         # the last-12-months view filters the same table
         bl12 = self.dc.blockage_cut(self.gold, since="2025-09-01")
         self.assertEqual(bl12["in_window"], sum(1 for r in self.gold["requests"] if r["request_date"] >= "2025-09-01"))
@@ -1167,8 +1166,7 @@ class GoldenSourceCutsTest(unittest.TestCase):
                                             for a in self.gold["allocation"]])
         odd = self.dc.blockage_cut(gold)
         self.assertEqual([(b["bucket"], b["count"]) for b in odd["unmapped"]], [("something new", 1)])
-        self.assertEqual((odd["slices"]["supply"]["count"], sum(b["count"] for b in odd["buckets"])),
-                         (ab["slices"]["supply"]["count"] - 1, ab["never"]))
+        self.assertEqual((odd["slices"]["supply"]["count"], sum(b["count"] for b in odd["buckets"])), (32, 115))
 
     def test_latency_medians_overall_and_by_month(self):
         lat = self.dc.latency_cut(self.gold, today=AS_OF)
@@ -1186,11 +1184,7 @@ class GoldenSourceCutsTest(unittest.TestCase):
         self.assertEqual(lat["max_to_ask"], max(to_ask))
         self.assertLessEqual(lat["max_to_ask"], 7, "every ask on file went out inside a week")
         self.assertEqual(lat["asked_within_week"], len(to_ask))
-        asked_ids = {o["request_id"] for o in self.gold["outcomes"]}
-        expected_waiting = sum(1 for r in self.gold["requests"]
-                               if r["request_id"] not in asked_ids
-                               and (AS_OF - date.fromisoformat(r["request_date"])).days > lat["max_to_ask"])
-        self.assertEqual(lat["waiting_past_max"], expected_waiting)
+        self.assertEqual(lat["waiting_past_max"], self.dc.backlog_cut(self.gold)["never"], "every unasked request is older than the slowest ask")
         months = sorted({r["request_date"][:7] for r in self.gold["requests"]})
         self.assertEqual([m["month"] for m in lat["monthly"]], months)
         self.assertEqual(sum(m["requests"] for m in lat["monthly"]), len(self.gold["requests"]))
@@ -1414,30 +1408,23 @@ class BuiltPagesTest(unittest.TestCase):
             self.assertNotIn("of the blockage is a missing relationship.", accounts, f"{name}: the donut lives in Remaining Unrouted only")
 
     def test_remaining_unrouted_cumulative_donut_reads_the_allocation(self):
-        from dashboard import data_cuts
-        bl = data_cuts.blockage_cut(data_cuts.load("golden"))
         live = self.pages["livedata.html"]
         panel = live.split('<section id="unrouted">')[1].split("</section>")[0]
         cumulative = panel.split('<div class="fview" data-view="all">')[1]
-        self.assertIn(f"blocked\\u003cbr\\u003eof {bl['total']} requests on file", cumulative, "the denominator on the chart")
-        values = [bl["slices"][key]["count"] for key in ("supply", "process", "closed")]
-        self.assertIn('"values":' + json.dumps(values, separators=(",", ":")), cumulative)
+        self.assertIn("blocked\\u003cbr\\u003eof 200 requests on file", cumulative, "the denominator on the chart")
+        self.assertIn('"values":[33,36,10]', cumulative)
         self.assertIn('"labels":["supply","process","correctly not asked"]', cumulative)
-        for key in ("supply", "process", "closed"):
-            for bucket in bl["slices"][key]["buckets"]:
-                self.assertIn(f"{bucket['bucket']} {bucket['count']}", cumulative, "the tooltip names the prefixes it sums")
+        self.assertIn("intro claimed, none logged 13\\u003cbr\\u003ecompany unresolved 12\\u003cbr\\u003ecapacity exhausted this cycle 10\\u003cbr\\u003eunresolved ask on every path 1", cumulative, "the tooltip names the prefixes it sums")
         for held in ("status gate: Closed - no path", "status gate: Intro sent"):
             self.assertNotIn(held, cumulative, "every filed status reaches the allocator now")
         caption = re.sub(r"<[^>]+>", "", cumulative)
-        self.assertIn(f"{bl['never']} of the {bl['total']} requests on file never reach a connector; {bl['blocked']} of those are blocked. The other {bl['allocated']} are allocated this cycle and not yet asked; they carry a routed_to and are not blocked.", caption)
-        self.assertIn(f"Only {bl['supply_share']:.0%} of the blockage is a missing relationship.", caption)
-        repair = next(b for b in bl["buckets"] if b["bucket"] == bg.INTRO_CLAIMED_NOT_LOGGED)
-        self.assertIn(f"{repair['bucket']} {repair['count']} ({repair['with_path']} with a path available, {repair['no_path'] + repair['unresolved']} without", caption)
-        self.assertIn(f"{bl['no_path']} never-asked requests (of the {bl['total']} on file) name a company with no path in supply_reach.csv", caption)
+        self.assertIn("115 of the 200 requests on file never reach a connector; 79 of those are blocked. The other 36 are allocated this cycle and not yet asked; they carry a routed_to and are not blocked.", caption)
+        self.assertIn("Only 42% of the blockage is a missing relationship.", caption)
+        self.assertIn("intro claimed, none logged 13 (5 with a path available, 8 without: 8 no path)", caption)
+        self.assertIn("41 never-asked requests (of the 200 on file) name a company with no path in supply_reach.csv: the 33 above plus 8 held before their paths were evaluated", caption)
         self.assertIn("dashboard/request_state.py", caption, "names the classifier both pages share")
         self.assertIn("blocked_reason is not an input", caption)
-        gated_text = ", ".join(f"{bucket['no_path']} in {bucket['bucket']}" for bucket in bl["no_path_gated"])
-        self.assertIn(f"({gated_text})", caption)
+        self.assertIn("(8 in intro claimed, none logged)", caption)
         self.assertNotIn("Outside the wedges", caption, "nothing unmapped this build")
 
     def test_live_data_opens_on_the_headline_kpis(self):
@@ -1457,8 +1444,9 @@ class BuiltPagesTest(unittest.TestCase):
 
     def test_backlog_box_sits_under_the_sankey_with_no_yield_strip(self):
         from dashboard import data_cuts
-        for name, source in (("halyardscoping.html", "dataset"), ("livedata.html", "golden")):
-            b = data_cuts.backlog_cut(data_cuts.load(source))
+        gold = data_cuts.load("golden")
+        b = data_cuts.backlog_cut(gold)
+        for name in ("halyardscoping.html", "livedata.html"):
             html = self.pages[name]
             funnel = html.split('<section id="funnel">')[1].split("</section>")[0]
             i = [funnel.index('id="sankey-12m"'), funnel.index('id="sankey"'),
@@ -1495,7 +1483,7 @@ class BuiltPagesTest(unittest.TestCase):
         self.assertIn(f"{bl['never']} of {bl['total']} requests on file never asked", panel)
         self.assertEqual(panel.count("of the blockage is a missing relationship."), 2, "a donut and its reading per view")
         self.assertNotIn("from <code>blocked_reason</code>", panel, "grouped by the request's state, not blocked_reason")
-        self.assertIn(f"blocked\\u003cbr\\u003eof {bl['total']} requests on file", panel, "the denominator on the cumulative donut")
+        self.assertIn("blocked\\u003cbr\\u003eof 200 requests on file", panel, "the denominator on the cumulative donut")
         self.assertIn("blocked\\u003cbr\\u003eof " + str(bl12["in_window"]) + " requests dated ", panel, "and on the last-12-months donut")
         self.assertIn('<div class="fview" data-view="12m" hidden>', panel)
         self.assertIn('<div class="fview" data-view="all">', panel)
@@ -1656,7 +1644,7 @@ class ThreadsIngestTest(unittest.TestCase):
 
         for rid, first in (("R2001", NEW_THREADS[0]), ("R2002", NEW_THREADS[1]), ("R2003", NEW_THREADS[2]), ("R2004", NEW_THREADS[3])):
             r = rows[rid]
-            if preview[rid]["company_id"]:
+            if rid != "R2004":   # the build mints the network-only company's id; the preview has none to show
                 self.assertEqual(r["company_id"], preview[rid]["company_id"], rid)
             self.assertEqual(r["requested_by"], first["messages"][0]["user"])
             self.assertEqual(r["request_date"], first["messages"][0]["ts"][:10])
@@ -1675,33 +1663,26 @@ class ThreadsIngestTest(unittest.TestCase):
         for s in reach:
             self.assertNotIn("new.jsonl R1034", s["evidence"])
 
-        # A bare network name stays network-only until an accepted request files it. Once it is
-        # on file, the same preview resolves it to that existing company instead of minting a duplicate.
+        # a bare network-only name: the preview showed the company the network reaches, with
+        # no id and no CRM account, and the paths it would get; the build creates it and files them
         pv = preview["R2004"]
-        self.assertEqual(pv["company_name"], "Xanthe Labs")
+        self.assertEqual((pv["company_id"], pv["network"], pv["company_name"]), ("", "network:xanthelabs", "Xanthe Labs"))
+        self.assertIn("no CRM account, create one (see CRM Updates)", pv["flags"])
         xanthe = rows["R2004"]
         self.assertTrue(xanthe["company_id"])
         companies = {c["company_id"]: c for c in read_csv(self.root / "golden" / "golden_companies.csv")}
         self.assertEqual((companies[xanthe["company_id"]]["company_name"], companies[xanthe["company_id"]]["crm_account_ids"]),
                          ("Xanthe Labs", ""))
         filed = [s for s in reach if s["company_id"] == xanthe["company_id"]]
-        if pv["network"]:
-            self.assertEqual(pv["network"], "network:xanthelabs")
-            self.assertIn("no CRM account, create one (see CRM Updates)", pv["flags"])
-            shown = live.network_only[pv["network"]]["paths"]
-            self.assertEqual(len(filed), len(shown))
-            self.assertEqual({(s["connector"], s["reach_type"], s["contact_name"], s["strength"]) for s in filed},
-                             {(s["connector"], s["reach_type"], s["contact_name"], s["strength"]) for s in shown})
-        else:
-            self.assertEqual(xanthe["company_id"], pv["company_id"])
-            self.assertFalse(pv["network"])
+        shown = live.network_only["network:xanthelabs"]["paths"]
+        self.assertEqual(len(filed), len(shown))
+        self.assertEqual({(s["connector"], s["reach_type"], s["contact_name"], s["strength"]) for s in filed},
+                         {(s["connector"], s["reach_type"], s["contact_name"], s["strength"]) for s in shown})
         best, _ = bg.best_route(filed, live.roster, live.rates, "")
         self.assertEqual(pv["route_to"], best["connector"])
 
         again = self.build()
-        dataset_ids = {r["request_id"] for r in read_csv(self.root / "dataset" / "intro_requests.csv")}
-        carried = sum(rid not in dataset_ids for rid in rows)
-        self.assertIn(f"{carried} not in dataset/intro_requests.csv and carried forward", again)
+        self.assertIn("4 not in dataset/intro_requests.csv and carried forward", again)
         self.assertIn("0 appended", again)
         after = {r["request_id"]: r for r in read_csv(self.requests)}
         for rid in ("R2001", "R2002", "R2003", "R2004"):

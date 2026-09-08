@@ -726,9 +726,7 @@ class RebuildWithUploadsTest(unittest.TestCase):
         self.assertEqual(tree_digest(self.root / "golden" / "current"), self.before)
         build = self.run_in_root("golden/build_golden.py").stdout
         self.assertIn("2 request(s) dropped from golden_requests.csv", build)
-        dataset_ids = {r["request_id"] for r in intake.read_csv_file(self.root / "dataset" / "intro_requests.csv")[1]}
-        carried = sum(rid not in dataset_ids for rid in raw)
-        self.assertIn(f"{len(raw)} rows ({len(raw)} kept, of which {carried} not in dataset/intro_requests.csv and carried forward", build)
+        self.assertIn(f"{len(raw)} rows ({len(raw)} kept, of which 0 not in dataset/intro_requests.csv and carried forward", build)
         after = self.golden_requests()
         self.assertEqual(set(after), set(raw))
         self.assertEqual({k: v["raw_ask"] for k, v in after.items()}, {k: v["raw_ask"] for k, v in raw.items()})
