@@ -302,6 +302,8 @@ FUND_COLLISION = "fund-collision"
 INVESTOR_NETWORK = "investor_network"
 NETWORK_TYPE = "investor network"  # connector_type of such a person (roster people carry their roster type)
 NETWORK_HAIRCUT = 0.90  # route_score multiplier for investor_network paths
+TITLE_FIT_FLOOR = 0.60  # lowest title fit: the contact is far junior to the title asked for
+TITLE_MATCH_BONUS = 1.10  # title fit when the contact holds the very title asked for
 # reach types that outlast the request they were observed on; offers are request-scoped
 DURABLE_REACH = {"direct", "investor", "alumni", INVESTOR_NETWORK}
 # notify_owner: an allocated request on an account this far along, made by someone other
@@ -315,7 +317,7 @@ NOTIFY_STAGES = {"Negotiation", "Pilot", "Evaluation"}
 SENIORITY = {
     "chief operating officer": 1.00, "chief data officer": 1.00, "chief digital officer": 1.00,
     "chief information officer": 1.00, "chief technology officer": 1.00,
-    "svp digital": 0.85, "vp data & analytics": 0.85, "vp enterprise architecture": 0.80,
+    "svp digital": 0.85, "vp data & analytics": 0.85, "vp enterprise architecture": 0.80, "vp engineering": 0.80,
     "head of innovation": 0.70, "head of platform engineering": 0.70, "head of automation": 0.70,
     "head of developer productivity": 0.70, "product director": 0.65, "director of it": 0.65,
     "director of software engineering": 0.60, "principal architect": 0.50, "platform lead": 0.50,
@@ -343,6 +345,21 @@ NOISE_RE = re.compile(
 
 def seniority(title: str) -> float:
     return SENIORITY.get((title or "").strip().lower(), DEFAULT_SENIORITY)
+
+
+def title_fit(contact_title: str, target_title: str) -> float:
+    """How well the contact on a path matches the title asked for, by seniority:
+    1.0 when the contact is at or above the wanted title (or either title is
+    blank, so there is nothing to compare), TITLE_MATCH_BONUS when the contact
+    holds the very title asked for, else 1 - the seniority gap, floored at
+    TITLE_FIT_FLOOR. A Program Manager (0.35) as the way to a COO (1.00) is the
+    floor; a VP (0.85) is 0.85; the COO herself is 1.10."""
+    c, t = (contact_title or "").strip().lower(), (target_title or "").strip().lower()
+    if not c or not t:
+        return 1.0
+    if c == t:
+        return TITLE_MATCH_BONUS
+    return max(TITLE_FIT_FLOOR, 1.0 - max(0.0, seniority(t) - seniority(c)))
 
 
 def freshness(connected_on: str, today: date) -> float:
@@ -1351,34 +1368,37 @@ def load_threads(extra: Path | None = None) -> dict[str, dict]:
 
 
 def best_route(paths: list[dict], roster: dict, rates: dict, industry: str, exclude_connector: str = "",
-               held: dict[tuple[str, str], dict] | None = None, company_id: str = "") -> tuple[dict | None, float]:
+               held: dict[tuple[str, str], dict] | None = None, company_id: str = "",
+               title: str = "") -> tuple[dict | None, float]:
     """The path the allocator would try first, with its route score: allocator
     order (path_rank), and with `held` (unresolved_asks) the connectors sitting
     on an unresolved ask at the company stepped over or behind (hold_paths).
-    (None, 0.0) when no path scores."""
-    ordered = [p for rank, p in sorted(((path_rank(p, roster, rates, industry), p) for p in paths
+    `title` is the title asked for (title_fit). (None, 0.0) when no path scores."""
+    ordered = [p for rank, p in sorted(((path_rank(p, roster, rates, industry, title), p) for p in paths
                                         if p["connector"] != exclude_connector), key=lambda t: t[0]) if rank[1] < 0]
     if held is not None:
         ordered, _ = hold_paths(ordered, held, company_id)
     if not ordered:
         return None, 0.0
-    return ordered[0], path_score(ordered[0], roster, rates, industry)
+    return ordered[0], path_score(ordered[0], roster, rates, industry, title)
 
 
-def path_score(p: dict, roster: dict, rates: dict, industry: str) -> float:
-    """strength x focus fit x delivery rate, the allocator's sort key; an
-    investor_network path (our circle, not our roster) then takes NETWORK_HAIRCUT."""
+def path_score(p: dict, roster: dict, rates: dict, industry: str, title: str = "") -> float:
+    """strength x focus fit x delivery rate x title fit, the allocator's sort key;
+    an investor_network path (our circle, not our roster) then takes NETWORK_HAIRCUT.
+    `title` is the title the request asks for; blank (a company with no request in
+    hand) leaves title fit at 1.0."""
     r = roster.get(p["connector"])
     f = fit(r, industry) if r else 0.7
-    score = float(p["strength"]) * f * rates.get(p["connector"], PRIOR_RATE)
+    score = float(p["strength"]) * f * rates.get(p["connector"], PRIOR_RATE) * title_fit(p["contact_title"], title)
     return score * NETWORK_HAIRCUT if p["reach_type"] == INVESTOR_NETWORK else score
 
 
-def path_rank(p: dict, roster: dict, rates: dict, industry: str) -> tuple[int, float]:
+def path_rank(p: dict, roster: dict, rates: dict, industry: str, title: str = "") -> tuple[int, float]:
     """The allocator's sort key, ascending: roster paths before investor_network
     ones, then by route score. The roster is asked first; our wider network fills
     in only when no roster path exists or every one is out of capacity."""
-    return (int(p["reach_type"] == INVESTOR_NETWORK), -path_score(p, roster, rates, industry))
+    return (int(p["reach_type"] == INVESTOR_NETWORK), -path_score(p, roster, rates, industry, title))
 
 
 def hold_paths(paths: list[dict], held: dict[tuple[str, str], dict], company_id: str) -> tuple[list[dict], list[dict]]:
@@ -1499,13 +1519,14 @@ def allocate(roster: dict, rates: dict, outcomes: list[dict], supply_by_company:
         if company is None:
             row["exception_reason"] = "company unresolved"
             continue
-        ordered = [p for rank, p in sorted(((path_rank(p, roster, rates, industry), p) for p in paths),
+        title = rq["target_title"]
+        ordered = [p for rank, p in sorted(((path_rank(p, roster, rates, industry, title), p) for p in paths),
                                            key=lambda t: t[0]) if rank[1] < 0]
         askable, skipped = hold_paths(ordered, held, company.company_id)
-        scored = [(path_score(p, roster, rates, industry), p) for p in askable]
+        scored = [(path_score(p, roster, rates, industry, title), p) for p in askable]
         if ordered:
             best = askable[0] if askable else ordered[0]
-            row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {path_score(best, roster, rates, industry):.2f})"
+            row["best_path_if_unbudgeted"] = f"{best['connector']} ({best['reach_type']}, {path_score(best, roster, rates, industry, title):.2f})"
         intro = introduced.get(company.company_id)
         if intro and intro["live"]:
             row["exception_reason"] = introduced_reason(intro)
@@ -1749,15 +1770,15 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
                 review.append("asked person not on roster")
             else:
                 own = [p for p in paths if p["connector"] == routed_to]
-                bp, sc = best_route(own, roster, rates, industry)
+                bp, sc = best_route(own, roster, rates, industry, title=rq["target_title"])
                 if bp:
                     route_score = f"{sc:.3f}"
                     route_reason = f"asked; {path_label(bp)}"
                 else:
                     route_reason = "asked; no known path from this connector to the company"
                     review.append("asked with no known path")
-                alt, alt_sc = best_route(paths, roster, rates, industry, exclude_connector=routed_to)
-                if alt and (bp is None or path_rank(alt, roster, rates, industry) < path_rank(bp, roster, rates, industry)):
+                alt, alt_sc = best_route(paths, roster, rates, industry, exclude_connector=routed_to, title=rq["target_title"])
+                if alt and (bp is None or path_rank(alt, roster, rates, industry, rq["target_title"]) < path_rank(bp, roster, rates, industry, rq["target_title"])):
                     route_reason += f"; stronger path existed via {alt['connector']} ({alt['reach_type']}, {alt_sc:.2f})"
         elif rid in allocation:
             a = allocation[rid]
@@ -1774,7 +1795,7 @@ def build_requests(reg: Registry, roster: dict, rates: dict, supply_by_company: 
             if reopened(a):
                 route_reason = f"reopened ({reopened(a)}); {route_reason}"
         else:
-            bp, sc = best_route(paths, roster, rates, industry)
+            bp, sc = best_route(paths, roster, rates, industry, title=rq["target_title"])
             if bp:
                 route_reason = f"not live; best path via {path_label(bp)}"
             elif company:

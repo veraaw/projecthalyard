@@ -193,7 +193,7 @@ class PayloadTest(unittest.TestCase):
         for r in T["top"]:
             c = r["components"]
             rp = c["deal_value_musd"] * c["stage_weight"] * c["age"] * c["reps_waiting"]
-            cs = c["path_strength"] * c["focus_fit"] * c["delivery_rate"] * c["capacity_left"]
+            cs = c["path_strength"] * c["focus_fit"] * c["delivery_rate"] * c["title_fit"] * c["capacity_left"]
             self.assertAlmostEqual(r["request_priority"], rp, places=2, msg=r["request_id"])
             self.assertAlmostEqual(r["connector_score"], cs, places=2, msg=r["request_id"])
             self.assertAlmostEqual(r["expected_value"], rp * cs, places=2, msg=r["request_id"])
