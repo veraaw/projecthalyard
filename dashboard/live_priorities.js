@@ -504,7 +504,7 @@ const LP = (function () {
       const human = [];
       const row = { request_id: t.request_id, posted: (first.ts || '').slice(0, 10), requested_by: first.user || '', raw_ask: first.text || '',
                     company_as_written: '', company_id: '', network: '', company_name: '', resolved_by: '', href: '', offers, offer_by: '', offer_text: '',
-                    route_to: '', path: '', expected_value: '', needs_human: '', flags: human, filed: false, mentions: [], cands: [], priority: null,
+                    route_to: '', path: '', expected_value: '', by_industry: '', needs_human: '', flags: human, filed: false, mentions: [], cands: [], priority: null,
                     target_company_raw: req ? req.target_company_raw || '' : '', target_title: req ? req.target_title_raw || '' : '',
                     deal_value: req ? req.deal_value || '' : '', currency: req ? req.currency || '' : '', urgency: req ? req.urgency || '' : '' };
       const filed = get(P.filed, t.request_id, null);
@@ -592,8 +592,13 @@ const LP = (function () {
         row.path = 'unresolved ask on every path';
         human.push(`unresolved ask on every path, an exception unless someone else offers: ${held.map(h => h.reason).join('; ')}`);
       } else {
-        row.path = 'no path';
-        if (row.company_id || row.network) human.push('no path to this company in the network, an exception unless someone offers');
+        // nobody reaches the company: name who covers its industry on the roster, as Unrouted Exceptions does
+        const sc = C && C.sector_cover, cover = sc && sc.connectors.length ? sc.connectors : [];
+        row.by_industry = cover.map(c => c.connector).join(' | ');
+        row.path = cover.length ? `no path on file · by industry (${sc.industry}), ask ${cover.map(c => c.connector).join(' or ')}` : 'no path';
+        if (row.company_id || row.network) human.push(cover.length
+          ? `no path to this company in the network, an exception unless someone offers; ${sc.industry} is in ${cover.map(c => `${c.connector}'s`).join(' and ')} focus areas, so ask them whether they know anyone${cover.some(c => c.asked) ? ` (${cover.filter(c => c.asked).map(c => `${c.connector} last asked here ${c.asked}`).join(', ')})` : ''}`
+          : `no path to this company in the network, an exception unless someone offers${sc && sc.note ? `; ${sc.note}, so nobody to suggest by sector` : ''}`);
       }
       row.flags = human.filter(Boolean);
       row.needs_human = row.flags.join('; ');
@@ -606,6 +611,14 @@ const LP = (function () {
   // What the router would do with one pasted message: apply the cues, take the
   // highest positive score, look the key up, rank the company's exported paths.
   // Nothing here is a rule; every number and every path comes from the payload.
+  // with no path, the name to go to: whoever on the roster has the company's industry in their focus areas
+  const sectorNote = C => {
+    const sc = C.sector_cover;
+    if (!sc) return '';
+    if (!sc.connectors.length) return sc.note ? ` By sector: ${sc.note}.` : '';
+    return ` By sector it would go to ${sc.connectors.map(c => `${c.connector}${c.asked ? ` (last asked here ${c.asked})` : ' (never asked here)'}`).join(' or ')}: ${sc.industry} is in their focus areas, so ask whether they know anyone.`;
+  };
+
   // `hint` is the target_company_raw of a request row, read when the message itself names no target
   function route(text, P, hint = '') {
     text = (text || '').trim();
@@ -666,7 +679,7 @@ const LP = (function () {
     out.status = out.top ? 'routed' : 'no-path';
     out.note = out.top ? ''
       : heldOnly ? `Unresolved ask on every path into ${C.company_name}: ${C.paths.filter(p => !p.askable).map(p => p.reason.split(' · ').pop()).join('; ')}. Nobody is asked again; it would be an exception this cycle unless someone else offers.`
-      : `No path on the roster: nobody in the network reaches ${C.company_name}. It would be an exception this cycle unless someone offers.`;
+      : `No path on the roster: nobody in the network reaches ${C.company_name}. It would be an exception this cycle unless someone offers.${sectorNote(C)}`;
     if (out.top && out.top.hold === 'last') out.note = `${out.top.connector} never answered an earlier ask here; every other path is held, so they are asked again.`;
     if (C.network) out.note = `${C.company_name} is not on file: no CRM account, never requested. The network reaches it${C.path_count ? ` (${plural(C.path_count, 'path')})` : ''}; filing this request creates the company and the next rebuild routes it as ranked below. Create the CRM account (see CRM Updates).${out.note ? ' ' + out.note : ''}`;
     if (ex.from_hint) out.note = `The ask names no target; “${tg.text}” is read from the target_company_raw column.${out.note ? ' ' + out.note : ''}`;
@@ -1427,7 +1440,7 @@ const LP = (function () {
       ? `drop the same file under <a href="#upload">Add Live Data</a> as <code>intro_requests.csv</code> and Accept it: new request IDs are appended, the next rebuild routes them.`
       : `from the repo root:<br><code>${esc(P.command.replace('{file}', filename || 'threads.jsonl'))}</code>`}</span></div>`;
     out += `<table class="preview"><thead><tr><th>Request</th><th>Posted · by</th><th>Resolved company</th><th>Offer in replies</th><th>Would route to<br><span class="fm">Hover a name for the arithmetic</span></th><th>Needs a human<br><span class="fm">Click the row for the ranked paths</span></th></tr></thead><tbody>`
-      + pv.rows.map((r, i) => `<tr class="pick ${r.flags.length ? 'flag' : ''}" data-i="${i}"><td class="rid">${esc(r.request_id)}${r.filed ? '<br><span class="foot">filed</span>' : ''}${reqFoot(r)}</td><td class="date">${esc(r.posted)}<br><span class="foot">${esc(r.requested_by)}</span></td><td>${r.company_id ? `${co(r)} <span class="foot">${esc(r.company_id)}</span>` : `<i>${esc(r.company_name || 'None')}</i>`}<br><span class="foot">${esc(r.company_as_written ? `"${r.company_as_written}" · ` : '')}${esc(r.resolved_by)}</span></td><td>${r.offers.length ? r.offers.map(o => `${named(r, o.who)} <span class="foot">${esc(o.date)}</span><br><q>${esc(o.text)}</q>`).join('<br>') : '<span class="foot">None</span>'}</td><td>${r.route_to ? `${named(r, r.route_to)}<br><span class="foot">${esc(cap1(r.path))} · expected value ${esc(r.expected_value)}</span>` : `<span class="foot">${esc(cap1(r.path) || 'None')}</span>`}</td><td class="foot">${r.flags.length ? r.flags.map(f => esc(cap1(f))).join('<br>') : 'Nothing'}</td></tr><tr class="detail" data-i="${i}" hidden><td colspan="6"></td></tr>`).join('')
+      + pv.rows.map((r, i) => `<tr class="pick ${r.flags.length ? 'flag' : ''}" data-i="${i}"><td class="rid">${esc(r.request_id)}${r.filed ? '<br><span class="foot">filed</span>' : ''}${reqFoot(r)}</td><td class="date">${esc(r.posted)}<br><span class="foot">${esc(r.requested_by)}</span></td><td>${r.company_id ? `${co(r)} <span class="foot">${esc(r.company_id)}</span>` : `<i>${esc(r.company_name || 'None')}</i>`}<br><span class="foot">${esc(r.company_as_written ? `"${r.company_as_written}" · ` : '')}${esc(r.resolved_by)}</span></td><td>${r.offers.length ? r.offers.map(o => `${named(r, o.who)} <span class="foot">${esc(o.date)}</span><br><q>${esc(o.text)}</q>`).join('<br>') : '<span class="foot">None</span>'}</td><td>${r.route_to ? `${named(r, r.route_to)}<br><span class="foot">${esc(cap1(r.path))} · expected value ${esc(r.expected_value)}</span>` : r.by_industry ? `<span class="foot">No path on file</span><br>${r.by_industry.split(' | ').map(w => `<b>${esc(w)}</b>`).join(' or ')}<br><span class="foot">by industry, no path scored</span>` : `<span class="foot">${esc(cap1(r.path) || 'None')}</span>`}</td><td class="foot">${r.flags.length ? r.flags.map(f => esc(cap1(f))).join('<br>') : 'Nothing'}</td></tr><tr class="detail" data-i="${i}" hidden><td colspan="6"></td></tr>`).join('')
       + `</tbody></table>`;
     el.innerHTML = out;
     el.querySelector('#lp-dl-preview').onclick = () => download(`${name}_preview.csv`, toCsv(P.preview_columns, pv.rows));
