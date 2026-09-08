@@ -658,10 +658,11 @@ class Live:
                 "path_strength": float(p["strength"]),
                 "focus_fit": self.fit(connector, self.industry(cid)),
                 "delivery_rate": self.rate(connector),
+                "title_fit": bg.title_fit(p["contact_title"], a["target_title"]),
                 "capacity_left": capacity_left,
             }
             request_priority = comp["deal_value_musd"] * comp["stage_weight"] * comp["age"] * comp["reps_waiting"]
-            connector_score = comp["path_strength"] * comp["focus_fit"] * comp["delivery_rate"] * comp["capacity_left"]
+            connector_score = comp["path_strength"] * comp["focus_fit"] * comp["delivery_rate"] * comp["title_fit"] * comp["capacity_left"]
             rows.append({
                 "request_id": a["request_id"],
                 **self.company_ref(cid, a["company_name"]),
@@ -694,12 +695,13 @@ class Live:
         return {
             "expected_value": "expected value = request priority × connector score",
             "request_priority": "request priority = deal value ($M) × stage weight × age × reps waiting",
-            "connector_score": "connector score = path strength × focus fit × delivery rate × capacity left",
+            "connector_score": "connector score = path strength × focus fit × delivery rate × title fit × capacity left",
             "stage_weight": {**STAGE_WEIGHT, "no CRM account": NO_CRM_WEIGHT},
             "age": f"1 + min(days since request, {AGE_CAP_DAYS}) / {AGE_CAP_DAYS}",
             "reps_waiting": "distinct requesters with a live request on the same company",
             "path_strength": "supply_reach.csv strength of the path used",
             "focus_fit": "1.0 in the connector's focus areas, 0.45 outside, 0 if they decline outside, 0.7 when the industry or the connector is unknown",
+            "title_fit": f"1.0 when the contact is at or above the seniority of the title asked for (or either title is blank), else 1 - the seniority gap, no lower than {bg.TITLE_FIT_FLOOR}",
             "delivery_rate": f"(intros + {bg.PRIOR_RATE} × {bg.PRIOR_WEIGHT:g}) / (asks + {bg.PRIOR_WEIGHT:g}): intros / asks shrunk toward the {round(100 * bg.PRIOR_RATE)}% network average, "
                              f"which is all a connector never asked has (supply_reach.csv delivery_rate)",
             "capacity_left": "share of stated monthly capacity still unspent when the allocator reached this request; 0 when the cycle's slots were gone",
@@ -1383,6 +1385,10 @@ class Live:
             "bare": js_regex(gp._BARE), "bare_cue": gp.BARE_CUE, "bare_score": gp.BARE_SCORE,
             "offer": js_regex(bg.OFFER_RE), "noise": js_regex(bg.NOISE_RE),
             "offer_title": js_regex(bg._OFFER_TITLE_RE), "offer_person": js_regex(bg._OFFER_PERSON_RE),
+            # title fit is per request (the title asked for against each path's contact), so the browser
+            # applies it to the company's paths with build_golden's seniority table
+            "title_fit": {"seniority": bg.SENIORITY, "default": bg.DEFAULT_SENIORITY, "floor": bg.TITLE_FIT_FLOOR,
+                          "after_roster": bg.INVESTOR_NETWORK},
             "resolver": {
                 "entities": ents, "strict": dict(strict), "loose": dict(loose),
                 "stem": {gr.domain_stem(e.domain): e.entity_id for e in res.entities if e.domain},

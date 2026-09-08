@@ -253,7 +253,8 @@ class NetworkOrbitTest(unittest.TestCase):
                 p = by_path[(a["allocated_to"], a["company_id"])]
                 self.assertNotIn(a["allocated_to"], self.roster)
                 self.assertEqual(float(a["route_score"]),
-                                 round(bg.path_score(p, self.roster, {}, self.companies[a["company_id"]]["industry"]), 3))
+                                 round(bg.path_score(p, self.roster, {}, self.companies[a["company_id"]]["industry"],
+                                                     a["target_title"]), 3))
                 for n in roster_paths[a["company_id"]]:
                     self.assertGreaterEqual(used[n], bg.capacity(self.roster, n),
                                             f"{n} still had capacity for {a['company_id']}")

@@ -55,8 +55,10 @@ process.stdin.on('end', () => {
       company_id: x.company ? x.company.company_id : '', company_name: x.company ? x.company.company_name : '',
       crm: x.crm, network: !!x.network, path_count: x.company ? x.company.path_count : 0,
       candidates: x.candidates.map(c => c.id), others: x.others.map(o => o.text),
-      top: x.top ? { connector: x.top.connector, reach_type: x.top.reach_type, contact: x.top.contact, score: x.top.score } : null,
+      top: x.top ? { connector: x.top.connector, reach_type: x.top.reach_type, contact: x.top.contact, score: x.top.score, title_fit: x.top.title_fit } : null,
       paths: x.paths.map(p => p.connector), expected_value: x.priority ? x.priority.expected_value : null,
+      scored: x.paths.map(p => ({ connector: p.connector, reach_type: p.reach_type, contact: p.contact, score: p.score, title_fit: p.title_fit })),
+      connector_components: x.priority ? x.priority.connector_components : null,
     };
   });
   const preview = threads ? LP.previewThreads(threads, parser).rows.map(r => ({

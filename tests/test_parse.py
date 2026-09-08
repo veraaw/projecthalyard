@@ -306,10 +306,39 @@ class ExportedRulesTest(unittest.TestCase):
         cls.js = {t: r for t, r in zip(cls.texts, js["routed"])}
         cls.js_extract = {t: r for t, r in zip(cls.texts, js["extracted"])}
 
-    def python_top(self, cid):
+    def python_top(self, cid, title=""):
         p, _ = bg.best_route(self.live.paths.get(cid, []), self.live.roster, self.live.rates, self.live.industry(cid),
-                             held=self.live.held, company_id=cid)
+                             held=self.live.held, company_id=cid, title=title)
         return (p["connector"], p["reach_type"], p["contact_name"]) if p else None
+
+    def test_title_fit_is_exported_and_applied_as_the_build_does(self):
+        T = self.P["title_fit"]
+        self.assertEqual((T["seniority"], T["default"], T["floor"], T["after_roster"]),
+                         (bg.SENIORITY, bg.DEFAULT_SENIORITY, bg.TITLE_FIT_FLOOR, bg.INVESTOR_NETWORK))
+        self.assertEqual(bg.title_fit("", "Chief Operating Officer"), 1.0)
+        self.assertEqual(bg.title_fit("Program Manager", ""), 1.0)
+        self.assertEqual(bg.title_fit("Chief Technology Officer", "Program Manager"), 1.0)
+        self.assertEqual(bg.title_fit("Program Manager", "Chief Operating Officer"), bg.TITLE_FIT_FLOOR)
+        self.assertEqual(bg.title_fit("Some Unlisted Title", "Chief Operating Officer"), max(bg.TITLE_FIT_FLOOR, 1.0 - (1.0 - bg.DEFAULT_SENIORITY)))
+        self.assertAlmostEqual(bg.title_fit("SVP Digital", "Chief Operating Officer"), 0.85)
+        # a request that names a title re-scores the paths in the browser: each score is the
+        # exported one x title fit, and the top is the build's for that title
+        titled = [(t, gp.extract_title(t)) for t in CASES.values() if gp.extract_title(t)]
+        self.assertTrue(titled)
+        for text, title in titled:
+            with self.subTest(text):
+                js = self.js[text]
+                if not js["company_id"]:
+                    continue
+                self.assertEqual(js["title"], title)
+                exported = {(p["connector"], p["reach_type"], p["contact"]): p
+                            for p in self.P["companies"][js["company_id"]]["paths"]}
+                for p in js["scored"]:
+                    e = exported[(p["connector"], p["reach_type"], p["contact"])]
+                    self.assertAlmostEqual(p["title_fit"], bg.title_fit(e["title"], title), places=3)
+                    self.assertAlmostEqual(p["score"], round(e["score"] * p["title_fit"], 3), places=3)
+                if js["top"]:
+                    self.assertEqual(js["connector_components"]["title_fit"], js["top"]["title_fit"])
 
     def test_cue_table_is_parse_py_verbatim(self):
         exported = [(c["label"], c["source"], c["score"]) for c in self.P["cues"]]
@@ -467,7 +496,7 @@ class ExportedRulesTest(unittest.TestCase):
                 if not js["company_id"]:
                     self.assertIsNone(js["top"])
                     continue
-                top = self.python_top(js["company_id"])
+                top = self.python_top(js["company_id"], gp.extract_title(text))
                 self.assertEqual((js["top"]["connector"], js["top"]["reach_type"], js["top"]["contact"]) if js["top"] else None, top)
                 self.assertEqual(js["status"], "routed" if top else "no-path")
 

@@ -493,6 +493,24 @@ const LP = (function () {
     return hx.target ? { ...hx, from_hint: true } : { ...ex, from_hint: false };
   };
 
+  // build_golden.title_fit: the path's contact against the title asked for, by seniority; 1.0 with nothing to compare
+  const titleFit = (P, contact, wanted) => {
+    const T = P.title_fit;
+    if (!T || !(contact || '').trim() || !(wanted || '').trim()) return 1;
+    const sen = t => get(T.seniority, t.trim().toLowerCase(), T.default);
+    return Math.max(T.floor, 1 - Math.max(0, sen(wanted) - sen(contact)));
+  };
+  // the company's exported paths re-scored for one request's title and put back in the allocator's order:
+  // askable before held, roster before our wider network, then by score. Blank title leaves them as exported.
+  const pathsForTitle = (C, wanted, P) => {
+    if (!(wanted || '').trim()) return C.paths;
+    const T = P.title_fit;
+    const tier = p => (p.askable ? 0 : 2) + (p.hold === 'last' ? 1 : 0);
+    return C.paths.map(p => { const tf = titleFit(P, p.title, wanted); return { ...p, title_fit: tf, score: +(p.score * tf).toFixed(3), connector_score: +(p.connector_score * tf).toFixed(3) }; })
+      .sort((a, b) => tier(a) - tier(b) || (a.reach_type === T.after_roster) - (b.reach_type === T.after_roster) || b.score - a.score);
+  };
+  const wantedTitle = (text, P, fallback = '') => { const tm = new RegExp(P.title.source, P.title.flags).exec(text || ''); return tm ? tm.groups.t : fallback; };
+
   // `input` is .jsonl text, or the { threads, errors } of parseJsonl / requestsToThreads
   function previewThreads(input, P) {
     const resolver = makeResolver(P.resolver);
@@ -550,7 +568,7 @@ const LP = (function () {
         }
       }
       // who it would route to: the best existing path vs any offer in the thread, scored as the build scores them
-      // (path strength x focus fit x delivery rate); expected value then multiplies by the request priority
+      // (path strength x focus fit x delivery rate x title fit); expected value then multiplies by the request priority
       // and the slots left, as the allocator does. Every factor comes from the payload. A connector sitting on
       // an unresolved ask at this company (C.holds) is stepped over: they agreed and sent no intro (nudge them),
       // or have not answered yet (chase them); one who never answered an ask older than the window is askable
@@ -559,13 +577,16 @@ const LP = (function () {
       const priority = C ? C.priority : { request_priority: 0, deal_source: 'no deal value on file',
                                           components: { deal_value_musd: 0, stage_weight: P.no_crm_weight, age: 1, reps_waiting: 1 } };
       const holdOf = who => C ? get(C.holds, who, null) : null;
-      const cand = (who, score, label, strength, fit, rate, capacity_left) => ({
+      const cand = (who, score, label, strength, fit, rate, capacity_left, title_fit = 1) => ({
         who, score, label, connector_score: score * capacity_left, hold: (holdOf(who) || { hold: '' }).hold,
         expected_value: priority.request_priority * score * capacity_left, if_slot: priority.request_priority * score,
-        components: { path_strength: strength, focus_fit: fit, delivery_rate: rate, capacity_left },
+        components: { path_strength: strength, focus_fit: fit, delivery_rate: rate, title_fit, capacity_left },
       });
       const cands = [], held = [];
-      if (C && C.best) cands.push(cand(C.best.connector, C.best.score, C.best.label, C.best.strength, C.best.fit, C.best.rate, C.best.capacity_left));
+      // the title asked for re-scores the paths (title fit), so the best path is picked per request, not per company
+      row.target_title = row.target_title || wantedTitle(first.text, P);
+      const best = C ? pathsForTitle(C, row.target_title, P).find(p => p.askable) || null : null;
+      if (best) cands.push(cand(best.connector, best.score, best.label, best.strength, best.fit, best.rate, best.capacity_left, best.title_fit || 1));
       for (const o of offers) {
         const h = holdOf(o.who);
         if (h && !h.askable) { held.push(h); human.push(`${o.who} offers, but ${h.reason}: ${h.hold === 'nudge' ? 'nudge' : 'chase'} them instead of asking afresh`); continue; }
@@ -619,14 +640,14 @@ const LP = (function () {
     return ` By sector it would go to ${sc.connectors.map(c => `${c.connector}${c.asked ? ` (last asked here ${c.asked})` : ' (never asked here)'}`).join(' or ')}: ${sc.industry} is in their focus areas, so ask whether they know anyone.`;
   };
 
-  // `hint` is the target_company_raw of a request row, read when the message itself names no target
-  function route(text, P, hint = '') {
+  // `hint` is the target_company_raw of a request row, read when the message itself names no target;
+  // `title` its target_title_raw, read when the message names no title
+  function route(text, P, hint = '', title = '') {
     text = (text || '').trim();
     const resolver = makeResolver(P.resolver);
     const ex = targetOf(text, hint, P, resolver);
-    const tm = new RegExp(P.title.source, P.title.flags).exec(text);
     const tg = ex.target;
-    const out = { text, title: tm ? tm.groups.t : '', mentions: ex.mentions, target: null, company: null, crm: false, from_hint: ex.from_hint,
+    const out = { text, title: wantedTitle(text, P, title), mentions: ex.mentions, target: null, company: null, crm: false, from_hint: ex.from_hint,
                   others: [], candidates: [], paths: [], top: null, priority: null, status: '', note: '' };
     const bare = ex.mentions.filter(m => m.cue === P.known_cue).length;
     const lost = m => {
@@ -668,12 +689,12 @@ const LP = (function () {
       return out;
     }
     out.company = C; out.crm = C.crm; out.network = !!C.network;
-    out.paths = C.paths;
-    out.top = C.paths.find(p => p.score > 0 && p.askable) || null;
+    out.paths = pathsForTitle(C, out.title, P);
+    out.top = out.paths.find(p => p.score > 0 && p.askable) || null;
     out.priority = out.top ? {
       ...C.priority, connector_score: out.top.connector_score,
       expected_value: +(C.priority.request_priority * out.top.connector_score).toFixed(4),
-      connector_components: { path_strength: out.top.strength, focus_fit: out.top.fit, delivery_rate: out.top.rate, capacity_left: out.top.capacity_left },
+      connector_components: { path_strength: out.top.strength, focus_fit: out.top.fit, delivery_rate: out.top.rate, title_fit: out.top.title_fit || 1, capacity_left: out.top.capacity_left },
     } : { ...C.priority, connector_score: 0, expected_value: 0, connector_components: null };
     const heldOnly = !out.top && C.paths.some(p => p.score > 0 && !p.askable);
     out.status = out.top ? 'routed' : 'no-path';
@@ -926,7 +947,7 @@ const LP = (function () {
     : `<div class="kpi"><div class="v">${c.used}</div><div class="l">asks this cycle</div><div class="s">${c.asked_this_cycle} asked + ${c.allocated_this_cycle} allocated</div></div>`;
   const comp = (r, k, fmt) => `<span class="c" title="${esc(k.replace(/_/g, ' '))}">${fmt(r.components[k])}</span>`;
   const FM_HEAD = '<th class="num">Expected value</th><th>Request priority<br><span class="fm">deal $M × stage × age × reps</span></th><th>Connector score<br><span class="fm">path × fit × rate × capacity</span></th>';
-  const fmCells = r => `<td class="num ev">${r.expected_value.toFixed(3)}</td><td class="parts"><b>${r.request_priority.toFixed(3)}</b><span class="math">${comp(r, 'deal_value_musd', v => v.toFixed(2))} × ${comp(r, 'stage_weight', v => v.toFixed(2))} × ${comp(r, 'age', v => v.toFixed(2))} × ${comp(r, 'reps_waiting', v => v)}</span><span class="foot">${r.days_waiting} days waiting</span></td><td class="parts"><b>${r.connector_score.toFixed(3)}</b><span class="math">${comp(r, 'path_strength', v => v.toFixed(2))} × ${comp(r, 'focus_fit', v => v.toFixed(2))} × ${comp(r, 'delivery_rate', v => v.toFixed(2))} × ${comp(r, 'capacity_left', v => v.toFixed(2))}</span><span class="foot">${esc(r.capacity_note)}</span></td>`;
+  const fmCells = r => `<td class="num ev">${r.expected_value.toFixed(3)}</td><td class="parts"><b>${r.request_priority.toFixed(3)}</b><span class="math">${comp(r, 'deal_value_musd', v => v.toFixed(2))} × ${comp(r, 'stage_weight', v => v.toFixed(2))} × ${comp(r, 'age', v => v.toFixed(2))} × ${comp(r, 'reps_waiting', v => v)}</span><span class="foot">${r.days_waiting} days waiting</span></td><td class="parts"><b>${r.connector_score.toFixed(3)}</b><span class="math">${comp(r, 'path_strength', v => v.toFixed(2))} × ${comp(r, 'focus_fit', v => v.toFixed(2))} × ${comp(r, 'delivery_rate', v => v.toFixed(2))} × ${comp(r, 'title_fit', v => v.toFixed(2))} × ${comp(r, 'capacity_left', v => v.toFixed(2))}</span><span class="foot">${esc(r.capacity_note)}</span></td>`;
 
   // rows of ranked() with tick-boxes (an ask sent); `rankKey` picks the number shown in the # column
   function priorityTable(rows, X, state, rankKey, withConnector) {
@@ -937,7 +958,7 @@ const LP = (function () {
 
   function formulaNote(F) {
     return `<div class="formula"><p><code>${esc(F.expected_value)}</code></p><p><code>${esc(F.request_priority)}</code><br><code>${esc(F.connector_score)}</code></p>
-      <p class="foot">Stage weight by CRM stage: ${Object.entries(F.stage_weight).map(([k, v]) => `${esc(k)} ${v}`).join(' · ')}. Age: ${esc(F.age)}. Reps waiting: ${esc(F.reps_waiting)}. Path strength: ${esc(F.path_strength)}. Focus fit: ${esc(F.focus_fit)}. Delivery rate: ${esc(F.delivery_rate)}. Capacity left: ${esc(F.capacity_left)}. Tick a row once the ask is sent; Submit records the ticks and the next rebuild takes them off the list.</p></div>`;
+      <p class="foot">Stage weight by CRM stage: ${Object.entries(F.stage_weight).map(([k, v]) => `${esc(k)} ${v}`).join(' · ')}. Age: ${esc(F.age)}. Reps waiting: ${esc(F.reps_waiting)}. Path strength: ${esc(F.path_strength)}. Focus fit: ${esc(F.focus_fit)}. Delivery rate: ${esc(F.delivery_rate)}. Title fit: ${esc(F.title_fit)}. Capacity left: ${esc(F.capacity_left)}. Tick a row once the ask is sent; Submit records the ticks and the next rebuild takes them off the list.</p></div>`;
   }
 
   // asks a connector is sitting on, with a tick-box per row (nudged / chased); a row
@@ -1393,16 +1414,16 @@ const LP = (function () {
       const p = x.priority;
       const req = `<span class="c" title="${esc(hover(p.components, ['deal_value_musd', 'stage_weight', 'age', 'reps_waiting']))}; deal value is ${esc(p.deal_source)}; age 1.0 = posted today">request priority ${p.request_priority.toFixed(3)}</span>`;
       if (!x.top) priority = `${req} <span class="foot">× No connector score: nobody reaches ${esc(C.company_name)}, so nothing to rank</span>`;
-      else priority = `<span class="ev" title="expected value = request priority × connector score">${p.expected_value.toFixed(3)}</span> = ${req} × <span class="c" title="${esc(hover(p.connector_components, ['path_strength', 'focus_fit', 'delivery_rate', 'capacity_left']))}">connector score ${p.connector_score.toFixed(3)}</span>${x.top.capacity_left <= 0 ? ` <span class="foot"><b class="warn">Zero: ${esc(x.top.connector)} has no slot left this cycle</b>; ${(p.request_priority * x.top.score).toFixed(3)} the moment one frees</span>` : ''}`;
+      else priority = `<span class="ev" title="expected value = request priority × connector score">${p.expected_value.toFixed(3)}</span> = ${req} × <span class="c" title="${esc(hover(p.connector_components, ['path_strength', 'focus_fit', 'delivery_rate', 'title_fit', 'capacity_left']))}">connector score ${p.connector_score.toFixed(3)}</span>${x.top.capacity_left <= 0 ? ` <span class="foot"><b class="warn">Zero: ${esc(x.top.connector)} has no slot left this cycle</b>; ${(p.request_priority * x.top.score).toFixed(3)} the moment one frees</span>` : ''}`;
     } else priority = `<span class="foot">Not scored${x.status === 'no-target' || x.status === 'refused' ? '' : ': nothing to route'}</span>`;
     let out = `<dl class="route parts">${row('Target', target, 'key')}${row('Account', account)}${row('Title', x.title ? esc(x.title) : '<span class="foot">None named</span>')}${row('Not the target', others)}${row('Priority', priority)}</dl>`;
     if (x.note) out += `<div class="route-note${x.status === 'routed' ? ' ok' : ''}">${esc(x.note)}</div>`;
     if (x.paths.length) {
       const shown = C && C.path_count > x.paths.length ? ` · the best ${x.paths.length} of ${C.path_count}` : '';
       const heldNote = x.paths.some(p => p.hold) ? '; a connector sitting on an unresolved ask here is skipped (nudge or chase them), or ranked last once it is older than the window' : '';
-      out += `<h3>Ranked connectors <span class="foot">Best first: path strength × focus fit × delivery rate, as <code>build_golden.py</code> scores them${heldNote}${shown}</span></h3>
+      out += `<h3>Ranked connectors <span class="foot">Best first: path strength × focus fit × delivery rate${x.title ? ` × title fit (${esc(x.title)} asked for)` : ''}, as <code>build_golden.py</code> scores them${heldNote}${shown}</span></h3>
         <table><thead><tr><th>#</th><th>Connector</th><th>Path</th><th class="num">Score</th><th>Why</th></tr></thead><tbody>`
-        + x.paths.map((p, i) => `<tr class="${p.score > 0 && p.askable ? '' : 'foot'}"><td class="order">${i + 1}</td><td><b>${esc(p.connector)}</b>${p.on_roster ? '' : '<br><span class="foot">not on the roster</span>'}</td><td class="path">${esc(p.reach_type)}${p.contact ? `<br><span class="foot">${esc(p.contact)}</span>` : ''}</td><td class="num"><span class="c" title="${p.strength} strength × ${p.fit} fit × ${p.rate} delivery rate">${p.score.toFixed(3)}</span></td><td class="foot">${esc(p.reason)}${p.score <= 0 ? '; <b>would not be routed</b>' : p.askable ? '' : '; <b>not asked again here</b>'}</td></tr>`).join('')
+        + x.paths.map((p, i) => `<tr class="${p.score > 0 && p.askable ? '' : 'foot'}"><td class="order">${i + 1}</td><td><b>${esc(p.connector)}</b>${p.on_roster ? '' : '<br><span class="foot">not on the roster</span>'}</td><td class="path">${esc(p.reach_type)}${p.contact ? `<br><span class="foot">${esc(p.contact)}</span>` : ''}</td><td class="num"><span class="c" title="${p.strength} strength × ${p.fit} fit × ${p.rate} delivery rate${p.title_fit !== undefined ? ` × ${p.title_fit.toFixed(2)} title fit` : ''}">${p.score.toFixed(3)}</span></td><td class="foot">${esc(p.reason)}${p.score <= 0 ? '; <b>would not be routed</b>' : p.askable ? '' : '; <b>not asked again here</b>'}</td></tr>`).join('')
         + `</tbody></table>`;
     } else if (C) out += `<p class="empty">No path on the roster</p>`;
     return out;
@@ -1429,7 +1450,7 @@ const LP = (function () {
       const q = p.components, k = c.components;
       return [`expected value ${f3(c.expected_value)} = request priority ${f3(p.request_priority)} × connector score ${f3(c.connector_score)}`,
               `request priority ${f3(p.request_priority)} = deal $M ${f2(q.deal_value_musd)} × stage ${f2(q.stage_weight)} × age ${f2(q.age)} × reps ${q.reps_waiting} (deal value is ${p.deal_source}; age 1.0 = posted today)`,
-              `connector score ${f3(c.connector_score)} = path ${f2(k.path_strength)} (${c.label}) × fit ${f2(k.focus_fit)} × rate ${f2(k.delivery_rate)} × capacity ${f2(k.capacity_left)}`,
+              `connector score ${f3(c.connector_score)} = path ${f2(k.path_strength)} (${c.label}) × fit ${f2(k.focus_fit)} × rate ${f2(k.delivery_rate)} × title fit ${f2(k.title_fit === undefined ? 1 : k.title_fit)} × capacity ${f2(k.capacity_left)}`,
               k.capacity_left <= 0 ? `zero: ${who} has no slot left this cycle; ${f3(c.if_slot)} the moment one frees` : '',
               r.cands.length > 1 ? `ranked by path × fit × rate: ${r.cands.map(x => `${x.who} ${f3(x.score)}${x.hold === 'last' ? ' (ranked last: unanswered ask here past the window)' : ''}`).join(' > ')}` : '',
               r.held && r.held.length ? `not asked again here: ${r.held.join('; ')}` : ''].filter(Boolean).join('\n');
@@ -1446,7 +1467,7 @@ const LP = (function () {
     el.querySelector('#lp-dl-preview').onclick = () => download(`${name}_preview.csv`, toCsv(P.preview_columns, pv.rows));
     const toggle = i => {
       const d = el.querySelector(`tr.detail[data-i="${i}"]`), td = d.firstElementChild;
-      if (!td.innerHTML) td.innerHTML = renderRoute(route(pv.rows[i].raw_ask, P, pv.rows[i].target_company_raw), P);
+      if (!td.innerHTML) td.innerHTML = renderRoute(route(pv.rows[i].raw_ask, P, pv.rows[i].target_company_raw, pv.rows[i].target_title), P);
       d.hidden = !d.hidden;
     };
     el.querySelectorAll('tr.pick').forEach(tr => tr.onclick = e => { if (!e.target.closest('a')) toggle(+tr.dataset.i); });
