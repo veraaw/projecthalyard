@@ -1,7 +1,6 @@
 # Rebuild golden/, analysis/ and the site; commit the first two, publish the third.
 #
-# On every Submit or Accept from the Live Priorities tab, and every 15 minutes
-# as a backstop: pull the Supabase `completions` table into
+# On every Submit or Accept from the Live Priorities tab: pull the Supabase `completions` table into
 # golden/completions.csv (what Submit recorded) and the `intake_uploads` table
 # into intake/ (the live-data files Accept filed; dataset/ is never written),
 # rebuild, test, commit golden/, intake/ and analysis/ when they changed, and
@@ -13,9 +12,8 @@
 #
 # The Submit / Accept trigger is a repository_dispatch event (type `completion`)
 # that a Postgres trigger on each table posts with pg_net the moment a row
-# lands (config/supabase_rebuild_trigger.sql, config/supabase_schema.sql). The
-# cron alone is not enough: GitHub queues scheduled runs best-effort and a */15
-# schedule fires every hour or two in practice. Submits arriving while a run is
+# lands (config/supabase_rebuild_trigger.sql, config/supabase_schema.sql). There
+# is no scheduled run. Submits arriving while a run is
 # going share the one pending run the concurrency group keeps, so a burst is
 # one rebuild, not many.
 #
@@ -31,8 +29,6 @@
 name: rebuild
 
 on:
-  schedule:
-    - cron: "*/15 * * * *"
   push:
     branches: [main]
   workflow_dispatch:

@@ -7,8 +7,6 @@
 -- attaches it): it reads only the statement's transition table, so it does not
 -- care which table fired it, and one event type is enough - the workflow pulls
 -- both tables every run.
--- The 15-minute cron stays as a backstop: GitHub runs schedules best-effort and
--- a */15 cron fires every hour or two in practice.
 --
 -- Run once in the Supabase SQL editor (Dashboard -> SQL Editor), in order.
 --
