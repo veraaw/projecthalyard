@@ -39,7 +39,7 @@ python3 golden/intake.py --revert [--by WHO]              # back to the Septembe
 "as of" the same day. The rebuild workflow (`.github/workflows/rebuild.yml`) runs on
 every Submit or Accept from the Live Priorities tab (a Postgres trigger on the `completions`
 and `intake_uploads` tables, `config/supabase_rebuild_trigger.sql`, fires a
-`repository_dispatch`) and every 15 minutes as a backstop: pulls the Supabase `completions`
+`repository_dispatch`): pulls the Supabase `completions`
 table into `golden/completions.csv` and `intake_uploads` into `intake/`, rebuilds, tests,
 commits `golden/`, `intake/` and `analysis/` when they changed, and deploys `docs/` to
 GitHub Pages (repo Settings -> Pages -> Source: GitHub Actions). A row the build cannot
